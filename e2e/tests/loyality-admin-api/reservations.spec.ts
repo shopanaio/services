@@ -23,7 +23,7 @@ test.describe('Loyalty Admin API reservations', () => {
       composeGlobalId('LoyaltyReservation', crypto.randomUUID()),
       composeGlobalId('LoyaltyProgram', crypto.randomUUID()),
     ]) {
-      const result = await api.admin.mutation<any>('loyality-admin-api/ReservationRelease', { throwOnError: false, variables: { input: { reservationId, expectedRevision: 1, reasonCode: 'ADMIN_RELEASE', idempotencyKey: idempotencyKey('reservation-release') } } });
+      const result = await api.admin.mutation<any>('loyality-admin-api/ReservationRelease', { throwOnError: false, variables: { input: { reservationId,  reasonCode: 'ADMIN_RELEASE', idempotencyKey: idempotencyKey('reservation-release') } } });
       if (result.errors?.length) {
         expect(result.data?.loyaltyMutation?.reservationRelease?.reservation ?? null).toBeNull();
       } else {

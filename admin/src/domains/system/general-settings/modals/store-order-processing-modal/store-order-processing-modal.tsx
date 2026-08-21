@@ -93,7 +93,7 @@ export const StoreOrderProcessingModal = () => {
     setSubmitError(null);
     const result = await updateMutation.updateStore({
       storeId: store.id,
-      expectedRevision: store.revision,
+
       operations: mapStoreOrderProcessingInput(values),
     });
     const operationErrors = result.operationResults.flatMap(({ applied, errors }) =>

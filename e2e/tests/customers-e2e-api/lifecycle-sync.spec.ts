@@ -22,7 +22,7 @@ test.describe('Customers E2E API — lifecycle synchronization', () => {
       'CustomerUpdateInput',
       {
         firstName: 'Must not write',
-        expectedRevision: kit.customer.revision,
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { id } userErrors { ${USER_ERROR_FIELDS} }`,

@@ -100,7 +100,6 @@ export class ProgramLifecycleService {
   async updateProgram(
     id: string,
     input: Parameters<Repository["program"]["update"]>[1],
-    expectedRevision?: number,
   ): Promise<Program> {
     return this.repository.runInTransaction(async () => {
       const current = await this.repository.program.lockById(id);
@@ -110,13 +109,6 @@ export class ProgramLifecycleService {
         throw new LoyaltyDomainError(
           "PROGRAM_ARCHIVED",
           "An archived loyalty program is immutable",
-        );
-      }
-      if (expectedRevision !== undefined && current.revision !== expectedRevision) {
-        throw new LoyaltyDomainError(
-          "PROGRAM_CONCURRENT_CHANGE",
-          "Loyalty program changed concurrently",
-          true,
         );
       }
       if (input.isDefault) await this.repository.program.clearDefault(id);
@@ -250,7 +242,6 @@ export class ProgramLifecycleService {
   async updateDraftVersion(
     versionId: string,
     input: Partial<ProgramVersionDraftInput>,
-    expectedRevision?: number,
   ): Promise<ProgramVersion> {
     return this.repository.runInTransaction(async () => {
       const current = await this.repository.program.lockVersionById(versionId);
@@ -261,13 +252,6 @@ export class ProgramLifecycleService {
           "PROGRAM_VERSION_IMMUTABLE",
           "Published versions are immutable",
         );
-      if (expectedRevision !== undefined && current.revision !== expectedRevision) {
-        throw new LoyaltyDomainError(
-          "PROGRAM_VERSION_CONCURRENT_CHANGE",
-          "Loyalty program version changed concurrently",
-          true,
-        );
-      }
       const rules = input.rules
         ? createLoyaltyProgramRulesV1(input.rules)
         : { valid: true as const, rules: current.rules };
@@ -303,16 +287,9 @@ export class ProgramLifecycleService {
     });
   }
 
-  async deleteDraftVersion(versionId: string, expectedRevision?: number): Promise<void> {
+  async deleteDraftVersion(versionId: string): Promise<void> {
     await this.repository.runInTransaction(async () => {
       const current = await this.requireDraftVersion(versionId);
-      if (expectedRevision !== undefined && current.revision !== expectedRevision) {
-        throw new LoyaltyDomainError(
-          "PROGRAM_VERSION_CONCURRENT_CHANGE",
-          "Loyalty program version changed concurrently",
-          true,
-        );
-      }
       const tiers = await this.repository.tier.listForVersion(versionId);
       for (const tier of tiers) {
         for (const benefit of await this.repository.reward.listTierBenefits(tier.id)) {
@@ -637,7 +614,7 @@ export class ProgramLifecycleService {
 
   async publishVersion(input: {
     versionId: string;
-    expectedRevision?: number;
+
     effectiveFrom: string;
     effectiveTo?: string | null;
     publishedAt: string;
@@ -652,13 +629,6 @@ export class ProgramLifecycleService {
           "PROGRAM_VERSION_ALREADY_PUBLISHED",
           "Program version is already published",
         );
-      if (input.expectedRevision !== undefined && draft.revision !== input.expectedRevision) {
-        throw new LoyaltyDomainError(
-          "PROGRAM_VERSION_CONCURRENT_CHANGE",
-          "Loyalty program version changed concurrently",
-          true,
-        );
-      }
       const canonical = createLoyaltyProgramRulesV1(
         draft.rules as unknown as LoyaltyProgramRulesValidationInputV1,
       );

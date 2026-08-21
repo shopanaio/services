@@ -174,7 +174,9 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async stepAcquireRevision(customerId: string): Promise<
+  private async stepAcquireRevision(
+    customerId: string,
+  ): Promise<
     { revision: number } | { error: { message: string; code: string; field?: string[] } }
   > {
     const customer = await this.kernel.repository.customer.update(customerId, {});

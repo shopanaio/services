@@ -14,7 +14,7 @@ export function OrderFulfillmentStatusModal() {
     const result = await mutation.updateFulfillmentStatus({
       id: value.orderId,
       fulfillmentId: value.fulfillmentId,
-      expectedVersion: value.expectedVersion,
+
       nextStatus: value.nextStatus,
       comment,
     });

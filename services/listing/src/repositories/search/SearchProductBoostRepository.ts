@@ -23,7 +23,7 @@ import {
 import {
   assertNonEmpty,
   assertUnique,
-  type SearchOptimisticMutationResult,
+  type SearchMutationResult,
   type SearchProductBoostAggregate,
   type SearchProductBoostPhraseInput,
 } from "./searchRepositoryTypes.js";
@@ -67,12 +67,10 @@ export interface SearchProductBoostCreateInput {
 
 export interface SearchProductBoostUpdateInput extends SearchProductBoostCreateInput {
   boostId: string;
-  expectedVersion: number;
 }
 
 export interface SearchProductBoostDeleteInput {
   boostId: string;
-  expectedVersion: number;
 }
 
 export class SearchProductBoostRepository extends BaseRepository {
@@ -236,7 +234,6 @@ export class SearchProductBoostRepository extends BaseRepository {
       locale: input.locale,
       name: input.name,
       enabled: input.enabled,
-      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -252,14 +249,10 @@ export class SearchProductBoostRepository extends BaseRepository {
   @Transactional()
   async update(
     input: SearchProductBoostUpdateInput,
-  ): Promise<SearchOptimisticMutationResult<SearchProductBoostAggregate>> {
+  ): Promise<SearchMutationResult<SearchProductBoostAggregate>> {
     this.assertWriteInput(input);
-    this.assertExpectedVersion(input.expectedVersion);
     const current = await this.lockBoost(input.boostId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     await this.connection
       .delete(searchProductBoostPhrase)
       .where(
@@ -277,21 +270,18 @@ export class SearchProductBoostRepository extends BaseRepository {
         ),
       );
 
-    const nextVersion = current.version + 1;
     const boosts = await this.connection
       .update(searchProductBoost)
       .set({
         locale: input.locale,
         name: input.name,
         enabled: input.enabled,
-        version: nextVersion,
         updatedAt: new Date().toISOString(),
       })
       .where(
         and(
           eq(searchProductBoost.storeId, this.storeId),
           eq(searchProductBoost.boostId, input.boostId),
-          eq(searchProductBoost.version, input.expectedVersion),
         ),
       )
       .returning();
@@ -306,13 +296,9 @@ export class SearchProductBoostRepository extends BaseRepository {
   @Transactional()
   async delete(
     input: SearchProductBoostDeleteInput,
-  ): Promise<SearchOptimisticMutationResult<SearchProductBoostAggregate>> {
-    this.assertExpectedVersion(input.expectedVersion);
+  ): Promise<SearchMutationResult<SearchProductBoostAggregate>> {
     const current = await this.lockBoost(input.boostId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     const aggregate = await this.aggregateForLockedBoost(current);
     const rows = await this.connection
       .delete(searchProductBoost)
@@ -320,7 +306,6 @@ export class SearchProductBoostRepository extends BaseRepository {
         and(
           eq(searchProductBoost.storeId, this.storeId),
           eq(searchProductBoost.boostId, input.boostId),
-          eq(searchProductBoost.version, input.expectedVersion),
         ),
       )
       .returning({ boostId: searchProductBoost.boostId });
@@ -340,12 +325,6 @@ export class SearchProductBoostRepository extends BaseRepository {
       .limit(1)
       .for("update");
     return rows[0] ?? null;
-  }
-
-  private assertExpectedVersion(expectedVersion: number): void {
-    if (!Number.isInteger(expectedVersion) || expectedVersion <= 0) {
-      throw new Error("expectedVersion must be a positive integer");
-    }
   }
 
   private async getPhrases(boostIds: readonly string[]): Promise<SearchProductBoostPhrase[]> {

@@ -22,14 +22,14 @@ test.describe('Loyalty Admin API authorization tenancy and audit', () => {
     await api.session.setupProject({ displayName: 'Isolated store', currencyCode: 'USD' });
     const query = await api.admin.query<any>('loyality-admin-api/Program', { variables: { id: foreign.id } });
     expect(query.data.loyaltyQuery.program).toBeNull();
-    const mutation = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: foreign.id, expectedRevision: foreign.revision, name: 'Cross store write', idempotencyKey: idempotencyKey('foreign-write') } } });
+    const mutation = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: foreign.id,  name: 'Cross store write', idempotencyKey: idempotencyKey('foreign-write') } } });
     expectUserError(mutation.data.loyaltyMutation.programUpdate);
     expect(mutation.data.loyaltyMutation.programUpdate.program).toBeNull();
   });
 
   test('returns structured safe user errors', async ({ api }) => {
     const missing = Buffer.from(`gid://shopana/LoyaltyProgram/${crypto.randomUUID()}`).toString('base64');
-    const result = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: missing, expectedRevision: 1, name: 'Missing', idempotencyKey: idempotencyKey('missing') } } });
+    const result = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: missing,  name: 'Missing', idempotencyKey: idempotencyKey('missing') } } });
     const [error] = result.data.loyaltyMutation.programUpdate.userErrors;
     expect(error).toEqual(expect.objectContaining({ message: expect.any(String), code: expect.any(String), retryable: expect.any(Boolean) }));
     expect(JSON.stringify(error)).not.toMatch(/(?:SELECT |INSERT |postgres|stack|\.ts:)/iu);

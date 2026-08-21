@@ -32,7 +32,7 @@ export function DraftFulfillment({
       for (const product of newProducts) {
         const result = await addMutation.addOrderItem({
           id: order.id,
-          expectedVersion: version,
+
           item: { productId: product.id, title: product.title, price: 0, quantity: 1 },
         });
         if (!result.order) {
@@ -62,7 +62,7 @@ export function DraftFulfillment({
     if (!confirmed) return;
     const result = await deleteMutation.deleteOrderItem({
       id: order.id,
-      expectedVersion: order.version,
+
       itemId: item.id,
     });
     if (!result.order)

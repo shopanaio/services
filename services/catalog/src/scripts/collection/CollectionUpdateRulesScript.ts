@@ -116,10 +116,9 @@ export class CollectionUpdateRulesScript extends BaseScript<
       };
     }
     await this.repository.collectionRule.replaceRules(params.collectionId, rules);
-    const refreshed = await this.repository.collection.bumpRevision(
-      params.collectionId,
-      { listingChanged },
-    );
+    const refreshed = await this.repository.collection.bumpRevision(params.collectionId, {
+      listingChanged,
+    });
     if (!refreshed) {
       throw new Error("Collection disappeared while updating rules");
     }

@@ -5,14 +5,6 @@ import type { DiscountDeleteParams, DiscountDeleteResult } from "./dto/index.js"
 export class DiscountDeleteScript extends BaseScript<DiscountDeleteParams, DiscountDeleteResult> {
   @Transactional()
   protected async execute(params: DiscountDeleteParams): Promise<DiscountDeleteResult> {
-    if (!Number.isSafeInteger(params.expectedRevision) || params.expectedRevision < 0) {
-      return errorResult({
-        message: "Expected revision must be a non-negative integer",
-        code: "INVALID_REVISION",
-        field: ["input", "expectedRevision"],
-      });
-    }
-
     const aggregate = await this.repository.discount.findAggregateById(params.id);
     if (!aggregate) {
       return errorResult({
@@ -20,9 +12,6 @@ export class DiscountDeleteScript extends BaseScript<DiscountDeleteParams, Disco
         code: "NOT_FOUND",
         field: ["input", "id"],
       });
-    }
-    if (aggregate.discount.revision !== params.expectedRevision) {
-      return revisionConflict();
     }
     if (aggregate.discount.state !== "DRAFT") {
       return deleteNotAllowed();
@@ -34,7 +23,7 @@ export class DiscountDeleteScript extends BaseScript<DiscountDeleteParams, Disco
       return deleteNotAllowed();
     }
 
-    const deleted = await this.repository.discount.deleteDraft(params.id, params.expectedRevision);
+    const deleted = await this.repository.discount.deleteDraft(params.id);
     if (!deleted) return revisionConflict();
 
     this.logger.info({ discountId: params.id }, "Discount deleted");

@@ -55,10 +55,6 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
         throw new Error("ORDER_CUSTOMER_MISMATCH");
       }
     }
-    if (request.input.expectedVersion !== undefined) {
-      const expectedVersion = requiredPositiveInt(request.input, "expectedVersion");
-      if (order.version !== expectedVersion) throw new Error("ORDER_VERSION_CONFLICT");
-    }
     if (allowedStatuses && !allowedStatuses.includes(order.status)) {
       throw new Error(`ORDER_${commandStatus(order.status)}_TRANSITION_NOT_ALLOWED`);
     }

@@ -1,14 +1,14 @@
 mutation StoreUpdate(
   $storeId: ID!
   $clientMutationId: String!
-  $expectedRevision: Int!
+  
   $operations: StoreUpdateInput
 ) {
   storeMutation {
     storeUpdate(
       storeId: $storeId
       clientMutationId: $clientMutationId
-      expectedRevision: $expectedRevision
+      
       operations: $operations
     ) {
       store {

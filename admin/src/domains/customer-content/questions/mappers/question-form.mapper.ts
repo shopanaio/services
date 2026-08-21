@@ -129,7 +129,7 @@ export function buildQuestionAnswerMutationPlan(
     if (!current) return;
     update.push({
       answerId: current.id,
-      expectedRevision: current.revision,
+
       operations: {
         content: {
           text: { body: answer.body.trim(), locale: answer.locale.trim() },
@@ -151,7 +151,6 @@ export function buildQuestionAnswerMutationPlan(
       .filter((answer) => !submittedIds.has(answer.id))
       .map((answer) => ({
         answerId: answer.id,
-        expectedRevision: answer.revision,
       })),
   };
 }

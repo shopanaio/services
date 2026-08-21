@@ -24,7 +24,6 @@ import { validateManualValues, validatePolicy } from "./validation.js";
 import { RecommendationIntegrityError } from "../../recommendation/errors.js";
 
 interface PolicyDraft {
-  expectedVersion?: number | null;
   enabled: boolean;
   strategy: RecommendationStrategy;
   minimumResults: number;
@@ -38,14 +37,13 @@ export type ManualDraftChange =
       kind: "update";
       value: Partial<Omit<ManualDraftRow, "id" | "expectedVersion">> & {
         id: string;
-        expectedVersion: number;
       };
     }
-  | { kind: "delete"; value: { id: string; expectedVersion: number } };
+  | { kind: "delete"; value: { id: string } };
 
 export interface ManualDraftRow {
   id: string;
-  expectedVersion: number;
+
   targetProductId: string;
   action: "PIN" | "BOOST" | "EXCLUDE";
   position: number | null;
@@ -256,15 +254,6 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
     asOf: string,
   ): { policy: RecommendationPlacementPolicy | null; userErrors: UserError[] } {
     if (!input.policy) return { policy: persisted, userErrors: [] };
-    if (
-      (persisted && input.policy.expectedVersion !== persisted.version) ||
-      (!persisted && input.policy.expectedVersion != null)
-    ) {
-      return {
-        policy: null,
-        userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }],
-      };
-    }
     const userErrors = validatePolicy({ placement: input.placement, ...input.policy });
     return {
       policy:
@@ -332,13 +321,6 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
       const current = rows.get(id);
       if (!current) {
         userErrors.push({ message: "Manual recommendation not found", code: "NOT_FOUND" });
-        continue;
-      }
-      if (current.version !== change.value.expectedVersion) {
-        userErrors.push({
-          message: "Manual recommendation version changed",
-          code: "VERSION_CONFLICT",
-        });
         continue;
       }
       if (change.kind === "delete") {

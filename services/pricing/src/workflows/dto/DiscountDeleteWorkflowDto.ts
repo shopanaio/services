@@ -3,7 +3,7 @@ import type { PricingMutationWorkflowContext } from "./DiscountUpdateWorkflowDto
 
 export interface DiscountDeleteWorkflowInput {
   discountId: string;
-  expectedRevision: number;
+
   context: PricingMutationWorkflowContext;
 }
 

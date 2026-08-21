@@ -193,7 +193,7 @@ export class CheckoutMutationRepository
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "NOT_COMMITTED" }
   > {
     const now = new Date().toISOString();
     const retention = checkoutRetentionPolicy();
@@ -213,24 +213,23 @@ export class CheckoutMutationRepository
             FOR UPDATE
        ), inserted_checkout AS (
          INSERT INTO checkout.checkouts (
-           id, store_id, owner_visitor_id, version, channel_code, external_source, external_id,
+           id, store_id, owner_visitor_id, channel_code, external_source, external_id,
            customer_note, locale_code, currency_code, subtotal, shipping_total,
-           discount_total, tax_total, grand_total, status, result_revision,
+           discount_total, tax_total, grand_total, status,
            checkout_valid, pipeline_issues, metadata, expires_at, retention_until,
            created_at, updated_at
-         ) SELECT ?, ?, ?, 1, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, '{}'::jsonb, ?, ?, ?, ?
+         ) SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb, '{}'::jsonb, ?, ?, ?, ?
              FROM locked_reservation WHERE checkout_id = ?
          ON CONFLICT (id) DO NOTHING
          RETURNING id
        ), inserted_snapshot AS (
          INSERT INTO checkout.checkout_current_snapshots
-           (checkout_id, store_id, checkout_version, snapshot, created_at, updated_at)
-         SELECT ?, ?, 1, ?::jsonb, ?, ? FROM inserted_checkout
+           (checkout_id, store_id, snapshot, created_at, updated_at)
+         SELECT ?, ?, ?::jsonb, ?, ? FROM inserted_checkout
          RETURNING checkout_id
        ), committed_idempotency AS (
          UPDATE checkout.checkout_create_idempotency
-            SET status = 'COMMITTED', committed_checkout_id = ?,
-                committed_checkout_version = 1, public_failure = NULL,
+            SET status = 'COMMITTED', committed_checkout_id = ?, public_failure = NULL,
                 lease_expires_at = NULL, updated_at = ?
           WHERE store_id = ? AND connection_id = ? AND operation = ?
             AND idempotency_key = ? AND request_hash = ? AND status = 'IN_PROGRESS'
@@ -261,7 +260,6 @@ export class CheckoutMutationRepository
           projection.taxTotal,
           projection.grandTotal,
           projection.valid ? "READY" : "OPEN",
-          input.result.resultRevision,
           projection.valid,
           JSON.stringify(input.result.issues),
           expiresAt,
@@ -287,20 +285,19 @@ export class CheckoutMutationRepository
       )
       .toString();
     const row = await singleOrNull(this.connection.query<SnapshotRow>(rawSql(sql)));
-    return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "VERSION_CONFLICT" };
+    return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "NOT_COMMITTED" };
   }
 
   async commit(input: {
     storeId: string;
     checkoutId: string;
     visitorId: string;
-    expectedVersion: number;
-    nextVersion: number;
+
     createdAt: string;
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "NOT_COMMITTED" }
   > {
     const now = new Date().toISOString();
     const retention = checkoutRetentionPolicy();
@@ -321,13 +318,13 @@ export class CheckoutMutationRepository
       .raw(
         `WITH updated_checkout AS (
          UPDATE checkout.checkouts
-            SET version = ?, channel_code = ?, external_source = ?, external_id = ?,
+            SET channel_code = ?, external_source = ?, external_id = ?,
                 customer_note = ?, locale_code = ?, currency_code = ?, subtotal = ?,
                 shipping_total = ?, discount_total = ?, tax_total = ?, grand_total = ?,
-                status = ?, result_revision = ?, checkout_valid = ?, pipeline_issues = ?::jsonb,
+                status = ?, checkout_valid = ?, pipeline_issues = ?::jsonb,
                 expires_at = ?, retention_until = ?,
                 updated_at = ?
-          WHERE id = ? AND store_id = ? AND owner_visitor_id = ? AND version = ?
+          WHERE id = ? AND store_id = ? AND owner_visitor_id = ?
             AND status IN ('OPEN', 'READY') AND expires_at > CURRENT_TIMESTAMP
             AND NOT EXISTS (
               SELECT 1 FROM checkout.checkout_placements
@@ -335,19 +332,18 @@ export class CheckoutMutationRepository
             )
             AND EXISTS (
               SELECT 1 FROM checkout.checkout_current_snapshots
-               WHERE checkout_id = ? AND store_id = ? AND checkout_version = ?
+               WHERE checkout_id = ? AND store_id = ?
             )
          RETURNING id
        ), updated_snapshot AS (
          UPDATE checkout.checkout_current_snapshots
-            SET checkout_version = ?, snapshot = ?::jsonb, updated_at = ?
+            SET snapshot = ?::jsonb, updated_at = ?
           WHERE checkout_id = ? AND store_id = ?
-            AND checkout_version = ? AND EXISTS (SELECT 1 FROM updated_checkout)
+            AND EXISTS (SELECT 1 FROM updated_checkout)
          RETURNING checkout_id
        )
        SELECT ?::jsonb AS snapshot FROM updated_snapshot`,
         [
-          input.nextVersion,
           input.draft.channelCode,
           input.draft.externalSource,
           input.draft.externalId,
@@ -360,7 +356,6 @@ export class CheckoutMutationRepository
           projection.taxTotal,
           projection.grandTotal,
           projection.valid ? "READY" : "OPEN",
-          input.result.resultRevision,
           projection.valid,
           JSON.stringify(input.result.issues),
           expiresAt,
@@ -369,32 +364,27 @@ export class CheckoutMutationRepository
           input.checkoutId,
           input.storeId,
           input.visitorId,
-          input.expectedVersion,
           input.storeId,
           input.checkoutId,
           input.checkoutId,
           input.storeId,
-          input.expectedVersion,
-          input.nextVersion,
           JSON.stringify(checkout),
           now,
           input.checkoutId,
           input.storeId,
-          input.expectedVersion,
           JSON.stringify(checkout),
         ],
       )
       .toString();
     const row = await singleOrNull(this.connection.query<SnapshotRow>(rawSql(sql)));
-    return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "VERSION_CONFLICT" };
+    return row ? { status: "COMMITTED", checkout: row.snapshot } : { status: "NOT_COMMITTED" };
   }
 
   commitWithoutRecalculation(input: {
     storeId: string;
     checkoutId: string;
     visitorId: string;
-    expectedVersion: number;
-    nextVersion: number;
+
     createdAt: string;
     draft: CheckoutMutationDraft;
     previousResult: CheckoutRecalculationResult;
@@ -417,7 +407,6 @@ function snapshot(
   return {
     checkoutId: draft.checkoutId,
     storeId: draft.storeId,
-    version: draft.version,
     createdAt,
     updatedAt,
     lifecycle: {

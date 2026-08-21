@@ -263,13 +263,10 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   @Transactional()
   async update(
     applicationId: string,
-    expectedRevision: number,
+
     patch: ApplicationAuthConfigurationPatch,
   ): Promise<ApplicationAuthConfigurationRecord> {
     const current = await this.requireConfiguration(applicationId);
-    if (current.revision !== expectedRevision) {
-      throw new Error("Application auth configuration revision conflict");
-    }
     const parsedPatch = applicationAuthConfigurationPatchSchema.parse(patch);
     const mutable = applicationAuthMutableConfigurationSchema.parse({
       registrationMode: current.registrationMode,
@@ -298,12 +295,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, applicationId)))
       .returning();
     if (!updated) {
       throw new Error("Application auth configuration revision conflict");
@@ -312,15 +304,9 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   }
 
   @Transactional()
-  async enableRealm(
-    applicationId: string,
-    expectedRevision: number,
-  ): Promise<ApplicationAuthConfigurationRecord> {
+  async enableRealm(applicationId: string): Promise<ApplicationAuthConfigurationRecord> {
     const configuration = await this.requireConfiguration(applicationId);
     this.keyring.assertVersionsAvailable(await this.listUsedKeyVersions(applicationId));
-    if (configuration.revision !== expectedRevision) {
-      throw new Error("Application auth configuration revision conflict");
-    }
     const [updated] = await this.connection
       .update(applicationAuthConfiguration)
       .set({
@@ -328,12 +314,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, applicationId)))
       .returning();
     if (!updated) {
       throw new Error("Application auth configuration revision conflict");
@@ -370,7 +351,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   @Transactional()
   async rotateRealmSecret(
     applicationId: string,
-    expectedRevision: number,
+
     targetKeyVersion: number,
   ): Promise<ApplicationAuthConfigurationRecord> {
     this.keyring.assertVersionsAvailable([targetKeyVersion]);
@@ -382,12 +363,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, applicationId)))
       .returning();
     if (!updated) {
       throw new Error("Application auth configuration revision conflict");

@@ -261,7 +261,7 @@ export function EditEligibilityChannelsModal() {
 
     const result = await mutation.updateDiscount({
       discountId: discount.id,
-      expectedRevision: discount.revision,
+
       operations: buildDiscountEligibilityChannelsUpdateInput(values),
     });
 

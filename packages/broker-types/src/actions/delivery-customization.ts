@@ -53,7 +53,6 @@ export interface DeliveryCustomizationFunctionInput {
   executionId: string;
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
   currencyCode: string;
   localeCode: string | null;
   channelCode: string;

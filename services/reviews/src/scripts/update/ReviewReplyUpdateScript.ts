@@ -72,7 +72,7 @@ export class ReviewReplyUpdateScript extends BaseScript<
 
     const acquired = await this.repository.content.update(
       input.replyId,
-      input.expectedRevision,
+
       mapped.patch,
     );
     if (acquired.status === "not_found") {

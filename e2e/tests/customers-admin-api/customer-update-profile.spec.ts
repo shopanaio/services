@@ -252,7 +252,7 @@ test.describe('Customers Admin API - customer profile update', () => {
         throwOnError: false,
         variables: {
           customerId: customer.id,
-          expectedRevision: customer.revision,
+          
           operations: { status: { status } },
         },
       });

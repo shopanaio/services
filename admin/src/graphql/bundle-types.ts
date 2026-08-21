@@ -563,14 +563,11 @@ export type ApiBundleConfiguration = ApiNode & {
 export type ApiBundleConfigurationCreateInput = {
   /** Product global ID of the bundle. */
   bundleId: Scalars["ID"]["input"];
-  /** Expected parent bundle product revision. Required for optimistic locking. */
-  expectedRevision: Scalars["Int"]["input"];
   /** Configuration name. */
   name: Scalars["String"]["input"];
 };
 
 export type ApiBundleConfigurationDeleteInput = {
-  expectedRevision: Scalars["Int"]["input"];
   id: Scalars["ID"]["input"];
 };
 
@@ -588,7 +585,6 @@ export type ApiBundleConfigurationPayload = {
 };
 
 export type ApiBundleConfigurationUpdateInput = {
-  expectedRevision: Scalars["Int"]["input"];
   id: Scalars["ID"]["input"];
   name?: InputMaybe<Scalars["String"]["input"]>;
 };
@@ -729,7 +725,6 @@ export type ApiBundleDependencyRulesSyncInput = {
    * Rules not present in this list are deleted.
    */
   dependencyRules: Array<ApiBundleDependencyRuleSyncItemInput>;
-  expectedRevision: Scalars["Int"]["input"];
 };
 
 export type ApiBundleDependencyRulesSyncPayload = {
@@ -841,7 +836,6 @@ export type ApiBundleGroupSyncItemInput = {
 
 export type ApiBundleGroupsSyncInput = {
   configurationId: Scalars["ID"]["input"];
-  expectedRevision: Scalars["Int"]["input"];
   /**
    * Complete list of groups for this configuration.
    * Groups not present in this list are deleted.
@@ -1142,7 +1136,6 @@ export type ApiBundlePricingTemplateSyncItemInput = {
 
 export type ApiBundlePricingTemplatesSyncInput = {
   configurationId: Scalars["ID"]["input"];
-  expectedRevision: Scalars["Int"]["input"];
   /**
    * Complete list of pricing templates for this configuration.
    * Templates not present in this list are deleted.
@@ -1358,7 +1351,6 @@ export type ApiCatalogMutationBundlePricingTemplatesSyncArgs = {
 
 export type ApiCatalogMutationBundleUpdateArgs = {
   bundleId: Scalars["ID"]["input"];
-  expectedRevision: Scalars["Int"]["input"];
   operations?: InputMaybe<ApiBundleUpdateInput>;
 };
 
@@ -1380,7 +1372,6 @@ export type ApiCatalogMutationCategoryRebalanceArgs = {
 
 export type ApiCatalogMutationCategoryUpdateArgs = {
   categoryId: Scalars["ID"]["input"];
-  expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
   operations?: InputMaybe<ApiCategoryUpdateInput>;
 };
 
@@ -1457,7 +1448,6 @@ export type ApiCatalogMutationProductOptionsSyncArgs = {
 };
 
 export type ApiCatalogMutationProductUpdateArgs = {
-  expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
   operations?: InputMaybe<ApiProductUpdateInput>;
   productId: Scalars["ID"]["input"];
 };
@@ -5627,8 +5617,6 @@ export type ApiProductBulkUpdateInput = {
 
 /** A single product's update within a bulk request. */
 export type ApiProductBulkUpdateItem = {
-  /** Expected revision for optimistic locking. If provided, fails if product was modified. */
-  expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
   /** Product-level operations. */
   operations?: InputMaybe<ApiProductUpdateInput>;
   /** The product ID to update. */

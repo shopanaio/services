@@ -51,7 +51,6 @@ export const checkoutCommittedSnapshotSchema = z
   .object({
     checkoutId: identifier,
     storeId: identifier,
-    version: z.number().int().positive(),
     createdAt: timestamp,
     updatedAt: timestamp,
     lifecycle: z
@@ -66,7 +65,6 @@ export const checkoutCommittedSnapshotSchema = z
       .object({
         checkoutId: identifier,
         storeId: identifier,
-        version: z.number().int().positive(),
         currencyCode: z.string().regex(/^[A-Z]{3}$/),
         localeCode: z.string().min(2).max(35).nullable(),
         channelCode: identifier,
@@ -102,8 +100,7 @@ export const checkoutCommittedSnapshotSchema = z
   .superRefine((snapshot, context) => {
     if (
       snapshot.checkoutId !== snapshot.draft.checkoutId ||
-      snapshot.storeId !== snapshot.draft.storeId ||
-      snapshot.version !== snapshot.draft.version
+      snapshot.storeId !== snapshot.draft.storeId
     ) {
       context.addIssue({
         code: z.ZodIssueCode.custom,

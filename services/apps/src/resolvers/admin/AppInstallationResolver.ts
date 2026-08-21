@@ -52,10 +52,6 @@ export class AppInstallationResolver extends AppsType<string, AppInstallationRec
     return this.$get("configuration");
   }
 
-  configurationVersion() {
-    return this.$get("configurationVersion");
-  }
-
   healthStatus() {
     return this.$get("healthStatus");
   }

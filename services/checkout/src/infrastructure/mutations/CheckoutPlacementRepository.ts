@@ -23,8 +23,6 @@ export interface CheckoutPlacementRecord<TResult = unknown> {
   placementId: string;
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
-  resultRevision: string;
   idempotencyKey: string;
   requestHash: string;
   credentialId: string;
@@ -53,8 +51,6 @@ type PlacementRow = {
   id: string;
   store_id: string;
   checkout_id: string;
-  checkout_version: number;
-  result_revision: string;
   idempotency_key: string;
   request_hash: string;
   credential_id: string;
@@ -92,8 +88,6 @@ export class CheckoutPlacementRepository {
   async claim(input: {
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
-    resultRevision: string;
     idempotencyKey: string;
     requestHash: string;
     credentialId: string;
@@ -108,15 +102,14 @@ export class CheckoutPlacementRepository {
          SELECT id
            FROM checkout.checkouts
           WHERE store_id = ? AND id = ? AND owner_visitor_id = ?
-            AND version = ? AND result_revision = ?
             AND status = 'READY' AND expires_at > CURRENT_TIMESTAMP
           FOR UPDATE
        )
        INSERT INTO checkout.checkout_placements (
-         store_id, checkout_id, checkout_version, result_revision,
+         store_id, checkout_id,
          idempotency_key, request_hash, credential_id, workflow_id, request_input
        )
-       SELECT ?, ?, ?, ?, ?, ?, ?, ?, ?::jsonb
+       SELECT ?, ?, ?, ?, ?, ?, ?::jsonb
        FROM checkout_to_place
        ON CONFLICT DO NOTHING
        RETURNING *`,
@@ -124,12 +117,8 @@ export class CheckoutPlacementRepository {
           input.storeId,
           input.checkoutId,
           input.visitorId,
-          input.checkoutVersion,
-          input.resultRevision,
           input.storeId,
           input.checkoutId,
-          input.checkoutVersion,
-          input.resultRevision,
           input.idempotencyKey,
           input.requestHash,
           input.credentialId,
@@ -154,9 +143,7 @@ export class CheckoutPlacementRepository {
     }
     if (
       existing.idempotencyKey === input.idempotencyKey &&
-      (existing.requestHash !== input.requestHash ||
-        existing.checkoutVersion !== input.checkoutVersion ||
-        existing.resultRevision !== input.resultRevision)
+      existing.requestHash !== input.requestHash
     ) {
       throw new Error("IDEMPOTENCY_KEY_PARAMETER_MISMATCH");
     }
@@ -777,8 +764,6 @@ function mapPlacement(row: PlacementRow): CheckoutPlacementRecord {
     placementId: row.id,
     storeId: row.store_id,
     checkoutId: row.checkout_id,
-    checkoutVersion: row.checkout_version,
-    resultRevision: row.result_revision,
     idempotencyKey: row.idempotency_key,
     requestHash: row.request_hash,
     credentialId: row.credential_id,

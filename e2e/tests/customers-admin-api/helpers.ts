@@ -70,11 +70,11 @@ export async function updateCustomer(
   api: Api,
   customer: Json,
   operations: Json,
-  expectedRevision = customer.revision,
+  
 ) {
   const { data, errors } = await api.admin.mutation<Json>('customers-admin-api/CustomerUpdate', {
     throwOnError: false,
-    variables: { customerId: customer.id, expectedRevision, operations },
+    variables: { customerId: customer.id,  operations },
   });
   expectNoTransportErrors(errors);
   const payload = data?.customersMutation?.customerUpdate;
@@ -111,10 +111,10 @@ export async function listCustomers(api: Api, variables: Json = {}) {
   return connection;
 }
 
-export async function deleteCustomer(api: Api, id: string, expectedRevision?: number) {
+export async function deleteCustomer(api: Api, id: string) {
   const { data, errors } = await api.admin.mutation<Json>('customers-admin-api/CustomerDelete', {
     throwOnError: false,
-    variables: { input: { id, ...(expectedRevision === undefined ? {} : { expectedRevision }) } },
+    variables: { input: { id, ...(expectedRevision === undefined ? {} : {  }) } },
   });
   expectNoTransportErrors(errors);
   const payload = data?.customersMutation?.customerDelete;
@@ -135,13 +135,13 @@ export async function updateGroup(
   api: Api,
   group: Json,
   operations: Json,
-  expectedRevision = group.revision,
+  
 ) {
   const { data, errors } = await api.admin.mutation<Json>(
     'customers-admin-api/CustomerGroupUpdate',
     {
       throwOnError: false,
-      variables: { groupId: group.id, expectedRevision, operations },
+      variables: { groupId: group.id,  operations },
     },
   );
   expectNoTransportErrors(errors);
@@ -187,13 +187,13 @@ export async function updateSegment(
   api: Api,
   segment: Json,
   operations: Json,
-  expectedRevision = segment.revision,
+  
 ) {
   const { data, errors } = await api.admin.mutation<Json>(
     'customers-admin-api/CustomerSegmentUpdate',
     {
       throwOnError: false,
-      variables: { segmentId: segment.id, expectedRevision, operations },
+      variables: { segmentId: segment.id,  operations },
     },
   );
   expectNoTransportErrors(errors);

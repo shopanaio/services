@@ -124,7 +124,7 @@ test.describe('Loyalty Storefront API product and variant presentation', () => {
     const priced = await kit.api.admin.mutation<any>('inventory-api/ProductUpdate', {
       variables: {
         productId: product.productId,
-        expectedRevision: product.revision,
+        
         operations: {
           variants: [{
             action: 'UPDATE',

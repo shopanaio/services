@@ -14,12 +14,12 @@ export class ApplicationAuthSecretRotationService {
 
   async rotateRealmSecret(input: {
     applicationId: string;
-    expectedRevision: number;
+
     targetKeyVersion: number;
   }): Promise<ApplicationAuthConfigurationRecord> {
     const configuration = await this.configurations.rotateRealmSecret(
       input.applicationId,
-      input.expectedRevision,
+
       input.targetKeyVersion,
     );
     this.cache.invalidate(input.applicationId);

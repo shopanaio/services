@@ -35,7 +35,7 @@ test.describe('Customers Storefront API — tax identifiers', () => {
         countryCode: 'UA',
         value: `VAT-${crypto.randomUUID()}`,
         isPrimary: false,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -48,7 +48,7 @@ test.describe('Customers Storefront API — tax identifiers', () => {
       'CustomerTaxIdentifierUpdateInput',
       {
         taxIdentifierId,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -61,7 +61,7 @@ test.describe('Customers Storefront API — tax identifiers', () => {
       'CustomerTaxIdentifierDeleteInput',
       {
         taxIdentifierId,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -201,7 +201,7 @@ test.describe('Customers Storefront API — tax identifiers', () => {
           input: {
             identifierType: 'VAT',
             value: '1',
-            expectedRevision: await kit.revision(),
+            
             idempotencyKey: uniqueKey(),
             [field]: field === 'status' ? 'VERIFIED' : '2026-01-01',
           },
@@ -238,9 +238,9 @@ test.describe('Customers Storefront API — tax identifiers', () => {
   test('stale or invalid revision rejects create update and delete', async () => {
     const seeded = await kit.seedTaxIdentifier();
     for (const response of await Promise.all([
-      create({ expectedRevision: 0 }),
-      update(seeded.globalId, { expectedRevision: 0 }),
-      remove(seeded.globalId, { expectedRevision: 0 }),
+      create({  }),
+      update(seeded.globalId, {  }),
+      remove(seeded.globalId, {  }),
     ])) {
       kit.expectUserError(response.data!.payload.userErrors, 'INVALID_REVISION');
     }
@@ -248,7 +248,7 @@ test.describe('Customers Storefront API — tax identifiers', () => {
 
   test('retrying each tax mutation with the same idempotency key is side-effect free', async () => {
     const revision = await kit.revision();
-    const input = { value: 'IDEMPOTENT', idempotencyKey: uniqueKey(), expectedRevision: revision };
+    const input = { value: 'IDEMPOTENT', idempotencyKey: uniqueKey() };
     const first = await create(input);
     const replay = await create(input);
     expect(replay.data?.payload).toEqual(first.data?.payload);
@@ -265,11 +265,11 @@ test.describe('Customers Storefront API — tax identifiers', () => {
     const results = await Promise.all([
       update(a.data!.payload.taxIdentifier!.id as string, {
         isPrimary: true,
-        expectedRevision: revision,
+        
       }),
       update(b.data!.payload.taxIdentifier!.id as string, {
         isPrimary: true,
-        expectedRevision: revision,
+        
       }),
     ]);
     expect(results.filter((item) => item.data!.payload.userErrors.length === 0)).toHaveLength(1);

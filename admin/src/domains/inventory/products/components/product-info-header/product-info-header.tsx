@@ -72,7 +72,7 @@ export const ProductInfoHeader = ({
       onSave: async (values: { title: string; handle: string }) => {
         const result = await updateProduct({
           productId: product.id,
-          expectedRevision: product.revision,
+
           operations: {
             title: values.title,
             handle: values.handle,
@@ -94,7 +94,7 @@ export const ProductInfoHeader = ({
     void (async () => {
       const result = await updateProductStatus({
         productId: product.id,
-        expectedRevision: product.revision,
+
         published: !product.isPublished,
       });
 

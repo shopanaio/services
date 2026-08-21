@@ -19,8 +19,6 @@ input SearchSynonymGroupWhereInput {
   name: StringFilter
   """Filter by enabled"""
   enabled: BooleanFilter
-  """Filter by version"""
-  version: IntFilter
   """Filter by terms"""
   terms: StringFilter
   """Filter by valuesCount"""
@@ -41,8 +39,6 @@ enum SearchSynonymGroupOrderField {
   name
   """Sort by enabled"""
   enabled
-  """Sort by version"""
-  version
   """Sort by valuesCount"""
   valuesCount
   """Sort by createdAt"""
@@ -77,8 +73,6 @@ input SearchProductBoostWhereInput {
   name: StringFilter
   """Filter by enabled"""
   enabled: BooleanFilter
-  """Filter by version"""
-  version: IntFilter
   """Filter by phrases"""
   phrases: StringFilter
   """Filter by phrasesCount"""
@@ -101,8 +95,6 @@ enum SearchProductBoostOrderField {
   name
   """Sort by enabled"""
   enabled
-  """Sort by version"""
-  version
   """Sort by phrasesCount"""
   phrasesCount
   """Sort by productsCount"""

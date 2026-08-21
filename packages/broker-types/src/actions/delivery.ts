@@ -36,7 +36,6 @@ export const DeliveryCheckoutActions = {
 export interface SearchDeliveryOptionChoicesParams {
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
   groupId: string;
   optionHandle: string;
   query: string;
@@ -165,8 +164,6 @@ export interface DeliveryCheckoutEvaluationContext {
   deadlineAt: string;
   requestedAt: string;
   checkoutId: string;
-  expectedCheckoutVersion: number;
-  targetCheckoutVersion: number;
   storeId: string;
   currencyCode: string;
   localeCode: string | null;
@@ -466,8 +463,6 @@ export type DeliveryProviderRouteSnapshot =
 export interface DeliveryOptionBindingSnapshotBase {
   optionHandle: string;
   checkoutId: string;
-  basedOnCheckoutVersion: number;
-  targetCheckoutVersion: number;
   groupId: string;
   profileId: string;
   methodDefinitionId: string;
@@ -688,8 +683,6 @@ export interface DeliveryCarrierServiceRateRequest {
   effectiveAt: string;
   storeId: string;
   checkoutId: string;
-  basedOnCheckoutVersion: number;
-  targetCheckoutVersion: number;
   groupId: string;
   ratePlanRevision: string;
   eligibilityRevision: string;
@@ -1007,7 +1000,6 @@ export interface CommitCheckoutDeliverySelectionsParams {
   organizationId: string;
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
   deliveryRevision: string;
   committedAt: string;
   idempotencyKey: string;
@@ -1042,7 +1034,6 @@ export interface CommitCheckoutDeliverySelectionsResult {
 export interface ReleaseCheckoutDeliverySelectionsParams {
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
   groupIds: readonly string[];
   reason: string;
   releasedAt: string;

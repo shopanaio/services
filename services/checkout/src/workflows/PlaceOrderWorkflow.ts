@@ -54,7 +54,6 @@ export interface PlaceOrderWorkflowInput {
   organizationId: string;
   storeId: string;
   checkoutId: string;
-  expectedResultRevision: string;
   idempotencyKey: string;
   correlationId: string;
   credentialId: string;
@@ -87,7 +86,6 @@ export interface PlaceOrderWorkflowResult {
 interface PlaceOrderSnapshot {
   placementId: string;
   checkout: CheckoutDto;
-  checkoutVersion: number;
   quoteId: string;
   quoteRevision: string;
   paymentMethodsRevision: string;
@@ -608,7 +606,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     });
     return {
       checkout: checkoutDto,
-      checkoutVersion: checkout.version,
       quoteId: finalQuote.data.quoteId,
       quoteRevision: finalQuote.data.revision,
       paymentMethodsRevision: payment.data.revision,
@@ -650,8 +647,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     const placement = await this.placements.claim({
       storeId: input.storeId,
       checkoutId: input.checkoutId,
-      checkoutVersion: prepared.checkoutVersion,
-      resultRevision: input.expectedResultRevision,
       idempotencyKey: input.idempotencyKey,
       requestHash: placeOrderRequestHash(input),
       credentialId: input.credentialId,
@@ -812,7 +807,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       const base = {
         storeId: input.storeId,
         checkoutId: input.checkoutId,
-        checkoutVersion: snapshot.checkoutVersion,
         reservationId: reservation.points.reservationId,
         quoteId: reservation.points.quoteId,
         quoteRevision: reservation.points.quoteRevision,
@@ -941,7 +935,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       organizationId: input.organizationId,
       storeId: input.storeId,
       checkoutId: input.checkoutId,
-      checkoutVersion: snapshot.checkoutVersion,
       deliveryRevision: snapshot.deliveryRevision,
       committedAt,
       idempotencyKey: `${input.idempotencyKey}:delivery-commit`,
@@ -974,7 +967,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
     >(DeliveryActions.releaseSelections, {
       storeId: input.storeId,
       checkoutId: input.checkoutId,
-      checkoutVersion: snapshot.checkoutVersion,
       groupIds: commitments.map((commitment) => commitment.groupId),
       reason: "Checkout placement did not reach a payable order state.",
       releasedAt: new Date(await DBOS.now()).toISOString(),
@@ -1095,7 +1087,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
         storeId: input.storeId,
         checkoutId: input.checkoutId,
         orderId,
-        expectedCheckoutVersion: snapshot.checkoutVersion,
         finalQuoteRevision: snapshot.quoteRevision,
         targetAmount: snapshot.amount,
         idempotencyKey: `${input.idempotencyKey}:payment-collection`,
@@ -1115,7 +1106,6 @@ export class PlaceOrderWorkflow extends BrokerWorkflows<
       checkoutId: input.checkoutId,
       orderId,
       paymentCollectionId: collection.paymentCollectionId,
-      expectedCheckoutVersion: snapshot.checkoutVersion,
       finalQuoteRevision: snapshot.quoteRevision,
       paymentMethodsRevision: snapshot.paymentMethodsRevision,
       methodHandle: snapshot.selectedPayment.methodHandle,
@@ -1449,7 +1439,6 @@ export function placeOrderRequestHash(input: PlaceOrderWorkflowInput): string {
     organizationId: input.organizationId,
     storeId: input.storeId,
     checkoutId: input.checkoutId,
-    expectedResultRevision: input.expectedResultRevision,
     credentialId: input.credentialId,
     visitorId: input.visitorId,
     userId: input.userId,
@@ -1474,7 +1463,6 @@ function validatePlaceOrderInput(input: PlaceOrderWorkflowInput): void {
     if (!isUuid(value)) throw new Error(`PLACE_ORDER_${field.toUpperCase()}_INVALID`);
   }
   for (const [field, value] of [
-    ["expectedResultRevision", input.expectedResultRevision],
     ["idempotencyKey", input.idempotencyKey],
     ["credentialId", input.credentialId],
     ["visitorId", input.visitorId],
@@ -1484,7 +1472,6 @@ function validatePlaceOrderInput(input: PlaceOrderWorkflowInput): void {
     }
   }
   if (
-    input.expectedResultRevision.length > 256 ||
     input.idempotencyKey.length > 200 ||
     input.credentialId.length > 256 ||
     input.visitorId.length > 128 ||
@@ -1724,8 +1711,6 @@ function createOrdersPlacementParams(
     storeId: input.storeId,
     placementId: placement.placementId,
     checkoutId: input.checkoutId,
-    checkoutVersion: placement.checkoutVersion,
-    resultRevision: input.expectedResultRevision,
     finalQuote: { quoteId: placement.quoteId, revision: placement.quoteRevision },
     paymentMethodsRevision: placement.paymentMethodsRevision,
     deliveryRevision: placement.deliveryRevision,
@@ -1769,11 +1754,7 @@ function validateCheckoutSnapshot(
   if (Date.parse(checkout.lifecycle.expiresAt) <= Date.now()) {
     throw new Error("CHECKOUT_EXPIRED");
   }
-  if (
-    checkout.storeId !== input.storeId ||
-    checkout.checkoutId !== input.checkoutId ||
-    checkout.result.resultRevision !== input.expectedResultRevision
-  ) {
+  if (checkout.storeId !== input.storeId || checkout.checkoutId !== input.checkoutId) {
     throw new Error("CHECKOUT_PLACEMENT_SNAPSHOT_STALE");
   }
   assertCompletePipelineResult(checkout.result);

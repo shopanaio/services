@@ -12,17 +12,12 @@ import type { PlaceOrderWorkflowResult } from "../../../workflows/PlaceOrderWork
 type PlaceOrderPayloadContext = {
   placementId: string;
   checkoutId: string;
-  resultRevision: string;
   placementState?: ApiCheckoutPlacementState;
   failure?: { code: string; message: string; retryable: boolean } | null;
 };
 
-type PlaceOrderErrorContext = Omit<
-  PlaceOrderPayloadContext,
-  "placementId" | "checkoutId" | "resultRevision"
-> & {
+type PlaceOrderErrorContext = Omit<PlaceOrderPayloadContext, "placementId" | "checkoutId"> & {
   checkoutId: string | null;
-  resultRevision: string | null;
 };
 
 export function mapPlaceOrderPayload(
@@ -36,7 +31,6 @@ export function mapPlaceOrderPayload(
     checkoutId: context.checkoutId
       ? encodeGlobalIdByType(context.checkoutId, GlobalIdEntity.Checkout)
       : null,
-    resultRevision: context.resultRevision,
     orderId: result ? encodeGlobalIdByType(result.orderId, GlobalIdEntity.Order) : null,
     status: result ? (result.status as ApiPlaceOrderStatus) : null,
     paymentCollectionId: result?.paymentCollectionId ?? null,
@@ -88,7 +82,6 @@ export function mapPlaceOrderErrorPayload(
     checkoutId: context.checkoutId
       ? encodeGlobalIdByType(context.checkoutId, GlobalIdEntity.Checkout)
       : null,
-    resultRevision: context.resultRevision,
     orderId: null,
     status: null,
     paymentCollectionId: null,

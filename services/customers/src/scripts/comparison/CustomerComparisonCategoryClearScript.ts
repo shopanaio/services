@@ -11,7 +11,6 @@ import {
 export interface CustomerComparisonCategoryClearParams {
   customerId: string;
   categoryId: string;
-  expectedRevision: number;
 }
 
 export class CustomerComparisonCategoryClearScript extends BaseScript<
@@ -21,7 +20,7 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
   protected async execute(
     params: CustomerComparisonCategoryClearParams,
   ): Promise<CustomerComparisonMutationResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateExpectedRevision();
     if (revisionError) return failed(revisionError);
 
     const selection = await this.repository.comparison.getSelection(params.customerId);
@@ -48,7 +47,7 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
 
     const result = await this.repository.comparison.clearVariants({
       customerId: params.customerId,
-      expectedRevision: params.expectedRevision,
+
       variantIds: removableVariantIds,
     });
     switch (result.status) {

@@ -63,8 +63,6 @@ export class CheckoutNestService implements OnModuleInit, OnApplicationBootstrap
               orderId: params.orderId,
               paymentSessionId: params.paymentSessionId,
               operationId: params.operationId,
-              expectedCheckoutVersion: params.expectedCheckoutVersion,
-              finalQuoteRevision: params.finalQuoteRevision,
             }),
           )
           .digest("hex");
@@ -75,8 +73,6 @@ export class CheckoutNestService implements OnModuleInit, OnApplicationBootstrap
         if (
           !completion ||
           !completion.valid ||
-          completion.checkoutVersion !== params.expectedCheckoutVersion ||
-          completion.quoteRevision !== params.finalQuoteRevision ||
           Date.parse(params.deadlineAt) <= Date.parse(confirmedAt)
         ) {
           return {
@@ -93,7 +89,7 @@ export class CheckoutNestService implements OnModuleInit, OnApplicationBootstrap
             },
           };
         }
-        const inventory = await this.broker.call<
+        await this.broker.call<
           Inventory.RenewCheckoutInventoryResult,
           Inventory.RenewCheckoutInventoryParams
         >(InventoryCheckoutActions.renew, {
@@ -101,20 +97,11 @@ export class CheckoutNestService implements OnModuleInit, OnApplicationBootstrap
           orderId: params.orderId,
           expiresAt: params.deadlineAt,
         });
-        const inventoryReservationRevision =
-          inventory.renewedReservationIds.length > 0
-            ? createHash("sha256")
-                .update(JSON.stringify([...inventory.renewedReservationIds].sort()))
-                .digest("hex")
-            : null;
         return {
           decision: "APPROVED",
           confirmationId,
           confirmedAt,
           expiresAt: params.deadlineAt,
-          checkoutVersion: completion.checkoutVersion,
-          finalQuoteRevision: completion.quoteRevision,
-          inventoryReservationRevision,
         };
       },
     );

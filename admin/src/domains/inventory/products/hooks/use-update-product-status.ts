@@ -13,7 +13,6 @@ import type {
 export interface ProductStatusUpdateInput {
   productId: string;
   published: boolean;
-  expectedRevision?: number | null;
 }
 
 interface UpdateProductStatusResult {
@@ -40,7 +39,7 @@ export function useUpdateProductStatus(): UseUpdateProductStatusReturn {
         const result = await updateStatusMutation({
           variables: {
             productId: input.productId,
-            expectedRevision: input.expectedRevision ?? undefined,
+
             operations: {
               status: input.published ? ProductStatus.Published : ProductStatus.Draft,
             },

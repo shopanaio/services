@@ -64,7 +64,7 @@ describe("AdminOrderIntegrationRepository", () => {
       input: {
         orderId,
         integrationLinkId,
-        expectedVersion: 7,
+
         idempotencyKey: "sync-1",
       },
     };

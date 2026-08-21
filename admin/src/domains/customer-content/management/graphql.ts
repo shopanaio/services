@@ -42,15 +42,10 @@ export const REVIEW_CONFIGURATION_QUERY = gql`
 export const REVIEW_CONFIGURATION_UPDATE_MUTATION = gql`
   mutation AdminReviewConfigurationUpdate(
     $configurationId: ID!
-    $expectedRevision: Int!
     $operations: ReviewStoreConfigurationUpdateInput
   ) {
     reviewsMutation {
-      storeConfigurationUpdate(
-        configurationId: $configurationId
-        expectedRevision: $expectedRevision
-        operations: $operations
-      ) {
+      storeConfigurationUpdate(configurationId: $configurationId, operations: $operations) {
         configuration {
           id
           revision

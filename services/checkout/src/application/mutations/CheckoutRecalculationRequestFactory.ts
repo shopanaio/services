@@ -59,7 +59,6 @@ export class CheckoutRecalculationRequestFactory {
         deadlineAt,
         requestedAt: effectiveAt,
         checkoutId: input.draft.checkoutId,
-        expectedCheckoutVersion: input.draft.version,
         storeId: input.draft.storeId,
         currencyCode: input.draft.currencyCode,
         localeCode: input.draft.localeCode,

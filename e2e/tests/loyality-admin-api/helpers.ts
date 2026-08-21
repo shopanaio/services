@@ -116,7 +116,7 @@ export async function publishVersion(api: Api, version: Json, overrides: Json = 
       variables: {
         input: {
           programVersionId: version.id,
-          expectedRevision: version.revision,
+          
           effectiveFrom: past(1),
           idempotencyKey: idempotencyKey('version-publish'),
           ...overrides,

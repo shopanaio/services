@@ -20,13 +20,9 @@ export const PRODUCT_CREATE_MUTATION = gql`
 `;
 
 export const PRODUCT_UPDATE_MUTATION = gql`
-  mutation ProductUpdate($productId: ID!, $operations: ProductUpdateInput, $expectedRevision: Int) {
+  mutation ProductUpdate($productId: ID!, $operations: ProductUpdateInput) {
     catalogMutation {
-      productUpdate(
-        productId: $productId
-        operations: $operations
-        expectedRevision: $expectedRevision
-      ) {
+      productUpdate(productId: $productId, operations: $operations) {
         product {
           ...ProductMutationResultFields
         }

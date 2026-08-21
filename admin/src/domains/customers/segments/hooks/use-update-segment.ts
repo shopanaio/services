@@ -17,12 +17,12 @@ export function useUpdateCustomerSegment() {
   const updateSegment = useCallback(
     async (
       segmentId: string,
-      expectedRevision: number,
+
       operations: ApiCustomerSegmentUpdateInput,
     ) => {
       try {
         const result = await mutate({
-          variables: { segmentId, expectedRevision, operations },
+          variables: { segmentId, operations },
           refetchQueries: [CUSTOMER_SEGMENTS_QUERY],
         });
         const payload = result.data?.customersMutation.customerSegmentUpdate;

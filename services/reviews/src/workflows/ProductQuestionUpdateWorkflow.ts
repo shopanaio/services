@@ -38,10 +38,7 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
   async run(
     input: ProductQuestionUpdateWorkflowInput,
   ): Promise<ProductQuestionUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(
-      input.productQuestionId,
-      input.expectedRevision,
-    );
+    const acquired = await this.stepAcquireRevision(input.productQuestionId);
     if ("error" in acquired) {
       return {
         productQuestion: null,
@@ -92,7 +89,6 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
   @WorkflowStep()
   private async stepAcquireRevision(
     productQuestionId: string,
-    expectedRevision: number,
   ): Promise<
     | { revision: number; productId: string }
     | { error: { message: string; code: string; field: string[] } }
@@ -110,7 +106,7 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
 
     const acquired = await this.kernel.repository.content.update(
       productQuestionId,
-      expectedRevision,
+
       {},
     );
     if (acquired.status === "applied") {

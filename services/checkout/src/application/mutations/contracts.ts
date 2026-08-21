@@ -61,7 +61,6 @@ export interface CheckoutLineTagAssignment {
 export interface CheckoutMutationDraft {
   checkoutId: string;
   storeId: string;
-  version: number;
   currencyCode: string;
   localeCode: string | null;
   channelCode: string;
@@ -79,7 +78,6 @@ export interface CheckoutMutationDraft {
 export interface CheckoutCommittedSnapshot {
   checkoutId: string;
   storeId: string;
-  version: number;
   createdAt: string;
   updatedAt: string;
   lifecycle: CheckoutLifecycle;
@@ -114,33 +112,31 @@ export interface CheckoutRecalculationCommitPort {
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "NOT_COMMITTED" }
   >;
 
   commit(input: {
     storeId: string;
     checkoutId: string;
     visitorId: string;
-    expectedVersion: number;
-    nextVersion: number;
+
     createdAt: string;
     draft: CheckoutMutationDraft;
     result: CheckoutRecalculationResult;
   }): Promise<
-    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "NOT_COMMITTED" }
   >;
 
   commitWithoutRecalculation(input: {
     storeId: string;
     checkoutId: string;
     visitorId: string;
-    expectedVersion: number;
-    nextVersion: number;
+
     createdAt: string;
     draft: CheckoutMutationDraft;
     previousResult: CheckoutRecalculationResult;
   }): Promise<
-    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "VERSION_CONFLICT" }
+    { status: "COMMITTED"; checkout: CheckoutCommittedSnapshot } | { status: "NOT_COMMITTED" }
   >;
 }
 

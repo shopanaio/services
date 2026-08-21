@@ -36,7 +36,7 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(input: ReviewUpdateWorkflowInput): Promise<ReviewUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(input.reviewId, input.expectedRevision);
+    const acquired = await this.stepAcquireRevision(input.reviewId);
     if ("error" in acquired) {
       return {
         review: null,
@@ -83,7 +83,6 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
   @WorkflowStep()
   private async stepAcquireRevision(
     reviewId: string,
-    expectedRevision: number,
   ): Promise<
     | { revision: number; productId: string }
     | { error: { message: string; code: string; field: string[] } }
@@ -99,7 +98,7 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
       };
     }
 
-    const acquired = await this.kernel.repository.content.update(reviewId, expectedRevision, {});
+    const acquired = await this.kernel.repository.content.update(reviewId, {});
     if (acquired.status === "applied") {
       return {
         revision: acquired.value.revision,

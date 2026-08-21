@@ -25,8 +25,6 @@ describe("DeliveryCheckoutService", () => {
         requestedAt: new Date(now).toISOString(),
         deadlineAt: new Date(now + 60_000).toISOString(),
         checkoutId: "checkout",
-        expectedCheckoutVersion: 0,
-        targetCheckoutVersion: 1,
         storeId: "store",
         currencyCode: "USD",
         localeCode: null,
@@ -37,7 +35,6 @@ describe("DeliveryCheckoutService", () => {
       preliminary: {
         executionId: "execution",
         checkoutId: "checkout",
-        basedOnCheckoutVersion: 0,
         currencyCode: "USD",
         preliminaryQuoteId: "quote",
         revision: "preliminary",

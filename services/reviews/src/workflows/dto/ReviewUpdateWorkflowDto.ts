@@ -95,7 +95,7 @@ export type ReviewUpdateOperation =
 
 export interface ReviewUpdateWorkflowInput {
   reviewId: string;
-  expectedRevision: number;
+
   operations: ReviewUpdateOperation[];
   context: ReviewsMutationWorkflowContext;
 }

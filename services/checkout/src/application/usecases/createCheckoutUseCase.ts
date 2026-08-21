@@ -110,7 +110,6 @@ function createDraft(
   const draft: CheckoutMutationDraft = {
     checkoutId: reservation.checkoutId,
     storeId: reservation.identity.storeId,
-    version: 0,
     currencyCode: business.currencyCode,
     localeCode: business.localeCode ?? null,
     channelCode: business.channelCode,

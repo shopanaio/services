@@ -49,10 +49,9 @@ export class CollectionMoveProductScript extends BaseScript<
       .filter((item) => beforeRanks.get(item.productId) !== item.lexoRank)
       .map((item) => item.productId);
     if (changedProductIds.length === 0) return { collection, userErrors: [] };
-    const refreshed = await this.repository.collection.bumpRevision(
-      params.collectionId,
-      { listingChanged: false },
-    );
+    const refreshed = await this.repository.collection.bumpRevision(params.collectionId, {
+      listingChanged: false,
+    });
     if (!refreshed) {
       throw new Error("Collection disappeared while moving a product");
     }

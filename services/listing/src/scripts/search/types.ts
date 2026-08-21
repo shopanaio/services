@@ -22,12 +22,10 @@ export interface SearchSynonymGroupCreateParams extends SearchSynonymGroupWriteP
 
 export interface SearchSynonymGroupUpdateParams extends SearchSynonymGroupWriteParams {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymGroupDeleteParams {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymGroupResult {
@@ -51,12 +49,10 @@ export interface SearchProductBoostCreateParams extends SearchProductBoostWriteP
 
 export interface SearchProductBoostUpdateParams extends SearchProductBoostWriteParams {
   boostId: string;
-  expectedVersion: number;
 }
 
 export interface SearchProductBoostDeleteParams {
   boostId: string;
-  expectedVersion: number;
 }
 
 export interface SearchProductBoostResult {

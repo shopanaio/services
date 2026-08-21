@@ -217,7 +217,7 @@ export function OrderModal() {
     if (!order) return;
     const result = await noteMutation.updateAdminNote({
       id: order.id,
-      expectedVersion: order.version,
+
       adminNote: note.trim() || null,
     });
     if (!result.order) return setGlobalErrors(result.userErrors.map((error) => error.message));
@@ -231,7 +231,7 @@ export function OrderModal() {
     if (!order || !comment.trim()) return;
     const result = await commentMutation.addOrderComment({
       id: order.id,
-      expectedVersion: order.version,
+
       comment: comment.trim(),
     });
     if (!result.order) return setGlobalErrors(result.userErrors.map((error) => error.message));
@@ -442,7 +442,7 @@ export function OrderModal() {
                         fulfillmentStatusModal.push({
                           orderId: order!.id,
                           fulfillmentId: fulfillment.id,
-                          expectedVersion: order!.version,
+
                           currentStatus: fulfillment.status,
                           nextStatus:
                             fulfillment.status === OrderFulfillmentStatus.Pending
@@ -460,7 +460,7 @@ export function OrderModal() {
                           orderId: order!.id,
                           fulfillmentId: fulfillment.id,
                           shippingItemId: fulfillment.shippingItem?.id,
-                          expectedVersion: order!.version,
+
                           shippingMethodId: fulfillment.shippingItem?.shippingMethod.id,
                           trackingCode: fulfillment.shippingItem?.trackingCode,
                           onSaved: refresh,
@@ -504,7 +504,7 @@ export function OrderModal() {
                   orderId: order!.id,
                   fulfillmentId: fulfillment.id,
                   shippingItemId: fulfillment.shippingItem?.id,
-                  expectedVersion: order!.version,
+
                   shippingMethodId: fulfillment.shippingItem?.shippingMethod.id,
                   trackingCode: fulfillment.shippingItem?.trackingCode,
                   onSaved: refresh,
@@ -523,7 +523,7 @@ export function OrderModal() {
                       fulfillmentStatusModal.push({
                         orderId: order!.id,
                         fulfillmentId: fulfillment.id,
-                        expectedVersion: order!.version,
+
                         currentStatus: fulfillment.status,
                         nextStatus: OrderFulfillmentStatus.Fulfilled,
                         onSaved: refresh,
@@ -536,7 +536,7 @@ export function OrderModal() {
                       fulfillmentStatusModal.push({
                         orderId: order!.id,
                         fulfillmentId: fulfillment.id,
-                        expectedVersion: order!.version,
+
                         currentStatus: fulfillment.status,
                         nextStatus: OrderFulfillmentStatus.OnHold,
                         onSaved: refresh,
@@ -550,7 +550,7 @@ export function OrderModal() {
                       fulfillmentStatusModal.push({
                         orderId: order!.id,
                         fulfillmentId: fulfillment.id,
-                        expectedVersion: order!.version,
+
                         currentStatus: fulfillment.status,
                         nextStatus: OrderFulfillmentStatus.Cancelled,
                         onSaved: refresh,
@@ -790,7 +790,7 @@ export function OrderModal() {
                   onClick={() =>
                     orderStatusModal.push({
                       entityId: order.id,
-                      expectedVersion: order.version,
+
                       nextStatus: OrderStatus.Active,
                       onSaved: refresh,
                     })
@@ -808,7 +808,7 @@ export function OrderModal() {
                         onClick: () =>
                           orderStatusModal.push({
                             entityId: order.id,
-                            expectedVersion: order.version,
+
                             nextStatus: OrderStatus.Cancelled,
                             onSaved: refresh,
                           }),
@@ -828,7 +828,7 @@ export function OrderModal() {
                 onClick={() =>
                   orderStatusModal.push({
                     entityId: order.id,
-                    expectedVersion: order.version,
+
                     nextStatus: OrderStatus.Completed,
                     onSaved: refresh,
                   })
@@ -855,7 +855,7 @@ export function OrderModal() {
                       if (!confirmed) return;
                       const result = await customerMutation.updateOrderCustomer({
                         id: order.id,
-                        expectedVersion: order.version,
+
                         customerId: null,
                       });
                       if (result.order) await refresh();
@@ -969,7 +969,7 @@ export function OrderModal() {
                     onClick={() =>
                       shippingDetailsModal.push({
                         orderId: order.id,
-                        expectedVersion: order.version,
+
                         onSaved: refresh,
                       })
                     }
@@ -1021,7 +1021,7 @@ export function OrderModal() {
                     onClick={() =>
                       paymentDetailsModal.push({
                         orderId: order.id,
-                        expectedVersion: order.version,
+
                         onSaved: refresh,
                       })
                     }
@@ -1081,7 +1081,7 @@ export function OrderModal() {
                     if (!order) return;
                     const result = await tagsMutation.updateOrderTags({
                       id: order.id,
-                      expectedVersion: order.version,
+
                       tags: field.value,
                     });
                     if (result.order) await refresh();

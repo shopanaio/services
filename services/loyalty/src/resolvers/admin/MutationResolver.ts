@@ -133,16 +133,12 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         "PROGRAM",
         (id) => this.$ctx.kernel.repository.program.findById(id),
         () =>
-          this.programs.updateProgram(
-            programId,
-            {
-              name: input.name ?? undefined,
-              status: input.status ?? undefined,
-              isDefault: input.isDefault ?? undefined,
-              metadata: input.metadata ?? undefined,
-            },
-            input.expectedRevision,
-          ),
+          this.programs.updateProgram(programId, {
+            name: input.name ?? undefined,
+            status: input.status ?? undefined,
+            isDefault: input.isDefault ?? undefined,
+            metadata: input.metadata ?? undefined,
+          }),
       );
       this.$ctx.loaders.program.clear(program.id).prime(program.id, program);
       return this.resolvers.program(program.id);
@@ -262,7 +258,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         () =>
           this.programs.publishVersion({
             versionId,
-            expectedRevision: input.expectedRevision,
+
             effectiveFrom: input.effectiveFrom,
             effectiveTo: input.effectiveTo,
             publishedAt: new Date().toISOString(),
@@ -291,7 +287,6 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         status: input.status,
         reason: input.reason,
         occurredAt: new Date().toISOString(),
-        expectedRevision: input.expectedRevision,
       });
       this.$ctx.loaders.account.clear(account.id).prime(account.id, account);
       return this.resolvers.account(account.id);
@@ -359,7 +354,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         reservationId,
         reason: "ADMIN_REQUEST",
         reasonCode: input.reasonCode,
-        expectedRevision: input.expectedRevision,
+
         releasedAt: new Date().toISOString(),
         idempotencyKey: input.idempotencyKey,
         requestHash,
@@ -442,7 +437,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         input,
         "PROGRAM_VERSION",
         (id) => this.$ctx.kernel.repository.program.findVersionById(id),
-        () => this.programs.updateDraftVersion(versionId, changes as never, input.expectedRevision),
+        () => this.programs.updateDraftVersion(versionId, changes as never),
       );
       this.$ctx.loaders.programVersion.clear(version.id).prime(version.id, version);
       this.$ctx.loaders.programVersions.clear(version.programId);
@@ -461,7 +456,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         "DELETED_PROGRAM_VERSION",
         async () => ({ id }),
         async () => {
-          await this.programs.deleteDraftVersion(id, input.expectedRevision);
+          await this.programs.deleteDraftVersion(id);
           return { id };
         },
       );
@@ -860,7 +855,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       const id = this.decodeId(input.membershipId, GlobalIdEntity.LoyaltyTierMembership);
       const membership = await new TierEvaluationService(this.$ctx.kernel.repository).revoke({
         membershipId: id,
-        expectedRevision: input.expectedRevision,
+
         effectiveAt: input.effectiveAt ?? new Date().toISOString(),
         reasonCode: input.reasonCode,
         actorId: this.$ctx.user.id,
@@ -934,7 +929,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
       if (current.status === input.status) return this.resolvers.monetaryWallet(id);
       const wallet = await this.$ctx.kernel.repository.wallet.updateWalletState(
         id,
-        input.expectedRevision,
+
         {
           status: input.status,
           mergedIntoWalletId: null,
@@ -1148,7 +1143,7 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         this.$ctx.kernel.repository,
       ).transition({
         entitlementId: id,
-        expectedRevision: input.expectedRevision,
+
         transition,
         idempotencyKey: input.idempotencyKey,
         occurredAt: input.occurredAt ?? new Date().toISOString(),

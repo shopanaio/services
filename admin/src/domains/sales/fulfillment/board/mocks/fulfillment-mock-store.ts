@@ -152,17 +152,9 @@ function sorted(input: ApiFulfillmentTicket[], variables: FulfillmentBoardQueryV
   });
 }
 
-function versionedStage(id: string, expectedVersion: number) {
+function versionedStage(id: string) {
   const stage = stages.find((item) => item.id === id);
   if (!stage) return { stage: null, error: userError("NOT_FOUND", "Fulfillment stage not found.") };
-  if (stage.version !== expectedVersion)
-    return {
-      stage: null,
-      error: userError(
-        "VERSION_CONFLICT",
-        "This stage was changed by another operator. Reload and try again.",
-      ),
-    };
   return { stage, error: null };
 }
 
@@ -237,7 +229,7 @@ export const fulfillmentMockStore = {
     return { stage: clone(stage), userErrors: [] };
   },
   updateStage(input: FulfillmentStageUpdateInput) {
-    const current = versionedStage(input.id, input.expectedVersion);
+    const current = versionedStage(input.id);
     if (!current.stage) return { stage: null, userErrors: [current.error!] };
     if (input.handle && stages.some((item) => item.id !== input.id && item.handle === input.handle))
       return {
@@ -253,7 +245,7 @@ export const fulfillmentMockStore = {
     return { stage: clone(current.stage), userErrors: [] };
   },
   deleteStage(input: FulfillmentStageDeleteInput) {
-    const current = versionedStage(input.id, input.expectedVersion);
+    const current = versionedStage(input.id);
     if (!current.stage) return { deletedStageId: null, userErrors: [current.error!] };
     if (tickets.some((ticket) => ticket.stageId === input.id))
       return {
@@ -265,7 +257,7 @@ export const fulfillmentMockStore = {
   },
   reorderStages(input: FulfillmentStagesReorderInput) {
     for (const update of input.stages) {
-      const current = versionedStage(update.id, update.expectedVersion);
+      const current = versionedStage(update.id);
       if (!current.stage) return { stages: null, userErrors: [current.error!] };
     }
     const now = new Date().toISOString();
@@ -283,16 +275,6 @@ export const fulfillmentMockStore = {
       return {
         ticket: null,
         userErrors: [userError("NOT_FOUND", "Fulfillment ticket not found.")],
-      };
-    if (ticket.version !== input.expectedVersion)
-      return {
-        ticket: null,
-        userErrors: [
-          userError(
-            "VERSION_CONFLICT",
-            "This fulfillment was changed by another operator. Reload and try again.",
-          ),
-        ],
       };
     if (ticket.stageId !== input.sourceStageId)
       return {
@@ -341,7 +323,7 @@ export const fulfillmentMockStore = {
     return this.moveTicket({
       clientMutationId: input.clientMutationId,
       ticketId: ticket.id,
-      expectedVersion: ticket.version,
+
       sourceStageId: ticket.stageId,
       targetStageId: input.stageId,
       afterTicketId:

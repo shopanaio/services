@@ -18,7 +18,7 @@ test.describe('Loyalty Admin API account and ledger invariants', () => {
     const fixture = await kit.fundedAccount('100');
     let status = await kit.api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', {
       variables: { input: {
-        accountId: fixture.account.id, expectedRevision: 1, status: 'SUSPENDED', reason: 'RISK_REVIEW',
+        accountId: fixture.account.id,  status: 'SUSPENDED', reason: 'RISK_REVIEW',
         idempotencyKey: idempotencyKey('suspend-economic'),
       } },
     });
@@ -34,7 +34,7 @@ test.describe('Loyalty Admin API account and ledger invariants', () => {
     status = await kit.api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', {
       variables: { input: {
         accountId: fixture.account.id,
-        expectedRevision: status.data.loyaltyMutation.accountStatusUpdate.account.revision,
+        
         status: 'CLOSED', reason: 'CUSTOMER_REQUEST', idempotencyKey: idempotencyKey('close-economic'),
       } },
     });
@@ -42,7 +42,7 @@ test.describe('Loyalty Admin API account and ledger invariants', () => {
     const closed = status.data.loyaltyMutation.accountStatusUpdate.account;
     const reopen = await kit.api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', {
       variables: { input: {
-        accountId: fixture.account.id, expectedRevision: closed.revision, status: 'ACTIVE', reason: 'INVALID_REOPEN',
+        accountId: fixture.account.id,  status: 'ACTIVE', reason: 'INVALID_REOPEN',
         idempotencyKey: idempotencyKey('closed-reopen'),
       } },
     });

@@ -14,7 +14,6 @@ export function mapSearchSynonymGroupAggregate(aggregate: SearchSynonymGroupAggr
     locale: aggregate.group.locale,
     name: aggregate.group.name,
     enabled: aggregate.group.enabled,
-    version: aggregate.group.version,
     createdAt: aggregate.group.createdAt,
     updatedAt: aggregate.group.updatedAt,
     values: aggregate.values.map((value) => ({
@@ -31,7 +30,6 @@ export function mapSearchSynonymGroupListView(row: SearchSynonymGroupListView) {
     locale: row.locale,
     name: row.name,
     enabled: row.enabled,
-    version: row.version,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     values: row.valueItems,
@@ -45,7 +43,6 @@ export function mapSearchProductBoostAggregate(aggregate: SearchProductBoostAggr
     locale: aggregate.boost.locale,
     name: aggregate.boost.name,
     enabled: aggregate.boost.enabled,
-    version: aggregate.boost.version,
     createdAt: aggregate.boost.createdAt,
     updatedAt: aggregate.boost.updatedAt,
     phrases: aggregate.phrases.map((phrase) => ({
@@ -64,7 +61,6 @@ export function mapSearchProductBoostListView(row: SearchProductBoostListView) {
     locale: row.locale,
     name: row.name,
     enabled: row.enabled,
-    version: row.version,
     createdAt: row.createdAt,
     updatedAt: row.updatedAt,
     phrases: row.phraseItems,

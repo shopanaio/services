@@ -207,9 +207,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
   }
 }
 
-function groupItemsByProduct(
-  items: BulkEditItem[],
-): ProductGroup[] {
+function groupItemsByProduct(items: BulkEditItem[]): ProductGroup[] {
   // Group items by productId
   const groupMap = new Map<string, BulkEditItem[]>();
   for (const item of items) {

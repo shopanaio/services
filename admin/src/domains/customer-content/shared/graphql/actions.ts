@@ -31,9 +31,9 @@ export const QUESTION_DELETE_MUTATION = gql`
 `;
 
 export const CONTENT_REDACT_MUTATION = gql`
-  mutation AdminContentRedact($contentId: ID!, $expectedRevision: Int!) {
+  mutation AdminContentRedact($contentId: ID!) {
     reviewsMutation {
-      contentRedact(contentId: $contentId, expectedRevision: $expectedRevision) {
+      contentRedact(contentId: $contentId) {
         content {
           id
           revision

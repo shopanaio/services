@@ -1,8 +1,8 @@
-mutation ProductUpdate($productId: ID!, $expectedRevision: Int, $operations: ProductUpdateInput) {
+mutation ProductUpdate($productId: ID!,  $operations: ProductUpdateInput) {
   catalogMutation {
     productUpdate(
       productId: $productId
-      expectedRevision: $expectedRevision
+      
       operations: $operations
     ) {
       product {

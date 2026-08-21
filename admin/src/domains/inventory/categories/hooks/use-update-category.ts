@@ -26,7 +26,6 @@ interface UseUpdateCategoryReturn {
   updateCategory: (
     categoryId: string,
     operations: ApiCategoryUpdateInput,
-    expectedRevision?: number | null,
   ) => Promise<UpdateCategoryResult>;
   loading: boolean;
   error: Error | null;
@@ -43,14 +42,12 @@ export function useUpdateCategory(): UseUpdateCategoryReturn {
     async (
       categoryId: string,
       operations: ApiCategoryUpdateInput,
-      expectedRevision?: number | null,
     ): Promise<UpdateCategoryResult> => {
       try {
         const result = await updateCategoryMutation({
           variables: {
             categoryId,
             operations,
-            expectedRevision: expectedRevision ?? null,
           },
           refetchQueries: [CATEGORY_DETAILS_QUERY, CATEGORIES_QUERY],
           awaitRefetchQueries: true,

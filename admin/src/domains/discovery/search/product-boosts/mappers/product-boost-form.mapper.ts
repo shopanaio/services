@@ -26,7 +26,6 @@ export function buildProductBoostCreateInput(
 export function buildProductBoostUpdateInput(
   values: ProductBoostFormValues,
   id: string,
-  expectedVersion: number,
 ): ApiSearchProductBoostUpdateInput {
-  return { id, expectedVersion, ...productBoostValues(values) };
+  return { id, ...productBoostValues(values) };
 }

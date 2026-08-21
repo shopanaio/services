@@ -14,7 +14,7 @@ export function OrderPaymentStatusModal() {
     const result = await mutation.updatePaymentStatus({
       id: value.orderId,
       paymentItemId: value.paymentItemId,
-      expectedVersion: value.expectedVersion,
+
       nextStatus: value.nextStatus,
       comment,
     });

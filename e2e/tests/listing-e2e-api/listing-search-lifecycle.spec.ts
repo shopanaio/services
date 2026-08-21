@@ -79,7 +79,7 @@ test.describe('Listing and search lifecycle', () => {
       'listing-api/ListingSearchSettingsUpdate',
       {
         variables: {
-          expectedVersion: 1,
+          
           operations: {
             settings: {
               fields: [{ field: 'PRODUCT_TITLE', weight: 10 }],
@@ -450,7 +450,7 @@ async function createListingProduct(
 
   await api.admin.product.update({
     productId: product.id,
-    expectedRevision: product.revision,
+    
     operations: {
       variants: [
         {
@@ -534,7 +534,7 @@ async function updateProductVariantInventory(
   }
   return api.admin.product.update({
     productId: latestProduct.id,
-    expectedRevision: latestProduct.revision,
+    
     operations: {
       variants: [
         {

@@ -132,7 +132,7 @@ async function createCurrentStorefrontEmailOtpRealm(
 export async function setCustomerAuthMethods(
   api: Api,
   request: APIRequestContext,
-  expectedRevision: number,
+  
   enabledMethods: Array<'PASSWORD' | 'EMAIL_OTP'>,
 ): Promise<number> {
   const response = await request.post(adminGraphqlUrl, {
@@ -162,7 +162,7 @@ export async function setCustomerAuthMethods(
       variables: {
         input: {
           enabledMethods,
-          expectedRevision,
+          
         },
       },
     },

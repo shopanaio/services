@@ -294,7 +294,7 @@ export class HeadlessTestKit {
   async replacePolicy(
     connectionId: string,
     permissions: string[],
-    expectedRevision: number,
+    
     clientMutationId = crypto.randomUUID(),
   ): Promise<{ policy: AccessPolicy | null; userErrors: UserError[] }> {
     const result = await this.admin<{
@@ -313,7 +313,7 @@ export class HeadlessTestKit {
           }
         }
       }`,
-      { input: { connectionId, permissions, expectedRevision, clientMutationId } },
+      { input: { connectionId, permissions,  clientMutationId } },
     );
     return result.data!.headlessAppMutation.storefrontAccessPolicyUpdate;
   }

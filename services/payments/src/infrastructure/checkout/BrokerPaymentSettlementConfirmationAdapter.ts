@@ -27,7 +27,6 @@ export class BrokerPaymentSettlementConfirmationAdapter implements PaymentSettle
       paymentCollectionId: input.collection.paymentCollectionId,
       paymentSessionId: input.session.paymentSessionId,
       operationId: input.operation.operationId,
-      expectedCheckoutVersion: input.collection.basedOnCheckoutVersion,
       finalQuoteRevision: input.collection.basedOnFinalQuoteRevision,
       deadlineAt: input.deadlineAt,
       correlationId: input.correlationId,

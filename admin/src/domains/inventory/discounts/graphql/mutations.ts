@@ -20,17 +20,9 @@ export const DISCOUNT_CREATE_MUTATION = gql`
 `;
 
 export const DISCOUNT_UPDATE_MUTATION = gql`
-  mutation DiscountUpdate(
-    $discountId: ID!
-    $expectedRevision: Int!
-    $operations: DiscountUpdateInput!
-  ) {
+  mutation DiscountUpdate($discountId: ID!, $operations: DiscountUpdateInput!) {
     pricingMutation {
-      discountUpdate(
-        discountId: $discountId
-        expectedRevision: $expectedRevision
-        operations: $operations
-      ) {
+      discountUpdate(discountId: $discountId, operations: $operations) {
         discount {
           ...DiscountDetailsFields
         }

@@ -96,7 +96,7 @@ async function applyComponentOperation(
   const { data } = await api.admin.mutation('inventory-api/ProductComponentUpdate', {
     variables: {
       productId: product.id,
-      expectedRevision: previousRevision,
+      
       operations: { components: [operation] },
     },
   });
@@ -1026,7 +1026,7 @@ test.describe('Product Component API', () => {
     const { data } = await api.admin.mutation('inventory-api/ProductComponentUpdate', {
       variables: {
         productId: owner.id,
-        expectedRevision: previousRevision,
+        
         operations: {
           components: [
             { action: 'SETTINGS_UPDATE', displayStyle: 'FLAT' },

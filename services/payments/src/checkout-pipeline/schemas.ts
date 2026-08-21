@@ -23,7 +23,6 @@ const jsonObject = z.record(jsonValue).nullable();
 const provenance = {
   executionId: id,
   checkoutId: id,
-  basedOnCheckoutVersion: version,
   currencyCode: id,
 } as const;
 const capabilities = z
@@ -114,8 +113,6 @@ export const paymentsCheckoutRequestSchema = z
       .object({
         executionId: id,
         checkoutId: id,
-        expectedCheckoutVersion: version,
-        targetCheckoutVersion: version,
         currencyCode: id,
         correlationId: id,
         deadlineAt: timestamp,

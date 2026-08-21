@@ -51,7 +51,6 @@ type SearchSynonymGroup {
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
-  version: Int!
   values: [SearchSynonymValue!]!
   valuesCount: Int!
   createdAt: DateTime!
@@ -79,7 +78,6 @@ type SearchProductBoost {
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
-  version: Int!
   phrases: [SearchProductBoostPhrase!]!
   phrasesCount: Int!
   products: [Product!]!
@@ -210,7 +208,6 @@ type SearchExplainTypoAlternative {
 }
 
 type SearchExplainSettings {
-  version: Int!
   enabledFields: [SearchField!]!
   fieldWeights: [SearchExplainFieldWeight!]!
   typoToleranceEnabled: Boolean!
@@ -223,7 +220,6 @@ type SearchExplainFieldWeight {
 }
 
 type SearchSettings {
-  version: Int!
   fields: [SearchFieldConfiguration!]!
   typoToleranceEnabled: Boolean!
   outOfStockPolicy: SearchOutOfStockPolicy!

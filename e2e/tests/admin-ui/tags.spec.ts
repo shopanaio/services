@@ -55,7 +55,7 @@ async function addTagToProduct(api: Api, product: { id: string; revision: number
   const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
     variables: {
       productId: product.id,
-      expectedRevision: product.revision,
+      
       operations: {
         tags: [{ tagId, action: 'ADD' }],
       },

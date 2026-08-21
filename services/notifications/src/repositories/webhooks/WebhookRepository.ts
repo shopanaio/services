@@ -79,7 +79,6 @@ export class WebhookRepository extends BaseRepository {
     url?: string;
     apiVersion?: string;
     status?: "ACTIVE" | "DISABLED";
-    expectedVersion: number;
   }) {
     if (input.url) await assertWebhookUrl(input.url);
     const rows = await this.connection
@@ -94,11 +93,7 @@ export class WebhookRepository extends BaseRepository {
         updatedAt: new Date().toISOString(),
       })
       .where(
-        and(
-          eq(webhookSubscriptions.storeId, this.storeId),
-          eq(webhookSubscriptions.id, input.id),
-          eq(webhookSubscriptions.version, input.expectedVersion),
-        ),
+        and(eq(webhookSubscriptions.storeId, this.storeId), eq(webhookSubscriptions.id, input.id)),
       )
       .returning();
     if (!rows[0]) throw new Error("VERSION_CONFLICT");

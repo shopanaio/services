@@ -85,7 +85,7 @@ export function EditAvailabilityModal() {
 
     const result = await mutation.updateDiscount({
       discountId: discount.id,
-      expectedRevision: discount.revision,
+
       operations: buildDiscountAvailabilityUpdateInput(discount, values),
     });
 

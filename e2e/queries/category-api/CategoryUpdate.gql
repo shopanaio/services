@@ -1,12 +1,12 @@
 mutation CategoryUpdate(
   $categoryId: ID!
-  $expectedRevision: Int
+  
   $operations: CategoryUpdateInput
 ) {
   catalogMutation {
     categoryUpdate(
       categoryId: $categoryId
-      expectedRevision: $expectedRevision
+      
       operations: $operations
     ) {
       category {

@@ -11,7 +11,7 @@ import type {
 
 interface SetCustomerSegmentMembersInput {
   segmentId: string;
-  expectedRevision: number;
+
   customerIds: string[];
 }
 
@@ -26,7 +26,7 @@ export function useSetCustomerSegmentMembers() {
         const result = await mutate({
           variables: {
             segmentId: input.segmentId,
-            expectedRevision: input.expectedRevision,
+
             operations: {
               memberships: {
                 setCustomerIds: input.customerIds,

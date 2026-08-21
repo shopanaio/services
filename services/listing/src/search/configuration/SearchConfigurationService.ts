@@ -11,7 +11,7 @@ import { searchProductBoostCacheKey, searchSynonymsCacheKey } from "./cacheKeys.
 
 export interface CachedApplicableProductBoost {
   readonly boostId: string;
-  readonly version: number;
+  readonly updatedAt: string;
   readonly locale: string;
   readonly normalizationContractVersion: string;
   readonly normalizationProfileRevision: string;
@@ -90,7 +90,7 @@ export class SearchConfigurationService {
         const cached = await this.cache.get<CachedApplicableProductBoost>(key);
         if (
           cached &&
-          cached.version === header.version &&
+          cached.updatedAt === header.updatedAt &&
           cached.normalizationContractVersion === input.normalizationContractVersion &&
           cached.normalizationProfileRevision === input.normalizationProfileRevision
         ) {
@@ -153,9 +153,9 @@ function compileLocaleSynonyms(
 }
 
 function synonymHeadersFingerprint(
-  headers: readonly { groupId: string; version: number }[],
+  headers: readonly { groupId: string; updatedAt: string }[],
 ): string {
-  return JSON.stringify(headers.map((header) => [header.groupId, header.version]));
+  return JSON.stringify(headers.map((header) => [header.groupId, header.updatedAt]));
 }
 
 interface MutableTrieNode {
@@ -210,7 +210,7 @@ function compileProductBoost(aggregate: SearchProductBoostAggregate): CachedAppl
   }
   return Object.freeze({
     boostId: aggregate.boost.boostId,
-    version: aggregate.boost.version,
+    updatedAt: aggregate.boost.updatedAt,
     locale: aggregate.boost.locale,
     normalizationContractVersion: firstPhrase.normalizationContractVersion,
     normalizationProfileRevision: firstPhrase.normalizationProfileRevision,

@@ -64,7 +64,7 @@ export type Application = Node & {
   organizationId: Scalars['ID']['output'];
   /** Immutable OAuth resource audience assigned by IAM. */
   resource: Scalars['String']['output'];
-  /** Current revision used for optimistic concurrency. */
+  /** Internal aggregate revision. */
   revision: Scalars['Int']['output'];
   /** Current application lifecycle status. */
   status: ApplicationLifecycleStatus;
@@ -114,8 +114,6 @@ export type ApplicationUsersArgs = {
 export type ApplicationArchiveInput = {
   /** Application to archive. */
   applicationId: Scalars['ID']['input'];
-  /** Revision expected by the caller. */
-  expectedRevision: Scalars['Int']['input'];
   /** Organization that owns the application. */
   organizationId: Scalars['ID']['input'];
 };
@@ -189,7 +187,7 @@ export type ApplicationAuthConfiguration = {
   refreshTokenTtlSeconds: Scalars['Int']['output'];
   /** Registration policy for new application users. */
   registrationMode: ApplicationRegistrationMode;
-  /** Current revision used for optimistic concurrency. */
+  /** Internal configuration revision. */
   revision: Scalars['Int']['output'];
   /** Application session lifetime in seconds. */
   sessionTtlSeconds: Scalars['Int']['output'];
@@ -265,7 +263,6 @@ export type ApplicationAuthMethodPayload = {
 export type ApplicationAuthMethodUpdateInput = {
   applicationId: Scalars['ID']['input'];
   enabledCapabilities: Array<ApplicationAuthMethodCapability>;
-  expectedRevision: Scalars['Int']['input'];
   methodId: Scalars['ApplicationAuthMethodId']['input'];
   organizationId: Scalars['ID']['input'];
 };
@@ -322,7 +319,6 @@ export type ApplicationAuthProviderConfigureInput = {
   applicationId: Scalars['ID']['input'];
   clientId: Scalars['String']['input'];
   clientSecret: Scalars['String']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
   provider: ApplicationAuthProviderName;
   scopes: Array<Scalars['String']['input']>;
@@ -331,7 +327,6 @@ export type ApplicationAuthProviderConfigureInput = {
 /** Input for deleting credentials from a disabled social provider. */
 export type ApplicationAuthProviderCredentialsDeleteInput = {
   applicationId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
   provider: ApplicationAuthProviderName;
 };
@@ -341,7 +336,6 @@ export type ApplicationAuthProviderCredentialsRotateInput = {
   applicationId: Scalars['ID']['input'];
   clientId: Scalars['String']['input'];
   clientSecret: Scalars['String']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
   provider: ApplicationAuthProviderName;
 };
@@ -363,7 +357,6 @@ export type ApplicationAuthProviderPayload = {
 export type ApplicationAuthProviderUpdateInput = {
   applicationId: Scalars['ID']['input'];
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
   provider: ApplicationAuthProviderName;
   scopes?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -372,7 +365,6 @@ export type ApplicationAuthProviderUpdateInput = {
 /** Input for safely validating a social provider configuration. */
 export type ApplicationAuthProviderValidateInput = {
   applicationId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
   provider: ApplicationAuthProviderName;
 };
@@ -406,7 +398,6 @@ export enum ApplicationAuthProviderValidationStatus {
 export type ApplicationAuthRealmEnabledSetInput = {
   applicationId: Scalars['ID']['input'];
   enabled: Scalars['Boolean']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
 };
 
@@ -425,7 +416,6 @@ export type ApplicationAuthUpdateInput = {
   defaultLocale?: InputMaybe<LocaleCode>;
   emailDelivery?: InputMaybe<ApplicationAuthEmailDeliveryInput>;
   emailVerificationRequired?: InputMaybe<Scalars['Boolean']['input']>;
-  expectedRevision: Scalars['Int']['input'];
   idTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
   organizationId: Scalars['ID']['input'];
   refreshTokenTtlSeconds?: InputMaybe<Scalars['Int']['input']>;
@@ -706,7 +696,6 @@ export type ApplicationOAuthClient = Node & {
 export type ApplicationOAuthClientArchiveInput = {
   applicationId: Scalars['ID']['input'];
   clientId: Scalars['String']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
 };
 
@@ -752,7 +741,6 @@ export type ApplicationOAuthClientEnabledSetInput = {
   applicationId: Scalars['ID']['input'];
   clientId: Scalars['String']['input'];
   enabled: Scalars['Boolean']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
 };
 
@@ -786,7 +774,6 @@ export type ApplicationOAuthClientPayload = {
 export type ApplicationOAuthClientSecretRotateInput = {
   applicationId: Scalars['ID']['input'];
   clientId: Scalars['String']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
 };
 
@@ -803,7 +790,6 @@ export type ApplicationOAuthClientSecretRotatePayload = {
 export type ApplicationOAuthClientSkipConsentSetInput = {
   applicationId: Scalars['ID']['input'];
   clientId: Scalars['String']['input'];
-  expectedRevision: Scalars['Int']['input'];
   organizationId: Scalars['ID']['input'];
   skipConsent: Scalars['Boolean']['input'];
 };
@@ -820,7 +806,6 @@ export type ApplicationOAuthClientUpdateInput = {
   clientId: Scalars['String']['input'];
   enableEndSession?: InputMaybe<Scalars['Boolean']['input']>;
   environment?: InputMaybe<ApplicationOAuthClientEnvironment>;
-  expectedRevision: Scalars['Int']['input'];
   name?: InputMaybe<Scalars['String']['input']>;
   organizationId: Scalars['ID']['input'];
   postLogoutRedirectUris?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -902,8 +887,6 @@ export type ApplicationUpdateInput = {
   description?: InputMaybe<Scalars['String']['input']>;
   /** New human-readable application name. */
   displayName?: InputMaybe<Scalars['String']['input']>;
-  /** Revision expected by the caller. */
-  expectedRevision: Scalars['Int']['input'];
   /** New URL-friendly application name. */
   name?: InputMaybe<Scalars['String']['input']>;
   /** Organization that owns the application. */

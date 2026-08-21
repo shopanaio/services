@@ -43,7 +43,6 @@ export class DiscountDeleteWorkflow extends BrokerWorkflows {
       DiscountDeleteScript,
       {
         id: input.discountId,
-        expectedRevision: input.expectedRevision,
       },
       toScriptContext(input.context),
     );

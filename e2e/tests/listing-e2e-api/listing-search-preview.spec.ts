@@ -36,7 +36,7 @@ test.describe('Listing search preview API', () => {
 
     const { data } = await api.admin.mutation('listing-api/ListingSearchSettingsUpdate', {
       variables: {
-        expectedVersion: 0,
+        
         operations: {
           settings: {
             fields: SEARCH_FIELDS,

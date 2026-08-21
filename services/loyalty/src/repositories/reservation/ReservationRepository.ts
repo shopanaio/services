@@ -194,7 +194,7 @@ export class ReservationRepository extends BaseRepository {
 
   async updateState(
     id: string,
-    expectedRevision: number,
+
     input: Partial<
       Pick<
         NewReservation,
@@ -215,13 +215,7 @@ export class ReservationRepository extends BaseRepository {
         revision: sql`${reservations.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(reservations.storeId, this.storeId),
-          eq(reservations.id, id),
-          eq(reservations.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(reservations.storeId, this.storeId), eq(reservations.id, id)))
       .returning();
     return rows[0] ?? null;
   }

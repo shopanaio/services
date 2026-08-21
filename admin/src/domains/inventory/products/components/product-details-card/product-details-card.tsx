@@ -114,7 +114,7 @@ export const ProductDetailsCard = ({
     async (operation: ApiProductComponentOperationInput, successMessage: string) => {
       const result = await updateProduct({
         productId: product.id,
-        expectedRevision: product.revision,
+
         operations: { components: [operation] },
       });
 

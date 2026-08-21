@@ -39,7 +39,7 @@ export class NotificationTemplateUpdateScript extends BaseScript<
     });
     const pointer = await this.repository.templates.activate({
       revisionId: revision.id,
-      expectedVersion: params.expectedVersion,
+
       updatedBy: this.context.user.id,
     });
     await recordAdminAudit(

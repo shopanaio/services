@@ -29,12 +29,6 @@ export class ManualProductRecommendationUpdateScript extends BaseScript<
     const locked = await this.repository.manualProductRecommendation.findById(input.id);
     if (!locked)
       return { userErrors: [{ message: "Manual recommendation not found", code: "NOT_FOUND" }] };
-    if (locked.version !== input.expectedVersion)
-      return {
-        userErrors: [
-          { message: "Manual recommendation version changed", code: "VERSION_CONFLICT" },
-        ],
-      };
     const current = manualInput(locked);
     const normalized = {
       ...current,

@@ -429,7 +429,6 @@ export class PaymentMethodBindingRepository
   async resolveCommittedSelection(input: {
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
     methodHandle: string;
     effectiveAt: string;
   }) {
@@ -461,7 +460,6 @@ export class PaymentMethodBindingRepository
   async resolvePaymentSelection(input: {
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
     finalQuoteRevision: string;
     paymentMethodsRevision: string;
     methodHandle: string;
@@ -497,8 +495,6 @@ export class PaymentMethodBindingRepository
   async stageCheckoutSnapshot(input: {
     storeId: string;
     checkoutId: string;
-    basedOnCheckoutVersion: number;
-    targetCheckoutVersion: number;
     finalQuoteRevision: string;
     deliveryRevision: string;
     discoveryRevision: string;
@@ -550,8 +546,6 @@ export class PaymentMethodBindingRepository
           .values({
             storeId: input.storeId,
             checkoutId: input.checkoutId,
-            basedOnCheckoutVersion: input.basedOnCheckoutVersion,
-            targetCheckoutVersion: input.targetCheckoutVersion,
             finalQuoteRevision: input.finalQuoteRevision,
             deliveryRevision: input.deliveryRevision,
             discoveryRevision: input.discoveryRevision,
@@ -612,8 +606,6 @@ export class PaymentMethodBindingRepository
               snapshotId: snapshot!.id,
               storeId: input.storeId,
               checkoutId: input.checkoutId,
-              basedOnCheckoutVersion: input.basedOnCheckoutVersion,
-              targetCheckoutVersion: input.targetCheckoutVersion,
               methodHandle: value.methodHandle,
               method,
               providerAccountId: value.providerAccountId,

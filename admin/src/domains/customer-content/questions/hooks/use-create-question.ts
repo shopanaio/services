@@ -47,7 +47,7 @@ export function useCreateQuestion() {
           const answerResult = await updateQuestionMutation({
             variables: {
               productQuestionId: question.id,
-              expectedRevision: question.revision,
+
               operations: { answers: { create: answers } },
             },
           });

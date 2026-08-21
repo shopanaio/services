@@ -241,7 +241,6 @@ export class CheckoutRedemptionService {
       },
       availablePoints: balance.availablePoints.toString(),
       expiresAt,
-      basedOnCheckoutVersion: context.checkoutVersion,
       basedOnPricingQuoteRevision: context.pricingQuoteRevision,
       basedOnCustomerEligibilityRevision: context.customerEligibilityRevision,
     };
@@ -326,7 +325,6 @@ export class CheckoutRedemptionService {
           programVersionId: params.quote.program.programVersionId,
           accountId: account.id,
           checkoutId: params.context.checkoutId,
-          checkoutVersion: params.context.checkoutVersion,
           quoteId: params.quote.quoteId,
           quoteRevision: params.quote.revision,
           points,
@@ -502,7 +500,6 @@ export class CheckoutRedemptionService {
 
   async releaseAdmin(
     params: ReleaseCheckoutLoyaltyRedemptionParams & {
-      expectedRevision: number;
       reasonCode: string;
     },
   ): Promise<ReleaseCheckoutLoyaltyRedemptionResult> {
@@ -681,7 +678,6 @@ export class CheckoutRedemptionService {
 
   private async releaseOrExpire(
     params: ReleaseCheckoutLoyaltyRedemptionParams & {
-      expectedRevision?: number;
       reasonCode?: string;
     },
     target: "RELEASED" | "EXPIRED",
@@ -698,16 +694,6 @@ export class CheckoutRedemptionService {
             message: "Loyalty reservation was not found",
             retryable: false,
           };
-        if (
-          params.expectedRevision !== undefined &&
-          reservation.revision !== params.expectedRevision
-        ) {
-          throw new LoyaltyDomainError(
-            "RESERVATION_CONCURRENT_CHANGE",
-            "Loyalty reservation changed concurrently",
-            true,
-          );
-        }
         if (reservation.status !== "ACTIVE") {
           if (reservation.status === "COMMITTED")
             return {

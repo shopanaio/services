@@ -2,7 +2,8 @@
 
 **Дата аудита:** 2026-08-20  
 **Объект:** `services/pricing`  
-**Целевой критерий:** все заявленные API и бизнес-логика Pricing Service реализованы, интегрированы и подтверждены автоматизированными тестами.  
+**Целевой критерий:** все заявленные API и бизнес-логика Pricing Service реализованы, интегрированы
+и подтверждены автоматизированными тестами.  
 **Итоговая оценка:** **60–65% — сервис не готов к признанию feature-complete или release-ready.**
 
 ## 1. Резюме
@@ -29,9 +30,11 @@ Pricing Service уже содержит значительный объём ра
 6. заявленный контракт `clientMutationId` не реализован;
 7. expiration usage reservations не подключён к maintenance workflow или scheduler;
 8. mixed one-time/subscription cart обрабатывается спорно и не покрыт спецификацией;
-9. большая часть mutation, persistence, integration и concurrency поведения не имеет прямого тестового покрытия.
+9. большая часть mutation, persistence, integration и concurrency поведения не имеет прямого
+   тестового покрытия.
 
-До устранения этих проблем сервис нельзя считать завершённым, даже несмотря на наличие большей части API surface.
+До устранения этих проблем сервис нельзя считать завершённым, даже несмотря на наличие большей части
+API surface.
 
 ## 2. Scope и методика
 
@@ -55,7 +58,8 @@ Pricing Service уже содержит значительный объём ра
 - dev/start server;
 - browser-based verification.
 
-Поэтому данный документ подтверждает полноту и согласованность реализации на уровне кода, но не является свидетельством успешного runtime-прогона.
+Поэтому данный документ подтверждает полноту и согласованность реализации на уровне кода, но не
+является свидетельством успешного runtime-прогона.
 
 ## 3. Заявленная ответственность сервиса
 
@@ -81,7 +85,8 @@ Pricing Service уже содержит значительный объём ра
 - normalization всех денежных значений в валюту Store;
 - reconciliation long-lived cross-service references.
 
-Catalog остаётся владельцем базовых цен и merchandise references. Checkout оркестрирует пересчёт и placement. Orders получает зафиксированный результат применения скидок.
+Catalog остаётся владельцем базовых цен и merchandise references. Checkout оркестрирует пересчёт и
+placement. Orders получает зафиксированный результат применения скидок.
 
 ## 4. Инвентаризация публичного API
 
@@ -89,68 +94,72 @@ Catalog остаётся владельцем базовых цен и merchandi
 
 SDL объявляет namespace `pricingQuery` и 13 query-полей:
 
-| Query | Реализация | Статус |
-| --- | --- | --- |
-| `node` | `PricingQueryResolver.node` | Реализовано |
-| `nodes` | `PricingQueryResolver.nodes` | Реализовано |
-| `discount` | loader + `DiscountResolver` | Реализовано |
-| `discounts` | Relay repository query | Реализовано |
-| `discountCode` | loader + resolver | Реализовано |
-| `discountCodes` | Relay repository query | Реализовано |
-| `discountUsageReservation` | loader + resolver | Реализовано |
-| `discountUsageReservations` | Relay repository query | Реализовано |
-| `discountRedemption` | loader + resolver | Реализовано |
-| `discountRedemptions` | Relay repository query | Реализовано |
-| `discountRedemptionAllocation` | loader + resolver | Реализовано |
-| `discountExternalReference` | loader + resolver | Реализовано |
-| `discountExternalReferences` | Relay repository query | Реализовано |
+| Query                          | Реализация                   | Статус      |
+| ------------------------------ | ---------------------------- | ----------- |
+| `node`                         | `PricingQueryResolver.node`  | Реализовано |
+| `nodes`                        | `PricingQueryResolver.nodes` | Реализовано |
+| `discount`                     | loader + `DiscountResolver`  | Реализовано |
+| `discounts`                    | Relay repository query       | Реализовано |
+| `discountCode`                 | loader + resolver            | Реализовано |
+| `discountCodes`                | Relay repository query       | Реализовано |
+| `discountUsageReservation`     | loader + resolver            | Реализовано |
+| `discountUsageReservations`    | Relay repository query       | Реализовано |
+| `discountRedemption`           | loader + resolver            | Реализовано |
+| `discountRedemptions`          | Relay repository query       | Реализовано |
+| `discountRedemptionAllocation` | loader + resolver            | Реализовано |
+| `discountExternalReference`    | loader + resolver            | Реализовано |
+| `discountExternalReferences`   | Relay repository query       | Реализовано |
 
-Основной surface присутствует. Однако invalid global IDs внутри filters не превращаются в предсказуемые user errors: mapper при ошибке декодирования возвращает исходную строку. Для UUID database columns это может приводить к database error вместо пустого результата или `BAD_USER_INPUT`.
+Основной surface присутствует. Однако invalid global IDs внутри filters не превращаются в
+предсказуемые user errors: mapper при ошибке декодирования возвращает исходную строку. Для UUID
+database columns это может приводить к database error вместо пустого результата или
+`BAD_USER_INPUT`.
 
 Источник: `src/repositories/global-id-where-mappers.ts:8-17`.
 
 ### 4.2 Admin GraphQL mutations
 
-| Mutation | Реализация | Статус |
-| --- | --- | --- |
-| `discountCreate` | DBOS workflow + transactional create script | Реализовано с пробелами |
-| `discountUpdate` | DBOS workflow по секциям | Реализовано с дефектами revision semantics |
-| `discountDelete` | DBOS workflow + draft/history guards | Реализовано |
-| `discountExternalReferenceCreate` | DBOS workflow | Реализовано |
-| `discountExternalReferenceUpdate` | DBOS workflow | Реализовано |
-| `discountExternalReferenceDelete` | DBOS workflow | Реализовано |
+| Mutation                          | Реализация                                  | Статус                                     |
+| --------------------------------- | ------------------------------------------- | ------------------------------------------ |
+| `discountCreate`                  | DBOS workflow + transactional create script | Реализовано с пробелами                    |
+| `discountUpdate`                  | DBOS workflow по секциям                    | Реализовано с дефектами revision semantics |
+| `discountDelete`                  | DBOS workflow + draft/history guards        | Реализовано                                |
+| `discountExternalReferenceCreate` | DBOS workflow                               | Реализовано                                |
+| `discountExternalReferenceUpdate` | DBOS workflow                               | Реализовано                                |
+| `discountExternalReferenceDelete` | DBOS workflow                               | Реализовано                                |
 
-Mutation surface физически существует, но не весь заявленный контракт выполняется. Детали приведены в разделе с findings.
+Mutation surface физически существует, но не весь заявленный контракт выполняется. Детали приведены
+в разделе с findings.
 
 ### 4.3 Broker actions
 
 Pricing регистрирует следующие checkout actions:
 
-| Action | Статус реализации |
-| --- | --- |
-| `pricing.calculateCheckoutPreliminaryQuote` | Реализовано |
-| `pricing.finalizeCheckoutPricingQuote` | Реализовано |
-| `pricing.reserveCheckoutDiscountUsage` | Реализовано |
-| `pricing.commitCheckoutDiscountUsage` | Реализовано |
-| `pricing.releaseCheckoutDiscountUsage` | Реализовано |
-| `pricing.expireCheckoutDiscountUsage` | Реализовано, но не подключено к caller workflow |
-| `pricing.reverseCheckoutDiscountUsage` | Реализовано |
-| `pricing.validateLoyaltyRewardReferences` | Реализовано |
+| Action                                      | Статус реализации                               |
+| ------------------------------------------- | ----------------------------------------------- |
+| `pricing.calculateCheckoutPreliminaryQuote` | Реализовано                                     |
+| `pricing.finalizeCheckoutPricingQuote`      | Реализовано                                     |
+| `pricing.reserveCheckoutDiscountUsage`      | Реализовано                                     |
+| `pricing.commitCheckoutDiscountUsage`       | Реализовано                                     |
+| `pricing.releaseCheckoutDiscountUsage`      | Реализовано                                     |
+| `pricing.expireCheckoutDiscountUsage`       | Реализовано, но не подключено к caller workflow |
+| `pricing.reverseCheckoutDiscountUsage`      | Реализовано                                     |
+| `pricing.validateLoyaltyRewardReferences`   | Реализовано                                     |
 
 ## 5. Матрица готовности
 
-| Область | Оценка | Комментарий |
-| --- | ---: | --- |
-| Admin GraphQL reads | 85% | Surface и resolvers присутствуют; нет достаточного integration coverage и строгой обработки invalid filter IDs |
-| Admin GraphQL mutations | 70% | Основные workflows есть; revision/no-op и contract gaps остаются |
-| Native discount calculation | 75% | Реализованы четыре вида и deterministic allocation; остаются семантические и test gaps |
-| Checkout pricing snapshots | 80% | Есть provenance, digest, persistence и currency checks |
-| Usage lifecycle | 70% | Reserve/commit/release/reverse реализованы; expiration operational lifecycle не завершён |
-| Commerce Function discounts | 45% | Runner и output validation есть; binding validation и e2e отсутствуют |
-| Cross-service references | 25% | IDs сохраняются, но ownership/existence/reconciliation отсутствуют |
-| Tenant isolation | 75% | Repository reads в основном store-scoped; входные external references не валидируются по Store |
-| External references | 60% | CRUD существует; integration processing и lifecycle coverage ограничены |
-| Automated verification | 45% | Pure domain logic покрыта лучше persistence/API/workflows; найдено прямое противоречие e2e fixtures и invariants |
+| Область                     | Оценка | Комментарий                                                                                                      |
+| --------------------------- | -----: | ---------------------------------------------------------------------------------------------------------------- |
+| Admin GraphQL reads         |    85% | Surface и resolvers присутствуют; нет достаточного integration coverage и строгой обработки invalid filter IDs   |
+| Admin GraphQL mutations     |    70% | Основные workflows есть; revision/no-op и contract gaps остаются                                                 |
+| Native discount calculation |    75% | Реализованы четыре вида и deterministic allocation; остаются семантические и test gaps                           |
+| Checkout pricing snapshots  |    80% | Есть provenance, digest, persistence и currency checks                                                           |
+| Usage lifecycle             |    70% | Reserve/commit/release/reverse реализованы; expiration operational lifecycle не завершён                         |
+| Commerce Function discounts |    45% | Runner и output validation есть; binding validation и e2e отсутствуют                                            |
+| Cross-service references    |    25% | IDs сохраняются, но ownership/existence/reconciliation отсутствуют                                               |
+| Tenant isolation            |    75% | Repository reads в основном store-scoped; входные external references не валидируются по Store                   |
+| External references         |    60% | CRUD существует; integration processing и lifecycle coverage ограничены                                          |
+| Automated verification      |    45% | Pure domain logic покрыта лучше persistence/API/workflows; найдено прямое противоречие e2e fixtures и invariants |
 
 ## 6. Подтверждённые findings
 
@@ -168,7 +177,8 @@ Pricing регистрирует следующие checkout actions:
 
 Источник: `src/scripts/discount/validation.ts:168-213`.
 
-При этом основной helper `CheckoutStorefrontTestKit.createDiscount` создаёт `ACTIVE` discounts без `buyerContext` и `channels`.
+При этом основной helper `CheckoutStorefrontTestKit.createDiscount` создаёт `ACTIVE` discounts без
+`buyerContext` и `channels`.
 
 Источник: `e2e/tests/checkout-storefront-api/checkout-storefront-test-kit.ts:596-657`.
 
@@ -183,7 +193,9 @@ Pricing регистрирует следующие checkout actions:
 - `ELIGIBILITY_REQUIRED`;
 - `CHANNEL_REQUIRED`.
 
-Create flow сначала собирает draft aggregate, а затем применяет requested non-draft lifecycle state. Lifecycle section повторно валидирует итоговый aggregate и должна откатить create transaction при отсутствии обязательных секций.
+Create flow сначала собирает draft aggregate, а затем применяет requested non-draft lifecycle state.
+Lifecycle section повторно валидирует итоговый aggregate и должна откатить create transaction при
+отсутствии обязательных секций.
 
 **Риск**
 
@@ -213,7 +225,8 @@ GraphQL mappers только декодируют global IDs:
 
 Источник: `src/resolvers/admin/discountCreateMapper.ts:14-70` и `discountUpdateMapper.ts`.
 
-После этого target и eligibility scripts проверяют только локальную форму массива, роли и отсутствие дубликатов. Broker calls к owning services отсутствуют.
+После этого target и eligibility scripts проверяют только локальную форму массива, роли и отсутствие
+дубликатов. Broker calls к owning services отсутствуют.
 
 Источники:
 
@@ -223,7 +236,8 @@ GraphQL mappers только декодируют global IDs:
 
 **Нарушенный контракт**
 
-README прямо относит к ответственности application layer проверку tenant ownership всех переданных IDs. Knowledge base также запрещает cross-store access и IDOR.
+README прямо относит к ответственности application layer проверку tenant ownership всех переданных
+IDs. Knowledge base также запрещает cross-store access и IDOR.
 
 **Риск**
 
@@ -250,7 +264,8 @@ Database и GraphQL содержат:
 - `referenceCheckedAt`;
 - enum values `VALID` и `STALE`.
 
-Checkout engine исключает `STALE` references из eligibility/targeting. Однако в application code отсутствуют mutations или event handlers, изменяющие эти поля. Единственный handlers registry пуст:
+Checkout engine исключает `STALE` references из eligibility/targeting. Однако в application code
+отсутствуют mutations или event handlers, изменяющие эти поля. Единственный handlers registry пуст:
 
 ```ts
 export const eventHandlers = [];
@@ -321,7 +336,8 @@ Runtime runner и output validation реализованы, но это не з�
 
 Все поля `DiscountUpdateInput` nullable, поэтому GraphQL принимает пустой объект `operations: {}`.
 
-Workflow сначала вызывает `stepAcquireRevision`, который немедленно увеличивает `discount.revision`, и только потом выполняет mapped operations.
+Workflow сначала вызывает `stepAcquireRevision`, который немедленно увеличивает `discount.revision`,
+и только потом выполняет mapped operations.
 
 Источник: `src/workflows/DiscountUpdateWorkflow.ts:81-97`.
 
@@ -330,28 +346,33 @@ Workflow сначала вызывает `stepAcquireRevision`, который �
 - пустой update увеличивает revision;
 - update без фактических изменений увеличивает revision;
 - revision уже изменён, если одна из следующих operation sections вернула business error;
-- разные sections исполняются как отдельные workflow steps и транзакции, поэтому запрос может примениться частично.
+- разные sections исполняются как отдельные workflow steps и транзакции, поэтому запрос может
+  примениться частично.
 
-Operation-level partial result может быть допустимым дизайном, но такая семантика не описана в SDL и конфликтует с ожиданием unified aggregate update.
+Operation-level partial result может быть допустимым дизайном, но такая семантика не описана в SDL и
+конфликтует с ожиданием unified aggregate update.
 
 **Риск**
 
 - ложные optimistic conflicts;
 - клиент получает новую revision после failed/no-op mutation;
 - трудно обеспечить атомарное редактирование нескольких взаимозависимых секций;
-- intermediate aggregate validation может запрещать корректный итоговый переход, если промежуточное состояние временно невалидно.
+- intermediate aggregate validation может запрещать корректный итоговый переход, если промежуточное
+  состояние временно невалидно.
 
 **Критерий закрытия**
 
 - явно выбрать atomic или partial-update contract;
 - запретить empty operations;
 - не менять revision при полном no-op/validation failure;
-- для atomic contract выполнять все section changes и итоговую aggregate validation в одной транзакции;
+- для atomic contract выполнять все section changes и итоговую aggregate validation в одной
+  транзакции;
 - документировать operation results и retry behavior.
 
 ### P1. Заявленный `clientMutationId` не возвращается
 
-SDL документирует `DiscountCodeCreateOperationInput.clientMutationId` как correlation key, который возвращается в operation result.
+SDL документирует `DiscountCodeCreateOperationInput.clientMutationId` как correlation key, который
+возвращается в operation result.
 
 Источник: `src/api/graphql-admin/schema/discount.graphql:338-345`.
 
@@ -381,11 +402,13 @@ SDL документирует `DiscountCodeCreateOperationInput.clientMutationI
 
 **Наблюдение**
 
-Action `pricing.expireCheckoutDiscountUsage` и метод `DiscountUsageLifecycleService.expire` реализованы.
+Action `pricing.expireCheckoutDiscountUsage` и метод `DiscountUsageLifecycleService.expire`
+реализованы.
 
 Источник: `src/actions/PricingCheckoutBrokerActions.ts:121-133`.
 
-Поиск consumers не обнаруживает caller этого action в Checkout, bootstrap maintenance или scheduler. При reserve выполняется только lazy expiration reservations той же скидки.
+Поиск consumers не обнаруживает caller этого action в Checkout, bootstrap maintenance или scheduler.
+При reserve выполняется только lazy expiration reservations той же скидки.
 
 **Риск**
 
@@ -404,15 +427,15 @@ Action `pricing.expireCheckoutDiscountUsage` и метод `DiscountUsageLifecyc
 
 **Наблюдение**
 
-Текущий eligibility check отклоняет discount целиком, если корзина содержит хотя бы одну строку неподдерживаемого purchase type:
+Текущий eligibility check отклоняет discount целиком, если корзина содержит хотя бы одну строку
+неподдерживаемого purchase type:
 
 ```ts
 if (
-  (lines.some((line) => line.purchase.type === "ONE_TIME") &&
-    !owner.appliesOnOneTimePurchase) ||
-  (lines.some((line) => line.purchase.type === "SUBSCRIPTION") &&
-    !owner.appliesOnSubscription)
-) return "PURCHASE_TYPE_NOT_ELIGIBLE";
+  (lines.some((line) => line.purchase.type === "ONE_TIME") && !owner.appliesOnOneTimePurchase) ||
+  (lines.some((line) => line.purchase.type === "SUBSCRIPTION") && !owner.appliesOnSubscription)
+)
+  return "PURCHASE_TYPE_NOT_ELIGIBLE";
 ```
 
 Источник: `src/checkout-pipeline/domain/discounts/NativeDiscountEngine.ts:158-162`.
@@ -421,9 +444,11 @@ if (
 
 **Риск**
 
-Product discount, предназначенный только для subscription, не применяется к subscription lines, если рядом есть one-time line. Обратный сценарий ведёт себя так же.
+Product discount, предназначенный только для subscription, не применяется к subscription lines, если
+рядом есть one-time line. Обратный сценарий ведёт себя так же.
 
-Для order discount допустимая семантика может отличаться, поэтому правило должно быть явно определено по discount class.
+Для order discount допустимая семантика может отличаться, поэтому правило должно быть явно
+определено по discount class.
 
 **Критерий закрытия**
 
@@ -435,15 +460,18 @@ Product discount, предназначенный только для subscriptio
 
 **Наблюдение**
 
-Subtotal/quantity minimum вычисляется по всем `contributesToTotals` lines до catalog target selection.
+Subtotal/quantity minimum вычисляется по всем `contributesToTotals` lines до catalog target
+selection.
 
 Источник: `src/checkout-pipeline/domain/discounts/NativeDiscountEngine.ts:215-227`.
 
-Для product-specific discount это может означать, что покупка unrelated products выполняет minimum requirement.
+Для product-specific discount это может означать, что покупка unrelated products выполняет minimum
+requirement.
 
 **Статус**
 
-Требует product decision. Если minimum должен считаться по eligible products, текущая логика неверна. Если по cart subtotal, это необходимо явно зафиксировать в документации и tests.
+Требует product decision. Если minimum должен считаться по eligible products, текущая логика
+неверна. Если по cart subtotal, это необходимо явно зафиксировать в документации и tests.
 
 ### P2. Invalid global IDs в filters обрабатываются непредсказуемо
 
@@ -453,7 +481,8 @@ Where mapper при невозможности декодировать global I
 
 Источник: `src/repositories/global-id-where-mappers.ts:8-17`.
 
-Для UUID database fields это может привести к PostgreSQL UUID cast error. Single-entity queries при этом используют более безопасное decode поведение.
+Для UUID database fields это может привести к PostgreSQL UUID cast error. Single-entity queries при
+этом используют более безопасное decode поведение.
 
 **Критерий закрытия**
 
@@ -465,7 +494,8 @@ Where mapper при невозможности декодировать global I
 
 **Наблюдение**
 
-`findExternalReferenceById` по умолчанию исключает `deletedAt != null`, но loader `getExternalReferencesByIds` и connection query не добавляют такой predicate.
+`findExternalReferenceById` по умолчанию исключает `deletedAt != null`, но loader
+`getExternalReferencesByIds` и connection query не добавляют такой predicate.
 
 Источники:
 
@@ -474,7 +504,8 @@ Where mapper при невозможности декодировать global I
 
 **Риск**
 
-После soft delete reference остаётся доступным через `node`, direct query и default connection, если это не является намеренным audit API.
+После soft delete reference остаётся доступным через `node`, direct query и default connection, если
+это не является намеренным audit API.
 
 **Критерий закрытия**
 
@@ -486,11 +517,13 @@ Where mapper при невозможности декодировать global I
 
 **Наблюдение**
 
-Lifecycle script запрещает только восстановление из `ARCHIVED`. Остальные переходы допускаются, включая возврат `ACTIVE`/`PAUSED` в `DRAFT`.
+Lifecycle script запрещает только восстановление из `ARCHIVED`. Остальные переходы допускаются,
+включая возврат `ACTIVE`/`PAUSED` в `DRAFT`.
 
 Источник: `src/scripts/discount/DiscountUpdateLifecycleScript.ts`.
 
-README заявляет, что application layer отвечает за допустимость lifecycle transitions, но transition matrix отсутствует.
+README заявляет, что application layer отвечает за допустимость lifecycle transitions, но transition
+matrix отсутствует.
 
 **Критерий закрытия**
 
@@ -630,7 +663,9 @@ README заявляет, что application layer отвечает за допу
 
 Требует уточнения:
 
-- README говорит о normalization входных сумм, но фактически service отвергает currency mismatch и не выполняет conversion. Для single-currency Store это корректно, однако документация должна использовать термин validation, а не normalization/conversion.
+- README говорит о normalization входных сумм, но фактически service отвергает currency mismatch и
+  не выполняет conversion. Для single-currency Store это корректно, однако документация должна
+  использовать термин validation, а не normalization/conversion.
 
 ## 11. Тестовое покрытие
 
@@ -732,7 +767,8 @@ Pricing Service можно считать готовым только при в�
 
 - [ ] Все GraphQL query и mutation fields имеют успешные contract tests.
 - [ ] Все broker actions имеют integration tests.
-- [ ] Все четыре native discount kinds проходят create → update → checkout → reserve → commit → reverse flow.
+- [ ] Все четыре native discount kinds проходят create → update → checkout → reserve → commit →
+      reverse flow.
 - [ ] Code и automatic methods покрыты для каждого допустимого kind.
 - [ ] Cross-service IDs проверяются owner services и текущим Store.
 - [ ] `VALID`/`STALE` lifecycle реально работает.
@@ -752,7 +788,9 @@ Pricing Service можно считать готовым только при в�
 
 Pricing Service нельзя считать завершённым.
 
-Сервис вышел далеко за уровень skeleton: core schema, repositories, workflows, native engines и checkout integration уже существуют. Главный остаточный риск находится не в количестве написанного кода, а в незакрытых сквозных гарантиях:
+Сервис вышел далеко за уровень skeleton: core schema, repositories, workflows, native engines и
+checkout integration уже существуют. Главный остаточный риск находится не в количестве написанного
+кода, а в незакрытых сквозных гарантиях:
 
 - reference integrity;
 - tenant ownership;
@@ -761,4 +799,6 @@ Pricing Service нельзя считать завершённым.
 - Function binding validation;
 - согласованность API contract и tests.
 
-Текущая оценка **60–65%** отражает наличие большей части happy-path implementation при отсутствии достаточного подтверждения production invariants. После закрытия P1 findings и обязательной test matrix оценку можно пересмотреть.
+Текущая оценка **60–65%** отражает наличие большей части happy-path implementation при отсутствии
+достаточного подтверждения production invariants. После закрытия P1 findings и обязательной test
+matrix оценку можно пересмотреть.

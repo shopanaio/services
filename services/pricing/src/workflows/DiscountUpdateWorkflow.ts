@@ -81,7 +81,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
   async run(input: DiscountUpdateWorkflowInput): Promise<DiscountUpdateWorkflowResult> {
     const acquired = await this.stepAcquireRevision(
       input.discountId,
-      input.expectedRevision,
+
       input.context.storeId,
     );
     if ("error" in acquired) {
@@ -188,7 +188,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private async stepAcquireRevision(
     discountId: string,
-    expectedRevision: number,
+
     storeId: string,
   ): Promise<{ revision: number } | { error: UserError }> {
     const rows = await this.kernel.db
@@ -197,13 +197,7 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
         revision: sql`${discount.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(discount.storeId, storeId),
-          eq(discount.id, discountId),
-          eq(discount.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(discount.storeId, storeId), eq(discount.id, discountId)))
       .returning({ revision: discount.revision });
 
     if (rows[0]) return { revision: rows[0].revision };

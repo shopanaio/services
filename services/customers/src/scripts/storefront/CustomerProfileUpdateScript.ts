@@ -31,7 +31,7 @@ export type StorefrontCustomerProfilePatch = Partial<
 
 export interface StorefrontCustomerUpdateParams {
   customerId: string;
-  expectedRevision: number;
+
   patch: StorefrontCustomerProfilePatch;
 }
 
@@ -57,7 +57,7 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerUpdateParams,
   ): Promise<StorefrontCustomerUpdateResult> {
-    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision();
     if (revisionError) return failedCustomerMutation(revisionError);
 
     const current = await this.repository.customer.findById(params.customerId);
@@ -74,10 +74,7 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
     }
 
     const changed = changedProfilePatch(current, patch);
-    const acquired = await this.repository.customer.acquireActiveRevision(
-      params.customerId,
-      params.expectedRevision,
-    );
+    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
     if (acquired.status !== "acquired") {
       return failedCustomerMutation(revisionAcquireError(acquired));
     }

@@ -55,7 +55,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
           input: {
             organizationId: scope.organizationId,
             applicationId: scope.applicationA.id,
-            expectedRevision: 1,
+            
             displayName: 'Anonymous update',
           },
         },
@@ -314,7 +314,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
         input: {
           organizationId: scope.foreignOrganizationId,
           applicationId: scope.applicationA.id,
-          expectedRevision: 1,
+          
           branding: { displayName: 'Cross-owned update' },
         },
       },
@@ -339,7 +339,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
         input: {
           organizationId: scope.organizationId,
           applicationId: confusedId,
-          expectedRevision: 1,
+          
           displayName: 'Type confused',
         },
       },
@@ -364,7 +364,7 @@ test.describe('Application Admin API - RBAC, ownership, and audit', () => {
         input: {
           organizationId: scope.organizationId,
           applicationId: 'not-a-global-id',
-          expectedRevision: 1,
+          
           displayName: 'Malformed',
         },
       },

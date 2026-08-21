@@ -2057,7 +2057,6 @@ export type SearchExplainSettings = {
   fieldWeights: Array<SearchExplainFieldWeight>;
   outOfStockPolicy: SearchOutOfStockPolicy;
   typoToleranceEnabled: Scalars['Boolean']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type SearchExplainTypoAlternative = {
@@ -2127,7 +2126,6 @@ export type SearchProductBoost = {
   products: Array<Product>;
   productsCount: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type SearchProductBoostConnection = {
@@ -2176,9 +2174,7 @@ export enum SearchProductBoostOrderField {
   /** Sort by productsCount */
   ProductsCount = 'productsCount',
   /** Sort by updatedAt */
-  UpdatedAt = 'updatedAt',
-  /** Sort by version */
-  Version = 'version'
+  UpdatedAt = 'updatedAt'
 }
 
 export type SearchProductBoostPayload = {
@@ -2228,8 +2224,6 @@ export type SearchProductBoostWhereInput = {
   productsCount?: InputMaybe<IntFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<DateTimeFilter>;
-  /** Filter by version */
-  version?: InputMaybe<IntFilter>;
 };
 
 export type SearchProductBoostsMetaInput = {
@@ -2243,7 +2237,6 @@ export type SearchSettings = {
   outOfStockPolicy: SearchOutOfStockPolicy;
   typoToleranceEnabled: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type SearchSettingsOperationResult = {
@@ -2286,7 +2279,6 @@ export type SearchSynonymGroup = {
   updatedAt: Scalars['DateTime']['output'];
   values: Array<SearchSynonymValue>;
   valuesCount: Scalars['Int']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type SearchSynonymGroupConnection = {
@@ -2332,9 +2324,7 @@ export enum SearchSynonymGroupOrderField {
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt',
   /** Sort by valuesCount */
-  ValuesCount = 'valuesCount',
-  /** Sort by version */
-  Version = 'version'
+  ValuesCount = 'valuesCount'
 }
 
 export type SearchSynonymGroupPayload = {
@@ -2375,8 +2365,6 @@ export type SearchSynonymGroupWhereInput = {
   updatedAt?: InputMaybe<DateTimeFilter>;
   /** Filter by valuesCount */
   valuesCount?: InputMaybe<IntFilter>;
-  /** Filter by version */
-  version?: InputMaybe<IntFilter>;
 };
 
 export type SearchSynonymValue = {
@@ -3354,7 +3342,6 @@ export type SearchExplainSettingsResolvers<ContextType = ServiceContext, ParentT
   fieldWeights?: Resolver<Array<ResolversTypes['SearchExplainFieldWeight']>, ParentType, ContextType>;
   outOfStockPolicy?: Resolver<ResolversTypes['SearchOutOfStockPolicy'], ParentType, ContextType>;
   typoToleranceEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3395,7 +3382,6 @@ export type SearchProductBoostResolvers<ContextType = ServiceContext, ParentType
   products?: Resolver<Array<ResolversTypes['Product']>, ParentType, ContextType>;
   productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3429,7 +3415,6 @@ export type SearchSettingsResolvers<ContextType = ServiceContext, ParentType ext
   outOfStockPolicy?: Resolver<ResolversTypes['SearchOutOfStockPolicy'], ParentType, ContextType>;
   typoToleranceEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3457,7 +3442,6 @@ export type SearchSynonymGroupResolvers<ContextType = ServiceContext, ParentType
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   values?: Resolver<Array<ResolversTypes['SearchSynonymValue']>, ParentType, ContextType>;
   valuesCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

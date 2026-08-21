@@ -64,7 +64,6 @@ export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 export function ApplicationArchiveInputSchema(): z.ZodObject<Properties<ApplicationArchiveInput>> {
   return z.object({
     applicationId: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string()
   })
 }
@@ -93,7 +92,6 @@ export function ApplicationAuthMethodUpdateInputSchema(): z.ZodObject<Properties
   return z.object({
     applicationId: z.string(),
     enabledCapabilities: z.array(ApplicationAuthMethodCapabilitySchema),
-    expectedRevision: z.number(),
     methodId: definedNonNullAnySchema,
     organizationId: z.string()
   })
@@ -104,7 +102,6 @@ export function ApplicationAuthProviderConfigureInputSchema(): z.ZodObject<Prope
     applicationId: z.string(),
     clientId: z.string(),
     clientSecret: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string(),
     provider: ApplicationAuthProviderNameSchema,
     scopes: z.array(z.string())
@@ -114,7 +111,6 @@ export function ApplicationAuthProviderConfigureInputSchema(): z.ZodObject<Prope
 export function ApplicationAuthProviderCredentialsDeleteInputSchema(): z.ZodObject<Properties<ApplicationAuthProviderCredentialsDeleteInput>> {
   return z.object({
     applicationId: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string(),
     provider: ApplicationAuthProviderNameSchema
   })
@@ -125,7 +121,6 @@ export function ApplicationAuthProviderCredentialsRotateInputSchema(): z.ZodObje
     applicationId: z.string(),
     clientId: z.string(),
     clientSecret: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string(),
     provider: ApplicationAuthProviderNameSchema
   })
@@ -135,7 +130,6 @@ export function ApplicationAuthProviderUpdateInputSchema(): z.ZodObject<Properti
   return z.object({
     applicationId: z.string(),
     enabled: z.boolean().nullish(),
-    expectedRevision: z.number(),
     organizationId: z.string(),
     provider: ApplicationAuthProviderNameSchema,
     scopes: z.array(z.string()).nullish()
@@ -145,7 +139,6 @@ export function ApplicationAuthProviderUpdateInputSchema(): z.ZodObject<Properti
 export function ApplicationAuthProviderValidateInputSchema(): z.ZodObject<Properties<ApplicationAuthProviderValidateInput>> {
   return z.object({
     applicationId: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string(),
     provider: ApplicationAuthProviderNameSchema
   })
@@ -155,7 +148,6 @@ export function ApplicationAuthRealmEnabledSetInputSchema(): z.ZodObject<Propert
   return z.object({
     applicationId: z.string(),
     enabled: z.boolean(),
-    expectedRevision: z.number(),
     organizationId: z.string()
   })
 }
@@ -168,7 +160,6 @@ export function ApplicationAuthUpdateInputSchema(): z.ZodObject<Properties<Appli
     defaultLocale: LocaleCodeSchema.nullish(),
     emailDelivery: z.lazy(() => ApplicationAuthEmailDeliveryInputSchema().nullish()),
     emailVerificationRequired: z.boolean().nullish(),
-    expectedRevision: z.number(),
     idTokenTtlSeconds: z.number().nullish(),
     organizationId: z.string(),
     refreshTokenTtlSeconds: z.number().nullish(),
@@ -191,7 +182,6 @@ export function ApplicationOAuthClientArchiveInputSchema(): z.ZodObject<Properti
   return z.object({
     applicationId: z.string(),
     clientId: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string()
   })
 }
@@ -215,7 +205,6 @@ export function ApplicationOAuthClientEnabledSetInputSchema(): z.ZodObject<Prope
     applicationId: z.string(),
     clientId: z.string(),
     enabled: z.boolean(),
-    expectedRevision: z.number(),
     organizationId: z.string()
   })
 }
@@ -231,7 +220,6 @@ export function ApplicationOAuthClientSecretRotateInputSchema(): z.ZodObject<Pro
   return z.object({
     applicationId: z.string(),
     clientId: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string()
   })
 }
@@ -240,7 +228,6 @@ export function ApplicationOAuthClientSkipConsentSetInputSchema(): z.ZodObject<P
   return z.object({
     applicationId: z.string(),
     clientId: z.string(),
-    expectedRevision: z.number(),
     organizationId: z.string(),
     skipConsent: z.boolean()
   })
@@ -252,7 +239,6 @@ export function ApplicationOAuthClientUpdateInputSchema(): z.ZodObject<Propertie
     clientId: z.string(),
     enableEndSession: z.boolean().nullish(),
     environment: ApplicationOAuthClientEnvironmentSchema.nullish(),
-    expectedRevision: z.number(),
     name: z.string().nullish(),
     organizationId: z.string(),
     postLogoutRedirectUris: z.array(z.string()).nullish(),
@@ -282,7 +268,6 @@ export function ApplicationUpdateInputSchema(): z.ZodObject<Properties<Applicati
     applicationId: z.string(),
     description: z.string().nullish(),
     displayName: z.string().nullish(),
-    expectedRevision: z.number(),
     name: z.string().nullish(),
     organizationId: z.string()
   })

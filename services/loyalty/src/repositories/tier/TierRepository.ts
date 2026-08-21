@@ -258,7 +258,7 @@ export class TierRepository extends BaseRepository {
 
   async updateMembership(
     id: string,
-    expectedRevision: number,
+
     input: Partial<Pick<NewTierMembership, "tierId" | "status" | "effectiveTo">>,
   ): Promise<TierMembership | null> {
     const rows = await this.connection
@@ -268,13 +268,7 @@ export class TierRepository extends BaseRepository {
         revision: sql`${tierMemberships.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(tierMemberships.storeId, this.storeId),
-          eq(tierMemberships.id, id),
-          eq(tierMemberships.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(tierMemberships.storeId, this.storeId), eq(tierMemberships.id, id)))
       .returning();
     return rows[0] ?? null;
   }

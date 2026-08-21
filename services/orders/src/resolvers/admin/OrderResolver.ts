@@ -162,7 +162,6 @@ export class OrderResolver extends OrdersType<string, Row> {
         GlobalIdEntity.CheckoutPlacement,
       ),
       checkoutId: encodeId(stringValue(placement, "checkoutId"), GlobalIdEntity.Checkout),
-      checkoutVersion: numberValue(placement, "checkoutVersion"),
       resultRevision: stringValue(placement, "resultRevision"),
       finalQuoteRevision: stringValue(placement, "finalQuoteRevision"),
       paymentMethodsRevision: stringValue(placement, "paymentMethodsRevision"),

@@ -70,7 +70,7 @@ test.describe('Project Settings Admin API - unified store update', () => {
       api,
       store,
       { contactDetails: validContact('Invalid revision', store.name) },
-      { expectedRevision: -1 },
+      {  },
     );
     expectError(payload.userErrors, {
       code: 'INVALID_EXPECTED_REVISION',
@@ -196,7 +196,7 @@ test.describe('Project Settings Admin API - unified store update', () => {
       api,
       store,
       { contactDetails: validContact('Stale', store.name) },
-      { expectedRevision: store.revision },
+      {  },
     );
     expectError(stale.userErrors, { code: 'REVISION_CONFLICT' });
     expect((await currentStore(api)).displayName).toBe(store.displayName);

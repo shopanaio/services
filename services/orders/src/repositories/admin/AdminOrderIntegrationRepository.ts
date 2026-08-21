@@ -75,10 +75,6 @@ export class AdminOrderIntegrationRepository extends AdminOrderCoreRepository {
   ): Promise<MutableAdminOrderCommandResult> {
     const orderId = await this.operations.resolveOperationOrderId(request, command);
     const order = orderId ? await this.lockOrderById(request.context.storeId, orderId) : null;
-    if (order && request.input.expectedVersion !== undefined) {
-      const expectedVersion = requiredPositiveInt(request.input, "expectedVersion");
-      if (order.version !== expectedVersion) throw new Error("ORDER_VERSION_CONFLICT");
-    }
     if (command === "orderCancel" && order) await this.validateCancellation(request, order);
     const now = new Date().toISOString();
     const resourceId =

@@ -44,13 +44,13 @@ const Trigger = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement> & { op
 
 export function QuantityPopover({
   orderId,
-  expectedVersion,
+
   item,
   refetch,
   children,
 }: {
   orderId: string;
-  expectedVersion: number;
+
   item: ApiOrderItem;
   refetch: () => Promise<unknown>;
   children: ReactNode;
@@ -62,7 +62,7 @@ export function QuantityPopover({
   const save = async () => {
     const result = await mutation.updateOrderItem({
       id: orderId,
-      expectedVersion,
+
       itemId: item.id,
       quantity: value,
     });
@@ -106,13 +106,13 @@ export function QuantityPopover({
 
 export function WeightPopover({
   orderId,
-  expectedVersion,
+
   item,
   refetch,
   children,
 }: {
   orderId: string;
-  expectedVersion: number;
+
   item: ApiOrderItem;
   refetch: () => Promise<unknown>;
   children: ReactNode;
@@ -129,7 +129,7 @@ export function WeightPopover({
   const save = async () => {
     const result = await mutation.updateOrderItem({
       id: orderId,
-      expectedVersion,
+
       itemId: item.id,
       weight: normalized,
     });
@@ -182,13 +182,13 @@ export function WeightPopover({
 
 export function CostPricePopover({
   orderId,
-  expectedVersion,
+
   item,
   refetch,
   children,
 }: {
   orderId: string;
-  expectedVersion: number;
+
   item: ApiOrderItem;
   refetch: () => Promise<unknown>;
   children: ReactNode;
@@ -200,7 +200,7 @@ export function CostPricePopover({
   const save = async () => {
     const result = await mutation.updateOrderItem({
       id: orderId,
-      expectedVersion,
+
       itemId: item.id,
       costPrice: value,
     });

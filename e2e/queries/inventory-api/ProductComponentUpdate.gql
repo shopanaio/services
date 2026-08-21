@@ -1,12 +1,12 @@
 mutation ProductComponentUpdate(
   $productId: ID!
-  $expectedRevision: Int
+  
   $operations: ProductUpdateInput
 ) {
   catalogMutation {
     productUpdate(
       productId: $productId
-      expectedRevision: $expectedRevision
+      
       operations: $operations
     ) {
       product {

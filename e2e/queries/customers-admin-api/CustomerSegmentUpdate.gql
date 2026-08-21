@@ -1,12 +1,12 @@
 mutation CustomerSegmentUpdate(
   $segmentId: ID!
-  $expectedRevision: Int!
+  
   $operations: CustomerSegmentUpdateInput!
 ) {
   customersMutation {
     customerSegmentUpdate(
       segmentId: $segmentId
-      expectedRevision: $expectedRevision
+      
       operations: $operations
     ) {
       segment {

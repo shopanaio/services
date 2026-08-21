@@ -16,10 +16,10 @@ export function useUpdateCustomer() {
   >(CUSTOMER_UPDATE_MUTATION);
 
   const updateCustomer = useCallback(
-    async (customerId: string, expectedRevision: number, operations: ApiCustomerUpdateInput) => {
+    async (customerId: string, operations: ApiCustomerUpdateInput) => {
       try {
         const result = await mutate({
-          variables: { customerId, expectedRevision, operations },
+          variables: { customerId, operations },
           refetchQueries: [CUSTOMERS_QUERY],
         });
         const payload = result.data?.customersMutation.customerUpdate;

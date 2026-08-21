@@ -17,18 +17,23 @@ export type Scalars = {
   Float: { input: number; output: number };
   /** Stable identifier of a catalog-owned authentication method. */
   ApplicationAuthMethodId: { input: any; output: any };
+  /** An arbitrary-size integer serialized as a decimal string. */
   BigInt: { input: number; output: number };
   /** Calendar date in ISO 8601 YYYY-MM-DD form. */
   Date: { input: any; output: any };
   /** An ISO 8601 date-time string. */
   DateTime: { input: string; output: string };
-  /** Valid email address */
+  /** An arbitrary-precision signed decimal serialized as a string. */
+  Decimal: { input: any; output: any };
+  /** A syntactically valid email address. */
   Email: { input: string; output: string };
   /** An arbitrary JSON value. */
   JSON: { input: Record<string, unknown>; output: Record<string, unknown> };
   /** Unix timestamp in milliseconds */
   Timestamp: { input: string; output: string };
   TransportOptions: { input: unknown; output: unknown };
+  /** An absolute RFC 3986 or RFC 3987 URL string. */
+  URL: { input: any; output: any };
   Upload: { input: File; output: File };
   join__FieldSet: { input: any; output: any };
   link__Import: { input: any; output: any };
@@ -48,6 +53,7 @@ export enum Action {
 
 export type ApiApiKey = {
   __typename?: "ApiKey";
+  /** Federated ApiKey ID. */
   id: Scalars["ID"]["output"];
 };
 
@@ -1337,7 +1343,7 @@ export type ApiApplicationUser = ApiNode & {
   __typename?: "ApplicationUser";
   applicationId: Scalars["ID"]["output"];
   createdAt: Scalars["DateTime"]["output"];
-  email: Scalars["Email"]["output"];
+  email?: Maybe<Scalars["Email"]["output"]>;
   emailVerified: Scalars["Boolean"]["output"];
   firstName?: Maybe<Scalars["String"]["output"]>;
   id: Scalars["ID"]["output"];
@@ -1346,6 +1352,8 @@ export type ApiApplicationUser = ApiNode & {
   /** Linked login accounts without provider credentials or tokens. */
   linkedAccounts: Array<ApiApplicationUserLinkedAccount>;
   name: Scalars["String"]["output"];
+  phoneNumber?: Maybe<Scalars["String"]["output"]>;
+  phoneNumberVerified: Scalars["Boolean"]["output"];
   /** Safe security metadata without credentials or token values. */
   security: ApiApplicationUserSecurityMetadata;
   status: ApplicationUserStatus;
@@ -1634,6 +1642,20 @@ export type ApiBigIntFilter = {
   _notIn?: InputMaybe<Array<Scalars["BigInt"]["input"]>>;
 };
 
+/** Comparison operators for big int; omitted operators do not constrain results. */
+export type ApiBigIntFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars["BigInt"]["input"]>;
+  /** Validated input value for gt. */
+  gt?: InputMaybe<Scalars["BigInt"]["input"]>;
+  /** Validated input value for gte. */
+  gte?: InputMaybe<Scalars["BigInt"]["input"]>;
+  /** Validated input value for lt. */
+  lt?: InputMaybe<Scalars["BigInt"]["input"]>;
+  /** Validated input value for lte. */
+  lte?: InputMaybe<Scalars["BigInt"]["input"]>;
+};
+
 /** Filter operators for Boolean fields */
 export type ApiBooleanFilter = {
   /** Equals */
@@ -1807,315 +1829,68 @@ export type ApiBulkUpdateUserError = ApiUserError & {
   variantId?: Maybe<Scalars["ID"]["output"]>;
 };
 
+/** Orders Admin representation of calculated order. */
+export type ApiCalculatedOrder = {
+  __typename?: "CalculatedOrder";
+  /** Projected value for balance delta. */
+  balanceDelta: ApiMoney;
+  /** Projected value for cost. */
+  cost: ApiOrderCost;
+  /** Projected value for lines. */
+  lines: Array<ApiOrderLine>;
+};
+
 export type ApiCatalogMutation = {
   __typename?: "CatalogMutation";
-  /** Create a new category */
-  categoryCreate: ApiCategoryCreatePayload;
-  /** Delete a category */
-  categoryDelete: ApiCategoryDeletePayload;
-  /** Move a category to a new parent or position */
-  categoryMove: ApiCategoryMovePayload;
-  /** Rebalance category tree positions */
-  categoryRebalance: ApiCategoryRebalancePayload;
-  /** Unified category update with optimistic locking. */
-  categoryUpdate: ApiCategoryUpdatePayload;
-  /** Add products to a collection */
-  collectionAddProducts: ApiCollectionAddProductsPayload;
-  /** Create a new collection */
-  collectionCreate: ApiCollectionCreatePayload;
-  /** Delete a collection */
-  collectionDelete: ApiCollectionDeletePayload;
-  /** Move a product within a collection */
-  collectionMoveProduct: ApiCollectionMoveProductPayload;
-  /** Remove products from a collection */
-  collectionRemoveProducts: ApiCollectionRemoveProductsPayload;
-  /** Update an existing collection */
-  collectionUpdate: ApiCollectionUpdatePayload;
-  /** Update collection rules for automatic product inclusion */
-  collectionUpdateRules: ApiCollectionUpdateRulesPayload;
-  /**
-   * Start async bulk update.
-   * Requires X-Idempotency-Key header.
-   */
-  productBulkUpdate: ApiProductBulkUpdatePayload;
-  /** Create a new product */
-  productCreate: ApiProductCreatePayload;
-  /** Delete an existing product */
-  productDelete: ApiProductDeletePayload;
-  productOptionCategoryCreate: ApiProductOptionCategoryCreatePayload;
-  productOptionCategoryDelete: ApiProductOptionCategoryDeletePayload;
-  productOptionCategoryUpdate: ApiProductOptionCategoryUpdatePayload;
-  /**
-   * Unified product update with optimistic locking.
-   * Supports product, component, and variant updates in a single request.
-   */
-  productUpdate: ApiProductUpdatePayload;
-  /** Create a new tag */
-  tagCreate: ApiTagCreatePayload;
-  /** Delete a tag */
-  tagDelete: ApiTagDeletePayload;
-  /** Update an existing tag */
-  tagUpdate: ApiTagUpdatePayload;
-  /** Create a new vendor */
-  vendorCreate: ApiVendorCreatePayload;
+  categoryComparisonProfileSet: ApiCategoryComparisonProfilePayload;
+  comparisonProfileCreate: ApiComparisonProfilePayload;
+  comparisonProfileDelete: ApiComparisonProfileDeletePayload;
+  comparisonProfileUpdate: ApiComparisonProfilePayload;
+  productComparisonConfigurationSync: ApiProductComparisonConfigurationPayload;
 };
 
-export type ApiCatalogMutationCategoryCreateArgs = {
-  input: ApiCategoryCreateInput;
+export type ApiCatalogMutationCategoryComparisonProfileSetArgs = {
+  input: ApiCategoryComparisonProfileSetInput;
 };
 
-export type ApiCatalogMutationCategoryDeleteArgs = {
-  input: ApiCategoryDeleteInput;
+export type ApiCatalogMutationComparisonProfileCreateArgs = {
+  input: ApiComparisonProfileCreateInput;
 };
 
-export type ApiCatalogMutationCategoryMoveArgs = {
-  input: ApiCategoryMoveInput;
+export type ApiCatalogMutationComparisonProfileDeleteArgs = {
+  input: ApiComparisonProfileDeleteInput;
 };
 
-export type ApiCatalogMutationCategoryRebalanceArgs = {
-  input: ApiCategoryRebalanceInput;
+export type ApiCatalogMutationComparisonProfileUpdateArgs = {
+  input: ApiComparisonProfileUpdateInput;
 };
 
-export type ApiCatalogMutationCategoryUpdateArgs = {
-  categoryId: Scalars["ID"]["input"];
-  expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
-  operations?: InputMaybe<ApiCategoryUpdateInput>;
-};
-
-export type ApiCatalogMutationCollectionAddProductsArgs = {
-  input: ApiCollectionAddProductsInput;
-};
-
-export type ApiCatalogMutationCollectionCreateArgs = {
-  input: ApiCollectionCreateInput;
-};
-
-export type ApiCatalogMutationCollectionDeleteArgs = {
-  input: ApiCollectionDeleteInput;
-};
-
-export type ApiCatalogMutationCollectionMoveProductArgs = {
-  input: ApiCollectionMoveProductInput;
-};
-
-export type ApiCatalogMutationCollectionRemoveProductsArgs = {
-  input: ApiCollectionRemoveProductsInput;
-};
-
-export type ApiCatalogMutationCollectionUpdateArgs = {
-  input: ApiCollectionUpdateInput;
-};
-
-export type ApiCatalogMutationCollectionUpdateRulesArgs = {
-  input: ApiCollectionUpdateRulesInput;
-};
-
-export type ApiCatalogMutationProductBulkUpdateArgs = {
-  input: ApiProductBulkUpdateInput;
-};
-
-export type ApiCatalogMutationProductCreateArgs = {
-  input: ApiProductCreateInput;
-};
-
-export type ApiCatalogMutationProductDeleteArgs = {
-  input: ApiProductDeleteInput;
-};
-
-export type ApiCatalogMutationProductOptionCategoryCreateArgs = {
-  input: ApiProductOptionCategoryCreateInput;
-};
-
-export type ApiCatalogMutationProductOptionCategoryDeleteArgs = {
-  input: ApiProductOptionCategoryDeleteInput;
-};
-
-export type ApiCatalogMutationProductOptionCategoryUpdateArgs = {
-  input: ApiProductOptionCategoryUpdateInput;
-};
-
-export type ApiCatalogMutationProductUpdateArgs = {
-  expectedRevision?: InputMaybe<Scalars["Int"]["input"]>;
-  operations?: InputMaybe<ApiProductUpdateInput>;
-  productId: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogMutationTagCreateArgs = {
-  input: ApiTagCreateInput;
-};
-
-export type ApiCatalogMutationTagDeleteArgs = {
-  input: ApiTagDeleteInput;
-};
-
-export type ApiCatalogMutationTagUpdateArgs = {
-  input: ApiTagUpdateInput;
-};
-
-export type ApiCatalogMutationVendorCreateArgs = {
-  input: ApiVendorCreateInput;
+export type ApiCatalogMutationProductComparisonConfigurationSyncArgs = {
+  input: ApiProductComparisonConfigurationSyncInput;
 };
 
 export type ApiCatalogQuery = {
   __typename?: "CatalogQuery";
-  /** Get categories with Relay-style pagination */
-  categories: ApiCategoryConnection;
-  /** Get a category by ID */
-  category?: Maybe<ApiCategory>;
-  /** Get a collection by ID */
-  collection?: Maybe<ApiCollection>;
-  /** Get a collection by its handle */
-  collectionByHandle?: Maybe<ApiCollection>;
-  /** Preview count of products matching collection rules */
-  collectionRulesPreviewCount: Scalars["Int"]["output"];
-  /** Get collections with Relay-style pagination */
-  collections: ApiCollectionConnection;
-  /** Get a node by its global ID */
-  node?: Maybe<ApiNode>;
-  /** Get multiple nodes by their global IDs */
-  nodes: Array<Maybe<ApiNode>>;
-  /** Get a product by ID */
-  product?: Maybe<ApiProduct>;
-  /** Get bulk update job by ID. */
-  productBulkUpdateJob?: Maybe<ApiProductBulkUpdateJob>;
-  /**
-   * Get product bulk update jobs for the current store.
-   * Defaults to active jobs when statusFilter is omitted.
-   */
-  productBulkUpdateJobs: ApiProductBulkUpdateJobConnection;
-  productOptionCategories: ApiProductOptionCategoryConnection;
-  productOptionCategory?: Maybe<ApiProductOptionCategory>;
-  /** Get products with Relay-style pagination */
-  products: ApiProductConnection;
-  /** Get a tag by ID */
-  tag?: Maybe<ApiTag>;
-  /** Get tags with Relay-style pagination */
-  tags: ApiTagConnection;
-  /** Get a variant by ID */
-  variant?: Maybe<ApiVariant>;
-  /** Get variants with Relay-style pagination */
-  variants: ApiVariantConnection;
-  /** Get a vendor by ID */
-  vendor?: Maybe<ApiVendor>;
-  /** Get vendors with Relay-style pagination */
-  vendors: ApiVendorConnection;
+  comparisonProfile?: Maybe<ApiComparisonProfile>;
+  comparisonProfiles: ApiComparisonProfileConnection;
+  productComparisonConfiguration: ApiProductComparisonConfiguration;
 };
 
-export type ApiCatalogQueryCategoriesArgs = {
+export type ApiCatalogQueryComparisonProfileArgs = {
+  id: Scalars["ID"]["input"];
+};
+
+export type ApiCatalogQueryComparisonProfilesArgs = {
   after?: InputMaybe<Scalars["String"]["input"]>;
   before?: InputMaybe<Scalars["String"]["input"]>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
   last?: InputMaybe<Scalars["Int"]["input"]>;
-  meta?: InputMaybe<ApiCategoryCategoriesMetaInput>;
-  orderBy?: InputMaybe<Array<ApiCategoryOrderByInput>>;
-  where?: InputMaybe<ApiCategoryWhereInput>;
+  orderBy?: InputMaybe<Array<ApiComparisonProfileOrderByInput>>;
+  where?: InputMaybe<ApiComparisonProfileWhereInput>;
 };
 
-export type ApiCatalogQueryCategoryArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryCollectionArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryCollectionByHandleArgs = {
-  handle: Scalars["String"]["input"];
-};
-
-export type ApiCatalogQueryCollectionRulesPreviewCountArgs = {
-  rules: Array<ApiCollectionRuleInput>;
-};
-
-export type ApiCatalogQueryCollectionsArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-};
-
-export type ApiCatalogQueryNodeArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryNodesArgs = {
-  ids: Array<Scalars["ID"]["input"]>;
-};
-
-export type ApiCatalogQueryProductArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryProductBulkUpdateJobArgs = {
-  jobId: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryProductBulkUpdateJobsArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  statusFilter?: InputMaybe<Array<BulkUpdateJobStatus>>;
-};
-
-export type ApiCatalogQueryProductOptionCategoriesArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  orderBy?: InputMaybe<Array<ApiProductOptionCategoryOrderByInput>>;
-  where?: InputMaybe<ApiProductOptionCategoryWhereInput>;
-};
-
-export type ApiCatalogQueryProductOptionCategoryArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryProductsArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  meta?: InputMaybe<ApiProductProductsMetaInput>;
-  orderBy?: InputMaybe<Array<ApiProductOrderByInput>>;
-  where?: InputMaybe<ApiProductWhereInput>;
-};
-
-export type ApiCatalogQueryTagArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryTagsArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  orderBy?: InputMaybe<Array<ApiTagOrderByInput>>;
-  where?: InputMaybe<ApiTagWhereInput>;
-};
-
-export type ApiCatalogQueryVariantArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryVariantsArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  orderBy?: InputMaybe<Array<ApiVariantOrderByInput>>;
-  where?: InputMaybe<ApiVariantWhereInput>;
-};
-
-export type ApiCatalogQueryVendorArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiCatalogQueryVendorsArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  orderBy?: InputMaybe<Array<ApiVendorOrderByInput>>;
-  where?: InputMaybe<ApiVendorWhereInput>;
+export type ApiCatalogQueryProductComparisonConfigurationArgs = {
+  productId: Scalars["ID"]["input"];
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -2137,6 +1912,8 @@ export type ApiCategory = ApiNode & {
   depth: Scalars["Int"]["output"];
   /** The category description. */
   description?: Maybe<ApiRichText>;
+  directComparisonProfile?: Maybe<ApiComparisonProfile>;
+  effectiveComparisonProfile?: Maybe<ApiComparisonProfile>;
   /** Short category excerpt. */
   excerpt?: Maybe<ApiRichText>;
   /** The URL-friendly handle for the category. */
@@ -2168,6 +1945,18 @@ export type ApiCategory = ApiNode & {
 export type ApiCategoryCategoriesMetaInput = {
   hierarchyScope?: InputMaybe<ApiCategoryHierarchyScopeInput>;
   productsScope?: InputMaybe<ApiCategoryProductsScopeInput>;
+};
+
+export type ApiCategoryComparisonProfilePayload = {
+  __typename?: "CategoryComparisonProfilePayload";
+  category?: Maybe<ApiCategory>;
+  effectiveComparisonProfile?: Maybe<ApiComparisonProfile>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategoryComparisonProfileSetInput = {
+  categoryId: Scalars["ID"]["input"];
+  profileId?: InputMaybe<Scalars["ID"]["input"]>;
 };
 
 /** A connection to a list of Category items. */
@@ -2428,6 +2217,12 @@ export type ApiCategoryWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
+export type ApiCdnAdapterCapabilities = {
+  __typename?: "CdnAdapterCapabilities";
+  signingModes: Array<Scalars["String"]["output"]>;
+  transformStrategies: Array<Scalars["String"]["output"]>;
+};
+
 export type ApiCdnConfiguration = ApiNode & {
   __typename?: "CdnConfiguration";
   baseUrl: Scalars["String"]["output"];
@@ -2556,40 +2351,114 @@ export type ApiCdnRoutingRuleUpdateInput = {
   transformOverrides?: InputMaybe<Scalars["JSON"]["input"]>;
 };
 
+export type ApiCheckout = {
+  __typename?: "Checkout";
+  /** Federated Checkout ID. */
+  id: Scalars["ID"]["output"];
+};
+
+/**
+ * A merchandised group of products.
+ *
+ * MANUAL collections contain an explicitly ordered product set. RULE collections
+ * derive their product set from `rules`. The collection type is immutable after
+ * creation; create a new collection when a different membership model is needed.
+ *
+ * Collection content, SEO, publication, schedule, and default listing sort are
+ * managed independently from RULE membership. Every successful mutation that
+ * changes the collection increments `revision`.
+ */
 export type ApiCollection = ApiNode & {
   __typename?: "Collection";
+  /** Inclusive start of the collection activity window. */
   activeFrom?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Exclusive end of the collection activity window. */
   activeTo?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Creation timestamp. */
   createdAt: Scalars["DateTime"]["output"];
+  /**
+   * Default product ordering used when a listing request does not provide an
+   * explicit order. RULE collections cannot use MANUAL.
+   */
   defaultSort: ProductSortBy;
+  /**
+   * Direction for `defaultSort`. MANUAL is always ascending and NEWEST is always
+   * descending; PRICE and NAME support both directions.
+   */
   defaultSortDirection: SortDirection;
+  /** Localized long-form collection description. */
   description?: Maybe<ApiRichText>;
+  /** Localized short collection summary. */
   excerpt?: Maybe<ApiRichText>;
-  handle?: Maybe<Scalars["String"]["output"]>;
+  /** Unique, normalized storefront handle within the current store. */
+  handle: Scalars["String"]["output"];
+  /** The globally unique collection ID. */
   id: Scalars["ID"]["output"];
+  /**
+   * Whether the current time is inside the configured activity window. This field
+   * does not imply publication; use `isPublished` as well when determining Admin
+   * status.
+   */
   isActive: Scalars["Boolean"]["output"];
+  /** Whether `publishedAt` is present and not in the future. */
   isPublished: Scalars["Boolean"]["output"];
+  /** Internal revision used to coordinate the Catalog and Listing projections. */
+  listingRevision: Scalars["Int"]["output"];
+  /** Collection media in storefront display order. */
   media: Array<ApiCollectionMediaItem>;
+  /** Localized display name for the request locale. */
   name: Scalars["String"]["output"];
-  products: ApiCollectionProductConnection;
-  productsCount: Scalars["Int"]["output"];
+  products: ApiListingConnection;
+  /** Publication timestamp, or null while the collection is a draft. */
   publishedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /**
+   * Optimistic-lock revision. Pass the latest value as `expectedRevision` to every
+   * mutation that changes an existing collection.
+   */
+  revision: Scalars["Int"]["output"];
+  /**
+   * Complete ordered rule set for a RULE collection. The list is empty for MANUAL
+   * collections and may be empty for draft RULE collections.
+   *
+   * Top-level rules are always combined with logical AND. IN means that any value
+   * inside one rule may match; ALL means that every value inside that one rule must
+   * match. Rule order is presentation-only and does not change matching semantics.
+   */
   rules: Array<ApiCollectionRule>;
+  /** Localized search-engine and social-sharing metadata. */
   seo?: Maybe<ApiSeo>;
+  /** Immutable collection membership model. */
   type: CollectionType;
+  /** Timestamp of the most recent collection change. */
   updatedAt: Scalars["DateTime"]["output"];
 };
 
+/**
+ * A merchandised group of products.
+ *
+ * MANUAL collections contain an explicitly ordered product set. RULE collections
+ * derive their product set from `rules`. The collection type is immutable after
+ * creation; create a new collection when a different membership model is needed.
+ *
+ * Collection content, SEO, publication, schedule, and default listing sort are
+ * managed independently from RULE membership. Every successful mutation that
+ * changes the collection increments `revision`.
+ */
 export type ApiCollectionProductsArgs = {
   after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
+  currency?: InputMaybe<CurrencyCode>;
+  facets?: InputMaybe<Array<ApiListingProductFilter>>;
   first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  sort?: InputMaybe<ApiProductSortInput>;
+  locale?: InputMaybe<LocaleCode>;
+  orderBy?: InputMaybe<ApiListingOrderByInput>;
+  query?: InputMaybe<Scalars["String"]["input"]>;
 };
 
+/** Adds products to a MANUAL collection. Duplicate memberships are ignored. */
 export type ApiCollectionAddProductsInput = {
+  clientMutationId: Scalars["String"]["input"];
   collectionId: Scalars["ID"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
   productIds: Array<Scalars["ID"]["input"]>;
 };
 
@@ -2599,6 +2468,64 @@ export type ApiCollectionAddProductsPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Stable feature or option source/value handle pair. */
+export type ApiCollectionAttributeRuleValue = {
+  __typename?: "CollectionAttributeRuleValue";
+  /** Feature or option handle. */
+  sourceHandle: Scalars["String"]["output"];
+  /** Feature-value or option-value handle within `sourceHandle`. */
+  valueHandle: Scalars["String"]["output"];
+};
+
+export type ApiCollectionAttributeRuleValueInput = {
+  sourceHandle: Scalars["String"]["input"];
+  valueHandle: Scalars["String"]["input"];
+};
+
+/** Category membership rule. */
+export type ApiCollectionCategoryRule = ApiCollectionRule & {
+  __typename?: "CollectionCategoryRule";
+  /**
+   * Category global IDs. Resolve display names through `catalogQuery.nodes` or
+   * `catalogQuery.categories`; the rule contract intentionally does not duplicate
+   * candidate labels.
+   */
+  categoryIds: Array<Scalars["ID"]["output"]>;
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+};
+
+export type ApiCollectionCategoryRuleInput = {
+  categoryIds: Array<Scalars["ID"]["input"]>;
+  operator: CollectionSetRuleOperator;
+};
+
+/** Removes every product from a MANUAL collection. */
+export type ApiCollectionClearProductsInput = {
+  clientMutationId: Scalars["String"]["input"];
+  collectionId: Scalars["ID"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
+};
+
+export type ApiCollectionClearProductsPayload = {
+  __typename?: "CollectionClearProductsPayload";
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Single-bound comparison operator used by price and creation-time rules. */
+export enum CollectionComparisonRuleOperator {
+  Eq = "EQ",
+  Gt = "GT",
+  Gte = "GTE",
+  Lt = "LT",
+  Lte = "LTE",
+}
+
+/** Relay connection for collections. */
 export type ApiCollectionConnection = {
   __typename?: "CollectionConnection";
   edges: Array<ApiCollectionEdge>;
@@ -2606,16 +2533,30 @@ export type ApiCollectionConnection = {
   totalCount: Scalars["Int"]["output"];
 };
 
+/**
+ * Creates a draft or published collection.
+ *
+ * RULE collections must first be created as drafts because rule persistence uses
+ * the revision-protected `collectionUpdateRules` mutation. After rules are saved,
+ * publish the collection with `collectionUpdate` and its latest revision.
+ */
 export type ApiCollectionCreateInput = {
   activeFrom?: InputMaybe<Scalars["DateTime"]["input"]>;
   activeTo?: InputMaybe<Scalars["DateTime"]["input"]>;
+  /** Caller-generated idempotency key. Reuse only when retrying the same input. */
+  clientMutationId: Scalars["String"]["input"];
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<ApiRichTextInput>;
   excerpt?: InputMaybe<ApiRichTextInput>;
-  handle?: InputMaybe<Scalars["String"]["input"]>;
+  handle: Scalars["String"]["input"];
+  /** Complete media replacement in display order. */
   media?: InputMaybe<Array<ApiCollectionMediaInput>>;
   name: Scalars["String"]["input"];
+  /**
+   * Publish immediately. Must be false or omitted for RULE collections because a
+   * published RULE collection must already contain at least one rule.
+   */
   publish?: InputMaybe<Scalars["Boolean"]["input"]>;
   seo?: InputMaybe<ApiSeoInput>;
   type: CollectionType;
@@ -2627,7 +2568,42 @@ export type ApiCollectionCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Single-instant product creation-time comparison rule. */
+export type ApiCollectionCreatedAtComparisonRule = ApiCollectionRule & {
+  __typename?: "CollectionCreatedAtComparisonRule";
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  instant: Scalars["DateTime"]["output"];
+  operator: CollectionComparisonRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+};
+
+export type ApiCollectionCreatedAtComparisonRuleInput = {
+  instant: Scalars["DateTime"]["input"];
+  operator: CollectionComparisonRuleOperator;
+};
+
+/** Inclusive product creation-time range rule. */
+export type ApiCollectionCreatedAtRangeRule = ApiCollectionRule & {
+  __typename?: "CollectionCreatedAtRangeRule";
+  field: CollectionRuleField;
+  from: Scalars["DateTime"]["output"];
+  id: Scalars["ID"]["output"];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+  to: Scalars["DateTime"]["output"];
+};
+
+/** Inclusive range. `from` must not be later than `to`. */
+export type ApiCollectionCreatedAtRangeRuleInput = {
+  from: Scalars["DateTime"]["input"];
+  to: Scalars["DateTime"]["input"];
+};
+
 export type ApiCollectionDeleteInput = {
+  clientMutationId: Scalars["String"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
   id: Scalars["ID"]["input"];
 };
 
@@ -2643,30 +2619,66 @@ export type ApiCollectionEdge = {
   node: ApiCollection;
 };
 
-export type ApiCollectionMediaInput = {
-  fileId: Scalars["ID"]["input"];
-  sortIndex?: InputMaybe<Scalars["Int"]["input"]>;
+/** Product-feature value rule. */
+export type ApiCollectionFeatureRule = ApiCollectionRule & {
+  __typename?: "CollectionFeatureRule";
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+  /**
+   * Stable source/value handle pairs. Candidate labels are loaded separately with
+   * `listingQuery.facetValueCandidates(candidateType: FEATURE)`.
+   */
+  values: Array<ApiCollectionAttributeRuleValue>;
 };
 
+export type ApiCollectionFeatureRuleInput = {
+  operator: CollectionSetRuleOperator;
+  values: Array<ApiCollectionAttributeRuleValueInput>;
+};
+
+/** Variant availability rule. Equality is implicit. */
+export type ApiCollectionInStockRule = ApiCollectionRule & {
+  __typename?: "CollectionInStockRule";
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+  value: Scalars["Boolean"]["output"];
+};
+
+/** Equality is implicit: true matches available variants, false unavailable ones. */
+export type ApiCollectionInStockRuleInput = {
+  value: Scalars["Boolean"]["input"];
+};
+
+/**
+ * One media reference. Array order in CollectionCreateInput.media or
+ * CollectionUpdateInput.media determines the persisted display order.
+ */
+export type ApiCollectionMediaInput = {
+  fileId: Scalars["ID"]["input"];
+};
+
+/** A media reference and its zero-based display position. */
 export type ApiCollectionMediaItem = {
   __typename?: "CollectionMediaItem";
   file: ApiFile;
   sortIndex: Scalars["Int"]["output"];
 };
 
-export type ApiCollectionMeta = {
-  __typename?: "CollectionMeta";
-  count: Scalars["Int"]["output"];
-  page: Scalars["Int"]["output"];
-  pageCount: Scalars["Int"]["output"];
-  pageSize: Scalars["Int"]["output"];
-  total: Scalars["Int"]["output"];
-};
-
+/**
+ * Moves one product in a MANUAL collection. Provide at most one anchor. Omitting
+ * both anchors moves the product to the end.
+ */
 export type ApiCollectionMoveProductInput = {
   afterProductId?: InputMaybe<Scalars["ID"]["input"]>;
   beforeProductId?: InputMaybe<Scalars["ID"]["input"]>;
+  clientMutationId: Scalars["String"]["input"];
   collectionId: Scalars["ID"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
   productId: Scalars["ID"]["input"];
 };
 
@@ -2676,21 +2688,81 @@ export type ApiCollectionMoveProductPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ApiCollectionProductConnection = {
-  __typename?: "CollectionProductConnection";
-  edges: Array<ApiCollectionProductEdge>;
-  pageInfo: ApiPageInfo;
-  totalCount: Scalars["Int"]["output"];
+/** Variant-option value rule. */
+export type ApiCollectionOptionRule = ApiCollectionRule & {
+  __typename?: "CollectionOptionRule";
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+  /**
+   * Stable source/value handle pairs. Candidate labels are loaded separately with
+   * `listingQuery.facetValueCandidates(candidateType: OPTION)`.
+   */
+  values: Array<ApiCollectionAttributeRuleValue>;
 };
 
-export type ApiCollectionProductEdge = {
-  __typename?: "CollectionProductEdge";
-  cursor: Scalars["String"]["output"];
-  node: ApiProduct;
+export type ApiCollectionOptionRuleInput = {
+  operator: CollectionSetRuleOperator;
+  values: Array<ApiCollectionAttributeRuleValueInput>;
 };
 
-export type ApiCollectionRemoveProductsInput = {
+/** Single-bound price comparison rule. */
+export type ApiCollectionPriceComparisonRule = ApiCollectionRule & {
+  __typename?: "CollectionPriceComparisonRule";
+  amountMinor: Scalars["BigInt"]["output"];
+  currencyCode: CurrencyCode;
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  operator: CollectionComparisonRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+};
+
+export type ApiCollectionPriceComparisonRuleInput = {
+  amountMinor: Scalars["BigInt"]["input"];
+  currencyCode: CurrencyCode;
+  operator: CollectionComparisonRuleOperator;
+};
+
+/** Inclusive price-range rule. */
+export type ApiCollectionPriceRangeRule = ApiCollectionRule & {
+  __typename?: "CollectionPriceRangeRule";
+  currencyCode: CurrencyCode;
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  maxAmountMinor: Scalars["BigInt"]["output"];
+  minAmountMinor: Scalars["BigInt"]["output"];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+};
+
+/** Inclusive range. `minAmountMinor` must not exceed `maxAmountMinor`. */
+export type ApiCollectionPriceRangeRuleInput = {
+  currencyCode: CurrencyCode;
+  maxAmountMinor: Scalars["BigInt"]["input"];
+  minAmountMinor: Scalars["BigInt"]["input"];
+};
+
+/** Repairs rank spacing in a MANUAL collection without changing visible order. */
+export type ApiCollectionRebalanceInput = {
+  clientMutationId: Scalars["String"]["input"];
   collectionId: Scalars["ID"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
+};
+
+export type ApiCollectionRebalancePayload = {
+  __typename?: "CollectionRebalancePayload";
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Removes products from a MANUAL collection. */
+export type ApiCollectionRemoveProductsInput = {
+  clientMutationId: Scalars["String"]["input"];
+  collectionId: Scalars["ID"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
   productIds: Array<Scalars["ID"]["input"]>;
 };
 
@@ -2700,33 +2772,160 @@ export type ApiCollectionRemoveProductsPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/**
+ * Common fields implemented by every concrete collection rule.
+ *
+ * Use `field` as the discriminator and select the corresponding concrete type with
+ * an inline fragment. Concrete rule types expose only operators and values valid
+ * for that field; rule values are never returned as untyped JSON.
+ */
 export type ApiCollectionRule = {
-  __typename?: "CollectionRule";
-  field: Scalars["String"]["output"];
+  /** Rule field discriminator. */
+  field: CollectionRuleField;
+  /**
+   * Persistence ID of the current rule row. `collectionUpdateRules` replaces the
+   * complete rule set, so this ID must not be used as a durable client-side draft
+   * identifier across saves.
+   */
   id: Scalars["ID"]["output"];
-  operator: Scalars["String"]["output"];
+  /**
+   * Aggregate status of external references used by this rule. VALID means every
+   * referenced entity currently exists; STALE means at least one no longer exists;
+   * NOT_APPLICABLE is used by rules without entity-ID references.
+   */
+  referenceStatus: CollectionRuleReferenceStatus;
+  /**
+   * Zero-based presentation position. Rules are evaluated with AND regardless of
+   * this value.
+   */
   sortIndex: Scalars["Int"]["output"];
-  value: Scalars["JSON"]["output"];
 };
 
+/** Field used to discriminate concrete CollectionRule implementations. */
+export enum CollectionRuleField {
+  Category = "CATEGORY",
+  CreatedAt = "CREATED_AT",
+  Feature = "FEATURE",
+  InStock = "IN_STOCK",
+  Option = "OPTION",
+  Price = "PRICE",
+  Tag = "TAG",
+  Vendor = "VENDOR",
+}
+
+/**
+ * One typed collection rule.
+ *
+ * Exactly one field must be provided. GraphQL 16 has no input unions, so this
+ * mutual-exclusion constraint is enforced by the mutation validator. The selected
+ * field determines the output rule type:
+ *
+ * - `category` -> CollectionCategoryRule
+ * - `tag` -> CollectionTagRule
+ * - `vendor` -> CollectionVendorRule
+ * - `feature` -> CollectionFeatureRule
+ * - `option` -> CollectionOptionRule
+ * - `priceComparison` -> CollectionPriceComparisonRule
+ * - `priceRange` -> CollectionPriceRangeRule
+ * - `inStock` -> CollectionInStockRule
+ * - `createdAtComparison` -> CollectionCreatedAtComparisonRule
+ * - `createdAtRange` -> CollectionCreatedAtRangeRule
+ */
 export type ApiCollectionRuleInput = {
-  field: Scalars["String"]["input"];
-  operator: Scalars["String"]["input"];
-  value: Scalars["JSON"]["input"];
+  category?: InputMaybe<ApiCollectionCategoryRuleInput>;
+  createdAtComparison?: InputMaybe<ApiCollectionCreatedAtComparisonRuleInput>;
+  createdAtRange?: InputMaybe<ApiCollectionCreatedAtRangeRuleInput>;
+  feature?: InputMaybe<ApiCollectionFeatureRuleInput>;
+  inStock?: InputMaybe<ApiCollectionInStockRuleInput>;
+  option?: InputMaybe<ApiCollectionOptionRuleInput>;
+  priceComparison?: InputMaybe<ApiCollectionPriceComparisonRuleInput>;
+  priceRange?: InputMaybe<ApiCollectionPriceRangeRuleInput>;
+  tag?: InputMaybe<ApiCollectionTagRuleInput>;
+  vendor?: InputMaybe<ApiCollectionVendorRuleInput>;
 };
 
+/** Validity of entity-ID references stored by a rule. */
+export enum CollectionRuleReferenceStatus {
+  /** The rule uses scalar values or stable handles rather than entity IDs. */
+  NotApplicable = "NOT_APPLICABLE",
+  /** At least one referenced entity no longer exists. */
+  Stale = "STALE",
+  /** Every referenced entity currently exists. */
+  Valid = "VALID",
+}
+
+/**
+ * Validates a transient rule set and computes its match count against the Listing
+ * index without changing collection state. Candidate labels must be loaded through
+ * their dedicated Catalog or Listing queries before building this input.
+ */
+export type ApiCollectionRulesPreviewCountInput = {
+  rules: Array<ApiCollectionRuleInput>;
+};
+
+/** Result of validating and evaluating a transient rule set. */
+export type ApiCollectionRulesPreviewCountPayload = {
+  __typename?: "CollectionRulesPreviewCountPayload";
+  /** Matched product count, or null when validation or evaluation failed. */
+  count?: Maybe<Scalars["Int"]["output"]>;
+  /** Listing-index observation time used for this count. */
+  indexObservedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Canonical hash of the validated rule set. */
+  rulesHash?: Maybe<Scalars["String"]["output"]>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Set-membership operator used by category, tag, feature, and option rules. */
+export enum CollectionSetRuleOperator {
+  /** Every selected value must match. */
+  All = "ALL",
+  /** At least one selected value must match. */
+  In = "IN",
+}
+
+/** Tag membership rule. */
+export type ApiCollectionTagRule = ApiCollectionRule & {
+  __typename?: "CollectionTagRule";
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+  /**
+   * Tag global IDs. Resolve picker labels through `catalogQuery.tags` and persisted
+   * values through `catalogQuery.nodes`.
+   */
+  tagIds: Array<Scalars["ID"]["output"]>;
+};
+
+export type ApiCollectionTagRuleInput = {
+  operator: CollectionSetRuleOperator;
+  tagIds: Array<Scalars["ID"]["input"]>;
+};
+
+/** How products become members of a collection. */
 export enum CollectionType {
+  /** Products are explicitly added, removed, and ordered by an administrator. */
   Manual = "MANUAL",
+  /** Products are derived from an AND-combined rule set. */
   Rule = "RULE",
 }
 
+/**
+ * Updates collection settings without changing its immutable type or rule set.
+ *
+ * Omitted fields remain unchanged. Null clears nullable content, SEO, or schedule
+ * fields where supported. Pass an empty `media` list to remove all media.
+ */
 export type ApiCollectionUpdateInput = {
   activeFrom?: InputMaybe<Scalars["DateTime"]["input"]>;
   activeTo?: InputMaybe<Scalars["DateTime"]["input"]>;
+  clientMutationId: Scalars["String"]["input"];
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<ApiRichTextInput>;
   excerpt?: InputMaybe<ApiRichTextInput>;
+  expectedRevision: Scalars["Int"]["input"];
   handle?: InputMaybe<Scalars["String"]["input"]>;
   id: Scalars["ID"]["input"];
   media?: InputMaybe<Array<ApiCollectionMediaInput>>;
@@ -2741,8 +2940,19 @@ export type ApiCollectionUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/**
+ * Atomically replaces the complete rule set of a RULE collection.
+ *
+ * Input array order becomes `sortIndex`; all top-level rules are combined with
+ * logical AND. The mutation supports at most 32 rules, at most 100 values in one
+ * feature or option rule, at most 256 set values across all rules, and a canonical
+ * serialized size of 64 KiB. A published RULE collection cannot be saved with an
+ * empty rule list.
+ */
 export type ApiCollectionUpdateRulesInput = {
+  clientMutationId: Scalars["String"]["input"];
   collectionId: Scalars["ID"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
   rules: Array<ApiCollectionRuleInput>;
 };
 
@@ -2750,6 +2960,213 @@ export type ApiCollectionUpdateRulesPayload = {
   __typename?: "CollectionUpdateRulesPayload";
   collection?: Maybe<ApiCollection>;
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Vendor membership rule. Vendor rules always use IN semantics. */
+export type ApiCollectionVendorRule = ApiCollectionRule & {
+  __typename?: "CollectionVendorRule";
+  field: CollectionRuleField;
+  id: Scalars["ID"]["output"];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars["Int"]["output"];
+  /**
+   * Vendor global IDs. Resolve picker labels through `catalogQuery.vendors` and
+   * persisted values through `catalogQuery.nodes`.
+   */
+  vendorIds: Array<Scalars["ID"]["output"]>;
+};
+
+/** Vendor rules use IN semantics; every listed vendor is an alternative. */
+export type ApiCollectionVendorRuleInput = {
+  vendorIds: Array<Scalars["ID"]["input"]>;
+};
+
+export enum ComparisonCardinality {
+  Multiple = "MULTIPLE",
+  Single = "SINGLE",
+}
+
+export type ApiComparisonField = ApiNode & {
+  __typename?: "ComparisonField";
+  canonicalUnit?: Maybe<Scalars["String"]["output"]>;
+  cardinality: ComparisonCardinality;
+  description?: Maybe<Scalars["String"]["output"]>;
+  featured: Scalars["Boolean"]["output"];
+  handle: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  name: Scalars["String"]["output"];
+  options: Array<ApiComparisonFieldOption>;
+  sortIndex: Scalars["Int"]["output"];
+  valueType: ComparisonValueType;
+};
+
+export type ApiComparisonFieldCreateInput = {
+  canonicalUnit?: InputMaybe<Scalars["String"]["input"]>;
+  cardinality: ComparisonCardinality;
+  description?: InputMaybe<Scalars["String"]["input"]>;
+  featured?: InputMaybe<Scalars["Boolean"]["input"]>;
+  handle: Scalars["String"]["input"];
+  name: Scalars["String"]["input"];
+  options: Array<ApiComparisonFieldOptionCreateInput>;
+  sortIndex: Scalars["Int"]["input"];
+  valueType: ComparisonValueType;
+};
+
+export type ApiComparisonFieldInput = {
+  canonicalUnit?: InputMaybe<Scalars["String"]["input"]>;
+  cardinality: ComparisonCardinality;
+  description?: InputMaybe<Scalars["String"]["input"]>;
+  featured?: InputMaybe<Scalars["Boolean"]["input"]>;
+  handle: Scalars["String"]["input"];
+  id?: InputMaybe<Scalars["ID"]["input"]>;
+  name: Scalars["String"]["input"];
+  options: Array<ApiComparisonFieldOptionInput>;
+  sortIndex: Scalars["Int"]["input"];
+  valueType: ComparisonValueType;
+};
+
+export type ApiComparisonFieldOption = ApiNode & {
+  __typename?: "ComparisonFieldOption";
+  handle: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  name: Scalars["String"]["output"];
+  sortIndex: Scalars["Int"]["output"];
+};
+
+export type ApiComparisonFieldOptionCreateInput = {
+  handle: Scalars["String"]["input"];
+  name: Scalars["String"]["input"];
+  sortIndex: Scalars["Int"]["input"];
+};
+
+export type ApiComparisonFieldOptionInput = {
+  handle: Scalars["String"]["input"];
+  id?: InputMaybe<Scalars["ID"]["input"]>;
+  name: Scalars["String"]["input"];
+  sortIndex: Scalars["Int"]["input"];
+};
+
+export type ApiComparisonGroup = ApiNode & {
+  __typename?: "ComparisonGroup";
+  fields: Array<ApiComparisonField>;
+  handle: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  name: Scalars["String"]["output"];
+  sortIndex: Scalars["Int"]["output"];
+};
+
+export type ApiComparisonGroupCreateInput = {
+  fields: Array<ApiComparisonFieldCreateInput>;
+  handle: Scalars["String"]["input"];
+  name: Scalars["String"]["input"];
+  sortIndex: Scalars["Int"]["input"];
+};
+
+export type ApiComparisonGroupInput = {
+  fields: Array<ApiComparisonFieldInput>;
+  handle: Scalars["String"]["input"];
+  id?: InputMaybe<Scalars["ID"]["input"]>;
+  name: Scalars["String"]["input"];
+  sortIndex: Scalars["Int"]["input"];
+};
+
+export type ApiComparisonProfile = ApiNode & {
+  __typename?: "ComparisonProfile";
+  createdAt: Scalars["DateTime"]["output"];
+  enabled: Scalars["Boolean"]["output"];
+  groups: Array<ApiComparisonGroup>;
+  handle: Scalars["String"]["output"];
+  id: Scalars["ID"]["output"];
+  missingLabel: Scalars["String"]["output"];
+  name: Scalars["String"]["output"];
+  notApplicableLabel: Scalars["String"]["output"];
+  revision: Scalars["Int"]["output"];
+  unavailableLabel: Scalars["String"]["output"];
+  updatedAt: Scalars["DateTime"]["output"];
+};
+
+export type ApiComparisonProfileConnection = {
+  __typename?: "ComparisonProfileConnection";
+  edges: Array<ApiComparisonProfileEdge>;
+  nodes: Array<ApiComparisonProfile>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars["Int"]["output"];
+};
+
+export type ApiComparisonProfileCreateInput = {
+  enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
+  groups: Array<ApiComparisonGroupCreateInput>;
+  handle: Scalars["String"]["input"];
+  missingLabel: Scalars["String"]["input"];
+  name: Scalars["String"]["input"];
+  notApplicableLabel: Scalars["String"]["input"];
+  unavailableLabel: Scalars["String"]["input"];
+};
+
+export type ApiComparisonProfileDeleteInput = {
+  id: Scalars["ID"]["input"];
+};
+
+export type ApiComparisonProfileDeletePayload = {
+  __typename?: "ComparisonProfileDeletePayload";
+  deletedComparisonProfileId?: Maybe<Scalars["ID"]["output"]>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiComparisonProfileEdge = {
+  __typename?: "ComparisonProfileEdge";
+  cursor: Scalars["String"]["output"];
+  node: ApiComparisonProfile;
+};
+
+export type ApiComparisonProfileOrderByInput = {
+  direction: SortDirection;
+  field: ComparisonProfileOrderField;
+};
+
+export enum ComparisonProfileOrderField {
+  CreatedAt = "CREATED_AT",
+  Handle = "HANDLE",
+  UpdatedAt = "UPDATED_AT",
+}
+
+export type ApiComparisonProfilePayload = {
+  __typename?: "ComparisonProfilePayload";
+  profile?: Maybe<ApiComparisonProfile>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiComparisonProfileUpdateInput = {
+  enabled: Scalars["Boolean"]["input"];
+  expectedRevision: Scalars["Int"]["input"];
+  groups: Array<ApiComparisonGroupInput>;
+  handle: Scalars["String"]["input"];
+  id: Scalars["ID"]["input"];
+  missingLabel: Scalars["String"]["input"];
+  name: Scalars["String"]["input"];
+  notApplicableLabel: Scalars["String"]["input"];
+  unavailableLabel: Scalars["String"]["input"];
+};
+
+export type ApiComparisonProfileWhereInput = {
+  enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
+  handle?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+export enum ComparisonValueType {
+  Boolean = "BOOLEAN",
+  Decimal = "DECIMAL",
+  Enum = "ENUM",
+  Integer = "INTEGER",
+  Text = "TEXT",
+}
+
+/** Shared fields exposed by every Relay-style connection. */
+export type ApiConnection = {
+  /** Metadata required to continue forward or backward pagination. */
+  pageInfo: ApiPageInfo;
+  /** Total resources matching the filter before pagination. */
+  totalCount: Scalars["Int"]["output"];
 };
 
 export enum CountryCode {
@@ -3161,13 +3578,13 @@ export enum CountryCode {
   Zw = "ZW",
 }
 
-export enum CropRegion {
-  Bottom = "BOTTOM",
-  Center = "CENTER",
-  Left = "LEFT",
-  Right = "RIGHT",
-  Top = "TOP",
-}
+/** Comparison operators for country code; omitted operators do not constrain results. */
+export type ApiCountryCodeFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<CountryCode>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<CountryCode>>;
+};
 
 /** Currency codes according to ISO 4217 */
 export enum CurrencyCode {
@@ -3495,6 +3912,14 @@ export enum CurrencyCode {
   Zwl = "ZWL",
 }
 
+/** Comparison operators for currency code; omitted operators do not constrain results. */
+export type ApiCurrencyCodeFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<CurrencyCode>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<CurrencyCode>>;
+};
+
 export enum CurrencyDisplay {
   Code = "CODE",
   Name = "NAME",
@@ -3567,6 +3992,7 @@ export type ApiCustomer = ApiNode & {
   groupMemberships: ApiCustomerGroupMembershipConnection;
   /** Opaque IAM principal identifier. Null for guests and imported profiles. */
   iamPrincipalId?: Maybe<Scalars["String"]["output"]>;
+  /** Federated Customer ID. */
   id: Scalars["ID"]["output"];
   jobTitle?: Maybe<Scalars["String"]["output"]>;
   lastActivityAt?: Maybe<Scalars["DateTime"]["output"]>;
@@ -6185,6 +6611,34 @@ export type ApiDateTimeFilter = {
   _neq?: InputMaybe<Scalars["DateTime"]["input"]>;
 };
 
+/** Comparison operators for date time; omitted operators do not constrain results. */
+export type ApiDateTimeFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars["DateTime"]["input"]>;
+  /** Validated input value for gt. */
+  gt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  /** Validated input value for gte. */
+  gte?: InputMaybe<Scalars["DateTime"]["input"]>;
+  /** Validated input value for lt. */
+  lt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  /** Validated input value for lte. */
+  lte?: InputMaybe<Scalars["DateTime"]["input"]>;
+};
+
+/** Comparison operators for decimal; omitted operators do not constrain results. */
+export type ApiDecimalFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars["Decimal"]["input"]>;
+  /** Validated input value for gt. */
+  gt?: InputMaybe<Scalars["Decimal"]["input"]>;
+  /** Validated input value for gte. */
+  gte?: InputMaybe<Scalars["Decimal"]["input"]>;
+  /** Validated input value for lt. */
+  lt?: InputMaybe<Scalars["Decimal"]["input"]>;
+  /** Validated input value for lte. */
+  lte?: InputMaybe<Scalars["Decimal"]["input"]>;
+};
+
 /** Dimension (length) measurement units */
 export enum DimensionUnit {
   /** Centimeter */
@@ -6198,6 +6652,19 @@ export enum DimensionUnit {
   /** Millimeter */
   Mm = "mm",
 }
+
+/** Physical dimensions expressed in one supported length unit. */
+export type ApiDimensions = {
+  __typename?: "Dimensions";
+  /** Height in unit. */
+  height: Scalars["Float"]["output"];
+  /** Length in unit. */
+  length: Scalars["Float"]["output"];
+  /** Unit shared by width, height, and length. */
+  unit: DimensionUnit;
+  /** Width in unit. */
+  width: Scalars["Float"]["output"];
+};
 
 /** Input for setting dimensions (in millimeters). */
 export type ApiDimensionsInput = {
@@ -7301,6 +7768,14 @@ export type ApiDiscountWhereInput = {
   usageLimit?: InputMaybe<ApiBigIntFilter>;
 };
 
+/** Expected mutation error displayable to an authorized Admin user. */
+export type ApiDisplayableError = {
+  /** Path to the invalid input field, or null for an aggregate-level error. */
+  field?: Maybe<Array<Scalars["String"]["output"]>>;
+  /** Human-readable error explanation. */
+  message: Scalars["String"]["output"];
+};
+
 /** External media data (YouTube, Vimeo, etc). */
 export type ApiExternalMediaData = {
   __typename?: "ExternalMediaData";
@@ -7327,7 +7802,7 @@ export type ApiFacet = ApiNode & {
 export type ApiFacetCreateInput = {
   facetType: FacetType;
   label: Scalars["String"]["input"];
-  /** Defaults to both SEARCH and CATEGORY when omitted. */
+  /** Defaults to SEARCH, CATEGORY, and COLLECTION when omitted. */
   scopes?: InputMaybe<Array<FacetScopeType>>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars["String"]["input"];
@@ -7390,9 +7865,11 @@ export type ApiFacetRebalancePayload = {
  *
  * SEARCH applies to listing requests without a category context.
  * CATEGORY applies to every category-scoped listing request.
+ * COLLECTION applies to every collection-scoped listing request.
  */
 export enum FacetScopeType {
   Category = "CATEGORY",
+  Collection = "COLLECTION",
   Search = "SEARCH",
 }
 
@@ -8184,6 +8661,306 @@ export type ApiFloatFilter = {
   _notIn?: InputMaybe<Array<Scalars["Float"]["input"]>>;
 };
 
+/** Execution fact consuming quantities allocated to a fulfillment order. */
+export type ApiFulfillment = ApiNode & {
+  __typename?: "Fulfillment";
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Projected value for fulfillment order. */
+  fulfillmentOrder: ApiFulfillmentOrder;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for lines. */
+  lines: Array<ApiFulfillmentLine>;
+  /** Relay global ID identifying the location. */
+  locationId: Scalars["ID"]["output"];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer: Scalars["Boolean"]["output"];
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Projected value for shipments. */
+  shipments: Array<ApiShipment>;
+  /** Current lifecycle or derived projection status. */
+  status: FulfillmentStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+};
+
+/** Validated input for fulfillment cancel. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment. */
+  fulfillmentId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Validated input value for restock. */
+  restock?: InputMaybe<Scalars["Boolean"]["input"]>;
+};
+
+/** Validated input for fulfillment create. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentCreateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for lines. */
+  lines: Array<ApiFulfillmentOrderLineQuantityInput>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+};
+
+/** Orders Admin representation of fulfillment hold. */
+export type ApiFulfillmentHold = ApiNode & {
+  __typename?: "FulfillmentHold";
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Projected value for held by. */
+  heldBy: ApiOrderActor;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for note. */
+  note?: Maybe<Scalars["String"]["output"]>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["output"];
+  /** Timestamp for released, or null when it has not occurred. */
+  releasedAt?: Maybe<Scalars["DateTime"]["output"]>;
+};
+
+/** Orders Admin representation of fulfillment line. */
+export type ApiFulfillmentLine = {
+  __typename?: "FulfillmentLine";
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["output"];
+};
+
+/** Allocatable fulfillment work unit, separate from provider execution and physical shipment. */
+export type ApiFulfillmentOrder = ApiNode & {
+  __typename?: "FulfillmentOrder";
+  /** Relay global ID identifying the assigned location. */
+  assignedLocationId: Scalars["ID"]["output"];
+  /** Projected value for assigned service. */
+  assignedService?: Maybe<ApiFulfillmentServiceRoute>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Projected value for delivery group. */
+  deliveryGroup: ApiOrderDeliveryGroup;
+  /** Timestamp for fulfill, or null when it has not occurred. */
+  fulfillAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for fulfill by. */
+  fulfillBy?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for holds. */
+  holds: Array<ApiFulfillmentHold>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for lines. */
+  lines: Array<ApiFulfillmentOrderLine>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Current request status. */
+  requestStatus: FulfillmentRequestStatus;
+  /** Current lifecycle or derived projection status. */
+  status: FulfillmentOrderStatus;
+  /** Projected value for supported actions. */
+  supportedActions: Array<Scalars["String"]["output"]>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+};
+
+/** Validated input for fulfillment order cancel request. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderCancelRequestInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+};
+
+/** Validated input for fulfillment order hold. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderHoldInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+};
+
+/** Orders Admin representation of fulfillment order line. */
+export type ApiFulfillmentOrderLine = ApiNode & {
+  __typename?: "FulfillmentOrderLine";
+  /** Projected fulfilled quantity. */
+  fulfilledQuantity: Scalars["Int"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["output"];
+  /** Projected remaining quantity. */
+  remainingQuantity: Scalars["Int"]["output"];
+};
+
+/** Validated input for fulfillment order line quantity. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderLineQuantityInput = {
+  /** Relay global ID identifying the fulfillment order line. */
+  fulfillmentOrderLineId: Scalars["ID"]["input"];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["input"];
+};
+
+/** Validated input for fulfillment order move. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderMoveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the location. */
+  locationId: Scalars["ID"]["input"];
+  /** Stable service code. */
+  serviceCode?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Mutation result for fulfillment order; expected failures are returned in userErrors. */
+export type ApiFulfillmentOrderPayload = {
+  __typename?: "FulfillmentOrderPayload";
+  /** Projected value for fulfillment order. */
+  fulfillmentOrder?: Maybe<ApiFulfillmentOrder>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for fulfillment order release hold. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderReleaseHoldInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the hold. */
+  holdId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Validated input for fulfillment order split. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderSplitInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for lines. */
+  lines: Array<ApiFulfillmentOrderLineQuantityInput>;
+};
+
+/** Closed set of fulfillment order status values used by Orders Admin API. */
+export enum FulfillmentOrderStatus {
+  /** Cancelled value of fulfillment order status. */
+  Cancelled = "CANCELLED",
+  /** Closed value of fulfillment order status. */
+  Closed = "CLOSED",
+  /** In progress value of fulfillment order status. */
+  InProgress = "IN_PROGRESS",
+  /** On hold value of fulfillment order status. */
+  OnHold = "ON_HOLD",
+  /** Open value of fulfillment order status. */
+  Open = "OPEN",
+  /** Scheduled value of fulfillment order status. */
+  Scheduled = "SCHEDULED",
+}
+
+/** Validated input for fulfillment order submit. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderSubmitInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Mutation result for fulfillment; expected failures are returned in userErrors. */
+export type ApiFulfillmentPayload = {
+  __typename?: "FulfillmentPayload";
+  /** Projected value for fulfillment. */
+  fulfillment?: Maybe<ApiFulfillment>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Closed set of fulfillment request status values used by Orders Admin API. */
+export enum FulfillmentRequestStatus {
+  /** Accepted value of fulfillment request status. */
+  Accepted = "ACCEPTED",
+  /** Cancellation accepted value of fulfillment request status. */
+  CancellationAccepted = "CANCELLATION_ACCEPTED",
+  /** Cancellation rejected value of fulfillment request status. */
+  CancellationRejected = "CANCELLATION_REJECTED",
+  /** Cancellation requested value of fulfillment request status. */
+  CancellationRequested = "CANCELLATION_REQUESTED",
+  /** Rejected value of fulfillment request status. */
+  Rejected = "REJECTED",
+  /** Submitted value of fulfillment request status. */
+  Submitted = "SUBMITTED",
+  /** Unsubmitted value of fulfillment request status. */
+  Unsubmitted = "UNSUBMITTED",
+}
+
+/** Orders Admin representation of fulfillment service route. */
+export type ApiFulfillmentServiceRoute = {
+  __typename?: "FulfillmentServiceRoute";
+  /** Stable app code. */
+  appCode: Scalars["String"]["output"];
+  /** Projected value for external reference. */
+  externalReference?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID identifying the installation. */
+  installationId: Scalars["ID"]["output"];
+  /** Projected value for provider revision. */
+  providerRevision: Scalars["String"]["output"];
+  /** Stable service code. */
+  serviceCode: Scalars["String"]["output"];
+};
+
+/** Closed set of fulfillment status values used by Orders Admin API. */
+export enum FulfillmentStatus {
+  /** Cancelled value of fulfillment status. */
+  Cancelled = "CANCELLED",
+  /** Failure value of fulfillment status. */
+  Failure = "FAILURE",
+  /** Open value of fulfillment status. */
+  Open = "OPEN",
+  /** Pending value of fulfillment status. */
+  Pending = "PENDING",
+  /** Success value of fulfillment status. */
+  Success = "SUCCESS",
+}
+
 /** A generic user-facing mutation error. */
 export type ApiGenericUserError = ApiUserError & {
   __typename?: "GenericUserError";
@@ -8403,17 +9180,54 @@ export type ApiIdFilter = {
   _notIn?: InputMaybe<Array<Scalars["ID"]["input"]>>;
 };
 
+/** Comparison operators for id; omitted operators do not constrain results. */
+export type ApiIdFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  /** Validated input value for not in. */
+  notIn?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+};
+
 export enum ImageContentType {
+  Avif = "AVIF",
   Jpg = "JPG",
   Png = "PNG",
   Webp = "WEBP",
 }
 
+/** How the image is resized to fit the requested box. */
+export enum ImageFitMode {
+  Contain = "CONTAIN",
+  Cover = "COVER",
+  Fill = "FILL",
+  Inside = "INSIDE",
+  Outside = "OUTSIDE",
+}
+
+/** Anchor used when FIT_MODE crops or pads the image. */
+export enum ImageGravity {
+  Auto = "AUTO",
+  Bottom = "BOTTOM",
+  BottomLeft = "BOTTOM_LEFT",
+  BottomRight = "BOTTOM_RIGHT",
+  Center = "CENTER",
+  Left = "LEFT",
+  Right = "RIGHT",
+  Top = "TOP",
+  TopLeft = "TOP_LEFT",
+  TopRight = "TOP_RIGHT",
+}
+
 export type ApiImageTransformInput = {
-  crop?: InputMaybe<CropRegion>;
+  fit?: InputMaybe<ImageFitMode>;
+  gravity?: InputMaybe<ImageGravity>;
   maxHeight?: InputMaybe<Scalars["Int"]["input"]>;
   maxWidth?: InputMaybe<Scalars["Int"]["input"]>;
   preferredContentType?: InputMaybe<ImageContentType>;
+  /** Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured. */
+  quality?: InputMaybe<Scalars["Int"]["input"]>;
   scale?: InputMaybe<Scalars["Int"]["input"]>;
 };
 
@@ -8732,11 +9546,6 @@ export type ApiInventorySkuStatus = {
   total: Scalars["Int"]["output"];
 };
 
-export type ApiLabel = {
-  __typename?: "Label";
-  id: Scalars["ID"]["output"];
-};
-
 export type ApiListing = {
   /** The global ID of the catalog listing item. */
   id: Scalars["ID"]["output"];
@@ -8812,101 +9621,31 @@ export type ApiListingFacetValueFilter = {
 
 export type ApiListingMutation = {
   __typename?: "ListingMutation";
-  /** Create a new facet. */
-  facetCreate: ApiFacetCreatePayload;
-  /** Delete a facet. */
-  facetDelete: ApiFacetDeletePayload;
-  /** Move a facet before or after another facet. */
-  facetMove: ApiFacetMovePayload;
-  /** Rebalance facet lexo ranks. */
-  facetRebalance: ApiFacetRebalancePayload;
-  /**
-   * Atomically replace scopes for multiple facets.
-   * No updates are applied when any input item is invalid.
-   */
-  facetScopesUpdate: ApiFacetScopesUpdatePayload;
-  /** Create a new facet swatch. */
-  facetSwatchCreate: ApiFacetSwatchCreatePayload;
-  /** Delete a facet swatch. */
-  facetSwatchDelete: ApiFacetSwatchDeletePayload;
-  /** Update an existing facet swatch. */
-  facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
-  /** Update an existing facet. */
-  facetUpdate: ApiFacetUpdatePayload;
-  /** Create a new facet value. */
-  facetValueCreate: ApiFacetValueCreatePayload;
-  /** Delete a facet value. */
-  facetValueDelete: ApiFacetValueDeletePayload;
-  /**
-   * Attach source facet values to an existing or newly-created group value.
-   * This is the only mutation that merges source values into a group value.
-   */
-  facetValueMerge: ApiFacetValueMergePayload;
-  /**
-   * Detach source facet values from their group value and make them root values.
-   * This is the only mutation that unmerges source values.
-   */
-  facetValueUnmerge: ApiFacetValueUnmergePayload;
-  /** Update an existing facet value. */
-  facetValueUpdate: ApiFacetValueUpdatePayload;
-  /** Search configuration mutation namespace. */
-  search: ApiListingSearchMutation;
+  manualProductRecommendationCreate: ApiManualProductRecommendationPayload;
+  manualProductRecommendationDelete: ApiManualProductRecommendationDeletePayload;
+  manualProductRecommendationUpdate: ApiManualProductRecommendationPayload;
+  recommendationPlacementPolicySetEnabled: ApiRecommendationPlacementPolicyPayload;
+  recommendationPlacementPolicyUpsert: ApiRecommendationPlacementPolicyPayload;
 };
 
-export type ApiListingMutationFacetCreateArgs = {
-  input: ApiFacetCreateInput;
+export type ApiListingMutationManualProductRecommendationCreateArgs = {
+  input: ApiManualProductRecommendationCreateInput;
 };
 
-export type ApiListingMutationFacetDeleteArgs = {
-  input: ApiFacetDeleteInput;
+export type ApiListingMutationManualProductRecommendationDeleteArgs = {
+  input: ApiManualProductRecommendationDeleteInput;
 };
 
-export type ApiListingMutationFacetMoveArgs = {
-  input: ApiFacetMoveInput;
+export type ApiListingMutationManualProductRecommendationUpdateArgs = {
+  input: ApiManualProductRecommendationUpdateInput;
 };
 
-export type ApiListingMutationFacetRebalanceArgs = {
-  input: ApiFacetRebalanceInput;
+export type ApiListingMutationRecommendationPlacementPolicySetEnabledArgs = {
+  input: ApiRecommendationPlacementPolicySetEnabledInput;
 };
 
-export type ApiListingMutationFacetScopesUpdateArgs = {
-  input: ApiFacetScopesUpdateInput;
-};
-
-export type ApiListingMutationFacetSwatchCreateArgs = {
-  input: ApiFacetSwatchCreateInput;
-};
-
-export type ApiListingMutationFacetSwatchDeleteArgs = {
-  input: ApiFacetSwatchDeleteInput;
-};
-
-export type ApiListingMutationFacetSwatchUpdateArgs = {
-  input: ApiFacetSwatchUpdateInput;
-};
-
-export type ApiListingMutationFacetUpdateArgs = {
-  input: ApiFacetUpdateInput;
-};
-
-export type ApiListingMutationFacetValueCreateArgs = {
-  input: ApiFacetValueCreateInput;
-};
-
-export type ApiListingMutationFacetValueDeleteArgs = {
-  input: ApiFacetValueDeleteInput;
-};
-
-export type ApiListingMutationFacetValueMergeArgs = {
-  input: ApiFacetValueMergeInput;
-};
-
-export type ApiListingMutationFacetValueUnmergeArgs = {
-  input: ApiFacetValueUnmergeInput;
-};
-
-export type ApiListingMutationFacetValueUpdateArgs = {
-  input: ApiFacetValueUpdateInput;
+export type ApiListingMutationRecommendationPlacementPolicyUpsertArgs = {
+  input: ApiRecommendationPlacementPolicyUpsertInput;
 };
 
 export type ApiListingOrderByInput = {
@@ -8932,6 +9671,8 @@ export type ApiListingProductFilter = {
   productFacet?: InputMaybe<ApiListingFacetValueFilter>;
   /** Filter by product vendor. */
   productVendor?: InputMaybe<Scalars["String"]["input"]>;
+  /** Filter by indexed product status. */
+  statuses?: InputMaybe<Array<ListingProductStatus>>;
   /** Filter by product tag. */
   tag?: InputMaybe<Scalars["String"]["input"]>;
   /** Filter by variant-level listing facet value. */
@@ -8940,105 +9681,46 @@ export type ApiListingProductFilter = {
   variantOption?: InputMaybe<ApiListingVariantOptionFilter>;
 };
 
+export enum ListingProductStatus {
+  Draft = "DRAFT",
+  Published = "PUBLISHED",
+}
+
 export type ApiListingQuery = {
   __typename?: "ListingQuery";
-  /** Get a facet by ID. */
-  facet?: Maybe<ApiFacet>;
-  /** Get available facet source candidates for create flow. */
-  facetSourceCandidates: ApiFacetSourceCandidateConnection;
-  /** Get a facet swatch by ID. */
-  facetSwatch?: Maybe<ApiFacetSwatch>;
-  /** Get all facet swatches. */
-  facetSwatches: Array<ApiFacetSwatch>;
-  /** Get a facet value by ID. */
-  facetValue?: Maybe<ApiFacetValue>;
-  /** Get available facet source value candidates for create and edit flows. */
-  facetValueCandidates: ApiFacetValueCandidateConnection;
-  /** Get all facet values for a specific facet. */
-  facetValues: Array<ApiFacetValue>;
-  /** Get all facets. */
-  facets: Array<ApiFacet>;
-  /**
-   * Get ordered listing structure for Admin.
-   *
-   * Listing service returns listing-owned order, pagination, counts, aggregates,
-   * and canonical entity references only. Entity details are resolved by owning
-   * subgraphs through federation.
-   */
-  listing: ApiListingConnection;
-  /** Get a node by its global ID. */
-  node?: Maybe<ApiNode>;
-  /** Get multiple nodes by their global IDs. */
-  nodes: Array<Maybe<ApiNode>>;
-  /** Search configuration and diagnostics namespace. */
-  search: ApiListingSearchQuery;
+  manualProductRecommendations: ApiManualProductRecommendationConnection;
+  recommendationPlacementPolicies: Array<ApiRecommendationPlacementPolicy>;
+  recommendationPlacementPolicy?: Maybe<ApiRecommendationPlacementPolicy>;
+  recommendationSnapshotPreview: ApiRecommendationSnapshotPreviewPayload;
 };
 
-export type ApiListingQueryFacetArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiListingQueryFacetSourceCandidatesArgs = {
+export type ApiListingQueryManualProductRecommendationsArgs = {
   after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
+  anchorProductId: Scalars["ID"]["input"];
   first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  orderBy?: InputMaybe<Array<ApiFacetSourceCandidateOrderByInput>>;
-  where?: InputMaybe<ApiFacetSourceCandidateWhereInput>;
+  placement: RecommendationPlacement;
 };
 
-export type ApiListingQueryFacetSwatchArgs = {
-  id: Scalars["ID"]["input"];
+export type ApiListingQueryRecommendationPlacementPolicyArgs = {
+  placement: RecommendationPlacement;
 };
 
-export type ApiListingQueryFacetValueArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiListingQueryFacetValueCandidatesArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  meta: ApiFacetValueCandidatesMetaInput;
-  orderBy?: InputMaybe<Array<ApiFacetValueCandidateOrderByInput>>;
-  where?: InputMaybe<ApiFacetValueCandidateWhereInput>;
-};
-
-export type ApiListingQueryFacetValuesArgs = {
-  facetId: Scalars["ID"]["input"];
-};
-
-export type ApiListingQueryListingArgs = {
-  after?: InputMaybe<Scalars["String"]["input"]>;
-  before?: InputMaybe<Scalars["String"]["input"]>;
-  currency?: InputMaybe<CurrencyCode>;
-  facets?: InputMaybe<Array<ApiListingProductFilter>>;
-  first?: InputMaybe<Scalars["Int"]["input"]>;
-  last?: InputMaybe<Scalars["Int"]["input"]>;
-  locale?: InputMaybe<LocaleCode>;
-  orderBy?: InputMaybe<ApiListingOrderByInput>;
-  query?: InputMaybe<Scalars["String"]["input"]>;
-  scope?: InputMaybe<ApiListingScopeInput>;
-};
-
-export type ApiListingQueryNodeArgs = {
-  id: Scalars["ID"]["input"];
-};
-
-export type ApiListingQueryNodesArgs = {
-  ids: Array<Scalars["ID"]["input"]>;
+export type ApiListingQueryRecommendationSnapshotPreviewArgs = {
+  input: ApiRecommendationSnapshotPreviewInput;
 };
 
 export type ApiListingScopeInput = {
   /** Category global ID. Required for CATEGORY and forbidden for GLOBAL. */
   categoryId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Collection global ID. Required for COLLECTION. */
+  collectionId?: InputMaybe<Scalars["ID"]["input"]>;
   /** Scope kind for the listing request. */
   kind: ListingScopeKind;
 };
 
 export enum ListingScopeKind {
   Category = "CATEGORY",
+  Collection = "COLLECTION",
   Global = "GLOBAL",
 }
 
@@ -9900,6 +10582,8 @@ export type ApiLoyaltyMaintenanceResult = {
   expiredReservations: Scalars["Int"]["output"];
   expiredRewards: Scalars["Int"]["output"];
   rebuiltBalances: Scalars["Int"]["output"];
+  reconciledProgramVersions: Scalars["Int"]["output"];
+  staleProgramVersions: Scalars["Int"]["output"];
 };
 
 export type ApiLoyaltyMaintenanceRunInput = {
@@ -10470,6 +11154,8 @@ export type ApiLoyaltyProgramVersion = ApiNode & {
   redeemAmountMinor: Scalars["BigInt"]["output"];
   redeemPoints: Scalars["BigInt"]["output"];
   redemptionEnabled: Scalars["Boolean"]["output"];
+  referenceReconciliationCheckedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  referenceReconciliationStatus: LoyaltyReferenceReconciliationStatus;
   refundPolicy: LoyaltyRefundPolicy;
   restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy;
   revision: Scalars["Int"]["output"];
@@ -10766,6 +11452,17 @@ export type ApiLoyaltyQueryTransactionsArgs = {
   where?: InputMaybe<ApiLoyaltyTransactionWhereInput>;
 };
 
+/**
+ * Whether cross-service references (segments, catalog selectors, Pricing
+ * discounts) carried by a published program version's rules were still
+ * resolvable the last time reconciliation ran. Mutable operational metadata,
+ * separate from the immutable rules snapshot.
+ */
+export enum LoyaltyReferenceReconciliationStatus {
+  Stale = "STALE",
+  Valid = "VALID",
+}
+
 export enum LoyaltyRefundPolicy {
   FullReversal = "FULL_REVERSAL",
   Proportional = "PROPORTIONAL",
@@ -10775,7 +11472,6 @@ export type ApiLoyaltyReservation = ApiNode & {
   __typename?: "LoyaltyReservation";
   account: ApiLoyaltyAccount;
   checkoutId: Scalars["ID"]["output"];
-  checkoutVersion: Scalars["Int"]["output"];
   committedAt?: Maybe<Scalars["DateTime"]["output"]>;
   createdAt: Scalars["DateTime"]["output"];
   discount: ApiLoyaltyMoney;
@@ -11385,6 +12081,118 @@ export type ApiLoyaltyUserError = ApiUserError & {
   retryable: Scalars["Boolean"]["output"];
 };
 
+export type ApiManualProductRecommendation = ApiNode & {
+  __typename?: "ManualProductRecommendation";
+  action: ManualRecommendationAction;
+  anchorProduct: ApiProduct;
+  anchorReferenceStatus: RecommendationReferenceStatus;
+  boost?: Maybe<Scalars["String"]["output"]>;
+  createdAt: Scalars["DateTime"]["output"];
+  enabled: Scalars["Boolean"]["output"];
+  endsAt?: Maybe<Scalars["DateTime"]["output"]>;
+  id: Scalars["ID"]["output"];
+  placement: RecommendationPlacement;
+  position?: Maybe<Scalars["Int"]["output"]>;
+  startsAt?: Maybe<Scalars["DateTime"]["output"]>;
+  targetProduct: ApiProduct;
+  targetReferenceStatus: RecommendationReferenceStatus;
+  updatedAt: Scalars["DateTime"]["output"];
+  version: Scalars["Int"]["output"];
+};
+
+export type ApiManualProductRecommendationConnection = {
+  __typename?: "ManualProductRecommendationConnection";
+  edges: Array<ApiManualProductRecommendationEdge>;
+  nodes: Array<ApiManualProductRecommendation>;
+  pageInfo: ApiPageInfo;
+};
+
+export type ApiManualProductRecommendationCreateInput = {
+  action: ManualRecommendationAction;
+  anchorProductId: Scalars["ID"]["input"];
+  boost?: InputMaybe<Scalars["String"]["input"]>;
+  enabled: Scalars["Boolean"]["input"];
+  endsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  placement: RecommendationPlacement;
+  position?: InputMaybe<Scalars["Int"]["input"]>;
+  startsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  targetProductId: Scalars["ID"]["input"];
+};
+
+export type ApiManualProductRecommendationDeleteInput = {
+  expectedVersion: Scalars["Int"]["input"];
+  id: Scalars["ID"]["input"];
+};
+
+export type ApiManualProductRecommendationDeletePayload = {
+  __typename?: "ManualProductRecommendationDeletePayload";
+  deletedId?: Maybe<Scalars["ID"]["output"]>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiManualProductRecommendationEdge = {
+  __typename?: "ManualProductRecommendationEdge";
+  cursor: Scalars["String"]["output"];
+  node: ApiManualProductRecommendation;
+};
+
+export type ApiManualProductRecommendationPayload = {
+  __typename?: "ManualProductRecommendationPayload";
+  recommendation?: Maybe<ApiManualProductRecommendation>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiManualProductRecommendationUpdateInput = {
+  action?: InputMaybe<ManualRecommendationAction>;
+  boost?: InputMaybe<Scalars["String"]["input"]>;
+  enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
+  endsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  expectedVersion: Scalars["Int"]["input"];
+  id: Scalars["ID"]["input"];
+  position?: InputMaybe<Scalars["Int"]["input"]>;
+  startsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  targetProductId?: InputMaybe<Scalars["ID"]["input"]>;
+};
+
+export enum ManualRecommendationAction {
+  Boost = "BOOST",
+  Exclude = "EXCLUDE",
+  Pin = "PIN",
+}
+
+export type ApiManualRecommendationDraftChangeInput = {
+  create?: InputMaybe<ApiManualRecommendationDraftCreateInput>;
+  delete?: InputMaybe<ApiManualRecommendationDraftDeleteInput>;
+  update?: InputMaybe<ApiManualRecommendationDraftUpdateInput>;
+};
+
+export type ApiManualRecommendationDraftCreateInput = {
+  action: ManualRecommendationAction;
+  boost?: InputMaybe<Scalars["String"]["input"]>;
+  enabled: Scalars["Boolean"]["input"];
+  endsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  position?: InputMaybe<Scalars["Int"]["input"]>;
+  startsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  targetProductId: Scalars["ID"]["input"];
+};
+
+export type ApiManualRecommendationDraftDeleteInput = {
+  expectedVersion: Scalars["Int"]["input"];
+  id: Scalars["ID"]["input"];
+};
+
+export type ApiManualRecommendationDraftUpdateInput = {
+  action?: InputMaybe<ManualRecommendationAction>;
+  boost?: InputMaybe<Scalars["String"]["input"]>;
+  enabled?: InputMaybe<Scalars["Boolean"]["input"]>;
+  endsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  expectedVersion: Scalars["Int"]["input"];
+  id: Scalars["ID"]["input"];
+  position?: InputMaybe<Scalars["Int"]["input"]>;
+  startsAt?: InputMaybe<Scalars["DateTime"]["input"]>;
+  targetProductId?: InputMaybe<Scalars["ID"]["input"]>;
+};
+
 /** Image/video dimensions. */
 export type ApiMediaDimensions = {
   __typename?: "MediaDimensions";
@@ -11525,6 +12333,8 @@ export enum MediaProcessingStatus {
 
 export type ApiMediaQuery = {
   __typename?: "MediaQuery";
+  /** Which transformStrategy/signingMode keys are actually registered and usable. */
+  cdnAdapterCapabilities: ApiCdnAdapterCapabilities;
   /** Resolve and inspect the CDN route for a current-store file. */
   cdnDeliveryPreview: ApiCdnDeliveryPreview;
   /** Get a file by ID */
@@ -11735,6 +12545,27 @@ export type ApiMembership = {
   roles: Array<ApiRole>;
 };
 
+/**
+ * Exact monetary value.
+ *
+ * amount is an arbitrary-precision decimal string at the GraphQL boundary.
+ */
+export type ApiMoney = {
+  __typename?: "Money";
+  /** Exact decimal amount serialized as a string. */
+  amount: Scalars["Decimal"]["output"];
+  /** ISO 4217 currency code. */
+  currencyCode: CurrencyCode;
+};
+
+/** Validated input for money. Tenant identifiers come only from trusted context. */
+export type ApiMoneyInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: Scalars["Decimal"]["input"];
+  /** ISO 4217 currency code. */
+  currencyCode: CurrencyCode;
+};
+
 export type ApiMutation = {
   __typename?: "Mutation";
   /** Application realm management mutations. */
@@ -11759,6 +12590,8 @@ export type ApiMutation = {
   notificationsMutation: ApiNotificationsMutation;
   /** Online Store content mutation namespace. */
   onlineStoreAppMutation: ApiOnlineStoreAppMutation;
+  /** Entry point for all store-scoped Orders Admin commands. */
+  ordersMutation: ApiOrdersMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
   /** Pricing Admin mutation namespace. */
@@ -12604,110 +13437,2752 @@ export enum OperationType {
   VariantUpdate = "VARIANT_UPDATE",
 }
 
-export type ApiOrder = {
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrder = ApiNode & {
   __typename?: "Order";
+  /** Projected value for activity. */
+  activity: ApiOrderActivityConnection;
+  /** Projected value for admin note. */
   adminNote?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for archived, or null when it has not occurred. */
+  archivedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for available actions. */
+  availableActions: Array<OrderAction>;
+  /** Projected value for billing address. */
+  billingAddress?: Maybe<ApiOrderAddress>;
+  /** Timestamp for cancelled, or null when it has not occurred. */
+  cancelledAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for checkout. */
+  checkout?: Maybe<ApiCheckout>;
+  /** Projected value for checkout placement. */
+  checkoutPlacement?: Maybe<ApiOrderCheckoutPlacement>;
+  /** Timestamp for closed, or null when it has not occurred. */
+  closedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for contact. */
+  contact: ApiOrderContact;
+  /** Projected value for cost. */
+  cost: ApiOrderCost;
+  /** Timestamp for created, or null when it has not occurred. */
   createdAt: Scalars["DateTime"]["output"];
-  createdBy: ApiOrderActor;
-  currencyCode: Scalars["String"]["output"];
-  customerIdentity: ApiOrderCustomerIdentity;
+  /** ISO 4217 currency code. */
+  currencyCode: CurrencyCode;
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields: Scalars["JSON"]["output"];
+  /** Projected value for customer. */
+  customer?: Maybe<ApiCustomer>;
+  /** Projected value for customer note. */
   customerNote?: Maybe<Scalars["String"]["output"]>;
-  customerStatistic: ApiOrderCustomerStatistic;
-  deletedAt?: Maybe<Scalars["DateTime"]["output"]>;
-  discountTotal?: Maybe<Scalars["BigInt"]["output"]>;
-  grandTotal: Scalars["BigInt"]["output"];
+  /** Projected value for customer snapshot. */
+  customerSnapshot: ApiOrderCustomerSnapshot;
+  /** Projected value for delivery groups. */
+  deliveryGroups: Array<ApiOrderDeliveryGroup>;
+  /** Current delivery status. */
+  deliveryStatus: OrderDeliveryStatus;
+  /** Projected value for discounts. */
+  discounts: Array<ApiOrderDiscount>;
+  /** Projected value for exchanges. */
+  exchanges: ApiOrderExchangeConnection;
+  /** Timestamp for expires, or null when it has not occurred. */
+  expiresAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for fulfillment orders. */
+  fulfillmentOrders: Array<ApiFulfillmentOrder>;
+  /** Current fulfillment status. */
+  fulfillmentStatus: OrderFulfillmentStatus;
+  /** Projected value for fulfillments. */
+  fulfillments: Array<ApiFulfillment>;
+  /** Relay global ID of this resource. */
   id: Scalars["ID"]["output"];
-  labels: Array<ApiLabel>;
+  /** Projected value for integration links. */
+  integrationLinks: Array<ApiOrderIntegrationLink>;
+  /** Projected value for lines. */
   lines: Array<ApiOrderLine>;
+  /** Stable locale code. */
+  localeCode?: Maybe<LocaleCode>;
+  /** Store-local order number serialized without precision loss. */
   number: Scalars["BigInt"]["output"];
-  shippingTotal?: Maybe<Scalars["BigInt"]["output"]>;
+  /** Projected value for origin. */
+  origin: OrderOrigin;
+  /** Projected value for payment. */
+  payment: ApiOrderPayment;
+  /** Current payment status. */
+  paymentStatus: OrderPaymentStatus;
+  /** Timestamp for placed, or null when it has not occurred. */
+  placedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for refunds. */
+  refunds: ApiOrderRefundConnection;
+  /** Current return status. */
+  returnStatus: OrderReturnStatus;
+  /** Projected value for returns. */
+  returns: ApiOrderReturnConnection;
+  /** Projected value for risk level. */
+  riskLevel: OrderRiskLevel;
+  /** Projected value for shipments. */
+  shipments: Array<ApiShipment>;
+  /** Projected value for shipping address. */
+  shippingAddress?: Maybe<ApiOrderAddress>;
+  /** Projected value for source. */
+  source?: Maybe<ApiOrderSource>;
+  /** Current lifecycle or derived projection status. */
   status: OrderStatus;
-  subtotal: Scalars["BigInt"]["output"];
-  tags: Array<ApiTag>;
-  taxTotal?: Maybe<Scalars["BigInt"]["output"]>;
+  /** Projected value for tags. */
+  tags: Array<Scalars["String"]["output"]>;
+  /** Projected value for tax lines. */
+  taxLines: Array<ApiOrderTaxLine>;
+  /** Projected total quantity. */
+  totalQuantity: Scalars["Int"]["output"];
+  /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
 };
 
-export type ApiOrderActor = ApiApiKey | ApiUser;
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderActivityArgs = {
+  after?: InputMaybe<Scalars["String"]["input"]>;
+  first?: InputMaybe<Scalars["Int"]["input"]>;
+};
 
-export type ApiOrderCustomerIdentity = {
-  __typename?: "OrderCustomerIdentity";
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderExchangesArgs = {
+  after?: InputMaybe<Scalars["String"]["input"]>;
+  first?: InputMaybe<Scalars["Int"]["input"]>;
+};
+
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderRefundsArgs = {
+  after?: InputMaybe<Scalars["String"]["input"]>;
+  first?: InputMaybe<Scalars["Int"]["input"]>;
+};
+
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderReturnsArgs = {
+  after?: InputMaybe<Scalars["String"]["input"]>;
+  first?: InputMaybe<Scalars["Int"]["input"]>;
+};
+
+/** Closed set of order action values used by Orders Admin API. */
+export enum OrderAction {
+  /** Archive value of order action. */
+  Archive = "ARCHIVE",
+  /** Cancel value of order action. */
+  Cancel = "CANCEL",
+  /** Capture payment value of order action. */
+  CapturePayment = "CAPTURE_PAYMENT",
+  /** Close value of order action. */
+  Close = "CLOSE",
+  /** Complete draft value of order action. */
+  CompleteDraft = "COMPLETE_DRAFT",
+  /** Create exchange value of order action. */
+  CreateExchange = "CREATE_EXCHANGE",
+  /** Create fulfillment value of order action. */
+  CreateFulfillment = "CREATE_FULFILLMENT",
+  /** Create return value of order action. */
+  CreateReturn = "CREATE_RETURN",
+  /** Edit lines value of order action. */
+  EditLines = "EDIT_LINES",
+  /** Record manual payment value of order action. */
+  RecordManualPayment = "RECORD_MANUAL_PAYMENT",
+  /** Refund value of order action. */
+  Refund = "REFUND",
+  /** Reopen value of order action. */
+  Reopen = "REOPEN",
+  /** Request integration sync value of order action. */
+  RequestIntegrationSync = "REQUEST_INTEGRATION_SYNC",
+  /** Retry payment value of order action. */
+  RetryPayment = "RETRY_PAYMENT",
+  /** Unarchive value of order action. */
+  Unarchive = "UNARCHIVE",
+  /** Update details value of order action. */
+  UpdateDetails = "UPDATE_DETAILS",
+  /** Void payment value of order action. */
+  VoidPayment = "VOID_PAYMENT",
+}
+
+/** Append-only audit and activity timeline entry. */
+export type ApiOrderActivity = ApiNode & {
+  __typename?: "OrderActivity";
+  /** Projected value for actor. */
+  actor: ApiOrderActor;
+  /** Structured snapshot or audit data with secrets excluded. */
+  data: Scalars["JSON"]["output"];
+  /** Timestamp for happened, or null when it has not occurred. */
+  happenedAt: Scalars["DateTime"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Human-readable explanation safe for an authorized Admin user. */
+  message?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for recorded, or null when it has not occurred. */
+  recordedAt: Scalars["DateTime"]["output"];
+  /** Projected value for sequence. */
+  sequence: Scalars["BigInt"]["output"];
+  /** Projected value for type. */
+  type: Scalars["String"]["output"];
+  /** Projected value for visibility. */
+  visibility: Scalars["String"]["output"];
+};
+
+/** Relay-style paginated connection of order activity resources. */
+export type ApiOrderActivityConnection = ApiConnection & {
+  __typename?: "OrderActivityConnection";
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderActivityEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderActivity>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars["Int"]["output"];
+};
+
+/** Cursor and resource pair for a order activity connection. */
+export type ApiOrderActivityEdge = {
+  __typename?: "OrderActivityEdge";
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars["String"]["output"];
+  /** Projected value for node. */
+  node: ApiOrderActivity;
+};
+
+/** Mutation result for order activity; expected failures are returned in userErrors. */
+export type ApiOrderActivityPayload = {
+  __typename?: "OrderActivityPayload";
+  /** Projected value for activity. */
+  activity?: Maybe<ApiOrderActivity>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Orders Admin representation of order actor. */
+export type ApiOrderActor = {
+  __typename?: "OrderActor";
+  /** Projected value for api key. */
+  apiKey?: Maybe<ApiApiKey>;
+  /** Projected value for display name. */
+  displayName?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID of this resource. */
+  id?: Maybe<Scalars["ID"]["output"]>;
+  /** Projected value for type. */
+  type: OrderActorType;
+  /** Projected value for user. */
+  user?: Maybe<ApiUser>;
+};
+
+/** Closed set of order actor type values used by Orders Admin API. */
+export enum OrderActorType {
+  /** Api key value of order actor type. */
+  ApiKey = "API_KEY",
+  /** App value of order actor type. */
+  App = "APP",
+  /** Customer value of order actor type. */
+  Customer = "CUSTOMER",
+  /** System value of order actor type. */
+  System = "SYSTEM",
+  /** User value of order actor type. */
+  User = "USER",
+}
+
+/** Order-local postal address snapshot retained for billing, delivery, and audit. */
+export type ApiOrderAddress = ApiNode & {
+  __typename?: "OrderAddress";
+  /** Projected value for address1. */
+  address1?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for address2. */
+  address2?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for city. */
+  city?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for company. */
+  company?: Maybe<Scalars["String"]["output"]>;
+  /** Stable country code. */
   countryCode?: Maybe<CountryCode>;
-  customer?: Maybe<ApiCustomer>;
-  data?: Maybe<Scalars["JSON"]["output"]>;
-  email?: Maybe<Scalars["Email"]["output"]>;
+  /** Structured snapshot or audit data with secrets excluded. */
+  data: Scalars["JSON"]["output"];
+  /** Projected value for email. */
+  email?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for first name. */
+  firstName?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for last name. */
+  lastName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for middle name. */
+  middleName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for phone. */
+  phone?: Maybe<Scalars["String"]["output"]>;
+  /** Stable postal code. */
+  postalCode?: Maybe<Scalars["String"]["output"]>;
+  /** Stable province code. */
+  provinceCode?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for redacted, or null when it has not occurred. */
+  redactedAt?: Maybe<Scalars["DateTime"]["output"]>;
+};
+
+/** Validated input for order address. Tenant identifiers come only from trusted context. */
+export type ApiOrderAddressInput = {
+  /** Validated input value for address1. */
+  address1?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for address2. */
+  address2?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for city. */
+  city?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for company. */
+  company?: InputMaybe<Scalars["String"]["input"]>;
+  /** Stable country code. */
+  countryCode: CountryCode;
+  /** Structured snapshot or audit data with secrets excluded. */
+  data?: InputMaybe<Scalars["JSON"]["input"]>;
+  /** Validated input value for email. */
+  email?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for first name. */
+  firstName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for last name. */
+  lastName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for middle name. */
+  middleName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for phone. */
+  phone?: InputMaybe<Scalars["String"]["input"]>;
+  /** Stable postal code. */
+  postalCode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Stable province code. */
+  provinceCode?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Validated input for order admin note update. Tenant identifiers come only from trusted context. */
+export type ApiOrderAdminNoteUpdateInput = {
+  /** Validated input value for admin note. */
+  adminNote?: InputMaybe<Scalars["String"]["input"]>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Validated input for order archive. Tenant identifiers come only from trusted context. */
+export type ApiOrderArchiveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Validated input for order bulk selection. Tenant identifiers come only from trusted context. */
+export type ApiOrderBulkSelectionInput = {
+  /** Validated input value for excluded ids. */
+  excludedIds?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  /** Validated input value for ids. */
+  ids?: InputMaybe<Array<Scalars["ID"]["input"]>>;
+  /** Validated input value for where. */
+  where?: InputMaybe<ApiOrderWhereInput>;
+};
+
+/** Validated input for order cancel. Tenant identifiers come only from trusted context. */
+export type ApiOrderCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Validated input value for refund mode. */
+  refundMode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for restock. */
+  restock?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Checkout-owned placement provenance projected into Orders. */
+export type ApiOrderCheckoutPlacement = {
+  __typename?: "OrderCheckoutPlacement";
+  /** Relay global ID identifying the checkout. */
+  checkoutId: Scalars["ID"]["output"];
+  /** Projected value for checkout version. */
+  /** Timestamp for confirmed, or null when it has not occurred. */
+  confirmedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for contract version. */
+  contractVersion: Scalars["Int"]["output"];
+  /** Projected value for delivery revision. */
+  deliveryRevision: Scalars["String"]["output"];
+  /** Timestamp for failed, or null when it has not occurred. */
+  failedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for final quote revision. */
+  finalQuoteRevision: Scalars["String"]["output"];
+  /** Projected value for payment methods revision. */
+  paymentMethodsRevision: Scalars["String"]["output"];
+  /** Relay global ID identifying the placement. */
+  placementId: Scalars["ID"]["output"];
+  /** Projected value for result revision. */
+  resultRevision: Scalars["String"]["output"];
+  /** Projected value for snapshot hash. */
+  snapshotHash: Scalars["String"]["output"];
+  /** Current lifecycle or derived projection status. */
+  status: OrderPlacementStatus;
+};
+
+/** Validated input for order close. Tenant identifiers come only from trusted context. */
+export type ApiOrderCloseInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for reason. */
+  reason?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Validated input for order comment add. Tenant identifiers come only from trusted context. */
+export type ApiOrderCommentAddInput = {
+  /** Validated input value for comment. */
+  comment: Scalars["String"]["input"];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for visibility. */
+  visibility?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Validated input for order complete draft. Tenant identifiers come only from trusted context. */
+export type ApiOrderCompleteDraftInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+};
+
+/** Relay-style paginated connection of order resources. */
+export type ApiOrderConnection = ApiConnection & {
+  __typename?: "OrderConnection";
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrder>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars["Int"]["output"];
+};
+
+/** Order-local contact snapshot with explicit redaction state. */
+export type ApiOrderContact = {
+  __typename?: "OrderContact";
+  /** Projected value for company. */
+  company?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for email. */
+  email?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for first name. */
+  firstName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for last name. */
+  lastName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for middle name. */
+  middleName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for note. */
+  note?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for phone. */
+  phone?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for redacted, or null when it has not occurred. */
+  redactedAt?: Maybe<Scalars["DateTime"]["output"]>;
+};
+
+/** Validated input for order contact. Tenant identifiers come only from trusted context. */
+export type ApiOrderContactInput = {
+  /** Validated input value for company. */
+  company?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for email. */
+  email?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for first name. */
+  firstName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for last name. */
+  lastName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for middle name. */
+  middleName?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for phone. */
+  phone?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Server-calculated totals in one currency. Paid, refunded, and outstanding amounts derive from successful financial facts. */
+export type ApiOrderCost = {
+  __typename?: "OrderCost";
+  /** Monetary adjustment in the order currency. */
+  adjustmentAmount: ApiMoney;
+  /** Monetary discount in the order currency. */
+  discountAmount: ApiMoney;
+  /** Monetary duty in the order currency. */
+  dutyAmount: ApiMoney;
+  /** Monetary outstanding in the order currency. */
+  outstandingAmount: ApiMoney;
+  /** Monetary paid in the order currency. */
+  paidAmount: ApiMoney;
+  /** Monetary refunded in the order currency. */
+  refundedAmount: ApiMoney;
+  /** Monetary shipping in the order currency. */
+  shippingAmount: ApiMoney;
+  /** Monetary subtotal in the order currency. */
+  subtotalAmount: ApiMoney;
+  /** Monetary tax in the order currency. */
+  taxAmount: ApiMoney;
+  /** Monetary total in the order currency. */
+  totalAmount: ApiMoney;
+};
+
+/** Validated input for order create. Tenant identifiers come only from trusted context. */
+export type ApiOrderCreateInput = {
+  /** Validated input value for admin note. */
+  adminNote?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for billing address. */
+  billingAddress?: InputMaybe<ApiOrderAddressInput>;
+  /** Optional client correlation value echoed by supported payloads. */
+  clientMutationId?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for contact. */
+  contact: ApiOrderContactInput;
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields?: InputMaybe<Scalars["JSON"]["input"]>;
+  /** Relay global ID identifying the customer. */
+  customerId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Validated input value for customer note. */
+  customerNote?: InputMaybe<Scalars["String"]["input"]>;
+  /** Relay global ID identifying the external. */
+  externalId?: InputMaybe<Scalars["String"]["input"]>;
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for lines. */
+  lines: Array<ApiOrderLineCreateInput>;
+  /** Stable locale code. */
+  localeCode?: InputMaybe<LocaleCode>;
+  /** Stable payment method code. */
+  paymentMethodCode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for shipping. */
+  shipping?: InputMaybe<ApiOrderDeliveryInput>;
+  /** Stable source code. */
+  sourceCode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for tags. */
+  tags?: InputMaybe<Array<Scalars["String"]["input"]>>;
+};
+
+/** Validated input for order custom fields update. Tenant identifiers come only from trusted context. */
+export type ApiOrderCustomFieldsUpdateInput = {
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields: Scalars["JSON"]["input"];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Validated input for order customer set. Tenant identifiers come only from trusted context. */
+export type ApiOrderCustomerSetInput = {
+  /** Relay global ID identifying the customer. */
+  customerId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Immutable customer identity captured for the commercial record independently of later profile changes. */
+export type ApiOrderCustomerSnapshot = {
+  __typename?: "OrderCustomerSnapshot";
+  /** Projected value for company. */
+  company?: Maybe<Scalars["String"]["output"]>;
+  /** Stable country code. */
+  countryCode?: Maybe<CountryCode>;
+  /** Relay global ID identifying the customer. */
+  customerId?: Maybe<Scalars["ID"]["output"]>;
+  /** Projected value for email. */
+  email?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for first name. */
+  firstName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for last name. */
+  lastName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for middle name. */
+  middleName?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for phone. */
   phone?: Maybe<Scalars["String"]["output"]>;
 };
 
-export type ApiOrderCustomerStatistic = {
-  __typename?: "OrderCustomerStatistic";
-  totalAuthorizedOrders: Scalars["Int"]["output"];
-  totalGuestOrders: Scalars["Int"]["output"];
-  totalRevenue: Scalars["Int"]["output"];
+/** Validated input for order delete. Tenant identifiers come only from trusted context. */
+export type ApiOrderDeleteInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
 };
 
-export type ApiOrderDeliveryAddress = {
-  __typename?: "OrderDeliveryAddress";
-  address1: Scalars["String"]["output"];
-  address2?: Maybe<Scalars["String"]["output"]>;
-  city: Scalars["String"]["output"];
-  countryCode: CountryCode;
-  data?: Maybe<Scalars["JSON"]["output"]>;
-  email?: Maybe<Scalars["Email"]["output"]>;
-  firstName?: Maybe<Scalars["String"]["output"]>;
-  id: Scalars["ID"]["output"];
-  lastName?: Maybe<Scalars["String"]["output"]>;
-  postalCode?: Maybe<Scalars["String"]["output"]>;
-  provinceCode?: Maybe<Scalars["String"]["output"]>;
+/** Mutation result for order delete; expected failures are returned in userErrors. */
+export type ApiOrderDeletePayload = {
+  __typename?: "OrderDeletePayload";
+  /** Relay global ID identifying the deleted. */
+  deletedId?: Maybe<Scalars["ID"]["output"]>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
 };
 
-export type ApiOrderLine = {
-  __typename?: "OrderLine";
+/** Orders Admin representation of order delivery group. */
+export type ApiOrderDeliveryGroup = ApiNode & {
+  __typename?: "OrderDeliveryGroup";
+  /** Projected value for address. */
+  address?: Maybe<ApiOrderAddress>;
+  /** Timestamp for created, or null when it has not occurred. */
   createdAt: Scalars["DateTime"]["output"];
-  discountAmount: Scalars["Int"]["output"];
+  /** Relay global ID of this resource. */
   id: Scalars["ID"]["output"];
-  purchasableId: Scalars["ID"]["output"];
-  quantity: Scalars["Int"]["output"];
-  subtotalAmount: Scalars["Int"]["output"];
-  taxAmount?: Maybe<Scalars["Int"]["output"]>;
-  totalAmount: Scalars["Int"]["output"];
-  unitComparePrice: Scalars["Int"]["output"];
-  unitPrice: Scalars["Int"]["output"];
+  /** Projected value for lines. */
+  lines: Array<ApiOrderLine>;
+  /** Projected value for recipient. */
+  recipient?: Maybe<ApiOrderContact>;
+  /** Projected value for selected method. */
+  selectedMethod?: Maybe<ApiOrderDeliveryMethod>;
+  /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
 };
 
-export type ApiOrderQuery = {
-  __typename?: "OrderQuery";
-  order?: Maybe<ApiOrder>;
-  orders: ApiOrdersOutput;
+/** Validated input for order delivery. Tenant identifiers come only from trusted context. */
+export type ApiOrderDeliveryInput = {
+  /** Validated input value for address. */
+  address?: InputMaybe<ApiOrderAddressInput>;
+  /** Stable method code. */
+  methodCode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for recipient. */
+  recipient?: InputMaybe<ApiOrderContactInput>;
 };
 
-export type ApiOrderQueryOrderArgs = {
+/** Orders Admin representation of order delivery method. */
+export type ApiOrderDeliveryMethod = {
+  __typename?: "OrderDeliveryMethod";
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Stable machine-readable code. */
+  code: Scalars["String"]["output"];
+  /** Projected value for customer input. */
+  customerInput: Scalars["JSON"]["output"];
+  /** Projected value for payment model. */
+  paymentModel?: Maybe<Scalars["String"]["output"]>;
+  /** Stable provider code. */
+  providerCode: Scalars["String"]["output"];
+  /** Projected value for provider snapshot. */
+  providerSnapshot: Scalars["JSON"]["output"];
+  /** Projected value for title. */
+  title: Scalars["String"]["output"];
+  /** Projected value for type. */
+  type: Scalars["String"]["output"];
+};
+
+/** Closed set of order delivery status values used by Orders Admin API. */
+export enum OrderDeliveryStatus {
+  /** Cancelled value of order delivery status. */
+  Cancelled = "CANCELLED",
+  /** Delayed value of order delivery status. */
+  Delayed = "DELAYED",
+  /** Delivered value of order delivery status. */
+  Delivered = "DELIVERED",
+  /** Delivery attempted value of order delivery status. */
+  DeliveryAttempted = "DELIVERY_ATTEMPTED",
+  /** Exception value of order delivery status. */
+  Exception = "EXCEPTION",
+  /** In transit value of order delivery status. */
+  InTransit = "IN_TRANSIT",
+  /** Not shipped value of order delivery status. */
+  NotShipped = "NOT_SHIPPED",
+  /** Out for delivery value of order delivery status. */
+  OutForDelivery = "OUT_FOR_DELIVERY",
+  /** Partially shipped value of order delivery status. */
+  PartiallyShipped = "PARTIALLY_SHIPPED",
+  /** Returned to sender value of order delivery status. */
+  ReturnedToSender = "RETURNED_TO_SENDER",
+  /** Shipped value of order delivery status. */
+  Shipped = "SHIPPED",
+}
+
+/** Comparison operators for order delivery status; omitted operators do not constrain results. */
+export type ApiOrderDeliveryStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderDeliveryStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderDeliveryStatus>>;
+};
+
+/** Validated input for dimensions. Tenant identifiers come only from trusted context. */
+export type ApiOrderDimensionsInput = {
+  /** Validated input value for height. */
+  height: Scalars["Float"]["input"];
+  /** Validated input value for length. */
+  length: Scalars["Float"]["input"];
+  /** Validated input value for unit. */
+  unit: DimensionUnit;
+  /** Validated input value for width. */
+  width: Scalars["Float"]["input"];
+};
+
+/** Orders Admin representation of order discount. */
+export type ApiOrderDiscount = ApiNode & {
+  __typename?: "OrderDiscount";
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Stable machine-readable code. */
+  code?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for metadata. */
+  metadata: Scalars["JSON"]["output"];
+  /** Projected value for source. */
+  source: Scalars["String"]["output"];
+  /** Projected value for target. */
+  target: Scalars["String"]["output"];
+  /** Projected value for title. */
+  title: Scalars["String"]["output"];
+  /** Projected value for value. */
+  value: Scalars["Decimal"]["output"];
+};
+
+/** Cursor and resource pair for a order connection. */
+export type ApiOrderEdge = {
+  __typename?: "OrderEdge";
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars["String"]["output"];
+  /** Projected value for node. */
+  node: ApiOrder;
+};
+
+/** Validated input for order edit abandon. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditAbandonInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Validated input for order edit begin. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditBeginInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+};
+
+/** Orders Admin representation of order edit change. */
+export type ApiOrderEditChange = ApiNode & {
+  __typename?: "OrderEditChange";
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for kind. */
+  kind: Scalars["String"]["output"];
+  /** Projected value for payload. */
+  payload: Scalars["JSON"]["output"];
+};
+
+/** Validated input for order edit commit. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditCommitInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Committed order revision required to apply a staged edit. */
+  expectedOrderVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Validated input for order edit discount add. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditDiscountAddInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Validated input value for title. */
+  title: Scalars["String"]["input"];
+};
+
+/** Validated input for order edit discount remove. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditDiscountRemoveInput = {
+  /** Relay global ID identifying the discount. */
+  discountId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Validated input for order edit line add. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditLineAddInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for line. */
+  line: ApiOrderLineCreateInput;
+};
+
+/** Validated input for order edit line remove. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditLineRemoveInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars["ID"]["input"];
+};
+
+/** Validated input for order edit line update. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditLineUpdateInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars["ID"]["input"];
+  /** Quantity validated against domain conservation invariants. */
+  quantity?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Validated input value for unit price. */
+  unitPrice?: InputMaybe<ApiMoneyInput>;
+};
+
+/** Mutation result for order edit; expected failures are returned in userErrors. */
+export type ApiOrderEditPayload = {
+  __typename?: "OrderEditPayload";
+  /** Projected value for edit. */
+  edit?: Maybe<ApiOrderEditSession>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Isolated and previewable staged edit for an OPEN order. */
+export type ApiOrderEditSession = ApiNode & {
+  __typename?: "OrderEditSession";
+  /** Projected value for base order version. */
+  baseOrderVersion: Scalars["Int"]["output"];
+  /** Projected value for calculated order. */
+  calculatedOrder: ApiCalculatedOrder;
+  /** Projected value for changes. */
+  changes: Array<ApiOrderEditChange>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Projected value for created by. */
+  createdBy: ApiOrderActor;
+  /** Timestamp for expires, or null when it has not occurred. */
+  expiresAt: Scalars["DateTime"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Current lifecycle or derived projection status. */
+  status: Scalars["String"]["output"];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+};
+
+/** Validated input for order edit shipping update. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditShippingUpdateInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars["ID"]["input"];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for shipping. */
+  shipping: ApiOrderDeliveryInput;
+};
+
+/** Exchange linking inbound return quantities with outbound replacement lines. */
+export type ApiOrderExchange = ApiNode & {
+  __typename?: "OrderExchange";
+  /** Projected value for balance. */
+  balance: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for inbound lines. */
+  inboundLines: Array<ApiOrderReturnLine>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Projected value for outbound lines. */
+  outboundLines: Array<ApiOrderLine>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderExchangeStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+};
+
+/** Validated input for order exchange cancel. Tenant identifiers come only from trusted context. */
+export type ApiOrderExchangeCancelInput = {
+  /** Relay global ID identifying the exchange. */
+  exchangeId: Scalars["ID"]["input"];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+};
+
+/** Relay-style paginated connection of order exchange resources. */
+export type ApiOrderExchangeConnection = ApiConnection & {
+  __typename?: "OrderExchangeConnection";
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderExchangeEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderExchange>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars["Int"]["output"];
+};
+
+/** Validated input for order exchange create. Tenant identifiers come only from trusted context. */
+export type ApiOrderExchangeCreateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for inbound lines. */
+  inboundLines: Array<ApiOrderReturnLineInput>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Validated input value for outbound lines. */
+  outboundLines: Array<ApiOrderLineCreateInput>;
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Cursor and resource pair for a order exchange connection. */
+export type ApiOrderExchangeEdge = {
+  __typename?: "OrderExchangeEdge";
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars["String"]["output"];
+  /** Projected value for node. */
+  node: ApiOrderExchange;
+};
+
+/** Mutation result for order exchange; expected failures are returned in userErrors. */
+export type ApiOrderExchangePayload = {
+  __typename?: "OrderExchangePayload";
+  /** Projected value for exchange. */
+  exchange?: Maybe<ApiOrderExchange>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Closed set of order exchange status values used by Orders Admin API. */
+export enum OrderExchangeStatus {
+  /** Cancelled value of order exchange status. */
+  Cancelled = "CANCELLED",
+  /** Completed value of order exchange status. */
+  Completed = "COMPLETED",
+  /** Open value of order exchange status. */
+  Open = "OPEN",
+  /** Requested value of order exchange status. */
+  Requested = "REQUESTED",
+}
+
+/** Closed set of order fulfillment status values used by Orders Admin API. */
+export enum OrderFulfillmentStatus {
+  /** Cancelled value of order fulfillment status. */
+  Cancelled = "CANCELLED",
+  /** Fulfilled value of order fulfillment status. */
+  Fulfilled = "FULFILLED",
+  /** On hold value of order fulfillment status. */
+  OnHold = "ON_HOLD",
+  /** Partially fulfilled value of order fulfillment status. */
+  PartiallyFulfilled = "PARTIALLY_FULFILLED",
+  /** Scheduled value of order fulfillment status. */
+  Scheduled = "SCHEDULED",
+  /** Unfulfilled value of order fulfillment status. */
+  Unfulfilled = "UNFULFILLED",
+}
+
+/** Comparison operators for order fulfillment status; omitted operators do not constrain results. */
+export type ApiOrderFulfillmentStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderFulfillmentStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderFulfillmentStatus>>;
+};
+
+/** Closed set of order integration kind values used by Orders Admin API. */
+export enum OrderIntegrationKind {
+  /** Analytics value of order integration kind. */
+  Analytics = "ANALYTICS",
+  /** Crm value of order integration kind. */
+  Crm = "CRM",
+  /** Erp value of order integration kind. */
+  Erp = "ERP",
+  /** Marketplace value of order integration kind. */
+  Marketplace = "MARKETPLACE",
+  /** Wms value of order integration kind. */
+  Wms = "WMS",
+}
+
+/** Pinned relationship and synchronization state for a CRM, ERP, marketplace, WMS, or analytics integration. */
+export type ApiOrderIntegrationLink = ApiNode & {
+  __typename?: "OrderIntegrationLink";
+  /** Stable app code. */
+  appCode: Scalars["String"]["output"];
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Projected value for direction. */
+  direction: OrderSyncDirection;
+  /** Relay global ID identifying the external. */
+  externalId?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for external url. */
+  externalUrl?: Maybe<Scalars["URL"]["output"]>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Relay global ID identifying the installation. */
+  installationId: Scalars["ID"]["output"];
+  /** Projected value for kind. */
+  kind: OrderIntegrationKind;
+  /** Stable last error code. */
+  lastErrorCode?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for last error message. */
+  lastErrorMessage?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for last exported order version. */
+  lastExportedOrderVersion?: Maybe<Scalars["Int"]["output"]>;
+  /** Projected value for last imported external version. */
+  lastImportedExternalVersion?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for last synced, or null when it has not occurred. */
+  lastSyncedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderIntegrationSyncStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+};
+
+/** Validated input for order integration link detach. Tenant identifiers come only from trusted context. */
+export type ApiOrderIntegrationLinkDetachInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the integration link. */
+  integrationLinkId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Validated input value for reason. */
+  reason: Scalars["String"]["input"];
+};
+
+/** Validated input for order integration sync request. Tenant identifiers come only from trusted context. */
+export type ApiOrderIntegrationSyncRequestInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Validated input value for force. */
+  force?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the integration link. */
+  integrationLinkId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+};
+
+/** Validated input for order integration sync retry. Tenant identifiers come only from trusted context. */
+export type ApiOrderIntegrationSyncRetryInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the operation. */
+  operationId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+};
+
+/** Closed set of order integration sync status values used by Orders Admin API. */
+export enum OrderIntegrationSyncStatus {
+  /** Disabled value of order integration sync status. */
+  Disabled = "DISABLED",
+  /** Failed value of order integration sync status. */
+  Failed = "FAILED",
+  /** Never synced value of order integration sync status. */
+  NeverSynced = "NEVER_SYNCED",
+  /** Out of sync value of order integration sync status. */
+  OutOfSync = "OUT_OF_SYNC",
+  /** Pending value of order integration sync status. */
+  Pending = "PENDING",
+  /** Synced value of order integration sync status. */
+  Synced = "SYNCED",
+}
+
+/** Commercial line snapshot with conserved ordered, cancelled, fulfillable, fulfilled, returnable, returned, and refundable quantities. */
+export type ApiOrderLine = ApiNode & {
+  __typename?: "OrderLine";
+  /** Projected cancelled quantity. */
+  cancelledQuantity: Scalars["Int"]["output"];
+  /** Projected value for cost. */
+  cost: ApiOrderLineCost;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields: Scalars["JSON"]["output"];
+  /** Projected fulfillable quantity. */
+  fulfillableQuantity: Scalars["Int"]["output"];
+  /** Projected fulfilled quantity. */
+  fulfilledQuantity: Scalars["Int"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for image url. */
+  imageUrl?: Maybe<Scalars["URL"]["output"]>;
+  /** Projected value for parent line. */
+  parentLine?: Maybe<ApiOrderLine>;
+  /** Relay global ID identifying the product. */
+  productId?: Maybe<Scalars["ID"]["output"]>;
+  /** Relay global ID identifying the purchasable. */
+  purchasableId?: Maybe<Scalars["ID"]["output"]>;
+  /** Projected value for purchasable snapshot. */
+  purchasableSnapshot: Scalars["JSON"]["output"];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["output"];
+  /** Projected refundable quantity. */
+  refundableQuantity: Scalars["Int"]["output"];
+  /** Projected value for requires shipping. */
+  requiresShipping: Scalars["Boolean"]["output"];
+  /** Projected returnable quantity. */
+  returnableQuantity: Scalars["Int"]["output"];
+  /** Projected returned quantity. */
+  returnedQuantity: Scalars["Int"]["output"];
+  /** Projected value for sku. */
+  sku?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for taxable. */
+  taxable: Scalars["Boolean"]["output"];
+  /** Projected value for title. */
+  title: Scalars["String"]["output"];
+  /** Projected value for unit cost. */
+  unitCost?: Maybe<ApiMoney>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+  /** Relay global ID identifying the variant. */
+  variantId?: Maybe<Scalars["ID"]["output"]>;
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+  /** Projected value for weight. */
+  weight?: Maybe<ApiWeight>;
+};
+
+/** Validated input for order line add. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineAddInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for line. */
+  line: ApiOrderLineCreateInput;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+};
+
+/** Orders Admin representation of order line cost. */
+export type ApiOrderLineCost = {
+  __typename?: "OrderLineCost";
+  /** Monetary discount in the order currency. */
+  discountAmount: ApiMoney;
+  /** Monetary duty in the order currency. */
+  dutyAmount: ApiMoney;
+  /** Monetary subtotal in the order currency. */
+  subtotalAmount: ApiMoney;
+  /** Monetary tax in the order currency. */
+  taxAmount: ApiMoney;
+  /** Monetary total in the order currency. */
+  totalAmount: ApiMoney;
+  /** Projected value for unit compare at price. */
+  unitCompareAtPrice?: Maybe<ApiMoney>;
+  /** Projected value for unit price. */
+  unitPrice: ApiMoney;
+};
+
+/** Validated input for order line create. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineCreateInput = {
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields?: InputMaybe<Scalars["JSON"]["input"]>;
+  /** Relay global ID identifying the purchasable. */
+  purchasableId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["input"];
+  /** Validated input value for requires shipping. */
+  requiresShipping?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Validated input value for sku. */
+  sku?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for taxable. */
+  taxable?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Validated input value for title. */
+  title: Scalars["String"]["input"];
+  /** Validated input value for unit compare at price. */
+  unitCompareAtPrice?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for unit cost. */
+  unitCost?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for unit price. */
+  unitPrice: ApiMoneyInput;
+  /** Validated input value for weight. */
+  weight?: InputMaybe<ApiOrderWeightInput>;
+};
+
+/** Validated input for order line delete. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineDeleteInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+};
+
+/** Mutation result for order line; expected failures are returned in userErrors. */
+export type ApiOrderLinePayload = {
+  __typename?: "OrderLinePayload";
+  /** Projected value for line. */
+  line?: Maybe<ApiOrderLine>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for order line update. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineUpdateInput = {
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields?: InputMaybe<Scalars["JSON"]["input"]>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Quantity validated against domain conservation invariants. */
+  quantity?: InputMaybe<Scalars["Int"]["input"]>;
+  /** Validated input value for unit cost. */
+  unitCost?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for weight. */
+  weight?: InputMaybe<ApiOrderWeightInput>;
+};
+
+/** Validated input for order manual payment record. Tenant identifiers come only from trusted context. */
+export type ApiOrderManualPaymentRecordInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable method code. */
+  methodCode: Scalars["String"]["input"];
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Timestamp for paid, or null when it has not occurred. */
+  paidAt: Scalars["DateTime"]["input"];
+  /** Validated input value for reference. */
+  reference?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Durable DBOS operation handle for polling progress and terminal outcome. */
+export type ApiOrderOperation = ApiNode & {
+  __typename?: "OrderOperation";
+  /** Timestamp for completed, or null when it has not occurred. */
+  completedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Stable failure code. */
+  failureCode?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for failure message. */
+  failureMessage?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["output"];
+  /** Projected value for kind. */
+  kind: OrderOperationKind;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Projected value for progress. */
+  progress?: Maybe<Scalars["Int"]["output"]>;
+  /** Relay global ID identifying the resource. */
+  resourceId?: Maybe<Scalars["ID"]["output"]>;
+  /** Whether retrying after transient state changes may succeed. */
+  retryable: Scalars["Boolean"]["output"];
+  /** Timestamp for started, or null when it has not occurred. */
+  startedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderOperationStatus;
+};
+
+/** Closed set of order operation kind values used by Orders Admin API. */
+export enum OrderOperationKind {
+  /** Bulk action value of order operation kind. */
+  BulkAction = "BULK_ACTION",
+  /** Fulfillment cancel value of order operation kind. */
+  FulfillmentCancel = "FULFILLMENT_CANCEL",
+  /** Fulfillment submit value of order operation kind. */
+  FulfillmentSubmit = "FULFILLMENT_SUBMIT",
+  /** Integration sync value of order operation kind. */
+  IntegrationSync = "INTEGRATION_SYNC",
+  /** Order cancel value of order operation kind. */
+  OrderCancel = "ORDER_CANCEL",
+  /** Order edit commit value of order operation kind. */
+  OrderEditCommit = "ORDER_EDIT_COMMIT",
+  /** Payment capture value of order operation kind. */
+  PaymentCapture = "PAYMENT_CAPTURE",
+  /** Payment refund value of order operation kind. */
+  PaymentRefund = "PAYMENT_REFUND",
+  /** Payment retry value of order operation kind. */
+  PaymentRetry = "PAYMENT_RETRY",
+  /** Payment void value of order operation kind. */
+  PaymentVoid = "PAYMENT_VOID",
+  /** Return receive value of order operation kind. */
+  ReturnReceive = "RETURN_RECEIVE",
+  /** Shipment cancel value of order operation kind. */
+  ShipmentCancel = "SHIPMENT_CANCEL",
+  /** Shipment create value of order operation kind. */
+  ShipmentCreate = "SHIPMENT_CREATE",
+  /** Shipment reconcile value of order operation kind. */
+  ShipmentReconcile = "SHIPMENT_RECONCILE",
+}
+
+/** Mutation result for order operation; expected failures are returned in userErrors. */
+export type ApiOrderOperationPayload = {
+  __typename?: "OrderOperationPayload";
+  /** Durable operation returned for polling asynchronous work. */
+  operation?: Maybe<ApiOrderOperation>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Closed set of order operation status values used by Orders Admin API. */
+export enum OrderOperationStatus {
+  /** Cancelled value of order operation status. */
+  Cancelled = "CANCELLED",
+  /** Failed value of order operation status. */
+  Failed = "FAILED",
+  /** Pending value of order operation status. */
+  Pending = "PENDING",
+  /** Running value of order operation status. */
+  Running = "RUNNING",
+  /** Succeeded value of order operation status. */
+  Succeeded = "SUCCEEDED",
+}
+
+/** Validated input for order order by. Tenant identifiers come only from trusted context. */
+export type ApiOrderOrderByInput = {
+  /** Validated input value for direction. */
+  direction: OrderSortDirection;
+  /** Input path associated with the error, when applicable. */
+  field: OrderSortField;
+};
+
+/** Closed set of order origin values used by Orders Admin API. */
+export enum OrderOrigin {
+  /** Admin value of order origin. */
+  Admin = "ADMIN",
+  /** Api value of order origin. */
+  Api = "API",
+  /** Checkout value of order origin. */
+  Checkout = "CHECKOUT",
+  /** Crm value of order origin. */
+  Crm = "CRM",
+  /** Import value of order origin. */
+  Import = "IMPORT",
+  /** Marketplace value of order origin. */
+  Marketplace = "MARKETPLACE",
+}
+
+/** Mutation result for order; expected failures are returned in userErrors. */
+export type ApiOrderPayload = {
+  __typename?: "OrderPayload";
+  /** Optional client correlation value echoed by supported payloads. */
+  clientMutationId?: Maybe<Scalars["String"]["output"]>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Read-only financial projection derived from attempts, transactions, refunds, and disputes. */
+export type ApiOrderPayment = {
+  __typename?: "OrderPayment";
+  /** Projected value for attempts. */
+  attempts: Array<ApiOrderPaymentAttempt>;
+  /** Monetary authorized in the order currency. */
+  authorizedAmount: ApiMoney;
+  /** Monetary captured in the order currency. */
+  capturedAmount: ApiMoney;
+  /** Projected value for disputes. */
+  disputes: Array<ApiOrderPaymentDispute>;
+  /** Monetary outstanding in the order currency. */
+  outstandingAmount: ApiMoney;
+  /** Monetary refunded in the order currency. */
+  refundedAmount: ApiMoney;
+  /** Projected value for selected method. */
+  selectedMethod?: Maybe<ApiOrderPaymentMethod>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentStatus;
+  /** Projected value for transactions. */
+  transactions: Array<ApiOrderPaymentTransaction>;
+  /** Monetary voided in the order currency. */
+  voidedAmount: ApiMoney;
+};
+
+/** Orders Admin representation of order payment attempt. */
+export type ApiOrderPaymentAttempt = ApiNode & {
+  __typename?: "OrderPaymentAttempt";
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Projected value for customer action. */
+  customerAction?: Maybe<Scalars["JSON"]["output"]>;
+  /** Timestamp for expires, or null when it has not occurred. */
+  expiresAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Stable failure code. */
+  failureCode?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for failure message. */
+  failureMessage?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Timestamp for processed, or null when it has not occurred. */
+  processedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Stable provider code. */
+  providerCode: Scalars["String"]["output"];
+  /** Projected value for provider reference. */
+  providerReference?: Maybe<Scalars["String"]["output"]>;
+  /** Monetary requested in the order currency. */
+  requestedAmount: ApiMoney;
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+};
+
+/** Validated input for order payment capture. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentCaptureInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount?: InputMaybe<ApiMoneyInput>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the transaction. */
+  transactionId: Scalars["ID"]["input"];
+};
+
+/** Orders Admin representation of order payment dispute. */
+export type ApiOrderPaymentDispute = ApiNode & {
+  __typename?: "OrderPaymentDispute";
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Stable provider code. */
+  providerCode: Scalars["String"]["output"];
+  /** Projected value for provider reference. */
+  providerReference: Scalars["String"]["output"];
+  /** Projected value for reason. */
+  reason?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for resolved, or null when it has not occurred. */
+  resolvedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Timestamp for response due, or null when it has not occurred. */
+  responseDueAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Current lifecycle or derived projection status. */
+  status: Scalars["String"]["output"];
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+};
+
+/** Orders Admin representation of order payment method. */
+export type ApiOrderPaymentMethod = {
+  __typename?: "OrderPaymentMethod";
+  /** Stable machine-readable code. */
+  code: Scalars["String"]["output"];
+  /** Projected value for customer input. */
+  customerInput: Scalars["JSON"]["output"];
+  /** Projected value for flow. */
+  flow: Scalars["String"]["output"];
+  /** Stable provider code. */
+  providerCode: Scalars["String"]["output"];
+  /** Projected value for provider snapshot. */
+  providerSnapshot: Scalars["JSON"]["output"];
+  /** Projected value for title. */
+  title: Scalars["String"]["output"];
+};
+
+/** Validated input for order payment retry. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentRetryInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Stable payment method code. */
+  paymentMethodCode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for return url. */
+  returnUrl?: InputMaybe<Scalars["URL"]["input"]>;
+};
+
+/** Closed set of order payment status values used by Orders Admin API. */
+export enum OrderPaymentStatus {
+  /** Authorized value of order payment status. */
+  Authorized = "AUTHORIZED",
+  /** Expired value of order payment status. */
+  Expired = "EXPIRED",
+  /** Failed value of order payment status. */
+  Failed = "FAILED",
+  /** Not required value of order payment status. */
+  NotRequired = "NOT_REQUIRED",
+  /** Paid value of order payment status. */
+  Paid = "PAID",
+  /** Partially paid value of order payment status. */
+  PartiallyPaid = "PARTIALLY_PAID",
+  /** Partially refunded value of order payment status. */
+  PartiallyRefunded = "PARTIALLY_REFUNDED",
+  /** Pending value of order payment status. */
+  Pending = "PENDING",
+  /** Refunded value of order payment status. */
+  Refunded = "REFUNDED",
+  /** Voided value of order payment status. */
+  Voided = "VOIDED",
+}
+
+/** Comparison operators for order payment status; omitted operators do not constrain results. */
+export type ApiOrderPaymentStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderPaymentStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderPaymentStatus>>;
+};
+
+/** Validated input for order payment status override. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentStatusOverrideInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for note. */
+  note: Scalars["String"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentStatus;
+};
+
+/** Immutable authorization, capture, sale, refund, void, manual payment, or adjustment fact. */
+export type ApiOrderPaymentTransaction = ApiNode & {
+  __typename?: "OrderPaymentTransaction";
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Stable failure code. */
+  failureCode?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for failure message. */
+  failureMessage?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for kind. */
+  kind: OrderPaymentTransactionKind;
+  /** Projected value for parent transaction. */
+  parentTransaction?: Maybe<ApiOrderPaymentTransaction>;
+  /** Timestamp for processed, or null when it has not occurred. */
+  processedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Stable provider code. */
+  providerCode: Scalars["String"]["output"];
+  /** Projected value for provider reference. */
+  providerReference?: Maybe<Scalars["String"]["output"]>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentTransactionStatus;
+};
+
+/** Closed set of order payment transaction kind values used by Orders Admin API. */
+export enum OrderPaymentTransactionKind {
+  /** Adjustment value of order payment transaction kind. */
+  Adjustment = "ADJUSTMENT",
+  /** Authorization value of order payment transaction kind. */
+  Authorization = "AUTHORIZATION",
+  /** Capture value of order payment transaction kind. */
+  Capture = "CAPTURE",
+  /** Manual value of order payment transaction kind. */
+  Manual = "MANUAL",
+  /** Refund value of order payment transaction kind. */
+  Refund = "REFUND",
+  /** Sale value of order payment transaction kind. */
+  Sale = "SALE",
+  /** Void value of order payment transaction kind. */
+  Void = "VOID",
+}
+
+/** Closed set of order payment transaction status values used by Orders Admin API. */
+export enum OrderPaymentTransactionStatus {
+  /** Cancelled value of order payment transaction status. */
+  Cancelled = "CANCELLED",
+  /** Failure value of order payment transaction status. */
+  Failure = "FAILURE",
+  /** Pending value of order payment transaction status. */
+  Pending = "PENDING",
+  /** Success value of order payment transaction status. */
+  Success = "SUCCESS",
+}
+
+/** Validated input for order payment void. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentVoidInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Validated input value for reason. */
+  reason: Scalars["String"]["input"];
+  /** Relay global ID identifying the transaction. */
+  transactionId: Scalars["ID"]["input"];
+};
+
+/** Closed set of order placement status values used by Orders Admin API. */
+export enum OrderPlacementStatus {
+  /** Awaiting finalization value of order placement status. */
+  AwaitingFinalization = "AWAITING_FINALIZATION",
+  /** Confirmed value of order placement status. */
+  Confirmed = "CONFIRMED",
+  /** Failed value of order placement status. */
+  Failed = "FAILED",
+}
+
+/** Comparison operators for order placement status; omitted operators do not constrain results. */
+export type ApiOrderPlacementStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderPlacementStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderPlacementStatus>>;
+};
+
+/** Refund aggregate and its line and payment-transaction allocations. */
+export type ApiOrderRefund = ApiNode & {
+  __typename?: "OrderRefund";
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for lines. */
+  lines: Array<ApiOrderRefundLine>;
+  /** Projected value for note. */
+  note?: Maybe<Scalars["String"]["output"]>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Timestamp for processed, or null when it has not occurred. */
+  processedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["output"];
+  /** Current lifecycle or derived projection status. */
+  status: OrderRefundStatus;
+  /** Projected value for transactions. */
+  transactions: Array<ApiOrderPaymentTransaction>;
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+};
+
+/** Relay-style paginated connection of order refund resources. */
+export type ApiOrderRefundConnection = ApiConnection & {
+  __typename?: "OrderRefundConnection";
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderRefundEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderRefund>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars["Int"]["output"];
+};
+
+/** Validated input for order refund create. Tenant identifiers come only from trusted context. */
+export type ApiOrderRefundCreateInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for lines. */
+  lines?: InputMaybe<Array<ApiOrderRefundLineInput>>;
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Validated input value for transaction allocations. */
+  transactionAllocations?: InputMaybe<Array<ApiOrderRefundTransactionAllocationInput>>;
+};
+
+/** Cursor and resource pair for a order refund connection. */
+export type ApiOrderRefundEdge = {
+  __typename?: "OrderRefundEdge";
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars["String"]["output"];
+  /** Projected value for node. */
+  node: ApiOrderRefund;
+};
+
+/** Orders Admin representation of order refund line. */
+export type ApiOrderRefundLine = {
+  __typename?: "OrderRefundLine";
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Projected value for order line. */
+  orderLine?: Maybe<ApiOrderLine>;
+  /** Quantity validated against domain conservation invariants. */
+  quantity?: Maybe<Scalars["Int"]["output"]>;
+};
+
+/** Validated input for order refund line. Tenant identifiers come only from trusted context. */
+export type ApiOrderRefundLineInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars["ID"]["input"];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["input"];
+};
+
+/** Closed set of order refund status values used by Orders Admin API. */
+export enum OrderRefundStatus {
+  /** Cancelled value of order refund status. */
+  Cancelled = "CANCELLED",
+  /** Failed value of order refund status. */
+  Failed = "FAILED",
+  /** Pending value of order refund status. */
+  Pending = "PENDING",
+  /** Succeeded value of order refund status. */
+  Succeeded = "SUCCEEDED",
+}
+
+/** Validated input for order refund transaction allocation. Tenant identifiers come only from trusted context. */
+export type ApiOrderRefundTransactionAllocationInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Relay global ID identifying the transaction. */
+  transactionId: Scalars["ID"]["input"];
+};
+
+/** Validated input for order reopen. Tenant identifiers come only from trusted context. */
+export type ApiOrderReopenInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for reason. */
+  reason: Scalars["String"]["input"];
+};
+
+/** Return request and its approved, transported, received, and disposition quantities. */
+export type ApiOrderReturn = ApiNode & {
+  __typename?: "OrderReturn";
+  /** Timestamp for approved, or null when it has not occurred. */
+  approvedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Timestamp for completed, or null when it has not occurred. */
+  completedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Projected value for customer note. */
+  customerNote?: Maybe<Scalars["String"]["output"]>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for lines. */
+  lines: Array<ApiOrderReturnLine>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Timestamp for received, or null when it has not occurred. */
+  receivedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Timestamp for requested, or null when it has not occurred. */
+  requestedAt: Scalars["DateTime"]["output"];
+  /** Projected value for return shipment. */
+  returnShipment?: Maybe<ApiShipment>;
+  /** Projected value for staff note. */
+  staffNote?: Maybe<Scalars["String"]["output"]>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderReturnRequestStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+};
+
+/** Validated input for order return approve. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnApproveInput = {
+  /** Validated input value for create return shipment. */
+  createReturnShipment?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the location. */
+  locationId: Scalars["ID"]["input"];
+  /** Relay global ID identifying the return. */
+  returnId: Scalars["ID"]["input"];
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Validated input for order return cancel. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Relay global ID identifying the return. */
+  returnId: Scalars["ID"]["input"];
+};
+
+/** Relay-style paginated connection of order return resources. */
+export type ApiOrderReturnConnection = ApiConnection & {
+  __typename?: "OrderReturnConnection";
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderReturnEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderReturn>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars["Int"]["output"];
+};
+
+/** Validated input for order return create. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnCreateInput = {
+  /** Validated input value for customer note. */
+  customerNote?: InputMaybe<Scalars["String"]["input"]>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for lines. */
+  lines: Array<ApiOrderReturnLineInput>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars["ID"]["input"];
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Cursor and resource pair for a order return connection. */
+export type ApiOrderReturnEdge = {
+  __typename?: "OrderReturnEdge";
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars["String"]["output"];
+  /** Projected value for node. */
+  node: ApiOrderReturn;
+};
+
+/** Orders Admin representation of order return line. */
+export type ApiOrderReturnLine = {
+  __typename?: "OrderReturnLine";
+  /** Projected damaged quantity. */
+  damagedQuantity: Scalars["Int"]["output"];
+  /** Projected value for note. */
+  note?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["output"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["output"];
+  /** Projected received quantity. */
+  receivedQuantity: Scalars["Int"]["output"];
+  /** Projected restockable quantity. */
+  restockableQuantity: Scalars["Int"]["output"];
+};
+
+/** Validated input for order return line. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnLineInput = {
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars["String"]["input"]>;
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars["ID"]["input"];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+};
+
+/** Mutation result for order return; expected failures are returned in userErrors. */
+export type ApiOrderReturnPayload = {
+  __typename?: "OrderReturnPayload";
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Projected value for return. */
+  return?: Maybe<ApiOrderReturn>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for order return receive. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnReceiveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for lines. */
+  lines: Array<ApiOrderReturnReceiveLineInput>;
+  /** Relay global ID identifying the location. */
+  locationId: Scalars["ID"]["input"];
+  /** Validated input value for refund. */
+  refund?: InputMaybe<ApiOrderReturnRefundInput>;
+  /** Relay global ID identifying the return. */
+  returnId: Scalars["ID"]["input"];
+};
+
+/** Validated input for order return receive line. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnReceiveLineInput = {
+  /** Requested damaged quantity. */
+  damagedQuantity: Scalars["Int"]["input"];
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars["ID"]["input"];
+  /** Requested received quantity. */
+  receivedQuantity: Scalars["Int"]["input"];
+  /** Requested restockable quantity. */
+  restockableQuantity: Scalars["Int"]["input"];
+};
+
+/** Validated input for order return refund. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnRefundInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+};
+
+/** Validated input for order return reject. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnRejectInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Relay global ID identifying the return. */
+  returnId: Scalars["ID"]["input"];
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Closed set of order return request status values used by Orders Admin API. */
+export enum OrderReturnRequestStatus {
+  /** Approved value of order return request status. */
+  Approved = "APPROVED",
+  /** Cancelled value of order return request status. */
+  Cancelled = "CANCELLED",
+  /** Completed value of order return request status. */
+  Completed = "COMPLETED",
+  /** In transit value of order return request status. */
+  InTransit = "IN_TRANSIT",
+  /** Received value of order return request status. */
+  Received = "RECEIVED",
+  /** Rejected value of order return request status. */
+  Rejected = "REJECTED",
+  /** Requested value of order return request status. */
+  Requested = "REQUESTED",
+}
+
+/** Closed set of order return status values used by Orders Admin API. */
+export enum OrderReturnStatus {
+  /** None value of order return status. */
+  None = "NONE",
+  /** Partially returned value of order return status. */
+  PartiallyReturned = "PARTIALLY_RETURNED",
+  /** Requested value of order return status. */
+  Requested = "REQUESTED",
+  /** Returned value of order return status. */
+  Returned = "RETURNED",
+}
+
+/** Comparison operators for order return status; omitted operators do not constrain results. */
+export type ApiOrderReturnStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderReturnStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderReturnStatus>>;
+};
+
+/** Closed set of order risk level values used by Orders Admin API. */
+export enum OrderRiskLevel {
+  /** High value of order risk level. */
+  High = "HIGH",
+  /** Low value of order risk level. */
+  Low = "LOW",
+  /** Medium value of order risk level. */
+  Medium = "MEDIUM",
+  /** None value of order risk level. */
+  None = "NONE",
+}
+
+/** Closed set of sort direction values used by Orders Admin API. */
+export enum OrderSortDirection {
+  /** Asc value of sort direction. */
+  Asc = "ASC",
+  /** Desc value of sort direction. */
+  Desc = "DESC",
+}
+
+/** Closed set of order sort field values used by Orders Admin API. */
+export enum OrderSortField {
+  /** Created at value of order sort field. */
+  CreatedAt = "CREATED_AT",
+  /** Customer name value of order sort field. */
+  CustomerName = "CUSTOMER_NAME",
+  /** Delivery status value of order sort field. */
+  DeliveryStatus = "DELIVERY_STATUS",
+  /** Fulfillment status value of order sort field. */
+  FulfillmentStatus = "FULFILLMENT_STATUS",
+  /** Number value of order sort field. */
+  Number = "NUMBER",
+  /** Payment status value of order sort field. */
+  PaymentStatus = "PAYMENT_STATUS",
+  /** Placed at value of order sort field. */
+  PlacedAt = "PLACED_AT",
+  /** Status value of order sort field. */
+  Status = "STATUS",
+  /** Total amount value of order sort field. */
+  TotalAmount = "TOTAL_AMOUNT",
+  /** Updated at value of order sort field. */
+  UpdatedAt = "UPDATED_AT",
+}
+
+/** Orders Admin representation of order source. */
+export type ApiOrderSource = {
+  __typename?: "OrderSource";
+  /** Stable machine-readable code. */
+  code: Scalars["String"]["output"];
+  /** Relay global ID identifying the external. */
+  externalId?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for external url. */
+  externalUrl?: Maybe<Scalars["URL"]["output"]>;
+};
+
+/** Closed set of order status values used by Orders Admin API. */
+export enum OrderStatus {
+  /** Cancelled value of order status. */
+  Cancelled = "CANCELLED",
+  /** Closed value of order status. */
+  Closed = "CLOSED",
+  /** Draft value of order status. */
+  Draft = "DRAFT",
+  /** Open value of order status. */
+  Open = "OPEN",
+}
+
+/** Comparison operators for order status; omitted operators do not constrain results. */
+export type ApiOrderStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderStatus>>;
+};
+
+/** Closed set of order sync direction values used by Orders Admin API. */
+export enum OrderSyncDirection {
+  /** Bidirectional value of order sync direction. */
+  Bidirectional = "BIDIRECTIONAL",
+  /** Export value of order sync direction. */
+  Export = "EXPORT",
+  /** Import value of order sync direction. */
+  Import = "IMPORT",
+}
+
+/** Validated input for order tags update. Tenant identifiers come only from trusted context. */
+export type ApiOrderTagsUpdateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Validated input value for tags. */
+  tags: Array<Scalars["String"]["input"]>;
+};
+
+/** Orders Admin representation of order tax line. */
+export type ApiOrderTaxLine = ApiNode & {
+  __typename?: "OrderTaxLine";
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for included. */
+  included: Scalars["Boolean"]["output"];
+  /** Projected value for jurisdiction. */
+  jurisdiction?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for rate. */
+  rate: Scalars["Decimal"]["output"];
+  /** Projected value for title. */
+  title: Scalars["String"]["output"];
+};
+
+/** Validated input for order unarchive. Tenant identifiers come only from trusted context. */
+export type ApiOrderUnarchiveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+};
+
+/** Validated input for order update. Tenant identifiers come only from trusted context. */
+export type ApiOrderUpdateInput = {
+  /** Validated input value for billing address. */
+  billingAddress?: InputMaybe<ApiOrderAddressInput>;
+  /** Validated input value for contact. */
+  contact?: InputMaybe<ApiOrderContactInput>;
+  /** Validated input value for customer note. */
+  customerNote?: InputMaybe<Scalars["String"]["input"]>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable locale code. */
+  localeCode?: InputMaybe<LocaleCode>;
+  /** Validated input value for shipping. */
+  shipping?: InputMaybe<ApiOrderDeliveryInput>;
+};
+
+/** Expected validation, permission, concurrency, or business-rule error returned by a mutation. */
+export type ApiOrderUserError = ApiDisplayableError & {
+  __typename?: "OrderUserError";
+  /** Stable machine-readable code. */
+  code: Scalars["String"]["output"];
+  /** Current server revision returned with a version conflict. */
+  currentVersion?: Maybe<Scalars["Int"]["output"]>;
+  /** Input path associated with the error, when applicable. */
+  field?: Maybe<Array<Scalars["String"]["output"]>>;
+  /** Human-readable explanation safe for an authorized Admin user. */
+  message: Scalars["String"]["output"];
+  /** Whether retrying after transient state changes may succeed. */
+  retryable: Scalars["Boolean"]["output"];
+};
+
+/** Validated input for weight. Tenant identifiers come only from trusted context. */
+export type ApiOrderWeightInput = {
+  /** Validated input value for unit. */
+  unit: WeightUnit;
+  /** Validated input value for value. */
+  value: Scalars["Float"]["input"];
+};
+
+/** Composable store-scoped filter for order reads. */
+export type ApiOrderWhereInput = {
+  /** Validated input value for and. */
+  and?: InputMaybe<Array<ApiOrderWhereInput>>;
+  /** Validated input value for archived. */
+  archived?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt?: InputMaybe<ApiDateTimeFilterInput>;
+  /** ISO 4217 currency code. */
+  currencyCode?: InputMaybe<ApiCurrencyCodeFilterInput>;
+  /** Validated input value for customer email. */
+  customerEmail?: InputMaybe<ApiStringFilterInput>;
+  /** Relay global ID identifying the customer. */
+  customerId?: InputMaybe<ApiIdFilterInput>;
+  /** Validated input value for customer name. */
+  customerName?: InputMaybe<ApiStringFilterInput>;
+  /** Validated input value for customer phone. */
+  customerPhone?: InputMaybe<ApiStringFilterInput>;
+  /** Stable delivery method code. */
+  deliveryMethodCode?: InputMaybe<ApiStringFilterInput>;
+  /** Current delivery status. */
+  deliveryStatus?: InputMaybe<ApiOrderDeliveryStatusFilterInput>;
+  /** Relay global ID identifying the external. */
+  externalId?: InputMaybe<ApiStringFilterInput>;
+  /** Current fulfillment status. */
+  fulfillmentStatus?: InputMaybe<ApiOrderFulfillmentStatusFilterInput>;
+  /** Validated input value for has tracking. */
+  hasTracking?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Relay global ID of this resource. */
+  id?: InputMaybe<ApiIdFilterInput>;
+  /** Store-local order number serialized without precision loss. */
+  number?: InputMaybe<ApiBigIntFilterInput>;
+  /** Validated input value for or. */
+  or?: InputMaybe<Array<ApiOrderWhereInput>>;
+  /** Stable payment method code. */
+  paymentMethodCode?: InputMaybe<ApiStringFilterInput>;
+  /** Current payment status. */
+  paymentStatus?: InputMaybe<ApiOrderPaymentStatusFilterInput>;
+  /** Timestamp for placed, or null when it has not occurred. */
+  placedAt?: InputMaybe<ApiDateTimeFilterInput>;
+  /** Current placement status. */
+  placementStatus?: InputMaybe<ApiOrderPlacementStatusFilterInput>;
+  /** Current return status. */
+  returnStatus?: InputMaybe<ApiOrderReturnStatusFilterInput>;
+  /** Validated input value for shipping country. */
+  shippingCountry?: InputMaybe<ApiCountryCodeFilterInput>;
+  /** Stable source code. */
+  sourceCode?: InputMaybe<ApiStringFilterInput>;
+  /** Current lifecycle or derived projection status. */
+  status?: InputMaybe<ApiOrderStatusFilterInput>;
+  /** Validated input value for tag. */
+  tag?: InputMaybe<ApiStringFilterInput>;
+  /** Monetary total in the order currency. */
+  totalAmount?: InputMaybe<ApiDecimalFilterInput>;
+  /** Validated input value for tracking number. */
+  trackingNumber?: InputMaybe<ApiStringFilterInput>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt?: InputMaybe<ApiDateTimeFilterInput>;
+};
+
+/** Validated input for orders bulk action. Tenant identifiers come only from trusted context. */
+export type ApiOrdersBulkActionInput = {
+  /** Validated input value for action. */
+  action: OrdersBulkActionKind;
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the integration link. */
+  integrationLinkId?: InputMaybe<Scalars["ID"]["input"]>;
+  /** Stable audited reason code. */
+  reasonCode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for selection. */
+  selection: ApiOrderBulkSelectionInput;
+  /** Validated input value for tags. */
+  tags?: InputMaybe<Array<Scalars["String"]["input"]>>;
+};
+
+/** Closed set of orders bulk action kind values used by Orders Admin API. */
+export enum OrdersBulkActionKind {
+  /** Add tags value of orders bulk action kind. */
+  AddTags = "ADD_TAGS",
+  /** Archive value of orders bulk action kind. */
+  Archive = "ARCHIVE",
+  /** Cancel value of orders bulk action kind. */
+  Cancel = "CANCEL",
+  /** Remove tags value of orders bulk action kind. */
+  RemoveTags = "REMOVE_TAGS",
+  /** Request integration sync value of orders bulk action kind. */
+  RequestIntegrationSync = "REQUEST_INTEGRATION_SYNC",
+  /** Unarchive value of orders bulk action kind. */
+  Unarchive = "UNARCHIVE",
+}
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutation = {
+  __typename?: "OrdersMutation";
+  /** Start durable fulfillment cancellation and optional restocking. */
+  fulfillmentCancel: ApiOrderOperationPayload;
+  /** Create merchant-managed fulfillment facts for allocated quantities. */
+  fulfillmentCreate: ApiFulfillmentPayload;
+  /** Request cancellation from the pinned fulfillment service. */
+  fulfillmentOrderCancelRequest: ApiOrderOperationPayload;
+  /** Place a reasoned hold on fulfillment work. */
+  fulfillmentOrderHold: ApiFulfillmentOrderPayload;
+  /** Move fulfillment work to another location or pinned fulfillment-service route. */
+  fulfillmentOrderMove: ApiFulfillmentOrderPayload;
+  /** Release one fulfillment hold after optimistic concurrency validation. */
+  fulfillmentOrderReleaseHold: ApiFulfillmentOrderPayload;
+  /** Split selected remaining quantities into a new fulfillment work unit. */
+  fulfillmentOrderSplit: ApiFulfillmentOrderPayload;
+  /** Submit fulfillment work through its pinned fulfillment service. */
+  fulfillmentOrderSubmit: ApiOrderOperationPayload;
+  /** Update the current staff-only note and append an immutable audit event. */
+  orderAdminNoteUpdate: ApiOrderPayload;
+  /** Archive an order without changing lifecycle status. */
+  orderArchive: ApiOrderPayload;
+  /** Start durable cancellation across fulfillment, payment, inventory, and notifications. */
+  orderCancel: ApiOrderOperationPayload;
+  /** Close an eligible OPEN order. */
+  orderClose: ApiOrderPayload;
+  /** Append a staff or customer-visible comment to the immutable activity timeline. */
+  orderCommentAdd: ApiOrderActivityPayload;
+  /** Validate and transition a DRAFT order to OPEN. */
+  orderCompleteDraft: ApiOrderPayload;
+  /** Create an idempotent DRAFT order and calculate all totals server-side. */
+  orderCreate: ApiOrderPayload;
+  /** Replace validated merchant custom fields without storing core business facts in JSON. */
+  orderCustomFieldsUpdate: ApiOrderPayload;
+  /** Attach or detach the federated customer reference while preserving historical contact snapshots. */
+  orderCustomerSet: ApiOrderPayload;
+  /** Permanently delete a DRAFT order; placed orders are never physically deleted. */
+  orderDelete: ApiOrderDeletePayload;
+  /** Abandon an uncommitted staged edit. */
+  orderEditAbandon: ApiOrderEditPayload;
+  /** Begin an isolated staged edit of an OPEN order. */
+  orderEditBegin: ApiOrderEditPayload;
+  /** Durably commit a staged edit after verifying edit and order revisions. */
+  orderEditCommit: ApiOrderOperationPayload;
+  /** Add a reasoned manual discount to a staged edit. */
+  orderEditDiscountAdd: ApiOrderEditPayload;
+  /** Remove a proposed discount from a staged edit. */
+  orderEditDiscountRemove: ApiOrderEditPayload;
+  /** Add a proposed line to a staged edit and refresh its calculated preview. */
+  orderEditLineAdd: ApiOrderEditPayload;
+  /** Remove a proposed line without mutating the committed order. */
+  orderEditLineRemove: ApiOrderEditPayload;
+  /** Update a proposed line in a staged edit and refresh its calculated preview. */
+  orderEditLineUpdate: ApiOrderEditPayload;
+  /** Update proposed delivery details in a staged edit. */
+  orderEditShippingUpdate: ApiOrderEditPayload;
+  /** Cancel an eligible exchange. */
+  orderExchangeCancel: ApiOrderExchangePayload;
+  /** Create an exchange from eligible inbound quantities and replacement lines. */
+  orderExchangeCreate: ApiOrderExchangePayload;
+  /** Detach an integration link while preserving synchronization and audit history. */
+  orderIntegrationLinkDetach: ApiOrderPayload;
+  /** Request asynchronous synchronization through a pinned integration link. */
+  orderIntegrationSyncRequest: ApiOrderOperationPayload;
+  /** Retry a failed integration operation without changing its pinned route. */
+  orderIntegrationSyncRetry: ApiOrderOperationPayload;
+  /** Add a line directly to a DRAFT order and recalculate totals. */
+  orderLineAdd: ApiOrderLinePayload;
+  /** Delete a line directly from a DRAFT order. */
+  orderLineDelete: ApiOrderDeletePayload;
+  /** Update an editable DRAFT line and recalculate totals. */
+  orderLineUpdate: ApiOrderLinePayload;
+  /** Record an audited offline or imported payment fact. */
+  orderManualPaymentRecord: ApiOrderOperationPayload;
+  /** Start durable capture of an eligible authorization. */
+  orderPaymentCapture: ApiOrderOperationPayload;
+  /** Start a new payment attempt without rewriting previous attempts. */
+  orderPaymentRetry: ApiOrderOperationPayload;
+  /** Apply an elevated override only to offline or imported facts with a mandatory reason. */
+  orderPaymentStatusOverride: ApiOrderPayload;
+  /** Start durable voiding of an eligible authorization or transaction. */
+  orderPaymentVoid: ApiOrderOperationPayload;
+  /** Start a durable refund with optional line and transaction allocations. */
+  orderRefundCreate: ApiOrderOperationPayload;
+  /** Reopen an eligible CLOSED order. */
+  orderReopen: ApiOrderPayload;
+  /** Approve a return and optionally request a return shipment. */
+  orderReturnApprove: ApiOrderReturnPayload;
+  /** Cancel an eligible return request. */
+  orderReturnCancel: ApiOrderReturnPayload;
+  /** Create a return request for currently returnable quantities. */
+  orderReturnCreate: ApiOrderReturnPayload;
+  /** Start durable receipt, disposition, restocking, and optional refund processing. */
+  orderReturnReceive: ApiOrderOperationPayload;
+  /** Reject a return with a stable reason code. */
+  orderReturnReject: ApiOrderReturnPayload;
+  /** Replace normalized tags and append an immutable audit event. */
+  orderTagsUpdate: ApiOrderPayload;
+  /** Remove the archive marker without changing lifecycle status. */
+  orderUnarchive: ApiOrderPayload;
+  /** Update editable order details without directly overwriting derived aggregate statuses. */
+  orderUpdate: ApiOrderPayload;
+  /** Start a durable bulk action over an explicit or filtered order selection. */
+  ordersBulkAction: ApiOrderOperationPayload;
+  /** Start durable cancellation of an eligible shipment. */
+  shipmentCancel: ApiOrderOperationPayload;
+  /** Start merchant-managed or provider-managed physical shipment creation. */
+  shipmentCreate: ApiOrderOperationPayload;
+  /** Record confirmed physical delivery. */
+  shipmentMarkDelivered: ApiShipmentPayload;
+  /** Record physical handoff of a shipment. */
+  shipmentMarkShipped: ApiShipmentPayload;
+  /** Reconcile shipment state through its pinned provider route. */
+  shipmentReconcile: ApiOrderOperationPayload;
+  /** Replace merchant-managed tracking details. */
+  shipmentTrackingUpdate: ApiShipmentPayload;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentCancelArgs = {
+  input: ApiFulfillmentCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentCreateArgs = {
+  input: ApiFulfillmentCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderCancelRequestArgs = {
+  input: ApiFulfillmentOrderCancelRequestInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderHoldArgs = {
+  input: ApiFulfillmentOrderHoldInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderMoveArgs = {
+  input: ApiFulfillmentOrderMoveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderReleaseHoldArgs = {
+  input: ApiFulfillmentOrderReleaseHoldInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderSplitArgs = {
+  input: ApiFulfillmentOrderSplitInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderSubmitArgs = {
+  input: ApiFulfillmentOrderSubmitInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderAdminNoteUpdateArgs = {
+  input: ApiOrderAdminNoteUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderArchiveArgs = {
+  input: ApiOrderArchiveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCancelArgs = {
+  input: ApiOrderCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCloseArgs = {
+  input: ApiOrderCloseInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCommentAddArgs = {
+  input: ApiOrderCommentAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCompleteDraftArgs = {
+  input: ApiOrderCompleteDraftInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCreateArgs = {
+  input: ApiOrderCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCustomFieldsUpdateArgs = {
+  input: ApiOrderCustomFieldsUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCustomerSetArgs = {
+  input: ApiOrderCustomerSetInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderDeleteArgs = {
+  input: ApiOrderDeleteInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditAbandonArgs = {
+  input: ApiOrderEditAbandonInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditBeginArgs = {
+  input: ApiOrderEditBeginInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditCommitArgs = {
+  input: ApiOrderEditCommitInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditDiscountAddArgs = {
+  input: ApiOrderEditDiscountAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditDiscountRemoveArgs = {
+  input: ApiOrderEditDiscountRemoveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditLineAddArgs = {
+  input: ApiOrderEditLineAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditLineRemoveArgs = {
+  input: ApiOrderEditLineRemoveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditLineUpdateArgs = {
+  input: ApiOrderEditLineUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditShippingUpdateArgs = {
+  input: ApiOrderEditShippingUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderExchangeCancelArgs = {
+  input: ApiOrderExchangeCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderExchangeCreateArgs = {
+  input: ApiOrderExchangeCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderIntegrationLinkDetachArgs = {
+  input: ApiOrderIntegrationLinkDetachInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderIntegrationSyncRequestArgs = {
+  input: ApiOrderIntegrationSyncRequestInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderIntegrationSyncRetryArgs = {
+  input: ApiOrderIntegrationSyncRetryInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderLineAddArgs = {
+  input: ApiOrderLineAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderLineDeleteArgs = {
+  input: ApiOrderLineDeleteInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderLineUpdateArgs = {
+  input: ApiOrderLineUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderManualPaymentRecordArgs = {
+  input: ApiOrderManualPaymentRecordInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentCaptureArgs = {
+  input: ApiOrderPaymentCaptureInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentRetryArgs = {
+  input: ApiOrderPaymentRetryInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentStatusOverrideArgs = {
+  input: ApiOrderPaymentStatusOverrideInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentVoidArgs = {
+  input: ApiOrderPaymentVoidInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderRefundCreateArgs = {
+  input: ApiOrderRefundCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReopenArgs = {
+  input: ApiOrderReopenInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnApproveArgs = {
+  input: ApiOrderReturnApproveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnCancelArgs = {
+  input: ApiOrderReturnCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnCreateArgs = {
+  input: ApiOrderReturnCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnReceiveArgs = {
+  input: ApiOrderReturnReceiveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnRejectArgs = {
+  input: ApiOrderReturnRejectInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderTagsUpdateArgs = {
+  input: ApiOrderTagsUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderUnarchiveArgs = {
+  input: ApiOrderUnarchiveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderUpdateArgs = {
+  input: ApiOrderUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrdersBulkActionArgs = {
+  input: ApiOrdersBulkActionInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentCancelArgs = {
+  input: ApiShipmentCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentCreateArgs = {
+  input: ApiShipmentCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentMarkDeliveredArgs = {
+  input: ApiShipmentMarkDeliveredInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentMarkShippedArgs = {
+  input: ApiShipmentMarkShippedInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentReconcileArgs = {
+  input: ApiShipmentReconcileInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentTrackingUpdateArgs = {
+  input: ApiShipmentTrackingUpdateInput;
+};
+
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQuery = {
+  __typename?: "OrdersQuery";
+  /** Find an order by Relay global ID in the current store; inaccessible resources resolve to null. */
+  order?: Maybe<ApiOrder>;
+  /** Find an order by its store-local number. */
+  orderByNumber?: Maybe<ApiOrder>;
+  /** Find a staged order edit by Relay global ID. */
+  orderEditSession?: Maybe<ApiOrderEditSession>;
+  /** Find a durable operation for workflow polling. */
+  orderOperation?: Maybe<ApiOrderOperation>;
+  /** List current-store orders with Relay pagination, composable filters, and deterministic sorting. */
+  orders: ApiOrderConnection;
+};
+
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderArgs = {
   id: Scalars["ID"]["input"];
 };
 
-export type ApiOrderQueryOrdersArgs = {
-  input?: InputMaybe<ApiOrdersInput>;
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderByNumberArgs = {
+  number: Scalars["BigInt"]["input"];
 };
 
-export enum OrderStatus {
-  Active = "ACTIVE",
-  Cancelled = "CANCELLED",
-  Closed = "CLOSED",
-  Draft = "DRAFT",
-}
-
-export type ApiOrdersInput = {
-  order?: InputMaybe<Scalars["String"]["input"]>;
-  page?: InputMaybe<Scalars["Int"]["input"]>;
-  pageSize?: InputMaybe<Scalars["Int"]["input"]>;
-  where?: InputMaybe<Scalars["JSON"]["input"]>;
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderEditSessionArgs = {
+  id: Scalars["ID"]["input"];
 };
 
-export type ApiOrdersOutput = {
-  __typename?: "OrdersOutput";
-  data: Array<ApiOrder>;
-  meta: ApiCollectionMeta;
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderOperationArgs = {
+  id: Scalars["ID"]["input"];
+};
+
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrdersArgs = {
+  after?: InputMaybe<Scalars["String"]["input"]>;
+  before?: InputMaybe<Scalars["String"]["input"]>;
+  first?: InputMaybe<Scalars["Int"]["input"]>;
+  last?: InputMaybe<Scalars["Int"]["input"]>;
+  orderBy?: InputMaybe<Array<ApiOrderOrderByInput>>;
+  where?: InputMaybe<ApiOrderWhereInput>;
 };
 
 /**
@@ -13194,12 +16669,14 @@ export type ApiProduct = ApiListing &
     __typename?: "Product";
     /** Category assignments with relationship metadata. */
     categoryAssignments: Array<ApiProductCategoryAssignment>;
+    comparisonConfiguration: ApiProductComparisonConfiguration;
     /** The date and time when the product was created. */
     createdAt: Scalars["DateTime"]["output"];
     /** The date and time when the product was deleted (soft delete). */
     deletedAt?: Maybe<Scalars["DateTime"]["output"]>;
     /** Product description. */
     description?: Maybe<ApiRichText>;
+    effectiveComparisonProfile?: Maybe<ApiComparisonProfile>;
     /** Short excerpt. */
     excerpt?: Maybe<ApiRichText>;
     /** The features of this product. */
@@ -13346,6 +16823,113 @@ export type ApiProductCategoryOperationInput = {
   /** The category to update for the product. */
   categoryId: Scalars["ID"]["input"];
 };
+
+export enum ProductComparisonCompatibilityStatus {
+  Full = "FULL",
+  Incompatible = "INCOMPATIBLE",
+  NoProfile = "NO_PROFILE",
+  ProfileDisabled = "PROFILE_DISABLED",
+}
+
+export type ApiProductComparisonConfiguration = {
+  __typename?: "ProductComparisonConfiguration";
+  compatibilityStatus: ProductComparisonCompatibilityStatus;
+  effectiveProfile?: Maybe<ApiComparisonProfile>;
+  entries: Array<ApiProductComparisonConfigurationEntry>;
+  product: ApiProduct;
+  unmappedFeatures: Array<ApiProductFeature>;
+  unmappedOptions: Array<ApiProductOption>;
+};
+
+export type ApiProductComparisonConfigurationEntry = {
+  __typename?: "ProductComparisonConfigurationEntry";
+  feature?: Maybe<ApiProductFeature>;
+  featureValues: Array<ApiProductComparisonNormalizedFeatureValue>;
+  field: ApiComparisonField;
+  notApplicableReason?: Maybe<Scalars["String"]["output"]>;
+  option?: Maybe<ApiProductOption>;
+  optionValues: Array<ApiProductComparisonNormalizedOptionValue>;
+  sourceKind: ProductComparisonSourceKind;
+};
+
+export type ApiProductComparisonConfigurationPayload = {
+  __typename?: "ProductComparisonConfigurationPayload";
+  configuration?: Maybe<ApiProductComparisonConfiguration>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductComparisonConfigurationSyncInput = {
+  expectedProductRevision: Scalars["Int"]["input"];
+  mappings: Array<ApiProductComparisonFieldMappingInput>;
+  productId: Scalars["ID"]["input"];
+  profileId: Scalars["ID"]["input"];
+};
+
+export type ApiProductComparisonFeatureMappingInput = {
+  featureId: Scalars["ID"]["input"];
+  values: Array<ApiProductComparisonFeatureValueMappingInput>;
+};
+
+export type ApiProductComparisonFeatureValueMappingInput = {
+  value: ApiProductComparisonNormalizedValueInput;
+  valueId: Scalars["ID"]["input"];
+};
+
+export type ApiProductComparisonFieldMappingInput = {
+  feature?: InputMaybe<ApiProductComparisonFeatureMappingInput>;
+  fieldId: Scalars["ID"]["input"];
+  notApplicable?: InputMaybe<ApiProductComparisonNotApplicableInput>;
+  option?: InputMaybe<ApiProductComparisonOptionMappingInput>;
+};
+
+export type ApiProductComparisonNormalizedFeatureValue = {
+  __typename?: "ProductComparisonNormalizedFeatureValue";
+  booleanValue?: Maybe<Scalars["Boolean"]["output"]>;
+  decimalValue?: Maybe<Scalars["String"]["output"]>;
+  fieldOption?: Maybe<ApiComparisonFieldOption>;
+  integerValue?: Maybe<Scalars["BigInt"]["output"]>;
+  textValue?: Maybe<Scalars["String"]["output"]>;
+  value: ApiProductFeatureValue;
+};
+
+export type ApiProductComparisonNormalizedOptionValue = {
+  __typename?: "ProductComparisonNormalizedOptionValue";
+  booleanValue?: Maybe<Scalars["Boolean"]["output"]>;
+  decimalValue?: Maybe<Scalars["String"]["output"]>;
+  fieldOption?: Maybe<ApiComparisonFieldOption>;
+  integerValue?: Maybe<Scalars["BigInt"]["output"]>;
+  textValue?: Maybe<Scalars["String"]["output"]>;
+  value: ApiProductOptionValue;
+};
+
+export type ApiProductComparisonNormalizedValueInput = {
+  booleanValue?: InputMaybe<Scalars["Boolean"]["input"]>;
+  decimalValue?: InputMaybe<Scalars["String"]["input"]>;
+  fieldOptionId?: InputMaybe<Scalars["ID"]["input"]>;
+  integerValue?: InputMaybe<Scalars["BigInt"]["input"]>;
+  textValue?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+export type ApiProductComparisonNotApplicableInput = {
+  reason?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+export type ApiProductComparisonOptionMappingInput = {
+  optionId: Scalars["ID"]["input"];
+  values: Array<ApiProductComparisonOptionValueMappingInput>;
+};
+
+export type ApiProductComparisonOptionValueMappingInput = {
+  value: ApiProductComparisonNormalizedValueInput;
+  valueId: Scalars["ID"]["input"];
+};
+
+export enum ProductComparisonSourceKind {
+  Feature = "FEATURE",
+  Missing = "MISSING",
+  NotApplicable = "NOT_APPLICABLE",
+  Option = "OPTION",
+}
 
 /** Product component configuration associated one-to-one with a Catalog Product. */
 export type ApiProductComponent = {
@@ -15176,6 +18760,14 @@ export type ApiProductRatingCriterionSummary = {
   updatedAt: Scalars["DateTime"]["output"];
 };
 
+export enum ProductRecommendationSource {
+  ContentSimilarity = "CONTENT_SIMILARITY",
+  Fallback = "FALLBACK",
+  FrequentlyBoughtTogether = "FREQUENTLY_BOUGHT_TOGETHER",
+  Manual = "MANUAL",
+  Popularity = "POPULARITY",
+}
+
 /** Read-only projection over currently published, non-deleted product reviews. */
 export type ApiProductReviewSummary = {
   __typename?: "ProductReviewSummary";
@@ -15337,17 +18929,6 @@ export type ApiProductWhereInput = {
   vendorId?: InputMaybe<ApiIdFilter>;
 };
 
-export type ApiPurchasable = {
-  /** Unique identifier of the purchasable entity. */
-  id: Scalars["ID"]["output"];
-};
-
-export type ApiPurchasableSnapshot = ApiPurchasable & {
-  __typename?: "PurchasableSnapshot";
-  id: Scalars["ID"]["output"];
-  purchasableSnapshot: Scalars["JSON"]["output"];
-};
-
 export type ApiQuery = {
   __typename?: "Query";
   /** Application realm management queries. */
@@ -15372,7 +18953,8 @@ export type ApiQuery = {
   notificationsQuery: ApiNotificationsQuery;
   /** Online Store content query namespace. */
   onlineStoreAppQuery: ApiOnlineStoreAppQuery;
-  orderQuery: ApiOrderQuery;
+  /** Entry point for all store-scoped Orders Admin reads. */
+  ordersQuery: ApiOrdersQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
   /** Pricing Admin query namespace. */
@@ -15387,6 +18969,124 @@ export type ApiQuery = {
   /** Widget query namespace for dashboard widgets */
   widgetQuery: ApiWidgetQuery;
 };
+
+export enum RecommendationPlacement {
+  FrequentlyBoughtTogether = "FREQUENTLY_BOUGHT_TOGETHER",
+  ProductRelated = "PRODUCT_RELATED",
+}
+
+export type ApiRecommendationPlacementPolicy = ApiNode & {
+  __typename?: "RecommendationPlacementPolicy";
+  createdAt: Scalars["DateTime"]["output"];
+  enabled: Scalars["Boolean"]["output"];
+  fallbackChain: Array<Scalars["String"]["output"]>;
+  id: Scalars["ID"]["output"];
+  maximumResults: Scalars["Int"]["output"];
+  minimumResults: Scalars["Int"]["output"];
+  placement: RecommendationPlacement;
+  strategy: RecommendationStrategy;
+  updatedAt: Scalars["DateTime"]["output"];
+  version: Scalars["Int"]["output"];
+};
+
+export type ApiRecommendationPlacementPolicyDraftInput = {
+  enabled: Scalars["Boolean"]["input"];
+  expectedVersion?: InputMaybe<Scalars["Int"]["input"]>;
+  fallbackChain: Array<Scalars["String"]["input"]>;
+  maximumResults: Scalars["Int"]["input"];
+  minimumResults: Scalars["Int"]["input"];
+  strategy: RecommendationStrategy;
+};
+
+export type ApiRecommendationPlacementPolicyPayload = {
+  __typename?: "RecommendationPlacementPolicyPayload";
+  policy?: Maybe<ApiRecommendationPlacementPolicy>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiRecommendationPlacementPolicySetEnabledInput = {
+  enabled: Scalars["Boolean"]["input"];
+  expectedVersion: Scalars["Int"]["input"];
+  placement: RecommendationPlacement;
+};
+
+export type ApiRecommendationPlacementPolicyUpsertInput = {
+  expectedVersion?: InputMaybe<Scalars["Int"]["input"]>;
+  fallbackChain: Array<Scalars["String"]["input"]>;
+  maximumResults: Scalars["Int"]["input"];
+  minimumResults: Scalars["Int"]["input"];
+  placement: RecommendationPlacement;
+  strategy: RecommendationStrategy;
+};
+
+export type ApiRecommendationPreviewCandidate = {
+  __typename?: "RecommendationPreviewCandidate";
+  product: ApiProduct;
+  rank: Scalars["Int"]["output"];
+  score: Scalars["String"]["output"];
+  source: ProductRecommendationSource;
+  sourceBreakdown: ApiRecommendationPreviewSourceBreakdown;
+};
+
+export type ApiRecommendationPreviewExcludedCandidate = {
+  __typename?: "RecommendationPreviewExcludedCandidate";
+  product: ApiProduct;
+  reason: RecommendationPreviewExcludedReason;
+};
+
+export enum RecommendationPreviewExcludedReason {
+  Excluded = "EXCLUDED",
+  InsufficientSupport = "INSUFFICIENT_SUPPORT",
+  LimitExceeded = "LIMIT_EXCEEDED",
+  Stale = "STALE",
+  Unavailable = "UNAVAILABLE",
+  Unpublished = "UNPUBLISHED",
+}
+
+export type ApiRecommendationPreviewResult = {
+  __typename?: "RecommendationPreviewResult";
+  asOf: Scalars["DateTime"]["output"];
+  candidates: Array<ApiRecommendationPreviewCandidate>;
+  excluded: Array<ApiRecommendationPreviewExcludedCandidate>;
+  modelVersion: Scalars["String"]["output"];
+};
+
+export type ApiRecommendationPreviewSourceBreakdown = {
+  __typename?: "RecommendationPreviewSourceBreakdown";
+  categoryPopularityScore?: Maybe<Scalars["String"]["output"]>;
+  fbtRunId?: Maybe<Scalars["ID"]["output"]>;
+  fbtSourceScore?: Maybe<Scalars["String"]["output"]>;
+  manualAction?: Maybe<ManualRecommendationAction>;
+  manualBoost?: Maybe<Scalars["String"]["output"]>;
+  manualPosition?: Maybe<Scalars["Int"]["output"]>;
+  storePopularityScore?: Maybe<Scalars["String"]["output"]>;
+};
+
+export enum RecommendationReferenceStatus {
+  Stale = "STALE",
+  Valid = "VALID",
+}
+
+export type ApiRecommendationSnapshotPreviewInput = {
+  anchorProductId: Scalars["ID"]["input"];
+  manualChanges: Array<ApiManualRecommendationDraftChangeInput>;
+  placement: RecommendationPlacement;
+  policy?: InputMaybe<ApiRecommendationPlacementPolicyDraftInput>;
+};
+
+export type ApiRecommendationSnapshotPreviewPayload = {
+  __typename?: "RecommendationSnapshotPreviewPayload";
+  active?: Maybe<ApiRecommendationPreviewResult>;
+  draft?: Maybe<ApiRecommendationPreviewResult>;
+  userErrors: Array<ApiUserError>;
+};
+
+export enum RecommendationStrategy {
+  AutomatedOnly = "AUTOMATED_ONLY",
+  Blended = "BLENDED",
+  CuratedFirst = "CURATED_FIRST",
+  CuratedOnly = "CURATED_ONLY",
+}
 
 /** Resource definition for role editor UI. */
 export type ApiResourceDefinition = {
@@ -18575,6 +22275,240 @@ export type ApiSessionRevokePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Physical shipment projection with pinned provider references, packages, tracking, and status events. */
+export type ApiShipment = ApiNode & {
+  __typename?: "Shipment";
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars["DateTime"]["output"];
+  /** Timestamp for delivered, or null when it has not occurred. */
+  deliveredAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Timestamp for estimated delivery, or null when it has not occurred. */
+  estimatedDeliveryAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Projected value for events. */
+  events: Array<ApiShipmentEvent>;
+  /** Projected value for fulfillment. */
+  fulfillment: ApiFulfillment;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Projected value for packages. */
+  packages: Array<ApiShipmentPackage>;
+  /** Stable provider code. */
+  providerCode?: Maybe<Scalars["String"]["output"]>;
+  /** Projected value for provider reference. */
+  providerReference?: Maybe<Scalars["String"]["output"]>;
+  /** Stable service code. */
+  serviceCode?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for shipped, or null when it has not occurred. */
+  shippedAt?: Maybe<Scalars["DateTime"]["output"]>;
+  /** Current lifecycle or derived projection status. */
+  status: ShipmentStatus;
+  /** Projected value for tracking. */
+  tracking: Array<ApiShipmentTracking>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars["DateTime"]["output"];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars["Int"]["output"];
+};
+
+/** Validated input for shipment cancel. Tenant identifiers come only from trusted context. */
+export type ApiShipmentCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Stable audited reason code. */
+  reasonCode: Scalars["String"]["input"];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars["ID"]["input"];
+};
+
+/** Validated input for shipment create. Tenant identifiers come only from trusted context. */
+export type ApiShipmentCreateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Relay global ID identifying the fulfillment. */
+  fulfillmentId: Scalars["ID"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Validated input value for packages. */
+  packages: Array<ApiShipmentPackageInput>;
+  /** Stable provider code. */
+  providerCode?: InputMaybe<Scalars["String"]["input"]>;
+  /** Stable service code. */
+  serviceCode?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Orders Admin representation of shipment event. */
+export type ApiShipmentEvent = ApiNode & {
+  __typename?: "ShipmentEvent";
+  /** Timestamp for happened, or null when it has not occurred. */
+  happenedAt: Scalars["DateTime"]["output"];
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for location. */
+  location?: Maybe<Scalars["String"]["output"]>;
+  /** Human-readable explanation safe for an authorized Admin user. */
+  message?: Maybe<Scalars["String"]["output"]>;
+  /** Timestamp for recorded, or null when it has not occurred. */
+  recordedAt: Scalars["DateTime"]["output"];
+  /** Current lifecycle or derived projection status. */
+  status: ShipmentStatus;
+};
+
+/** Validated input for shipment mark delivered. Tenant identifiers come only from trusted context. */
+export type ApiShipmentMarkDeliveredInput = {
+  /** Timestamp for delivered, or null when it has not occurred. */
+  deliveredAt: Scalars["DateTime"]["input"];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars["ID"]["input"];
+};
+
+/** Validated input for shipment mark shipped. Tenant identifiers come only from trusted context. */
+export type ApiShipmentMarkShippedInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars["ID"]["input"];
+  /** Timestamp for shipped, or null when it has not occurred. */
+  shippedAt: Scalars["DateTime"]["input"];
+};
+
+/** Orders Admin representation of shipment package. */
+export type ApiShipmentPackage = ApiNode & {
+  __typename?: "ShipmentPackage";
+  /** Projected value for declared value. */
+  declaredValue?: Maybe<ApiMoney>;
+  /** Projected value for dimensions. */
+  dimensions?: Maybe<ApiDimensions>;
+  /** Relay global ID of this resource. */
+  id: Scalars["ID"]["output"];
+  /** Projected value for items. */
+  items: Array<ApiShipmentPackageItem>;
+  /** Projected value for weight. */
+  weight?: Maybe<ApiWeight>;
+};
+
+/** Validated input for shipment package. Tenant identifiers come only from trusted context. */
+export type ApiShipmentPackageInput = {
+  /** Validated input value for declared value. */
+  declaredValue?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for dimensions. */
+  dimensions?: InputMaybe<ApiOrderDimensionsInput>;
+  /** Validated input value for items. */
+  items: Array<ApiShipmentPackageItemInput>;
+  /** Validated input value for weight. */
+  weight?: InputMaybe<ApiOrderWeightInput>;
+};
+
+/** Orders Admin representation of shipment package item. */
+export type ApiShipmentPackageItem = {
+  __typename?: "ShipmentPackageItem";
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["output"];
+};
+
+/** Validated input for shipment package item. Tenant identifiers come only from trusted context. */
+export type ApiShipmentPackageItemInput = {
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars["ID"]["input"];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars["Int"]["input"];
+};
+
+/** Mutation result for shipment; expected failures are returned in userErrors. */
+export type ApiShipmentPayload = {
+  __typename?: "ShipmentPayload";
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Projected value for shipment. */
+  shipment?: Maybe<ApiShipment>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for shipment reconcile. Tenant identifiers come only from trusted context. */
+export type ApiShipmentReconcileInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars["ID"]["input"];
+};
+
+/** Closed set of shipment status values used by Orders Admin API. */
+export enum ShipmentStatus {
+  /** Cancelled value of shipment status. */
+  Cancelled = "CANCELLED",
+  /** Delayed value of shipment status. */
+  Delayed = "DELAYED",
+  /** Delivered value of shipment status. */
+  Delivered = "DELIVERED",
+  /** Delivery attempted value of shipment status. */
+  DeliveryAttempted = "DELIVERY_ATTEMPTED",
+  /** Draft value of shipment status. */
+  Draft = "DRAFT",
+  /** Exception value of shipment status. */
+  Exception = "EXCEPTION",
+  /** In transit value of shipment status. */
+  InTransit = "IN_TRANSIT",
+  /** Label created value of shipment status. */
+  LabelCreated = "LABEL_CREATED",
+  /** Out for delivery value of shipment status. */
+  OutForDelivery = "OUT_FOR_DELIVERY",
+  /** Picked up value of shipment status. */
+  PickedUp = "PICKED_UP",
+  /** Ready for pickup value of shipment status. */
+  ReadyForPickup = "READY_FOR_PICKUP",
+  /** Returned to sender value of shipment status. */
+  ReturnedToSender = "RETURNED_TO_SENDER",
+}
+
+/** Orders Admin representation of shipment tracking. */
+export type ApiShipmentTracking = {
+  __typename?: "ShipmentTracking";
+  /** Projected value for company. */
+  company?: Maybe<Scalars["String"]["output"]>;
+  /** Store-local order number serialized without precision loss. */
+  number: Scalars["String"]["output"];
+  /** Projected value for url. */
+  url?: Maybe<Scalars["URL"]["output"]>;
+};
+
+/** Validated input for shipment tracking. Tenant identifiers come only from trusted context. */
+export type ApiShipmentTrackingInput = {
+  /** Validated input value for company. */
+  company?: InputMaybe<Scalars["String"]["input"]>;
+  /** Store-local order number serialized without precision loss. */
+  number: Scalars["String"]["input"];
+  /** Validated input value for url. */
+  url?: InputMaybe<Scalars["URL"]["input"]>;
+};
+
+/** Validated input for shipment tracking update. Tenant identifiers come only from trusted context. */
+export type ApiShipmentTrackingUpdateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars["ID"]["input"];
+  /** Validated input value for tracking. */
+  tracking: Array<ApiShipmentTrackingInput>;
+};
+
 export type ApiSkuStatusMetric = {
   __typename?: "SkuStatusMetric";
   averageDays?: Maybe<Scalars["Float"]["output"]>;
@@ -19190,6 +23124,18 @@ export type ApiStringFilter = {
   _startsWith?: InputMaybe<Scalars["String"]["input"]>;
   /** Starts with (case-insensitive) */
   _startsWithi?: InputMaybe<Scalars["String"]["input"]>;
+};
+
+/** Comparison operators for string; omitted operators do not constrain results. */
+export type ApiStringFilterInput = {
+  /** Validated input value for contains. */
+  contains?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars["String"]["input"]>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<Scalars["String"]["input"]>>;
+  /** Validated input value for starts with. */
+  startsWith?: InputMaybe<Scalars["String"]["input"]>;
 };
 
 /** Type of visual swatch for option values. */
@@ -20472,10 +24418,13 @@ export type ApiWarehouseWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
+/** Physical weight expressed in a supported measurement unit. */
 export type ApiWeight = {
   __typename?: "Weight";
+  /** Unit used by value. */
   unit: WeightUnit;
-  weight: Scalars["Float"]["output"];
+  /** Numeric weight in unit. */
+  value: Scalars["Float"]["output"];
 };
 
 /** Input for setting weight (in grams). */

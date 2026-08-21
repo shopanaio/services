@@ -170,7 +170,6 @@ export type PaymentsCheckoutMethodSelectionResolution =
 
 export interface PaymentsCheckoutEvaluationContext extends PricingCheckoutEvaluationContext {
   /** Potential committed version; always the currently committed version + 1. */
-  targetCheckoutVersion: number;
 }
 
 export interface GetCheckoutAvailablePaymentMethodsParams {
@@ -210,8 +209,6 @@ export interface PaymentMethodCustomizationFunctionInput {
   executionId: string;
   storeId: string;
   checkoutId: string;
-  basedOnCheckoutVersion: number;
-  targetCheckoutVersion: number;
   currencyCode: string;
   localeCode: string | null;
   channelCode: string;
@@ -429,9 +426,6 @@ export type PaymentSettlementConfirmation =
       confirmationId: string;
       confirmedAt: string;
       expiresAt: string;
-      checkoutVersion: number;
-      finalQuoteRevision: string;
-      inventoryReservationRevision: string | null;
     }>
   | Readonly<{
       decision: "REJECTED";
@@ -541,7 +535,6 @@ export interface PaymentCollectionSnapshot {
   capturedAmount: PricingCheckoutMoney;
   refundedAmount: PricingCheckoutMoney;
   outstandingAmount: PricingCheckoutMoney;
-  basedOnCheckoutVersion: number;
   basedOnFinalQuoteRevision: string;
   revision: number;
   createdAt: string;
@@ -564,7 +557,6 @@ export interface PaymentSessionSnapshot {
   refundedAmount: PricingCheckoutMoney;
   voidedAmount: PricingCheckoutMoney;
   method: PaymentMethodBindingSnapshot;
-  basedOnCheckoutVersion: number;
   basedOnFinalQuoteRevision: string;
   basedOnPaymentMethodsRevision: string;
   providerReference: string | null;
@@ -686,8 +678,6 @@ export interface CreatePaymentCollectionParams {
   storeId: string;
   checkoutId: string;
   orderId: string;
-  expectedCheckoutVersion: number;
-  finalQuoteRevision: string;
   targetAmount: PricingCheckoutMoney;
   idempotencyKey: string;
   correlationId: string;
@@ -715,9 +705,6 @@ export interface CreatePaymentSessionParams {
   checkoutId: string;
   orderId: string;
   paymentCollectionId: string;
-  expectedCheckoutVersion: number;
-  finalQuoteRevision: string;
-  paymentMethodsRevision: string;
   methodHandle: string;
   kind: PaymentSessionKind;
   amount: PricingCheckoutMoney;

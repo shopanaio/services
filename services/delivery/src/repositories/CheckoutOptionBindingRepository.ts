@@ -16,8 +16,6 @@ export class CheckoutOptionBindingRepository
   async stageCheckoutSnapshot(input: {
     storeId: string;
     checkoutId: string;
-    basedOnCheckoutVersion: number;
-    targetCheckoutVersion: number;
     preliminaryRevision: string;
     deliveryRevision: string;
     options: readonly DeliveryOptionBindingCandidate[];
@@ -56,8 +54,6 @@ export class CheckoutOptionBindingRepository
         if (!id) throw new Error("PostgreSQL uuidv7() did not return an id");
         const binding: Delivery.DeliveryOptionBindingSnapshot = {
           ...candidate.binding,
-          basedOnCheckoutVersion: input.basedOnCheckoutVersion,
-          targetCheckoutVersion: input.targetCheckoutVersion,
         };
         await tx
           .insert(checkoutOptionBindings)
@@ -65,8 +61,6 @@ export class CheckoutOptionBindingRepository
             id,
             storeId: input.storeId,
             checkoutId: input.checkoutId,
-            basedOnCheckoutVersion: input.basedOnCheckoutVersion,
-            targetCheckoutVersion: input.targetCheckoutVersion,
             groupId: binding.groupId,
             optionHandle: binding.optionHandle,
             preliminaryRevision: input.preliminaryRevision,
@@ -93,7 +87,6 @@ export class CheckoutOptionBindingRepository
   async resolve(input: {
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
     groupId: string;
     optionHandle: string;
     effectiveAt: string;
@@ -130,7 +123,6 @@ export class CheckoutOptionBindingRepository
     organizationId: string;
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
     groupId: string;
     optionHandle: string;
     deliveryRevision: string;
@@ -175,7 +167,6 @@ export class CheckoutOptionBindingRepository
       const requestHash = revision("dcommit_request_v1", {
         organizationId: input.organizationId,
         checkoutId: input.checkoutId,
-        checkoutVersion: input.checkoutVersion,
         groupId: input.groupId,
         optionHandle: input.optionHandle,
         deliveryRevision: input.deliveryRevision,
@@ -218,7 +209,6 @@ export class CheckoutOptionBindingRepository
       const common = {
         commitmentId,
         committedAt: input.effectiveAt,
-        checkoutVersion: input.checkoutVersion,
         deliveryRevision: input.deliveryRevision,
         methodDefinitionId: resolved.binding.methodDefinitionId,
         code: resolved.option.code,
@@ -270,7 +260,6 @@ export class CheckoutOptionBindingRepository
         organizationId: input.organizationId,
         storeId: input.storeId,
         checkoutId: input.checkoutId,
-        checkoutVersion: input.checkoutVersion,
         groupId: input.groupId,
         idempotencyKey: input.idempotencyKey,
         requestHash,
@@ -284,7 +273,6 @@ export class CheckoutOptionBindingRepository
   async releaseCommitments(input: {
     storeId: string;
     checkoutId: string;
-    checkoutVersion: number;
     groupIds: readonly string[];
     releasedAt: string;
     reason: string;

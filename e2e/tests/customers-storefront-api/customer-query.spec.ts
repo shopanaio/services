@@ -152,7 +152,7 @@ test.describe('Customers Storefront API — customer query', () => {
       'CustomerUpdateInput',
       {
         firstName: 'ReadYourWrites',
-        expectedRevision: revision,
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { revision firstName } userErrors { ${USER_ERROR_FIELDS} }`,

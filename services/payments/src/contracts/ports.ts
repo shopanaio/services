@@ -121,7 +121,6 @@ export interface PaymentMethodBindingsPort {
     input: Readonly<{
       storeId: string;
       checkoutId: string;
-      checkoutVersion: number;
       methodHandle: string;
       effectiveAt: string;
     }>,
@@ -130,8 +129,6 @@ export interface PaymentMethodBindingsPort {
     input: Readonly<{
       storeId: string;
       checkoutId: string;
-      basedOnCheckoutVersion: number;
-      targetCheckoutVersion: number;
       finalQuoteRevision: string;
       deliveryRevision: string;
       discoveryRevision: string;
@@ -159,7 +156,6 @@ export interface PaymentLifecycleMethodBindingsPort {
     input: Readonly<{
       storeId: string;
       checkoutId: string;
-      checkoutVersion: number;
       finalQuoteRevision: string;
       paymentMethodsRevision: string;
       methodHandle: string;
@@ -242,10 +238,7 @@ export interface PaymentDisputesPort {
     providerAccountId: string,
     providerDisputeReference: string,
   ): Promise<Payments.PaymentDisputeSnapshot | null>;
-  save(
-    dispute: Payments.PaymentDisputeSnapshot,
-    expectedRevision: number | null,
-  ): Promise<
+  save(dispute: Payments.PaymentDisputeSnapshot): Promise<
     | Readonly<{ status: "SAVED"; dispute: Payments.PaymentDisputeSnapshot }>
     | Readonly<{
         status: "REVISION_CONFLICT";

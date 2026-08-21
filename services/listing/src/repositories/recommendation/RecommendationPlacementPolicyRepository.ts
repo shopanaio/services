@@ -122,7 +122,7 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
 
   async update(
     policyId: string,
-    expectedVersion: number,
+
     input: Omit<PolicyWriteInput, "placement">,
   ): Promise<RecommendationPlacementPolicy | null> {
     const [row] = await this.connection
@@ -136,7 +136,6 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
         and(
           eq(recommendationPlacementPolicy.storeId, this.storeId),
           eq(recommendationPlacementPolicy.policyId, policyId),
-          eq(recommendationPlacementPolicy.version, expectedVersion),
         ),
       )
       .returning();
@@ -145,7 +144,7 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
 
   async setEnabled(
     policyId: string,
-    expectedVersion: number,
+
     enabled: boolean,
   ): Promise<RecommendationPlacementPolicy | null> {
     const [row] = await this.connection
@@ -159,7 +158,6 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
         and(
           eq(recommendationPlacementPolicy.storeId, this.storeId),
           eq(recommendationPlacementPolicy.policyId, policyId),
-          eq(recommendationPlacementPolicy.version, expectedVersion),
         ),
       )
       .returning();

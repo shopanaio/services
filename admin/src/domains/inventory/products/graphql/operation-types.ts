@@ -214,7 +214,6 @@ export interface ProductUpdateMutationData {
 export interface ProductUpdateMutationVariables {
   productId: string;
   operations?: ApiProductUpdateInput | null;
-  expectedRevision?: number | null;
 }
 
 export interface ProductDeleteMutationData {

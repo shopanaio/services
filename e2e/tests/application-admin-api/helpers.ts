@@ -169,14 +169,14 @@ export async function updateApplication(
   api: Api,
   application: ApplicationRef,
   patch: Record<string, unknown>,
-  expectedRevision = application.revision,
+  
 ) {
   const { data } = await api.admin.mutation('application-admin-api/ApplicationUpdate', {
     variables: {
       input: {
         organizationId: application.organizationId,
         applicationId: application.id,
-        expectedRevision,
+        
         ...patch,
       },
     },
@@ -187,14 +187,14 @@ export async function updateApplication(
 export async function archiveApplication(
   api: Api,
   application: ApplicationRef,
-  expectedRevision = application.revision,
+  
 ) {
   const { data } = await api.admin.mutation('application-admin-api/ApplicationArchive', {
     variables: {
       input: {
         organizationId: application.organizationId,
         applicationId: application.id,
-        expectedRevision,
+        
       },
     },
   });
@@ -205,7 +205,7 @@ export async function updateAuth(
   api: Api,
   application: ApplicationRef,
   patch: Record<string, unknown>,
-  expectedRevision?: number,
+  
 ) {
   const revision = expectedRevision ?? (await getAuthRevision(api, application));
   const { data } = await api.admin.mutation('application-admin-api/ApplicationAuthUpdate', {
@@ -213,7 +213,7 @@ export async function updateAuth(
       input: {
         organizationId: application.organizationId,
         applicationId: application.id,
-        expectedRevision: revision,
+        
         ...patch,
       },
     },
@@ -225,7 +225,7 @@ export async function setRealmEnabled(
   api: Api,
   application: ApplicationRef,
   enabled: boolean,
-  expectedRevision?: number,
+  
 ) {
   const revision = expectedRevision ?? (await getAuthRevision(api, application));
   const { data } = await api.admin.mutation(
@@ -236,7 +236,7 @@ export async function setRealmEnabled(
           organizationId: application.organizationId,
           applicationId: application.id,
           enabled,
-          expectedRevision: revision,
+          
         },
       },
     },
@@ -249,7 +249,7 @@ export async function updateAuthMethod(
   application: ApplicationRef,
   methodId: 'password' | 'email_otp',
   enabledCapabilities: string[],
-  expectedRevision?: number,
+  
 ) {
   const revision = expectedRevision ?? (await getAuthRevision(api, application));
   const { data } = await api.admin.mutation('application-admin-api/ApplicationAuthMethodUpdate', {
@@ -259,7 +259,7 @@ export async function updateAuthMethod(
         applicationId: application.id,
         methodId,
         enabledCapabilities,
-        expectedRevision: revision,
+        
       },
     },
   });
@@ -274,7 +274,7 @@ export async function configureProvider(
     clientId: string;
     clientSecret: string;
     scopes: string[];
-    expectedRevision: number;
+    
   }> = {},
 ) {
   const revision = overrides.expectedRevision ?? (await getAuthRevision(api, application));
@@ -291,7 +291,7 @@ export async function configureProvider(
           scopes:
             overrides.scopes ??
             (provider === 'GOOGLE' ? ['openid', 'profile', 'email'] : ['email']),
-          expectedRevision: revision,
+          
         },
       },
     },
@@ -304,7 +304,7 @@ export async function updateProvider(
   application: ApplicationRef,
   provider: 'GOOGLE' | 'FACEBOOK',
   patch: Record<string, unknown>,
-  expectedRevision?: number,
+  
 ) {
   const revision = expectedRevision ?? (await getAuthRevision(api, application));
   const { data } = await api.admin.mutation('application-admin-api/ApplicationAuthProviderUpdate', {
@@ -313,7 +313,7 @@ export async function updateProvider(
         organizationId: application.organizationId,
         applicationId: application.id,
         provider,
-        expectedRevision: revision,
+        
         ...patch,
       },
     },
@@ -327,7 +327,7 @@ export async function rotateProviderCredentials(
   provider: 'GOOGLE' | 'FACEBOOK',
   clientId: string,
   clientSecret: string,
-  expectedRevision?: number,
+  
 ) {
   const revision = expectedRevision ?? (await getAuthRevision(api, application));
   const { data } = await api.admin.mutation(
@@ -340,7 +340,7 @@ export async function rotateProviderCredentials(
           provider,
           clientId,
           clientSecret,
-          expectedRevision: revision,
+          
         },
       },
     },
@@ -352,7 +352,7 @@ export async function deleteProviderCredentials(
   api: Api,
   application: ApplicationRef,
   provider: 'GOOGLE' | 'FACEBOOK',
-  expectedRevision?: number,
+  
 ) {
   const revision = expectedRevision ?? (await getAuthRevision(api, application));
   const { data } = await api.admin.mutation(
@@ -363,7 +363,7 @@ export async function deleteProviderCredentials(
           organizationId: application.organizationId,
           applicationId: application.id,
           provider,
-          expectedRevision: revision,
+          
         },
       },
     },
@@ -375,7 +375,7 @@ export async function validateProvider(
   api: Api,
   application: ApplicationRef,
   provider: 'GOOGLE' | 'FACEBOOK',
-  expectedRevision?: number,
+  
 ) {
   const revision = expectedRevision ?? (await getAuthRevision(api, application));
   const { data } = await api.admin.mutation(
@@ -386,7 +386,7 @@ export async function validateProvider(
           organizationId: application.organizationId,
           applicationId: application.id,
           provider,
-          expectedRevision: revision,
+          
         },
       },
     },
@@ -482,7 +482,7 @@ export async function mutateOAuthClient<TField extends OAuthClientMutationField>
   field: TField,
   application: ApplicationRef,
   clientId: string,
-  expectedRevision: number,
+  
   patch: Record<string, unknown> = {},
 ): Promise<ApiApplicationMutation[TField]> {
   const { data } = await api.admin.mutation(`application-admin-api/${operation}`, {
@@ -491,7 +491,7 @@ export async function mutateOAuthClient<TField extends OAuthClientMutationField>
         organizationId: application.organizationId,
         applicationId: application.id,
         clientId,
-        expectedRevision,
+        
         ...patch,
       },
     },

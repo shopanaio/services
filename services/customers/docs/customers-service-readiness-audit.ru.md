@@ -10,29 +10,29 @@ workflows/scripts, Customers E2E-контракты и архитектурна�
 
 Текущая оценка готовности: **60 из 100**.
 
-Customers является крупным работающим bounded context: production build проходит, Admin и
-Storefront subgraphs экспортируются, общий supergraph компонуется, основные домены имеют schema,
-resolver, workflow/script и repository слои. При этом сервис пока нельзя считать завершённым по
-заданному критерию. Есть один прямой пробел в заявленном API — отсутствующий Admin Wishlist
-контракт — и несколько существенных пробелов в доказательстве корректности runtime-бизнес-логики.
+Customers является крупным работающим bounded context: production build проходит, Admin и Storefront
+subgraphs экспортируются, общий supergraph компонуется, основные домены имеют schema, resolver,
+workflow/script и repository слои. При этом сервис пока нельзя считать завершённым по заданному
+критерию. Есть один прямой пробел в заявленном API — отсутствующий Admin Wishlist контракт — и
+несколько существенных пробелов в доказательстве корректности runtime-бизнес-логики.
 
-| Область | Оценка | Вывод |
-| --- | ---: | --- |
-| Production build и типизация | 100% | Успешно |
-| Федеративная композиция | 100% | Успешно |
-| GraphQL surface implementation | 80% | Admin Wishlist отсутствует |
-| Основная доменная реализация | 75% | Большинство доменов реализовано |
-| Подтверждённая runtime-корректность | 45% | Нет актуального полного green baseline |
-| Broker/integration contracts | 50% | Значительная часть actions не имеет явного E2E-покрытия |
-| DSL/materializer verification | 35% | Нормативная тестовая матрица реализована частично |
-| Документация как актуальный контракт | 45% | Есть существенный drift планов и README |
+| Область                              | Оценка | Вывод                                                   |
+| ------------------------------------ | -----: | ------------------------------------------------------- |
+| Production build и типизация         |   100% | Успешно                                                 |
+| Федеративная композиция              |   100% | Успешно                                                 |
+| GraphQL surface implementation       |    80% | Admin Wishlist отсутствует                              |
+| Основная доменная реализация         |    75% | Большинство доменов реализовано                         |
+| Подтверждённая runtime-корректность  |    45% | Нет актуального полного green baseline                  |
+| Broker/integration contracts         |    50% | Значительная часть actions не имеет явного E2E-покрытия |
+| DSL/materializer verification        |    35% | Нормативная тестовая матрица реализована частично       |
+| Документация как актуальный контракт |    45% | Есть существенный drift планов и README                 |
 
 Статус: **не готов к объявлению feature-complete**.
 
 ## 2. Методика и ограничения
 
-Аудит выполнен read-only по production-коду и тестовым контрактам. Изменения в runtime-код,
-миграции и changeset не вносились.
+Аудит выполнен read-only по production-коду и тестовым контрактам. Изменения в runtime-код, миграции
+и changeset не вносились.
 
 Проверено:
 
@@ -144,17 +144,17 @@ tenant/customer input.
 
 Заявлены и зарегистрированы:
 
-| Action | Назначение |
-| --- | --- |
-| `customers.resolveCheckoutBuyerEligibility` | Checkout lifecycle и segment eligibility snapshot |
-| `customers.getCustomerComparisonSelection` | Catalog read persisted comparison selection |
-| `customers.validateLoyaltySegmentReferences` | Loyalty reference validation |
-| `customers.rebuildCustomerStatistics` | Operator rebuild statistics projection |
-| `customers.rebuildCustomerDynamicSegments` | Operator dynamic segment rebuild/enqueue |
-| `customers.lookupCustomerExternalReference` | Lookup integration reference |
-| `customers.upsertCustomerExternalReference` | Upsert integration reference |
-| `customers.deleteCustomerExternalReference` | Delete integration reference |
-| `customers.syncCustomerExternalReferences` | Batch external reference synchronization |
+| Action                                       | Назначение                                        |
+| -------------------------------------------- | ------------------------------------------------- |
+| `customers.resolveCheckoutBuyerEligibility`  | Checkout lifecycle и segment eligibility snapshot |
+| `customers.getCustomerComparisonSelection`   | Catalog read persisted comparison selection       |
+| `customers.validateLoyaltySegmentReferences` | Loyalty reference validation                      |
+| `customers.rebuildCustomerStatistics`        | Operator rebuild statistics projection            |
+| `customers.rebuildCustomerDynamicSegments`   | Operator dynamic segment rebuild/enqueue          |
+| `customers.lookupCustomerExternalReference`  | Lookup integration reference                      |
+| `customers.upsertCustomerExternalReference`  | Upsert integration reference                      |
+| `customers.deleteCustomerExternalReference`  | Delete integration reference                      |
+| `customers.syncCustomerExternalReferences`   | Batch external reference synchronization          |
 
 ### 4.4 Event-driven и durable сценарии
 
@@ -210,8 +210,8 @@ write paths проверяют Catalog product и viewer ownership.
 
 ### 5.7 Statistics
 
-Order, checkout и refund projections являются revision-aware и используются для rebuildable
-customer statistics и per-currency monetary statistics.
+Order, checkout и refund projections являются revision-aware и используются для rebuildable customer
+statistics и per-currency monetary statistics.
 
 ### 5.8 Lifecycle и privacy
 
@@ -249,8 +249,9 @@ sync через broker boundary.
 - Admin `node`/`nodes` не разрешают wishlist entities;
 - нет Admin E2E queries/spec для wishlist read paths.
 
-При этом `GlobalIdEntity.CustomerWishlist` и `CustomerWishlistItem`, repository, loaders и Storefront
-runtime уже существуют. Это не новый домен, а незавершённый опубликованный Admin boundary.
+При этом `GlobalIdEntity.CustomerWishlist` и `CustomerWishlistItem`, repository, loaders и
+Storefront runtime уже существуют. Это не новый домен, а незавершённый опубликованный Admin
+boundary.
 
 Влияние:
 
@@ -273,8 +274,8 @@ runtime уже существуют. Это не новый домен, а не�
 
 Статус: **готовность не доказана**.
 
-Последний сохранённый профильный baseline в
-`e2e/customers-admin-api-failure-remediation-plan.md` датирован 2026-08-17:
+Последний сохранённый профильный baseline в `e2e/customers-admin-api-failure-remediation-plan.md`
+датирован 2026-08-17:
 
 - 214 tests;
 - 161 passed;
@@ -290,8 +291,8 @@ consent ordering, addresses, profile и tax invariants.
 содержит 222 Admin Customers test declarations. Поэтому старые 53 failures нельзя автоматически
 считать текущими, но также нельзя считать закрытыми.
 
-Собственный Definition of Done remediation plan требует green result каждого соответствующего spec
-с `--workers 1`. До фиксации этих результатов runtime correctness не подтверждена.
+Собственный Definition of Done remediation plan требует green result каждого соответствующего spec с
+`--workers 1`. До фиксации этих результатов runtime correctness не подтверждена.
 
 ### P1. Нормативный DSL/materializer test contract реализован частично
 
@@ -385,27 +386,26 @@ Customers operational contract с обязательными метриками/
 
 ## 7. Риски по доменам
 
-| Домен | Риск | Приоритет |
-| --- | --- | --- |
-| Admin Wishlist | Заявленный API полностью недоступен | P0 |
-| Admin mutations | Исправленные сценарии не подтверждены актуальным green baseline | P0 |
-| Merge/privacy | Durable child workflow, replay и cleanup требуют runtime evidence | P1 |
-| Dynamic segments | Temporal/concurrency/publication correctness доказана частично | P1 |
-| Statistics | Event ordering, lag и rebuild требуют подтверждения | P1 |
-| External references | Write/sync broker boundary не имеет явного полного E2E | P1 |
-| Federation | SDL компонуется, низкий остаточный риск | P2 |
-| Build/type safety | Проверка проходит, низкий остаточный риск | P2 |
-| Documentation | Drift затрудняет управление scope и DoD | P1 |
+| Домен               | Риск                                                              | Приоритет |
+| ------------------- | ----------------------------------------------------------------- | --------- |
+| Admin Wishlist      | Заявленный API полностью недоступен                               | P0        |
+| Admin mutations     | Исправленные сценарии не подтверждены актуальным green baseline   | P0        |
+| Merge/privacy       | Durable child workflow, replay и cleanup требуют runtime evidence | P1        |
+| Dynamic segments    | Temporal/concurrency/publication correctness доказана частично    | P1        |
+| Statistics          | Event ordering, lag и rebuild требуют подтверждения               | P1        |
+| External references | Write/sync broker boundary не имеет явного полного E2E            | P1        |
+| Federation          | SDL компонуется, низкий остаточный риск                           | P2        |
+| Build/type safety   | Проверка проходит, низкий остаточный риск                         | P2        |
+| Documentation       | Drift затрудняет управление scope и DoD                           | P1        |
 
 ## 8. Что не считается блокером
 
 - Отсутствие credentials/session management в Customers корректно: этим владеет IAM.
-- Отсутствие Customer order/payment source-of-truth данных корректно: ими владеют Orders и
-  Payments.
+- Отсутствие Customer order/payment source-of-truth данных корректно: ими владеют Orders и Payments.
 - Nullable cross-service Product/Media references являются допустимым federation behavior.
 - Storefront не должен принимать публичный customer/store identity для viewer-owned operations.
-- Backfill и backward compatibility не требуются и запрещены правилами проекта, поскольку
-  production data отсутствуют.
+- Backfill и backward compatibility не требуются и запрещены правилами проекта, поскольку production
+  data отсутствуют.
 - Успешный build не заменяет E2E, но является положительным обязательным gate.
 
 ## 9. Рекомендуемый план завершения

@@ -1,17 +1,20 @@
 # Reviews Service Readiness Audit
 
 **Дата аудита:** 2026-08-20  
-**Область:** `services/reviews`, актуальные Reviews Admin API и Storefront API сценарии в `e2e/tests/reviews-*`  
-**Целевой критерий:** всё заявленное API и вся заявленная бизнес-логика завершены и подтверждены исполняемыми тестами
+**Область:** `services/reviews`, актуальные Reviews Admin API и Storefront API сценарии в
+`e2e/tests/reviews-*`  
+**Целевой критерий:** всё заявленное API и вся заявленная бизнес-логика завершены и подтверждены
+исполняемыми тестами
 
 ## Резюме
 
-Текущая готовность Reviews Service оценивается в **35–40% от заявленного функционального контракта**.
+Текущая готовность Reviews Service оценивается в **35–40% от заявленного функционального
+контракта**.
 
 Сервис уже не является техническим skeleton: присутствуют полная доменная SQL-схема, Drizzle-модели,
-tenant-scoped repositories, Relay pagination, DataLoader, Admin и Storefront GraphQL schemas, resolver
-слой, scripts и DBOS workflows. Большинство заявленных root GraphQL fields имеют реализацию и
-подключены к серверу.
+tenant-scoped repositories, Relay pagination, DataLoader, Admin и Storefront GraphQL schemas,
+resolver слой, scripts и DBOS workflows. Большинство заявленных root GraphQL fields имеют реализацию
+и подключены к серверу.
 
 Однако критерий полной готовности не выполнен. Основные блокеры:
 
@@ -25,8 +28,8 @@ tenant-scoped repositories, Relay pagination, DataLoader, Admin и Storefront Gr
 8. revision snapshots не позволяют восстановить весь typed aggregate.
 
 **Вывод:** сервис не готов к функциональной приёмке, интеграционной эксплуатации или объявлению API
-завершённым. Следующий milestone должен быть не расширением SDL, а замыканием существующего контракта
-исполняемыми тестами и исправлением P0-инвариантов.
+завершённым. Следующий milestone должен быть не расширением SDL, а замыканием существующего
+контракта исполняемыми тестами и исправлением P0-инвариантов.
 
 ## Методика и ограничения
 
@@ -60,18 +63,18 @@ server или browser. Build не запускался, поскольку но�
 
 ## Сводная оценка
 
-| Область | Оценка | Состояние |
-| --- | ---: | --- |
-| SQL migrations и физическая модель | 80% | Основные агрегаты, индексы и constraints присутствуют |
-| Drizzle models и repositories | 75% | Существенное покрытие CRUD, Relay и tenant scope |
-| GraphQL SDL и resolver wiring | 70% | Root surface в основном подключён, но часть публичного контракта лишняя или неполная |
-| Базовые create/read/update/delete paths | 60% | Реализованы основные happy paths |
-| Бизнес-инварианты | 30% | Важные cross-service и aggregate-инварианты отсутствуют |
-| Publication и localization | 20% | Данные сохраняются, но не управляют Storefront visibility |
-| Review request customer flow | 15% | Admin CRUD есть, customer consumption flow отсутствует |
-| Events, notifications и background lifecycle | 20% | Только часть create/delete events; processors отсутствуют |
-| Authorization и capability separation | 25% | Tenant context есть, granular Reviews RBAC отсутствует |
-| Acceptance/e2e verification | 0% | 182 пустых тестовых сценария, 0 assertions |
+| Область                                      | Оценка | Состояние                                                                            |
+| -------------------------------------------- | -----: | ------------------------------------------------------------------------------------ |
+| SQL migrations и физическая модель           |    80% | Основные агрегаты, индексы и constraints присутствуют                                |
+| Drizzle models и repositories                |    75% | Существенное покрытие CRUD, Relay и tenant scope                                     |
+| GraphQL SDL и resolver wiring                |    70% | Root surface в основном подключён, но часть публичного контракта лишняя или неполная |
+| Базовые create/read/update/delete paths      |    60% | Реализованы основные happy paths                                                     |
+| Бизнес-инварианты                            |    30% | Важные cross-service и aggregate-инварианты отсутствуют                              |
+| Publication и localization                   |    20% | Данные сохраняются, но не управляют Storefront visibility                            |
+| Review request customer flow                 |    15% | Admin CRUD есть, customer consumption flow отсутствует                               |
+| Events, notifications и background lifecycle |    20% | Только часть create/delete events; processors отсутствуют                            |
+| Authorization и capability separation        |    25% | Tenant context есть, granular Reviews RBAC отсутствует                               |
+| Acceptance/e2e verification                  |     0% | 182 пустых тестовых сценария, 0 assertions                                           |
 
 ## Реализованный фундамент
 
@@ -128,11 +131,11 @@ business policy, authorization, publication rules или side effects.
 
 В активном наборе находятся:
 
-| API | Spec-файлов | `test(...)` | Assertions | API-вызовов |
-| --- | ---: | ---: | ---: | ---: |
-| Admin | 13 | 88 | 0 | 0 |
-| Storefront | 14 | 94 | 0 | 0 |
-| **Итого** | **27** | **182** | **0** | **0** |
+| API        | Spec-файлов | `test(...)` | Assertions | API-вызовов |
+| ---------- | ----------: | ----------: | ---------: | ----------: |
+| Admin      |          13 |          88 |          0 |           0 |
+| Storefront |          14 |          94 |          0 |           0 |
+| **Итого**  |      **27** |     **182** |      **0** |       **0** |
 
 Каждый тест содержит только комментарий с ожидаемым поведением. Например:
 
@@ -161,16 +164,16 @@ business policy, authorization, publication rules или side effects.
 - moderation eligibility в `content_item.status`;
 - channel/locale delivery в `content_publication`.
 
-Фактическая Storefront visibility в
-`src/resolvers/storefront/ContentResolver.ts:isContentVisible()` проверяет только:
+Фактическая Storefront visibility в `src/resolvers/storefront/ContentResolver.ts:isContentVisible()`
+проверяет только:
 
 - `deletedAt`;
 - `redactedAt`;
 - `content.status`;
 - ownership для unpublished author content.
 
-Storefront connections аналогично фильтруют только `status = PUBLISHED` и `redactedAt IS NULL`.
-Не проверяются:
+Storefront connections аналогично фильтруют только `status = PUBLISHED` и `redactedAt IS NULL`. Не
+проверяются:
 
 - наличие опубликованной publication для текущего storefront channel;
 - publication locale;
@@ -238,8 +241,8 @@ Storefront `ReviewCreateInput` принимает product, variant, order и ord
 - применить и раскрыть incentive из request/campaign;
 - обеспечить idempotent replay всего customer flow.
 
-Storefront query проверяет только совпадение `customerId`. Status, expiry и revocation не участвуют в
-visibility. Resolver также возвращает expired/terminal request владельцу.
+Storefront query проверяет только совпадение `customerId`. Status, expiry и revocation не участвуют
+в visibility. Resolver также возвращает expired/terminal request владельцу.
 
 **Критерий завершения:** определить customer-facing request credential contract, добавить atomic
 consume workflow и реализовать monotonic request events, verification и incentive binding.
@@ -356,8 +359,8 @@ root namespaces/operations и protected federation reads.
 
 ### P1-4. Revision snapshot неполон
 
-README требует, чтобы snapshot содержал root и typed-extension поля, необходимые для
-воспроизведения версии.
+README требует, чтобы snapshot содержал root и typed-extension поля, необходимые для воспроизведения
+версии.
 
 `contentSnapshot()` сохраняет только поля `content_item`. Не сохраняются:
 
@@ -399,9 +402,9 @@ Metrics обновляются синхронно в части Storefront mutat
 - customer ownership;
 - edit-window deadline.
 
-Не проверяются terminal moderation states, redaction, publication policy или иной запрет редактирования
-после lifecycle transition. Repository read скрывает soft-deleted rows, но остальные policy facts
-должны быть явными.
+Не проверяются terminal moderation states, redaction, publication policy или иной запрет
+редактирования после lifecycle transition. Repository read скрывает soft-deleted rows, но остальные
+policy facts должны быть явными.
 
 Update/delete mutations также не имеют собственного idempotency key. Повтор после успешного
 изменения превращается в revision conflict, хотя активная спецификация заявляет idempotent replay
@@ -487,43 +490,43 @@ entities.
 - **Blocked** — ключевая часть contract отсутствует;
 - **Unverified** — нет исполняемого e2e-доказательства.
 
-| Область | Structural | Business completeness | Основные пробелы |
-| --- | --- | --- | --- |
-| Node/nodes | Да | Partial, unverified | granular auth и federation parity |
-| Store configuration | Да | Partial, unverified | no-op/event semantics, capability separation |
-| Rating criteria CRUD | Да | Partial, unverified | cross-service assignments, dependency policy |
-| Reviews CRUD | Да | Partial, unverified | non-atomic update, criteria/media/reference validation |
-| Replies через reviewUpdate | Да | Partial, unverified | aggregate rollback, events, revision snapshots |
-| Product questions CRUD | Да | Partial, unverified | non-atomic update, Catalog validation |
-| Answers через questionUpdate | Да | Partial, unverified | ordering, notification, aggregate rollback |
-| Question subscriptions | Да | Partial, unverified | delivery side effects и capability separation |
-| Content redaction/restore | Да | Partial, unverified | incomplete snapshots, privacy restore policy |
-| Review requests | Да | Partial, unverified | eligibility, dispatch/expiry, customer consumption |
-| Reports | Да | Partial, unverified | event/signal/case automation |
-| Moderation cases | Да | Partial, unverified | complete action semantics, events, projections |
-| External references | Да | Partial, unverified | provider validation, sync processors, safe metadata |
-| Relay filters/order/pagination | Да | Partial, unverified | runtime and cursor stability not tested |
-| Summaries/widgets | Да | Partial, unverified | full public eligibility and rebuild consistency |
+| Область                        | Structural | Business completeness | Основные пробелы                                       |
+| ------------------------------ | ---------- | --------------------- | ------------------------------------------------------ |
+| Node/nodes                     | Да         | Partial, unverified   | granular auth и federation parity                      |
+| Store configuration            | Да         | Partial, unverified   | no-op/event semantics, capability separation           |
+| Rating criteria CRUD           | Да         | Partial, unverified   | cross-service assignments, dependency policy           |
+| Reviews CRUD                   | Да         | Partial, unverified   | non-atomic update, criteria/media/reference validation |
+| Replies через reviewUpdate     | Да         | Partial, unverified   | aggregate rollback, events, revision snapshots         |
+| Product questions CRUD         | Да         | Partial, unverified   | non-atomic update, Catalog validation                  |
+| Answers через questionUpdate   | Да         | Partial, unverified   | ordering, notification, aggregate rollback             |
+| Question subscriptions         | Да         | Partial, unverified   | delivery side effects и capability separation          |
+| Content redaction/restore      | Да         | Partial, unverified   | incomplete snapshots, privacy restore policy           |
+| Review requests                | Да         | Partial, unverified   | eligibility, dispatch/expiry, customer consumption     |
+| Reports                        | Да         | Partial, unverified   | event/signal/case automation                           |
+| Moderation cases               | Да         | Partial, unverified   | complete action semantics, events, projections         |
+| External references            | Да         | Partial, unverified   | provider validation, sync processors, safe metadata    |
+| Relay filters/order/pagination | Да         | Partial, unverified   | runtime and cursor stability not tested                |
+| Summaries/widgets              | Да         | Partial, unverified   | full public eligibility and rebuild consistency        |
 
 ## Матрица Storefront API
 
-| Область | Structural | Business completeness | Основные пробелы |
-| --- | --- | --- | --- |
-| Store configuration | Да | Partial, unverified | inactive/unknown context behavior |
-| Review read/list | Да | Blocked | publication/channel/locale visibility |
-| Review create | Да | Partial | subject/media eligibility, request/incentive flow, events |
-| Review update/delete | Да | Partial | terminal policy, replay idempotency, events |
-| Question read/list | Да | Blocked | publication/localization/parent visibility |
-| Question create/update/delete | Да | Partial | Catalog eligibility, events, policy completeness |
-| Answer create/update/delete | Да | Partial | ordering, notification, events |
-| Subscription set | Да | Partial | lifecycle semantics и delivery processor |
-| Votes | Да | Partial | event contract, concurrency proof |
-| Reports | Да | Partial | signals/events and second-report lifecycle proof |
-| Viewer engagement | Да | Partial | request-local cache isolation unverified |
-| Viewer capabilities | Да | Partial | only update/delete window represented |
-| Review request customer flow | Частично | Blocked | no request consumption mutation contract |
-| Summaries | Да | Blocked | publication/redaction scope mismatch |
-| Federation | Да | Partial | visibility parity и excess public entity types |
+| Область                       | Structural | Business completeness | Основные пробелы                                          |
+| ----------------------------- | ---------- | --------------------- | --------------------------------------------------------- |
+| Store configuration           | Да         | Partial, unverified   | inactive/unknown context behavior                         |
+| Review read/list              | Да         | Blocked               | publication/channel/locale visibility                     |
+| Review create                 | Да         | Partial               | subject/media eligibility, request/incentive flow, events |
+| Review update/delete          | Да         | Partial               | terminal policy, replay idempotency, events               |
+| Question read/list            | Да         | Blocked               | publication/localization/parent visibility                |
+| Question create/update/delete | Да         | Partial               | Catalog eligibility, events, policy completeness          |
+| Answer create/update/delete   | Да         | Partial               | ordering, notification, events                            |
+| Subscription set              | Да         | Partial               | lifecycle semantics и delivery processor                  |
+| Votes                         | Да         | Partial               | event contract, concurrency proof                         |
+| Reports                       | Да         | Partial               | signals/events and second-report lifecycle proof          |
+| Viewer engagement             | Да         | Partial               | request-local cache isolation unverified                  |
+| Viewer capabilities           | Да         | Partial               | only update/delete window represented                     |
+| Review request customer flow  | Частично   | Blocked               | no request consumption mutation contract                  |
+| Summaries                     | Да         | Blocked               | publication/redaction scope mismatch                      |
+| Federation                    | Да         | Partial               | visibility parity и excess public entity types            |
 
 ## План доведения до полной готовности
 
@@ -547,8 +550,8 @@ entities.
 6. Записывать complete revision snapshot.
 7. Публиковать event/outbox только после commit.
 
-Выходной критерий: stale/mixed failure/concurrent/no-op e2e проходят для review, question и criterion
-aggregates.
+Выходной критерий: stale/mixed failure/concurrent/no-op e2e проходят для review, question и
+criterion aggregates.
 
 ### Этап 3. Ввести единую public eligibility policy
 
@@ -628,6 +631,6 @@ P0 и P1 задач нельзя считать законченной ни Stor
 model, ни review-request flow, ни integration/event guarantees.
 
 Рекомендуемый следующий deliverable: **исполняемый вертикальный срез review lifecycle** — Admin
-configuration/criteria, Storefront submission, publication visibility, owner edit/delete, moderation,
-summary и events — с атомарностью и полным e2e-покрытием. После него тем же шаблоном закрыть questions,
-requests, engagement и external integrations.
+configuration/criteria, Storefront submission, publication visibility, owner edit/delete,
+moderation, summary и events — с атомарностью и полным e2e-покрытием. После него тем же шаблоном
+закрыть questions, requests, engagement и external integrations.

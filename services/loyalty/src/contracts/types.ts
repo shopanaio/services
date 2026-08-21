@@ -395,7 +395,6 @@ export interface LoyaltyReservationContract {
   programVersionId: string;
   accountId: string;
   checkoutId: string;
-  checkoutVersion: number;
   quoteId: string;
   quoteRevision: string;
   points: string;

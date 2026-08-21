@@ -3,13 +3,14 @@
 Дата: 2026-08-20  
 Статус: **NOT READY**  
 Объект аудита: `services/listing`  
-Критерий: всё заявленное публичное API и вся заявленная бизнес-логика должны быть завершены и иметь проверяемое подтверждение.
+Критерий: всё заявленное публичное API и вся заявленная бизнес-логика должны быть завершены и иметь
+проверяемое подтверждение.
 
 ## 1. Итог
 
-Listing service успешно собирается и содержит развитую реализацию canonical listing index, storefront
-listing, facets, PostgreSQL search и recommendation runtime. Однако сервис не проходит строгий gate
-готовности «всё заявленное завершено».
+Listing service успешно собирается и содержит развитую реализацию canonical listing index,
+storefront listing, facets, PostgreSQL search и recommendation runtime. Однако сервис не проходит
+строгий gate готовности «всё заявленное завершено».
 
 Оценка общей функциональной готовности: **60–65%**.
 
@@ -25,9 +26,9 @@ listing, facets, PostgreSQL search и recommendation runtime. Однако се�
    semantics.
 6. Финальные concurrency, performance и acceptance gates не закрыты.
 
-Успешный production build подтверждает, что текущий TypeScript и локальные GraphQL schemas могут быть
-собраны. Он не доказывает completeness API, корректность распределённых workflows или выполнение
-бизнес-инвариантов.
+Успешный production build подтверждает, что текущий TypeScript и локальные GraphQL schemas могут
+быть собраны. Он не доказывает completeness API, корректность распределённых workflows или
+выполнение бизнес-инвариантов.
 
 ## 2. Область аудита
 
@@ -97,17 +98,17 @@ listing, facets, PostgreSQL search и recommendation runtime. Однако се�
 
 ## 5. Сводная оценка
 
-| Область | Оценка | Статус | Основной вывод |
-| --- | ---: | --- | --- |
-| Listing index и product lifecycle | 80% | PARTIAL | Single path развит; batch recommendation lifecycle потерян |
-| Storefront listing | 85% | IMPLEMENTED/UNVERIFIED | Page, total, filters, sorts и facets реализованы; runtime acceptance не запускался |
-| Admin listing | 70% | PARTIAL | Forward listing работает; advertised backward pagination отклоняется |
-| Facet administration | 85% | IMPLEMENTED/UNVERIFIED | CRUD, scopes, values и swatches присутствуют; часть edge cases слабо проверена |
-| Search runtime | 75% | PARTIAL | PostgreSQL FTS, typo, synonyms, boosts и explain реализованы; status/overview отсутствует |
-| Collections | 75% | UNVERIFIED | Projection и listing paths присутствуют; full lifecycle evidence недостаточно |
-| Recommendations | 45% | PARTIAL/UNVERIFIED | Большой runtime реализован, но e2e suite фактически пуст и batch lifecycle неполон |
-| Operational readiness | 40% | PARTIAL | Build успешен; performance/concurrency/status gates не закрыты |
-| Документация | 35% | CONFLICT | PostgreSQL contract конфликтует с Typesense/ONNX документом |
+| Область                           | Оценка | Статус                 | Основной вывод                                                                            |
+| --------------------------------- | -----: | ---------------------- | ----------------------------------------------------------------------------------------- |
+| Listing index и product lifecycle |    80% | PARTIAL                | Single path развит; batch recommendation lifecycle потерян                                |
+| Storefront listing                |    85% | IMPLEMENTED/UNVERIFIED | Page, total, filters, sorts и facets реализованы; runtime acceptance не запускался        |
+| Admin listing                     |    70% | PARTIAL                | Forward listing работает; advertised backward pagination отклоняется                      |
+| Facet administration              |    85% | IMPLEMENTED/UNVERIFIED | CRUD, scopes, values и swatches присутствуют; часть edge cases слабо проверена            |
+| Search runtime                    |    75% | PARTIAL                | PostgreSQL FTS, typo, synonyms, boosts и explain реализованы; status/overview отсутствует |
+| Collections                       |    75% | UNVERIFIED             | Projection и listing paths присутствуют; full lifecycle evidence недостаточно             |
+| Recommendations                   |    45% | PARTIAL/UNVERIFIED     | Большой runtime реализован, но e2e suite фактически пуст и batch lifecycle неполон        |
+| Operational readiness             |    40% | PARTIAL                | Build успешен; performance/concurrency/status gates не закрыты                            |
+| Документация                      |    35% | CONFLICT               | PostgreSQL contract конфликтует с Typesense/ONNX документом                               |
 
 ## 6. Findings
 
@@ -222,7 +223,7 @@ Severity: **P0 — acceptance evidence absent**
 Пример:
 
 ```typescript
-test('returns related products in published display order', () => {
+test("returns related products in published display order", () => {
   // Verify Product.relatedProducts resolves product and public source fields.
 });
 ```
@@ -431,7 +432,8 @@ fixture не реализована.
 
 - реализовать deterministic media/file fixture;
 - включить IMAGE create/read/update/delete scenario;
-- зафиксировать обязательные invariants для COLOR, GRADIENT и IMAGE вместо permissive branch в тесте.
+- зафиксировать обязательные invariants для COLOR, GRADIENT и IMAGE вместо permissive branch в
+  тесте.
 
 ### F-09. Snapshot consistency является weak-consistency contract и должна быть принята явно
 
@@ -463,73 +465,73 @@ committed states между response branches.
 
 ### 7.1. Storefront listing
 
-| API | Implementation | Verification | Итог |
-| --- | --- | --- | --- |
-| `Query.products` | Есть | Listing e2e artifacts существуют | IMPLEMENTED/UNVERIFIED |
-| `Query.searchProducts` | Есть | Search lifecycle/preview artifacts существуют | IMPLEMENTED/UNVERIFIED |
-| `Category.products` | Есть | Category/listing scenarios существуют | IMPLEMENTED/UNVERIFIED |
-| `Collection.products` | Есть | Collection pagination artifacts ограничены | UNVERIFIED |
-| Forward pagination | Есть | Основные listing scenarios присутствуют | IMPLEMENTED/UNVERIFIED |
-| Filters | Facet/vendor/price/availability | Основная matrix присутствует | IMPLEMENTED/UNVERIFIED |
-| Same-variant semantics | Universal variant-term compiler | Tracker acceptance не закрыт полностью | PARTIAL |
-| Sorts | Manual/relevance/newest/created/title/price | Основная matrix существует | IMPLEMENTED/UNVERIFIED |
-| Total count | Есть | Не запускался в текущем аудите | UNVERIFIED |
-| Facet counts/isolation | Есть | Extensive listing artifacts существуют | IMPLEMENTED/UNVERIFIED |
-| Availability virtual facet | Есть | Tracker verification incomplete | PARTIAL |
+| API                        | Implementation                              | Verification                                  | Итог                   |
+| -------------------------- | ------------------------------------------- | --------------------------------------------- | ---------------------- |
+| `Query.products`           | Есть                                        | Listing e2e artifacts существуют              | IMPLEMENTED/UNVERIFIED |
+| `Query.searchProducts`     | Есть                                        | Search lifecycle/preview artifacts существуют | IMPLEMENTED/UNVERIFIED |
+| `Category.products`        | Есть                                        | Category/listing scenarios существуют         | IMPLEMENTED/UNVERIFIED |
+| `Collection.products`      | Есть                                        | Collection pagination artifacts ограничены    | UNVERIFIED             |
+| Forward pagination         | Есть                                        | Основные listing scenarios присутствуют       | IMPLEMENTED/UNVERIFIED |
+| Filters                    | Facet/vendor/price/availability             | Основная matrix присутствует                  | IMPLEMENTED/UNVERIFIED |
+| Same-variant semantics     | Universal variant-term compiler             | Tracker acceptance не закрыт полностью        | PARTIAL                |
+| Sorts                      | Manual/relevance/newest/created/title/price | Основная matrix существует                    | IMPLEMENTED/UNVERIFIED |
+| Total count                | Есть                                        | Не запускался в текущем аудите                | UNVERIFIED             |
+| Facet counts/isolation     | Есть                                        | Extensive listing artifacts существуют        | IMPLEMENTED/UNVERIFIED |
+| Availability virtual facet | Есть                                        | Tracker verification incomplete               | PARTIAL                |
 
 ### 7.2. Admin listing и facets
 
-| API | Implementation | Итог |
-| --- | --- | --- |
-| `listing(first, after)` | Есть | IMPLEMENTED/UNVERIFIED |
-| `listing(last, before)` | Runtime rejection | MISSING |
-| Facet queries | Есть | IMPLEMENTED/UNVERIFIED |
-| Facet create/update/delete | Есть | IMPLEMENTED/UNVERIFIED |
-| Facet scopes bulk update | Есть | IMPLEMENTED/UNVERIFIED |
-| Facet move/rebalance | Есть | IMPLEMENTED/UNVERIFIED |
-| Facet value CRUD | Есть | IMPLEMENTED/UNVERIFIED |
-| Merge/unmerge | Есть | IMPLEMENTED/UNVERIFIED |
-| Swatch COLOR/GRADIENT | Есть | IMPLEMENTED/UNVERIFIED |
-| Swatch IMAGE + file | Есть в коде, e2e skipped | UNVERIFIED |
+| API                        | Implementation           | Итог                   |
+| -------------------------- | ------------------------ | ---------------------- |
+| `listing(first, after)`    | Есть                     | IMPLEMENTED/UNVERIFIED |
+| `listing(last, before)`    | Runtime rejection        | MISSING                |
+| Facet queries              | Есть                     | IMPLEMENTED/UNVERIFIED |
+| Facet create/update/delete | Есть                     | IMPLEMENTED/UNVERIFIED |
+| Facet scopes bulk update   | Есть                     | IMPLEMENTED/UNVERIFIED |
+| Facet move/rebalance       | Есть                     | IMPLEMENTED/UNVERIFIED |
+| Facet value CRUD           | Есть                     | IMPLEMENTED/UNVERIFIED |
+| Merge/unmerge              | Есть                     | IMPLEMENTED/UNVERIFIED |
+| Swatch COLOR/GRADIENT      | Есть                     | IMPLEMENTED/UNVERIFIED |
+| Swatch IMAGE + file        | Есть в коде, e2e skipped | UNVERIFIED             |
 
 ### 7.3. Search
 
-| Capability | Implementation | Итог |
-| --- | --- | --- |
-| PostgreSQL primary FTS | Есть | IMPLEMENTED/UNVERIFIED |
-| Locale normalization | Есть | IMPLEMENTED/UNVERIFIED |
-| SKU exact/prefix | Есть | UNVERIFIED |
-| Phrase/same-element | Есть | UNVERIFIED |
-| Typo fallback | Есть | Preview scenario существует | IMPLEMENTED/UNVERIFIED |
-| Synonym CRUD/CAS | Есть | Частичное e2e/UI evidence | IMPLEMENTED/UNVERIFIED |
-| Product boost CRUD/CAS | Есть | Частичное evidence | IMPLEMENTED/UNVERIFIED |
-| Search settings | Есть | Partial evidence | IMPLEMENTED/UNVERIFIED |
-| Explain/Preview | Есть | Targeted scenario существует | IMPLEMENTED/UNVERIFIED |
-| Operational status | Нет | MISSING |
-| Overview | Нет | MISSING |
-| Extension/profile/index readiness | Нет публичного API | MISSING |
-| Performance acceptance | Не закрыт | UNVERIFIED |
+| Capability                        | Implementation     | Итог                         |
+| --------------------------------- | ------------------ | ---------------------------- |
+| PostgreSQL primary FTS            | Есть               | IMPLEMENTED/UNVERIFIED       |
+| Locale normalization              | Есть               | IMPLEMENTED/UNVERIFIED       |
+| SKU exact/prefix                  | Есть               | UNVERIFIED                   |
+| Phrase/same-element               | Есть               | UNVERIFIED                   |
+| Typo fallback                     | Есть               | Preview scenario существует  | IMPLEMENTED/UNVERIFIED |
+| Synonym CRUD/CAS                  | Есть               | Частичное e2e/UI evidence    | IMPLEMENTED/UNVERIFIED |
+| Product boost CRUD/CAS            | Есть               | Частичное evidence           | IMPLEMENTED/UNVERIFIED |
+| Search settings                   | Есть               | Partial evidence             | IMPLEMENTED/UNVERIFIED |
+| Explain/Preview                   | Есть               | Targeted scenario существует | IMPLEMENTED/UNVERIFIED |
+| Operational status                | Нет                | MISSING                      |
+| Overview                          | Нет                | MISSING                      |
+| Extension/profile/index readiness | Нет публичного API | MISSING                      |
+| Performance acceptance            | Не закрыт          | UNVERIFIED                   |
 
 ### 7.4. Recommendations
 
-| Capability | Implementation | Verification | Итог |
-| --- | --- | --- | --- |
-| Placement policy query/mutations | Есть | Placeholder tests | UNVERIFIED |
-| Manual recommendation CRUD | Есть | Placeholder tests | UNVERIFIED |
-| CAS/version conflicts | Есть в repository/scripts | Placeholder tests | UNVERIFIED |
-| Draft preview | Есть | Placeholder tests | UNVERIFIED |
-| Order fact ingestion | Есть | Placeholder tests | UNVERIFIED |
-| Revision/reversal handling | Есть в workflows | Placeholder tests | UNVERIFIED |
-| FBT calculation | Есть | Только limited unit artifacts | UNVERIFIED |
-| Ranking strategies | Есть | Unit artifacts + placeholder e2e | PARTIAL |
-| Snapshot build/activation | Есть | Placeholder e2e | UNVERIFIED |
-| Scheduling/maintenance | Есть | Placeholder e2e | UNVERIFIED |
-| Product lifecycle single path | Есть | Нет полноценного e2e | UNVERIFIED |
-| Product lifecycle batch path | Recommendation sync отсутствует | Нет | MISSING |
-| Storefront fields | Есть | Placeholder e2e | UNVERIFIED |
-| Batched DataLoader read | Есть | Placeholder e2e | UNVERIFIED |
-| Live publication/availability | Есть | Placeholder e2e | UNVERIFIED |
-| Cursor generation semantics | Реализован fail-on-change | Документы конфликтуют | CONFLICT |
+| Capability                       | Implementation                  | Verification                     | Итог       |
+| -------------------------------- | ------------------------------- | -------------------------------- | ---------- |
+| Placement policy query/mutations | Есть                            | Placeholder tests                | UNVERIFIED |
+| Manual recommendation CRUD       | Есть                            | Placeholder tests                | UNVERIFIED |
+| CAS/version conflicts            | Есть в repository/scripts       | Placeholder tests                | UNVERIFIED |
+| Draft preview                    | Есть                            | Placeholder tests                | UNVERIFIED |
+| Order fact ingestion             | Есть                            | Placeholder tests                | UNVERIFIED |
+| Revision/reversal handling       | Есть в workflows                | Placeholder tests                | UNVERIFIED |
+| FBT calculation                  | Есть                            | Только limited unit artifacts    | UNVERIFIED |
+| Ranking strategies               | Есть                            | Unit artifacts + placeholder e2e | PARTIAL    |
+| Snapshot build/activation        | Есть                            | Placeholder e2e                  | UNVERIFIED |
+| Scheduling/maintenance           | Есть                            | Placeholder e2e                  | UNVERIFIED |
+| Product lifecycle single path    | Есть                            | Нет полноценного e2e             | UNVERIFIED |
+| Product lifecycle batch path     | Recommendation sync отсутствует | Нет                              | MISSING    |
+| Storefront fields                | Есть                            | Placeholder e2e                  | UNVERIFIED |
+| Batched DataLoader read          | Есть                            | Placeholder e2e                  | UNVERIFIED |
+| Live publication/availability    | Есть                            | Placeholder e2e                  | UNVERIFIED |
+| Cursor generation semantics      | Реализован fail-on-change       | Документы конфликтуют            | CONFLICT   |
 
 ## 8. Что реализовано хорошо
 
@@ -581,7 +583,8 @@ Playwright scenarios.
 
 ### Phase 1. Зафиксировать canonical contract
 
-1. Объявить PostgreSQL FTS документ canonical, а Typesense/ONNX документ superseded либо удалить его.
+1. Объявить PostgreSQL FTS документ canonical, а Typesense/ONNX документ superseded либо удалить
+   его.
 2. Принять recommendation cursor semantics.
 3. Принять weak или repeatable snapshot semantics для listing response branches.
 4. Синхронизировать GraphQL descriptions, knowledge vault, implementation plans и trackers.
@@ -681,8 +684,8 @@ Listing service можно перевести в `READY` только когда
 
 ## 12. Финальное заключение
 
-Текущая версия Listing service является существенной implementation, а не прототипом-заглушкой.
-Core listing/facet/search paths близки к feature-complete состоянию. Однако сервис нельзя считать
+Текущая версия Listing service является существенной implementation, а не прототипом-заглушкой. Core
+listing/facet/search paths близки к feature-complete состоянию. Однако сервис нельзя считать
 завершённым по требованию «всё заявленное API и бизнес-логика должны быть готовы».
 
 Readiness блокируют не cosmetic issues, а наблюдаемые contract gaps:

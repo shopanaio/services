@@ -103,7 +103,6 @@ export class PricingCheckoutQuoteService {
     const stable = {
       executionId: params.context.executionId,
       checkoutId: params.context.checkoutId,
-      basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
       currencyCode: params.context.currencyCode,
       discountEvaluationRevision: discountResult.revision,
       transformedLines: discountResult.lines,
@@ -211,7 +210,6 @@ export class PricingCheckoutQuoteService {
     const stable = {
       executionId: params.context.executionId,
       checkoutId: params.context.checkoutId,
-      basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
       currencyCode: currency,
       discountEvaluationRevision: shipping.revision,
       basedOnPreliminaryDiscountEvaluationRevision: params.preliminary.discountEvaluationRevision,
@@ -267,7 +265,6 @@ function attemptOf(context: Pricing.PricingCheckoutEvaluationContext, requestDig
   return {
     storeId: context.storeId,
     checkoutId: context.checkoutId,
-    basedOnCheckoutVersion: context.expectedCheckoutVersion,
     executionId: context.executionId,
     requestDigest,
   };

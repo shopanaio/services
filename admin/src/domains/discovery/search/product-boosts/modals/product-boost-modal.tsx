@@ -370,7 +370,6 @@ export function ProductBoostModal() {
 
     const result = await deleteProductBoost({
       id: current.id,
-      expectedVersion: current.version,
     });
     if (result.userErrors.length > 0) {
       message.error(result.userErrors[0].message);

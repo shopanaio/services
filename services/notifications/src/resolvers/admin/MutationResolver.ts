@@ -58,7 +58,6 @@ export class NotificationsMutationResolver extends NotificationsType<Record<stri
     const result = await this.$ctx.kernel.runScript(NotificationDefinitionSetEnabledScript, {
       key: toDefinitionKey(args.input.key),
       enabled: args.input.enabled,
-      expectedVersion: args.input.expectedVersion,
     });
     if (result.setting) {
       const key = toDefinitionKey(result.setting.definitionKey);
@@ -80,7 +79,7 @@ export class NotificationsMutationResolver extends NotificationsType<Record<stri
       key: toDefinitionKey(args.input.key),
       channel: toDomainChannel(args.input.channel),
       enabled: args.input.enabled,
-      expectedVersion: args.input.expectedVersion,
+
       senderName: optional(args.input.senderName),
       senderEmail: optional(args.input.senderEmail),
       replyTo: optional(args.input.replyTo),
@@ -112,7 +111,6 @@ export class NotificationsMutationResolver extends NotificationsType<Record<stri
       subjectTemplate: optional(args.input.subjectTemplate),
       bodyTemplate: args.input.bodyTemplate,
       plainTextTemplate: optional(args.input.plainTextTemplate),
-      expectedVersion: args.input.expectedVersion,
     });
     if (result.template) {
       const key = {
@@ -230,7 +228,6 @@ export class NotificationsMutationResolver extends NotificationsType<Record<stri
       url: optional(args.input.url),
       apiVersion: optional(args.input.apiVersion),
       status: args.input.status ? toDomainWebhookStatus(args.input.status) : undefined,
-      expectedVersion: args.input.expectedVersion,
     });
     if (result.webhook) {
       this.$ctx.loaders.webhook.clear(result.webhook.id).prime(result.webhook.id, result.webhook);

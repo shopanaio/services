@@ -72,7 +72,7 @@ export class StoreConfigurationUpdateScript extends BaseScript<
 
     const updated = await this.repository.configuration.updateStoreConfiguration(
       params.configurationId,
-      params.expectedRevision,
+
       patch,
     );
     if (updated.status === "applied") {

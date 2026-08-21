@@ -100,13 +100,13 @@ export function OrderDetailsEditor({ kind }: { kind: "shipping" | "payment" }) {
       kind === "shipping"
         ? await shippingMutation.updateShippingDetails({
             id: order.id,
-            expectedVersion: order.version,
+
             shippingMethodId: methodId,
             shippingAddress: address,
           })
         : await paymentMutation.updatePaymentDetails({
             id: order.id,
-            expectedVersion: order.version,
+
             paymentMethodId: methodId,
             billingAddress: address,
           });

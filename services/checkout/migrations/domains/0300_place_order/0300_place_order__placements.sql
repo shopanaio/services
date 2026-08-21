@@ -3,8 +3,6 @@ CREATE TABLE "checkout"."checkout_placements" (
   "id" uuid PRIMARY KEY DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "checkout_id" uuid NOT NULL,
-  "checkout_version" integer NOT NULL,
-  "result_revision" text NOT NULL,
   "idempotency_key" text NOT NULL,
   "request_hash" text NOT NULL,
   "credential_id" text NOT NULL,
@@ -30,10 +28,6 @@ CREATE TABLE "checkout"."checkout_placements" (
     UNIQUE ("store_id", "checkout_id"),
   CONSTRAINT "checkout_placements_idempotency_unique"
     UNIQUE ("store_id", "idempotency_key"),
-  CONSTRAINT "checkout_placements_version_positive_check"
-    CHECK ("checkout_version" > 0),
-  CONSTRAINT "checkout_placements_revision_not_blank_check"
-    CHECK (length(btrim("result_revision")) > 0),
   CONSTRAINT "checkout_placements_idempotency_not_blank_check"
     CHECK (length(btrim("idempotency_key")) > 0),
   CONSTRAINT "checkout_placements_request_hash_not_blank_check"

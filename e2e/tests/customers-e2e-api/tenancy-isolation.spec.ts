@@ -153,7 +153,7 @@ test.describe('Customers E2E API — tenancy isolation', () => {
       'CustomerUpdateInput',
       {
         firstName: 'Still A',
-        expectedRevision: await storeA.revision(),
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { id firstName } userErrors { ${USER_ERROR_FIELDS} }`,

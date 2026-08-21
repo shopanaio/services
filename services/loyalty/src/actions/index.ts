@@ -272,7 +272,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
         }
         const updated = await new RewardEntitlementService(this.kernel.repository).transition({
           entitlementId: entitlement.id,
-          expectedRevision: params.quote.entitlementRevision,
+
           transition: { type: "RESERVE", checkoutId: params.checkoutId },
           idempotencyKey: params.idempotencyKey,
           occurredAt: params.reservedAt,

@@ -116,7 +116,6 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
     const resultBase = {
       executionId: params.context.executionId,
       checkoutId: params.context.checkoutId,
-      basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
       currencyCode: params.context.currencyCode,
       basedOnPreliminaryRevision: params.preliminary.revision,
       ratePlanRevision,
@@ -132,8 +131,6 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
     const staged = await this.dependencies.bindings.stageCheckoutSnapshot({
       storeId: params.context.storeId,
       checkoutId: params.context.checkoutId,
-      basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
-      targetCheckoutVersion: params.context.targetCheckoutVersion,
       preliminaryRevision: params.preliminary.revision,
       deliveryRevision: result.revision,
       options: groupResults.flatMap(({ bindings }) =>
@@ -173,7 +170,6 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
     const resolved = await this.dependencies.bindings.resolve({
       storeId: params.storeId,
       checkoutId: params.checkoutId,
-      checkoutVersion: params.checkoutVersion,
       groupId: params.groupId,
       optionHandle: params.optionHandle,
       effectiveAt: params.effectiveAt,
@@ -223,7 +219,6 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
     const base = {
       executionId: params.context.executionId,
       checkoutId: params.context.checkoutId,
-      basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
       currencyCode: params.context.currencyCode,
       basedOnPreliminaryRevision: params.preliminary.revision,
       ratePlanRevision: revision("drp_v1", []),
@@ -431,8 +426,6 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
         effectiveAt: params.context.effectiveAt,
         storeId: params.context.storeId,
         checkoutId: params.context.checkoutId,
-        basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
-        targetCheckoutVersion: params.context.targetCheckoutVersion,
         groupId: plan.groupId,
         ratePlanRevision: plan.ratePlanRevision,
         eligibilityRevision: plan.eligibility.eligibilityRevision,
@@ -447,7 +440,6 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
       const cacheIdentity = {
         storeId: params.context.storeId,
         checkoutId: params.context.checkoutId,
-        basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
         quoteRequestId: request.quoteRequestId,
         carrierServiceAccountId: accountId,
         routeRevision: route.routeRevision,
@@ -648,7 +640,6 @@ export class DeliveryCheckoutService implements DeliveryCheckoutOptionsPort {
     const old = await this.dependencies.bindings.resolve({
       storeId: params.context.storeId,
       checkoutId: params.context.checkoutId,
-      checkoutVersion: params.context.expectedCheckoutVersion,
       groupId: group.groupId,
       optionHandle: selection.optionHandle,
       effectiveAt: params.context.effectiveAt,
@@ -941,7 +932,6 @@ function buildGroupPlan(
     currencyCode: params.context.currencyCode,
     channelCode: params.context.channelCode,
     localeCode: params.context.localeCode,
-    targetCheckoutVersion: params.context.targetCheckoutVersion,
     physicalRevisions: bucket.lines.map((line) => facts.get(line.lineId)?.physicalRevision),
     pricingRevision: params.preliminary.revision,
   });
@@ -1012,8 +1002,6 @@ function manualCandidate(
       source: "MANUAL",
       optionHandle: handle,
       checkoutId: params.context.checkoutId,
-      basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
-      targetCheckoutVersion: params.context.targetCheckoutVersion,
       groupId: plan.groupId,
       profileId: plan.profile.profileId,
       methodDefinitionId: method.methodDefinitionId,
@@ -1089,8 +1077,6 @@ function carrierCandidate(
       source: "CARRIER_SERVICE",
       optionHandle: handle,
       checkoutId: params.context.checkoutId,
-      basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
-      targetCheckoutVersion: params.context.targetCheckoutVersion,
       groupId: plan.groupId,
       profileId: plan.profile.profileId,
       methodDefinitionId: method.methodDefinitionId,
@@ -1144,7 +1130,6 @@ function customizationInput(
     executionId: params.context.executionId,
     storeId: params.context.storeId,
     checkoutId: params.context.checkoutId,
-    checkoutVersion: params.context.expectedCheckoutVersion,
     currencyCode: params.context.currencyCode,
     localeCode: params.context.localeCode,
     channelCode: params.context.channelCode,

@@ -16,7 +16,6 @@ export interface AppInstallationRecord {
   readonly targetVersion: string | null;
   readonly manifestHash: string | null;
   readonly configuration: Readonly<Record<string, unknown>>;
-  readonly configurationVersion: number;
   readonly installedByUserId: string | null;
   readonly healthStatus: "UNKNOWN" | "HEALTHY" | "DEGRADED" | "UNHEALTHY";
   readonly lastErrorCode: string | null;

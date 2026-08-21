@@ -10,7 +10,6 @@ import {
 export interface CustomerComparisonVariantRemoveParams {
   customerId: string;
   variantId: string;
-  expectedRevision: number;
 }
 
 export class CustomerComparisonVariantRemoveScript extends BaseScript<
@@ -20,7 +19,7 @@ export class CustomerComparisonVariantRemoveScript extends BaseScript<
   protected async execute(
     params: CustomerComparisonVariantRemoveParams,
   ): Promise<CustomerComparisonMutationResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateExpectedRevision();
     if (revisionError) return failed(revisionError);
 
     const result = await this.repository.comparison.removeVariant(params);

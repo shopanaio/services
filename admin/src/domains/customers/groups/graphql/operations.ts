@@ -91,17 +91,9 @@ export const CUSTOMER_GROUP_CREATE_MUTATION = gql`
 `;
 
 export const CUSTOMER_GROUP_UPDATE_MUTATION = gql`
-  mutation CustomerGroupUpdate(
-    $groupId: ID!
-    $expectedRevision: Int!
-    $operations: CustomerGroupUpdateInput!
-  ) {
+  mutation CustomerGroupUpdate($groupId: ID!, $operations: CustomerGroupUpdateInput!) {
     customersMutation {
-      customerGroupUpdate(
-        groupId: $groupId
-        expectedRevision: $expectedRevision
-        operations: $operations
-      ) {
+      customerGroupUpdate(groupId: $groupId, operations: $operations) {
         group {
           ...CustomerGroupFields
         }

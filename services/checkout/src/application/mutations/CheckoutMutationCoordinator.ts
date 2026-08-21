@@ -21,7 +21,6 @@ import {
   type CheckoutMutationSnapshotPort,
   type CheckoutRecalculationCommitPort,
 } from "./contracts.js";
-import { casConflicts } from "../../infrastructure/observability/checkoutObservability.js";
 
 export interface CheckoutMutationCommit<T> {
   checkout: CheckoutCommittedSnapshot;
@@ -73,7 +72,7 @@ export class CheckoutMutationCoordinator {
     const reservation = reserved.reservation;
     try {
       const draft = input.createDraft(reservation);
-      this.assertDraft(draft, 0, {
+      this.assertDraft(draft, {
         checkoutId: reservation.checkoutId,
         storeId: reservation.identity.storeId,
       });
@@ -81,12 +80,11 @@ export class CheckoutMutationCoordinator {
       const committed = await this.commitSafely(() =>
         this.dependencies.commits.create({
           reservation,
-          draft: { ...draft, version: 1 },
+          draft,
           result,
         }),
       );
-      if (committed.status === "VERSION_CONFLICT") {
-        casConflicts.inc();
+      if (committed.status === "NOT_COMMITTED") {
         throw new CheckoutMutationError(
           "CHECKOUT_COMMIT_FAILED",
           "Checkout could not be created.",
@@ -144,7 +142,7 @@ export class CheckoutMutationCoordinator {
     const current = await this.load(input.checkoutId, input.storeId, input.context.visitorId);
     const draft = structuredClone(current.draft);
     const value = input.apply(draft, current);
-    this.assertDraft(draft, current.version, input);
+    this.assertDraft(draft, input);
     if (canonicalJson(draft) === canonicalJson(current.draft)) {
       return { checkout: current, value };
     }
@@ -154,18 +152,16 @@ export class CheckoutMutationCoordinator {
         storeId: input.storeId,
         checkoutId: input.checkoutId,
         visitorId: input.context.visitorId,
-        expectedVersion: current.version,
-        nextVersion: current.version + 1,
+
         createdAt: current.createdAt,
-        draft: { ...draft, version: current.version + 1 },
+        draft,
         result,
       }),
     );
-    if (committed.status === "VERSION_CONFLICT") {
-      casConflicts.inc();
+    if (committed.status === "NOT_COMMITTED") {
       throw new CheckoutMutationError(
-        "CHECKOUT_VERSION_CONFLICT",
-        "Checkout changed while it was being recalculated. Retry the mutation.",
+        "CHECKOUT_COMMIT_FAILED",
+        "Checkout could not be committed.",
         true,
       );
     }
@@ -181,7 +177,7 @@ export class CheckoutMutationCoordinator {
     const current = await this.load(input.checkoutId, input.storeId, input.context.visitorId);
     const draft = structuredClone(current.draft);
     const value = input.apply(draft, current);
-    this.assertDraft(draft, current.version, input);
+    this.assertDraft(draft, input);
     if (canonicalJson(draft) === canonicalJson(current.draft)) {
       return { checkout: current, value };
     }
@@ -190,18 +186,16 @@ export class CheckoutMutationCoordinator {
         storeId: input.storeId,
         checkoutId: input.checkoutId,
         visitorId: input.context.visitorId,
-        expectedVersion: current.version,
-        nextVersion: current.version + 1,
+
         createdAt: current.createdAt,
-        draft: { ...draft, version: current.version + 1 },
+        draft,
         previousResult: current.result,
       }),
     );
-    if (committed.status === "VERSION_CONFLICT") {
-      casConflicts.inc();
+    if (committed.status === "NOT_COMMITTED") {
       throw new CheckoutMutationError(
-        "CHECKOUT_VERSION_CONFLICT",
-        "Checkout changed while the mutation was being committed. Retry the mutation.",
+        "CHECKOUT_COMMIT_FAILED",
+        "Checkout could not be committed.",
         true,
       );
     }
@@ -272,13 +266,11 @@ export class CheckoutMutationCoordinator {
 
   private assertDraft(
     draft: CheckoutMutationDraft,
-    version: number,
     input: { checkoutId: string; storeId: string },
   ): void {
     if (
       draft.checkoutId !== input.checkoutId ||
       draft.storeId !== input.storeId ||
-      draft.version !== version ||
       !draft.currencyCode.trim() ||
       !draft.channelCode.trim()
     ) {

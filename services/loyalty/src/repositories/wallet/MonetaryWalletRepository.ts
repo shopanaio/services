@@ -231,7 +231,7 @@ export class MonetaryWalletRepository extends BaseRepository {
 
   async updateWalletState(
     id: string,
-    expectedRevision: number,
+
     input: Partial<Pick<NewMonetaryWallet, "status" | "mergedIntoWalletId" | "closedAt">>,
   ): Promise<MonetaryWallet | null> {
     const rows = await this.connection
@@ -241,13 +241,7 @@ export class MonetaryWalletRepository extends BaseRepository {
         revision: sql`${monetaryWallets.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(monetaryWallets.storeId, this.storeId),
-          eq(monetaryWallets.id, id),
-          eq(monetaryWallets.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(monetaryWallets.storeId, this.storeId), eq(monetaryWallets.id, id)))
       .returning();
     return rows[0] ?? null;
   }
@@ -572,7 +566,7 @@ export class MonetaryWalletRepository extends BaseRepository {
 
   async updateBalance(
     walletId: string,
-    expectedRevision: number,
+
     input: Partial<
       Pick<
         NewMonetaryWalletBalance,
@@ -595,7 +589,6 @@ export class MonetaryWalletRepository extends BaseRepository {
         and(
           eq(monetaryWalletBalances.storeId, this.storeId),
           eq(monetaryWalletBalances.walletId, walletId),
-          eq(monetaryWalletBalances.revision, expectedRevision),
         ),
       )
       .returning();

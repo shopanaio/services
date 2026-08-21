@@ -85,11 +85,6 @@ input PlaceOrderInput {
   checkoutId: ID!
 
   """
-  Pipeline revision returned by Checkout.resultRevision.
-  """
-  expectedResultRevision: String!
-
-  """
   Client-generated key identifying this payment/order attempt. Reuse the same
   key with identical input when retrying after a timeout or connection failure.
   """
@@ -169,10 +164,6 @@ type PlaceOrderPayload {
   Checkout snapshot committed by this placement.
   """
   checkoutId: ID
-  """
-  Checkout.resultRevision captured by this placement.
-  """
-  resultRevision: String
   orderId: ID
   status: PlaceOrderStatus
   paymentCollectionId: ID

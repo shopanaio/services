@@ -178,7 +178,7 @@ test.describe('Customers Admin API - customer tax updates', () => {
         throwOnError: false,
         variables: {
           customerId: customer.id,
-          expectedRevision: customer.revision,
+          
           operations: { taxExemptions: { create: [create] } },
         },
       });

@@ -1231,8 +1231,6 @@ export type ProductQuestionAnswerCreateInput = {
    * because storefront question answers require an authenticated customer.
    */
   content: ReviewContentSubmissionInput;
-  /** Revision returned by ProductQuestion.revision. */
-  expectedRevision: Scalars['Int']['input'];
   productQuestionId: Scalars['ID']['input'];
 };
 
@@ -1267,7 +1265,6 @@ export enum ProductQuestionAnswerSort {
 export type ProductQuestionAnswerUpdateInput = {
   answerId: Scalars['ID']['input'];
   content: ReviewContentEditInput;
-  expectedRevision: Scalars['Int']['input'];
 };
 
 export type ProductQuestionAnswerUpdatePayload = {
@@ -1372,7 +1369,6 @@ export type ProductQuestionSummary = {
 /** Customer-editable fields of an existing product question. */
 export type ProductQuestionUpdateInput = {
   content: ReviewContentEditInput;
-  expectedRevision: Scalars['Int']['input'];
   productQuestionId: Scalars['ID']['input'];
 };
 
@@ -1564,7 +1560,6 @@ export type ReviewContentConnection = Connection & {
 
 /** Optimistic input used to delete content owned by the current customer. */
 export type ReviewContentDeleteInput = {
-  expectedRevision: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -2348,7 +2343,6 @@ export enum ReviewTranslationSource {
 /** Customer-editable fields of an existing review. */
 export type ReviewUpdateInput = {
   content?: InputMaybe<ReviewContentEditInput>;
-  expectedRevision: Scalars['Int']['input'];
   /** Complete media replacement when supplied. An empty list removes media. */
   media?: InputMaybe<Array<ReviewMediaCreateInput>>;
   /** New overall rating from 1 through 5. */

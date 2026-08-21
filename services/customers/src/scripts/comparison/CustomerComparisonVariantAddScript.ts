@@ -11,7 +11,6 @@ import {
 export interface CustomerComparisonVariantAddParams {
   customerId: string;
   variantId: string;
-  expectedRevision: number;
 }
 
 export class CustomerComparisonVariantAddScript extends BaseScript<
@@ -21,7 +20,7 @@ export class CustomerComparisonVariantAddScript extends BaseScript<
   protected async execute(
     params: CustomerComparisonVariantAddParams,
   ): Promise<CustomerComparisonMutationResult> {
-    const revisionError = validateExpectedRevision(params.expectedRevision);
+    const revisionError = validateExpectedRevision();
     if (revisionError) return failed(revisionError);
 
     const catalog = await resolveCatalogComparisonVariants(this.services, {
@@ -41,7 +40,6 @@ export class CustomerComparisonVariantAddScript extends BaseScript<
       customerId: params.customerId,
       productId: variant.productId,
       variantId: params.variantId,
-      expectedRevision: params.expectedRevision,
     });
     switch (result.status) {
       case "applied":

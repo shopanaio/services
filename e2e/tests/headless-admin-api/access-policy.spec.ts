@@ -377,14 +377,14 @@ async function createStorefront(api: Api, displayName = 'Policy storefront') {
 async function updatePolicy(
   api: Api,
   connectionId: string,
-  expectedRevision: number,
+  
   permissions: string[],
 ) {
   const response = await api.admin.mutation('headless-admin-api/AccessPolicyUpdate', {
     variables: {
       input: {
         connectionId,
-        expectedRevision,
+        
         permissions,
         clientMutationId: crypto.randomUUID(),
       },

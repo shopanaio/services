@@ -32,7 +32,7 @@ test.describe('Customers E2E API — tax synchronization', () => {
         countryCode: 'UA',
         value: `VAT-${crypto.randomUUID()}`,
         isPrimary: false,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -44,7 +44,7 @@ test.describe('Customers E2E API — tax synchronization', () => {
       'CustomerTaxIdentifierUpdateInput',
       {
         taxIdentifierId,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -182,7 +182,7 @@ test.describe('Customers E2E API — tax synchronization', () => {
       taxIdentifiers: { update: [{ taxIdentifierId: id, operations: { value: 'ADMIN' } }] },
     });
     expect(admin.userErrors).toEqual([]);
-    const rejected = await update(id, { value: 'STOREFRONT', expectedRevision: stale });
+    const rejected = await update(id, { value: 'STOREFRONT' });
     kit.expectUserError(rejected.data!.payload.userErrors, 'REVISION_CONFLICT', {
       retryable: true,
     });

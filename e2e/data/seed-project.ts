@@ -249,7 +249,7 @@ export async function seedProducts(
         if (categoryOperations.length > 0 || tagOperations.length > 0 || variantMediaUpdates.length > 0) {
           product = await api.product.update({
             productId: product.id,
-            expectedRevision: product.revision,
+            
             operations: {
               ...(categoryOperations.length > 0 ? { categories: categoryOperations } : {}),
               ...(tagOperations.length > 0 ? { tags: tagOperations } : {}),
@@ -288,7 +288,7 @@ export async function seedProducts(
 
         product = await api.product.update({
           productId: product.id,
-          expectedRevision: product.revision,
+          
           operations: {
             status: 'PUBLISHED',
             ...(categoryOperations.length > 0 ? { categories: categoryOperations } : {}),

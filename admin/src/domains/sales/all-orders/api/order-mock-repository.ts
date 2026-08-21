@@ -128,11 +128,6 @@ function error(code: string, message: string, fieldName?: string): OrderMutation
 function locate(input: VersionedOrderInput): ApiOrder | OrderMutationPayload {
   const order = orders.find((item) => item.id === input.id);
   if (!order) return error("NOT_FOUND", "Order not found");
-  if (input.expectedVersion !== order.version)
-    return error(
-      "VERSION_CONFLICT",
-      "This order was changed by another operator. Refresh it and try again.",
-    );
   return order;
 }
 function event(order: ApiOrder, message: string, type: "SYSTEM" | "COMMENT" = "SYSTEM") {

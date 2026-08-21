@@ -129,7 +129,7 @@ export function NotificationWebhookModal() {
     const result = webhook
       ? await updateMutation.updateWebhook({
           id: webhook.id,
-          expectedVersion: webhook.version,
+
           eventType: values.eventType,
           format: values.format,
           url: values.url.trim(),

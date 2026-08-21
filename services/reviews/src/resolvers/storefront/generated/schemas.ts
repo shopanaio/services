@@ -72,7 +72,6 @@ export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 export function ProductQuestionAnswerCreateInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerCreateInput>> {
   return z.object({
     content: z.lazy(() => ReviewContentSubmissionInputSchema()),
-    expectedRevision: z.number(),
     productQuestionId: z.string()
   })
 }
@@ -80,8 +79,7 @@ export function ProductQuestionAnswerCreateInputSchema(): z.ZodObject<Properties
 export function ProductQuestionAnswerUpdateInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerUpdateInput>> {
   return z.object({
     answerId: z.string(),
-    content: z.lazy(() => ReviewContentEditInputSchema()),
-    expectedRevision: z.number()
+    content: z.lazy(() => ReviewContentEditInputSchema())
   })
 }
 
@@ -95,7 +93,7 @@ export function ProductQuestionCreateInputSchema(): z.ZodObject<Properties<Produ
 
 export function ProductQuestionSubscriptionSetInputSchema(): z.ZodObject<Properties<ProductQuestionSubscriptionSetInput>> {
   return z.object({
-    channel: ReviewNotificationChannelSchema.default(ReviewNotificationChannel.Email).nullish(),
+    channel: ReviewNotificationChannelSchema.default("EMAIL").nullish(),
     locale: LocaleCodeSchema.nullish(),
     productQuestionId: z.string(),
     subscribed: z.boolean()
@@ -105,14 +103,12 @@ export function ProductQuestionSubscriptionSetInputSchema(): z.ZodObject<Propert
 export function ProductQuestionUpdateInputSchema(): z.ZodObject<Properties<ProductQuestionUpdateInput>> {
   return z.object({
     content: z.lazy(() => ReviewContentEditInputSchema()),
-    expectedRevision: z.number(),
     productQuestionId: z.string()
   })
 }
 
 export function ReviewContentDeleteInputSchema(): z.ZodObject<Properties<ReviewContentDeleteInput>> {
   return z.object({
-    expectedRevision: z.number(),
     id: z.string()
   })
 }
@@ -194,7 +190,6 @@ export function ReviewSubmissionAuthorInputSchema(): z.ZodObject<Properties<Revi
 export function ReviewUpdateInputSchema(): z.ZodObject<Properties<ReviewUpdateInput>> {
   return z.object({
     content: z.lazy(() => ReviewContentEditInputSchema().nullish()),
-    expectedRevision: z.number(),
     media: z.array(z.lazy(() => ReviewMediaCreateInputSchema())).nullish(),
     rating: z.number().nullish(),
     ratings: z.array(z.lazy(() => ReviewRatingValueInputSchema())).nullish(),

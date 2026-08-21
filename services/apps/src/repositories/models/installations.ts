@@ -63,7 +63,6 @@ export const appInstallations = appsSchema.table(
     targetVersion: varchar("target_version", { length: 64 }),
     manifestHash: varchar("manifest_hash", { length: 64 }),
     configuration: jsonb("configuration").$type<Record<string, unknown>>().notNull().default({}),
-    configurationVersion: integer("configuration_version").notNull().default(1),
     installedByUserId: varchar("installed_by_user_id", { length: 128 }),
     healthStatus: appInstallationHealthStatus("health_status").notNull().default("UNKNOWN"),
     lastErrorCode: varchar("last_error_code", { length: 128 }),

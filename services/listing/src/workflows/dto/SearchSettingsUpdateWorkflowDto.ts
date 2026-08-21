@@ -2,7 +2,6 @@ import type { UserError } from "../../kernel/BaseScript.js";
 import type { SearchSettingsUpdateParams } from "../../scripts/search/types.js";
 
 export interface SearchSettingsUpdateWorkflowInput {
-  expectedVersion: number;
   settings: SearchSettingsUpdateParams;
   context: SearchSettingsWorkflowContext;
 }
@@ -16,7 +15,7 @@ export interface SearchSettingsWorkflowContext {
 }
 
 export interface SearchSettingsUpdateWorkflowResult {
-  settings: { version: number } | null;
+  settings: Record<string, never> | null;
   operationResults: SearchSettingsOperationResult[];
   userErrors: UserError[];
 }

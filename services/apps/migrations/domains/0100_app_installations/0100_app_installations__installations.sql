@@ -10,7 +10,6 @@ CREATE TABLE "apps"."app_installations" (
   "target_version" varchar(64),
   "manifest_hash" varchar(64),
   "configuration" jsonb DEFAULT '{}'::jsonb NOT NULL,
-  "configuration_version" integer DEFAULT 1 NOT NULL,
   "installed_by_user_id" varchar(128),
   "health_status" "apps"."app_installation_health_status" DEFAULT 'UNKNOWN' NOT NULL,
   "last_error_code" varchar(128),

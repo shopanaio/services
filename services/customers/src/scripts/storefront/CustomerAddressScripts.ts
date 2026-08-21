@@ -37,7 +37,6 @@ export interface StorefrontCustomerAddressCreateParams {
   address: StorefrontCustomerAddressInput;
   defaultShipping?: boolean | null;
   defaultBilling?: boolean | null;
-  expectedRevision: number;
 }
 
 export type StorefrontCustomerAddressCreateResult = AddressMutationResult;
@@ -48,7 +47,6 @@ export interface StorefrontCustomerAddressUpdateParams {
   address: StorefrontCustomerAddressInput;
   defaultShipping?: boolean | null;
   defaultBilling?: boolean | null;
-  expectedRevision: number;
 }
 
 export type StorefrontCustomerAddressUpdateResult = AddressMutationResult;
@@ -56,7 +54,6 @@ export type StorefrontCustomerAddressUpdateResult = AddressMutationResult;
 export interface StorefrontCustomerAddressDeleteParams {
   customerId: string;
   addressId: string;
-  expectedRevision: number;
 }
 
 export interface StorefrontCustomerAddressDeleteResult extends StorefrontCustomerMutationResult {
@@ -69,7 +66,6 @@ export interface StorefrontCustomerAddressDefaultSetParams {
   customerId: string;
   addressId?: string | null;
   defaults: StorefrontCustomerAddressDefaultType[];
-  expectedRevision: number;
 }
 
 export type StorefrontCustomerAddressDefaultSetResult = StorefrontCustomerMutationResult;
@@ -82,13 +78,10 @@ export class StorefrontCustomerAddressCreateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerAddressCreateParams,
   ): Promise<StorefrontCustomerAddressCreateResult> {
-    const errors = validateAddressCommand(params.expectedRevision, params.address);
+    const errors = validateAddressCommand(params.address);
     if (errors.length > 0) return failedAddressMutation(...errors);
 
-    const acquired = await this.repository.customer.acquireActiveRevision(
-      params.customerId,
-      params.expectedRevision,
-    );
+    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
     if (acquired.status !== "acquired") {
       return failedAddressMutation(revisionAcquireError(acquired));
     }
@@ -116,7 +109,7 @@ export class StorefrontCustomerAddressUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerAddressUpdateParams,
   ): Promise<StorefrontCustomerAddressUpdateResult> {
-    const errors = validateAddressCommand(params.expectedRevision, params.address);
+    const errors = validateAddressCommand(params.address);
     const current = await this.repository.address.findOwnedById(
       params.customerId,
       params.addressId,
@@ -132,10 +125,7 @@ export class StorefrontCustomerAddressUpdateScript extends BaseScript<
       this.repository.address.findDefaultShipping(params.customerId),
       this.repository.address.findDefaultBilling(params.customerId),
     ]);
-    const acquired = await this.repository.customer.acquireActiveRevision(
-      params.customerId,
-      params.expectedRevision,
-    );
+    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
     if (acquired.status !== "acquired") {
       return failedAddressMutation(revisionAcquireError(acquired));
     }
@@ -181,7 +171,7 @@ export class StorefrontCustomerAddressDeleteScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerAddressDeleteParams,
   ): Promise<StorefrontCustomerAddressDeleteResult> {
-    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision();
     if (revisionError) return failedAddressDelete(revisionError);
     const current = await this.repository.address.findOwnedById(
       params.customerId,
@@ -193,10 +183,7 @@ export class StorefrontCustomerAddressDeleteScript extends BaseScript<
       );
     }
 
-    const acquired = await this.repository.customer.acquireActiveRevision(
-      params.customerId,
-      params.expectedRevision,
-    );
+    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
     if (acquired.status !== "acquired") {
       return failedAddressDelete(revisionAcquireError(acquired));
     }
@@ -226,7 +213,7 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
     params: StorefrontCustomerAddressDefaultSetParams,
   ): Promise<StorefrontCustomerAddressDefaultSetResult> {
     const errors: StorefrontCustomerUserError[] = [];
-    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision();
     if (revisionError) errors.push(revisionError);
     const defaults = new Set(params.defaults);
     if (defaults.size === 0) {
@@ -258,10 +245,7 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
       this.repository.address.findDefaultShipping(params.customerId),
       this.repository.address.findDefaultBilling(params.customerId),
     ]);
-    const acquired = await this.repository.customer.acquireActiveRevision(
-      params.customerId,
-      params.expectedRevision,
-    );
+    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
     if (acquired.status !== "acquired") {
       return failedCustomerMutation(revisionAcquireError(acquired));
     }
@@ -293,11 +277,10 @@ export class StorefrontCustomerAddressDefaultSetScript extends BaseScript<
 }
 
 function validateAddressCommand(
-  expectedRevision: number,
   address: StorefrontCustomerAddressInput,
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
-  const revisionError = validateStorefrontExpectedRevision(expectedRevision);
+  const revisionError = validateStorefrontExpectedRevision();
   if (revisionError) errors.push(revisionError);
   for (const field of ["address1", "city", "countryCode"] as const) {
     if (!address[field]?.trim()) {

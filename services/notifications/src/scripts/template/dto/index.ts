@@ -20,7 +20,6 @@ export interface NotificationTemplateUpdateParams extends NotificationTemplateQu
   subjectTemplate?: string;
   bodyTemplate: string;
   plainTextTemplate?: string;
-  expectedVersion: number;
 }
 
 export type NotificationPreviewParams = Omit<PreviewNotificationParams, "storeId">;

@@ -232,7 +232,7 @@ export function CustomerSegmentModal() {
       if (!current) return;
       const result = await setSegmentMembers({
         segmentId: current.id,
-        expectedRevision: current.revision,
+
         customerIds,
       });
       if (!result.segment || result.userErrors.length > 0) {
@@ -384,7 +384,6 @@ export function CustomerSegmentModal() {
 
     const result = await deleteSegment({
       id: current.id,
-      expectedRevision: current.revision,
     });
     if (!result.deletedSegmentId || result.userErrors.length > 0) {
       message.error(result.userErrors[0]?.message ?? "Unable to delete segment");

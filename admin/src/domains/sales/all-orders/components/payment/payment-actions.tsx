@@ -17,7 +17,7 @@ export function PaymentActions({
     modal.push({
       orderId: order.id,
       paymentItemId: payment.id,
-      expectedVersion: order.version,
+
       currentStatus: payment.status,
       nextStatus,
       onSaved: refetch,

@@ -82,7 +82,6 @@ describe("CheckoutPipeline", () => {
       "PAYMENT",
       "VALIDATION",
     ]);
-    expect(result.resultRevision).toMatch(/^checkout-pipeline-result:v1:sha256:[0-9a-f]{64}$/);
     expect(deps.pricing.calculatePreliminaryQuote).toHaveBeenCalledWith({
       context: expect.objectContaining({
         checkoutId: request.context.checkoutId,
@@ -107,7 +106,6 @@ describe("CheckoutPipeline", () => {
     expect(paymentRequest.delivery).toEqual({
       executionId: "execution-1",
       checkoutId: "checkout-1",
-      basedOnCheckoutVersion: 3,
       currencyCode: "USD",
       revision: "delivery-v1",
       basedOnPreliminaryRevision: "preliminary-v1",
@@ -239,7 +237,6 @@ describe("CheckoutPipeline", () => {
     const second = await new CheckoutPipeline(dependencies()).recalculate(
       recalculationRequestFixture(),
     );
-    expect(second.resultRevision).toBe(first.resultRevision);
   });
 
   it("times out before the first port call and canonically skips downstream", async () => {

@@ -47,14 +47,14 @@ test.describe('Loyalty Admin API monetary wallet invariants', () => {
     const { wallet } = await fundedWallet();
     const suspended = await kit.api.admin.mutation<any>('loyality-admin-api/MonetaryWalletStatusUpdate', {
       variables: { input: {
-        walletId: wallet.id, expectedRevision: wallet.revision, status: 'SUSPENDED', reasonCode: 'RISK',
+        walletId: wallet.id,  status: 'SUSPENDED', reasonCode: 'RISK',
         idempotencyKey: idempotencyKey('wallet-suspend'),
       } },
     });
     expectNoUserErrors(suspended.data.loyaltyMutation.monetaryWalletStatusUpdate);
     const stale = await kit.api.admin.mutation<any>('loyality-admin-api/MonetaryWalletStatusUpdate', {
       variables: { input: {
-        walletId: wallet.id, expectedRevision: wallet.revision, status: 'ACTIVE', reasonCode: 'STALE',
+        walletId: wallet.id,  status: 'ACTIVE', reasonCode: 'STALE',
         idempotencyKey: idempotencyKey('wallet-stale'),
       } },
     });
@@ -62,7 +62,7 @@ test.describe('Loyalty Admin API monetary wallet invariants', () => {
     const current = suspended.data.loyaltyMutation.monetaryWalletStatusUpdate.monetaryWallet;
     const closed = await kit.api.admin.mutation<any>('loyality-admin-api/MonetaryWalletStatusUpdate', {
       variables: { input: {
-        walletId: wallet.id, expectedRevision: current.revision, status: 'CLOSED', reasonCode: 'CLOSE',
+        walletId: wallet.id,  status: 'CLOSED', reasonCode: 'CLOSE',
         idempotencyKey: idempotencyKey('wallet-close'),
       } },
     });
@@ -77,7 +77,7 @@ test.describe('Loyalty Admin API monetary wallet invariants', () => {
     const reopen = await kit.api.admin.mutation<any>('loyality-admin-api/MonetaryWalletStatusUpdate', {
       variables: { input: {
         walletId: wallet.id,
-        expectedRevision: closed.data.loyaltyMutation.monetaryWalletStatusUpdate.monetaryWallet.revision,
+        
         status: 'ACTIVE', reasonCode: 'INVALID_REOPEN', idempotencyKey: idempotencyKey('wallet-reopen'),
       } },
     });

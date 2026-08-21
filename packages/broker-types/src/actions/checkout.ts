@@ -19,11 +19,8 @@ export interface GetCheckoutCompletionParams {
 export interface CheckoutCompletionSnapshot {
   checkoutId: string;
   storeId: string;
-  checkoutVersion: number;
-  resultRevision: string;
   valid: boolean;
   quoteId: string;
-  quoteRevision: string;
   usageRequirements: readonly PricingCheckoutDiscountUsageRequirement[];
 }
 
@@ -37,8 +34,6 @@ export interface ConfirmPaymentSettlementParams {
   paymentCollectionId: string;
   paymentSessionId: string;
   operationId: string;
-  expectedCheckoutVersion: number;
-  finalQuoteRevision: string;
   deadlineAt: string;
   correlationId: string;
 }

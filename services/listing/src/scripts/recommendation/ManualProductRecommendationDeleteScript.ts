@@ -4,14 +4,11 @@ import type { ManualRecommendationResult } from "./dto/index.js";
 import { genericError } from "./validation.js";
 
 export class ManualProductRecommendationDeleteScript extends BaseScript<
-  { id: string; expectedVersion: number },
+  { id: string },
   ManualRecommendationResult
 > {
   @Transactional()
-  protected async execute(input: {
-    id: string;
-    expectedVersion: number;
-  }): Promise<ManualRecommendationResult> {
+  protected async execute(input: { id: string }): Promise<ManualRecommendationResult> {
     const existing = await this.repository.manualProductRecommendation.findById(input.id);
     if (!existing)
       return { userErrors: [{ message: "Manual recommendation not found", code: "NOT_FOUND" }] };
@@ -26,10 +23,7 @@ export class ManualProductRecommendationDeleteScript extends BaseScript<
       existing.anchorProductId,
       existing.placement,
     );
-    const deletedId = await this.repository.manualProductRecommendation.delete(
-      input.id,
-      input.expectedVersion,
-    );
+    const deletedId = await this.repository.manualProductRecommendation.delete(input.id);
     if (!deletedId)
       return {
         userErrors: [

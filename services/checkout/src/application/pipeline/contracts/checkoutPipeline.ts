@@ -41,17 +41,9 @@ export type CheckoutRecalculationRequest = Readonly<{
   loyaltyRedemption: CheckoutLoyaltyRedemptionIntent | null;
 }>;
 
-/**
- * The caller may persist this snapshot only with compare-and-swap where the
- * current aggregate version equals `basedOnCheckoutVersion`. A stale result
- * must be discarded and recalculated; it must never overwrite newer state.
- */
 export type CheckoutRecalculationResult = Readonly<{
   executionId: string;
   checkoutId: string;
-  basedOnCheckoutVersion: number;
-  /** Stable hash/revision of stage outcomes and issues; execution timing omitted. */
-  resultRevision: string;
   preliminaryPricing: CheckoutPipelineStageOutcome<
     CalculatePreliminaryPricingResult,
     "PRICING_PRELIMINARY"

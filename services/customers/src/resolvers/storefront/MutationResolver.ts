@@ -105,7 +105,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     }
     const input: StorefrontCustomerUpdateWorkflowInput = {
       params: {
-        expectedRevision: args.input.expectedRevision,
         patch: mapCustomerProfilePatch(args.input),
       },
       context: preflight.context,
@@ -140,7 +139,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         address: mapAddressInput(args.input.address),
         defaultShipping: args.input.defaultShipping,
         defaultBilling: args.input.defaultBilling,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -174,7 +172,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         address: mapAddressInput(args.input.address),
         defaultShipping: args.input.defaultShipping,
         defaultBilling: args.input.defaultBilling,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -215,7 +212,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
       };
     }
     const input: StorefrontCustomerAddressDeleteWorkflowInput = {
-      params: { addressId, expectedRevision: args.input.expectedRevision },
+      params: { addressId },
       context: preflight.context,
     };
     const result = await this.runSelfServiceWorkflow<
@@ -258,7 +255,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         addressId,
         defaults: args.input
           .defaults as StorefrontCustomerAddressDefaultSetWorkflowInput["params"]["defaults"],
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -292,7 +288,7 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
           .channel as StorefrontCustomerMarketingConsentUpdateWorkflowInput["params"]["channel"],
         state: args.input
           .state as StorefrontCustomerMarketingConsentUpdateWorkflowInput["params"]["state"],
-        expectedRevision: args.input.expectedRevision,
+
         idempotencyKey: preflight.idempotencyKey,
       },
       context: preflight.context,
@@ -396,7 +392,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         countryCode: args.input.countryCode,
         value: args.input.value,
         isPrimary: args.input.isPrimary,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -435,7 +430,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
         countryCode: args.input.countryCode,
         value: args.input.value,
         isPrimary: args.input.isPrimary,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -480,7 +474,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const input: StorefrontCustomerTaxIdentifierDeleteWorkflowInput = {
       params: {
         taxIdentifierId,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -714,7 +707,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const input: CustomerComparisonVariantAddWorkflowInput = {
       params: {
         variantId,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -745,7 +737,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const input: CustomerComparisonVariantRemoveWorkflowInput = {
       params: {
         variantId,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };
@@ -776,7 +767,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const input: CustomerComparisonCategoryClearWorkflowInput = {
       params: {
         categoryId,
-        expectedRevision: args.input.expectedRevision,
       },
       context: preflight.context,
     };

@@ -299,7 +299,7 @@ export function EditValueTargetsModal() {
 
     const result = await mutation.updateDiscount({
       discountId: discount.id,
-      expectedRevision: discount.revision,
+
       operations: buildDiscountValueTargetsUpdateInput(discount, values),
     });
 

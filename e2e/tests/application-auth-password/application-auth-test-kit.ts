@@ -626,7 +626,7 @@ export async function setClientDisabled(api: Api, realm: Realm, disabled: boolea
           applicationId: composeGlobalId('Application', realm.applicationId),
           clientId: realm.clientId,
           enabled: !disabled,
-          expectedRevision: revision,
+          
         },
       },
     },

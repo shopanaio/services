@@ -53,7 +53,7 @@ export interface DiscountUpdateMutationData {
 
 export interface DiscountUpdateMutationVariables {
   discountId: string;
-  expectedRevision: number;
+
   operations: ApiDiscountUpdateInput;
 }
 

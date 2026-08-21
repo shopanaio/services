@@ -46,7 +46,7 @@ export function FulfillmentBoard({
         clientMutationId: crypto.randomUUID(),
         stages: nextKeys.map((it, idx) => ({
           id: view.columnsMapping[String(it)].id,
-          expectedVersion: view.columnsMapping[String(it)].version,
+
           sortIndex: idx,
         })),
       });
@@ -92,7 +92,7 @@ export function FulfillmentBoard({
       const result = await moveTicket({
         clientMutationId: crypto.randomUUID(),
         ticketId: ticket.ticketId,
-        expectedVersion: ticket.version,
+
         sourceStageId: ticket.stageId,
         targetStageId: view.columnsMapping[String(targetColumn)].id,
         afterTicketId: prevTicketId,

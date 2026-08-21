@@ -147,7 +147,7 @@ export interface CategoryUpdateMutationData {
 
 export interface CategoryUpdateMutationVariables {
   categoryId: string;
-  expectedRevision?: number | null;
+
   operations?: ApiCategoryUpdateInput | null;
 }
 

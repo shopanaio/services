@@ -131,7 +131,6 @@ export class PaymentsActions extends BrokerActions {
         operation: "payments.createCollection",
         content: {
           checkoutId: params.checkoutId,
-          checkoutVersion: params.expectedCheckoutVersion,
           finalQuoteRevision: params.finalQuoteRevision,
           targetAmount: params.targetAmount,
           idempotencyKey: params.idempotencyKey,
@@ -158,7 +157,6 @@ export class PaymentsActions extends BrokerActions {
         operation: "payments.createSession",
         content: {
           checkoutId: params.checkoutId,
-          checkoutVersion: params.expectedCheckoutVersion,
           finalQuoteRevision: params.finalQuoteRevision,
           paymentMethodsRevision: params.paymentMethodsRevision,
           methodHandle: params.methodHandle,

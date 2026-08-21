@@ -45,7 +45,6 @@ export interface CheckoutValidationFunctionInput {
   readonly context: {
     readonly checkoutId: string;
     readonly storeId: string;
-    readonly basedOnCheckoutVersion: number;
     readonly currencyCode: string;
     readonly localeCode: string | null;
     readonly channelCode: string;
@@ -267,7 +266,6 @@ export interface CheckoutValidationFunctionTotals extends CheckoutValidationFunc
 
 export interface CheckoutValidationFunctionPreliminaryQuote {
   readonly checkoutId: string;
-  readonly basedOnCheckoutVersion: number;
   readonly currencyCode: string;
   readonly preliminaryQuoteId: string;
   readonly revision: string;
@@ -328,7 +326,6 @@ export interface CheckoutValidationFunctionOrphanedSelectionReset {
 
 export interface CheckoutValidationFunctionDelivery {
   readonly checkoutId: string;
-  readonly basedOnCheckoutVersion: number;
   readonly currencyCode: string;
   readonly revision: string;
   readonly basedOnPreliminaryRevision: string;
@@ -342,7 +339,6 @@ export interface CheckoutValidationFunctionDelivery {
 
 export interface CheckoutValidationFunctionFinalQuote {
   readonly checkoutId: string;
-  readonly basedOnCheckoutVersion: number;
   readonly currencyCode: string;
   readonly quoteId: string;
   readonly revision: string;
@@ -375,7 +371,6 @@ export type CheckoutValidationFunctionPaymentSelection =
 
 export interface CheckoutValidationFunctionPayment {
   readonly checkoutId: string;
-  readonly basedOnCheckoutVersion: number;
   readonly currencyCode: string;
   readonly revision: string;
   readonly basedOnFinalQuoteRevision: string;

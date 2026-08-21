@@ -49,7 +49,7 @@ export function internalSectionError(): ReviewSectionResult {
 
 export interface StoreConfigurationUpdateParams {
   configurationId: string;
-  expectedRevision: number;
+
   operations?: ReviewStoreConfigurationUpdateInput | null;
 }
 
@@ -71,7 +71,6 @@ export interface QuestionSubscriptionUpdateResult {
 
 export interface ContentRedactParams {
   contentId: string;
-  expectedRevision: number;
 }
 
 export interface ContentRedactResult {
@@ -82,7 +81,6 @@ export interface ContentRedactResult {
 export interface ContentRevisionRestoreParams {
   contentId: string;
   revision: number;
-  expectedRevision: number;
 }
 
 export interface ContentRevisionRestoreResult {

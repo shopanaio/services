@@ -12,11 +12,10 @@ import {
 
 const now = new Date(Date.now() + 60_000);
 
-function draft(version = 3): CheckoutMutationDraft {
+function draft(): CheckoutMutationDraft {
   return {
     checkoutId: "checkout-1",
     storeId: "store-1",
-    version,
     currencyCode: "USD",
     localeCode: "en",
     channelCode: "web",
@@ -101,7 +100,6 @@ function provenance<T extends object>(value: T, context: any): T {
     ...value,
     executionId: context.executionId,
     checkoutId: context.checkoutId,
-    basedOnCheckoutVersion: context.expectedCheckoutVersion,
     currencyCode: context.currencyCode,
   };
 }
@@ -139,7 +137,6 @@ async function committedCurrent(
   return {
     checkoutId: currentDraft.checkoutId,
     storeId: currentDraft.storeId,
-    version: currentDraft.version,
     createdAt: now.toISOString(),
     updatedAt: now.toISOString(),
     lifecycle: {
@@ -165,7 +162,7 @@ const executionContext = {
 };
 
 describe("CheckoutMutationCoordinator", () => {
-  it("runs one complete pipeline before one CAS commit and persists validation invalidity", async () => {
+  it("runs one complete pipeline before commit and persists validation invalidity", async () => {
     const checkoutPipeline = pipeline();
     const current = await committedCurrent(checkoutPipeline);
     const order: string[] = [];
@@ -183,7 +180,6 @@ describe("CheckoutMutationCoordinator", () => {
           status: "COMMITTED" as const,
           checkout: {
             ...current,
-            version: input.nextVersion,
             draft: input.draft,
             result: input.result,
           },
@@ -212,14 +208,13 @@ describe("CheckoutMutationCoordinator", () => {
     expect(order).toEqual(["pipeline", "commit"]);
     expect(recalculate).toHaveBeenCalledTimes(1);
     expect(commits.commit).toHaveBeenCalledTimes(1);
-    expect(result.checkout.version).toBe(4);
     expect(result.checkout.result.validation.status).toBe("SUCCESS");
     if (result.checkout.result.validation.status === "SUCCESS") {
       expect(result.checkout.result.validation.data.valid).toBe(false);
     }
   });
 
-  it("does not run pipeline or increment version for a no-op", async () => {
+  it("does not run pipeline or commit for a no-op", async () => {
     const checkoutPipeline = pipeline();
     const current = await committedCurrent(checkoutPipeline);
     const recalculate = jest.spyOn(checkoutPipeline, "recalculate");
@@ -275,7 +270,7 @@ describe("CheckoutMutationCoordinator", () => {
     expect(commit).not.toHaveBeenCalled();
   });
 
-  it("returns a retryable conflict and never retries the pipeline", async () => {
+  it("returns a retryable commit failure and never retries the pipeline", async () => {
     const checkoutPipeline = pipeline();
     const current = await committedCurrent(checkoutPipeline);
     const recalculate = jest.spyOn(checkoutPipeline, "recalculate");
@@ -283,7 +278,7 @@ describe("CheckoutMutationCoordinator", () => {
       snapshots: { loadOwned: jest.fn(async () => current) },
       commits: {
         create: jest.fn(),
-        commit: jest.fn(async () => ({ status: "VERSION_CONFLICT" as const })),
+        commit: jest.fn(async () => ({ status: "NOT_COMMITTED" as const })),
         commitWithoutRecalculation: jest.fn(),
       },
       requests: factory(),
@@ -314,20 +309,20 @@ describe("CheckoutMutationCoordinator", () => {
       }),
     ).rejects.toEqual(
       expect.objectContaining<Partial<CheckoutMutationError>>({
-        code: "CHECKOUT_VERSION_CONFLICT",
+        code: "CHECKOUT_COMMIT_FAILED",
         retryable: true,
       }),
     );
     expect(recalculate).toHaveBeenCalledTimes(1);
   });
 
-  it("uses CAS-only commit for non-recalculating mutations", async () => {
+  it("commits non-recalculating mutations directly", async () => {
     const checkoutPipeline = pipeline();
     const current = await committedCurrent(checkoutPipeline);
     const recalculate = jest.spyOn(checkoutPipeline, "recalculate");
     const commitWithoutRecalculation = jest.fn(async (input: any) => ({
       status: "COMMITTED" as const,
-      checkout: { ...current, version: input.nextVersion, draft: input.draft },
+      checkout: { ...current, draft: input.draft },
     }));
     const coordinator = new CheckoutMutationCoordinator({
       snapshots: { loadOwned: jest.fn(async () => current) },

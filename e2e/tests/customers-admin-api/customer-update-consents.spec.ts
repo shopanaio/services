@@ -122,7 +122,7 @@ test.describe('Customers Admin API - customer consent updates', () => {
         throwOnError: false,
         variables: {
           customerId: customer.id,
-          expectedRevision: customer.revision,
+          
           operations: {
             consents: { set: [{ channel: 'EMAIL', state, contactPoint: points.EMAIL }] },
           },

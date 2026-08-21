@@ -108,8 +108,6 @@ function request(executionId: string): Payments.GetCheckoutAvailablePaymentMetho
     context: {
       executionId,
       checkoutId: "00000000-0000-0000-0000-000000000001",
-      expectedCheckoutVersion: 2,
-      targetCheckoutVersion: 3,
       currencyCode: "USD",
       correlationId: `correlation-${executionId}`,
       deadlineAt: "2099-01-01T00:00:00.000Z",
@@ -124,7 +122,6 @@ function request(executionId: string): Payments.GetCheckoutAvailablePaymentMetho
     finalQuote: {
       executionId,
       checkoutId: "00000000-0000-0000-0000-000000000001",
-      basedOnCheckoutVersion: 2,
       currencyCode: "USD",
       quoteId: "quote",
       revision: "quote-v1",
@@ -152,7 +149,6 @@ function request(executionId: string): Payments.GetCheckoutAvailablePaymentMetho
     delivery: {
       executionId,
       checkoutId: "00000000-0000-0000-0000-000000000001",
-      basedOnCheckoutVersion: 2,
       currencyCode: "USD",
       revision: "delivery-v1",
       basedOnPreliminaryRevision: "preliminary-v1",

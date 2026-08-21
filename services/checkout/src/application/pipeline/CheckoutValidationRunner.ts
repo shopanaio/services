@@ -439,7 +439,6 @@ export const checkoutValidationFunctionInputSchema = z
       .object({
         checkoutId: identifier,
         storeId: identifier,
-        basedOnCheckoutVersion: z.number().int().nonnegative(),
         currencyCode: identifier,
         localeCode: identifier.nullable(),
         channelCode: identifier,
@@ -479,7 +478,6 @@ export const checkoutValidationFunctionInputSchema = z
     preliminary: z
       .object({
         checkoutId: identifier,
-        basedOnCheckoutVersion: z.number().int().nonnegative(),
         currencyCode: identifier,
         preliminaryQuoteId: identifier,
         revision: identifier,
@@ -501,7 +499,6 @@ export const checkoutValidationFunctionInputSchema = z
     delivery: z
       .object({
         checkoutId: identifier,
-        basedOnCheckoutVersion: z.number().int().nonnegative(),
         currencyCode: identifier,
         revision: identifier,
         basedOnPreliminaryRevision: identifier,
@@ -568,7 +565,6 @@ export const checkoutValidationFunctionInputSchema = z
     finalQuote: z
       .object({
         checkoutId: identifier,
-        basedOnCheckoutVersion: z.number().int().nonnegative(),
         currencyCode: identifier,
         quoteId: identifier,
         revision: identifier,
@@ -587,7 +583,6 @@ export const checkoutValidationFunctionInputSchema = z
     payment: z
       .object({
         checkoutId: identifier,
-        basedOnCheckoutVersion: z.number().int().nonnegative(),
         currencyCode: identifier,
         revision: identifier,
         basedOnFinalQuoteRevision: identifier,
@@ -917,7 +912,6 @@ export function toCheckoutValidationFunctionInput(
     context: {
       checkoutId: request.context.checkoutId,
       storeId: request.context.storeId,
-      basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
       currencyCode: request.context.currencyCode,
       localeCode: request.context.localeCode,
       channelCode: request.context.channelCode,
@@ -957,7 +951,6 @@ export function toCheckoutValidationFunctionInput(
     },
     preliminary: {
       checkoutId: request.preliminary.checkoutId,
-      basedOnCheckoutVersion: request.preliminary.basedOnCheckoutVersion,
       currencyCode: request.preliminary.currencyCode,
       preliminaryQuoteId: request.preliminary.preliminaryQuoteId,
       revision: request.preliminary.revision,
@@ -973,7 +966,6 @@ export function toCheckoutValidationFunctionInput(
     },
     delivery: {
       checkoutId: request.delivery.checkoutId,
-      basedOnCheckoutVersion: request.delivery.basedOnCheckoutVersion,
       currencyCode: request.delivery.currencyCode,
       revision: request.delivery.revision,
       basedOnPreliminaryRevision: request.delivery.basedOnPreliminaryRevision,
@@ -1018,7 +1010,6 @@ export function toCheckoutValidationFunctionInput(
     },
     finalQuote: {
       checkoutId: request.finalQuote.checkoutId,
-      basedOnCheckoutVersion: request.finalQuote.basedOnCheckoutVersion,
       currencyCode: request.finalQuote.currencyCode,
       quoteId: request.finalQuote.quoteId,
       revision: request.finalQuote.revision,
@@ -1034,7 +1025,6 @@ export function toCheckoutValidationFunctionInput(
     },
     payment: {
       checkoutId: request.payment.checkoutId,
-      basedOnCheckoutVersion: request.payment.basedOnCheckoutVersion,
       currencyCode: request.payment.currencyCode,
       revision: request.payment.revision,
       basedOnFinalQuoteRevision: request.payment.basedOnFinalQuoteRevision,
@@ -1362,7 +1352,6 @@ export class CheckoutValidationRunner {
     const revisionPayload = {
       schemaVersion: 1,
       checkoutId: request.context.checkoutId,
-      basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
       basedOnFinalQuoteRevision: request.finalQuote.revision,
       basedOnPaymentRevision: request.payment.revision,
       bindingSetRevision: revision,
@@ -1371,7 +1360,6 @@ export class CheckoutValidationRunner {
     return {
       executionId: request.context.executionId,
       checkoutId: request.context.checkoutId,
-      basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
       currencyCode: request.context.currencyCode,
       revision: `checkout-validation:v1:sha256:${canonicalJsonSha256(revisionPayload)}`,
       basedOnFinalQuoteRevision: request.finalQuote.revision,

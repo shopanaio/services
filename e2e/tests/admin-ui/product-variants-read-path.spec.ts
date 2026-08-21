@@ -190,7 +190,6 @@ async function seedVariantData(
   variants: Array<{ id: string; handle: string; inventoryItemId: string }>,
 ): Promise<SeededVariant[]> {
   const seeded: SeededVariant[] = [];
-  let expectedRevision = initialRevision;
   const variantsByHandle = new Map(
     variantConfigs().map((variant) => [variant.handle, variant] as const),
   );
@@ -242,7 +241,7 @@ async function seedVariantData(
     const weightData = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
         productId,
-        expectedRevision,
+        
         variantId: variant.id,
         weight,
       },
@@ -253,7 +252,7 @@ async function seedVariantData(
     const dimensionsData = await api.admin.mutation('inventory-api/VariantSetDimensions', {
       variables: {
         productId,
-        expectedRevision,
+        
         variantId: variant.id,
         length,
         width,

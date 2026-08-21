@@ -61,7 +61,7 @@ enum CustomerMarketingConsentTargetState {
 input CustomerMarketingConsentUpdateInput {
   channel: CustomerMarketingConsentChannel!
   state: CustomerMarketingConsentTargetState!
-  expectedRevision: Int!
+
   idempotencyKey: String!
 }
 

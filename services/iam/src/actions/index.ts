@@ -164,7 +164,6 @@ const updateServiceLinkedApplicationAuthSettingsInputSchema =
     .extend({
       userId: z.string().trim().min(1).max(128),
       enabledMethods: z.array(z.enum(["password", "email_otp", "phone_otp"])).max(3),
-      expectedRevision: z.number().int().positive(),
     })
     .strict()
     .superRefine((value, context) => {
@@ -628,7 +627,6 @@ export class IamBrokerActions extends BrokerActions {
             organizationId: params.organizationId,
             applicationId: params.applicationId,
             enabledMethods: params.enabledMethods,
-            expectedRevision: params.expectedRevision,
           },
           {
             id: actionContext.caller.service,

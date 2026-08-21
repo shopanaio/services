@@ -15,7 +15,6 @@ export const CHECKOUT_PIPELINE_MAX_COLLECTION_ITEMS = 500;
 
 const identifierSchema = z.string().trim().min(1).max(256);
 const revisionSchema = z.string().trim().min(1).max(256);
-const checkoutVersionSchema = z.number().int().safe().nonnegative();
 const currencyCodeSchema = z.enum(CURRENCY_CODES as [string, ...string[]]);
 const localeCodeSchema = z.enum(LOCALE_CODES as [string, ...string[]]);
 const countryCodeSchema = z.string().regex(/^[A-Z]{2}$/);
@@ -110,7 +109,6 @@ export const checkoutPipelineStageProvenanceSchema = z
   .object({
     executionId: identifierSchema,
     checkoutId: identifierSchema,
-    basedOnCheckoutVersion: checkoutVersionSchema,
     currencyCode: currencyCodeSchema,
   })
   .strict();
@@ -243,7 +241,6 @@ const checkoutPipelineStageContextShape = {
   deadlineAt: timestampSchema,
   requestedAt: timestampSchema,
   checkoutId: identifierSchema,
-  expectedCheckoutVersion: checkoutVersionSchema,
   storeId: identifierSchema,
   currencyCode: currencyCodeSchema,
   localeCode: localeCodeSchema.nullable(),
@@ -281,7 +278,6 @@ export const paymentsCheckoutEvaluationContextSchema = z
   .object({
     ...checkoutPipelineStageContextShape,
     buyerEligibility: checkoutBuyerEligibilityContextSchema.nullable(),
-    targetCheckoutVersion: checkoutVersionSchema,
   })
   .strict()
   .superRefine(refineDeadline);
@@ -290,7 +286,6 @@ export const deliveryCheckoutEvaluationContextSchema = z
   .object({
     ...checkoutPipelineStageContextShape,
     buyerEligibility: checkoutBuyerEligibilityContextSchema.nullable(),
-    targetCheckoutVersion: checkoutVersionSchema,
   })
   .strict()
   .superRefine(refineDeadline);
@@ -1346,7 +1341,6 @@ const loyaltyQuoteSchema = z
     payableAfterLoyalty: checkoutPipelineNonNegativeMoneySchema,
     availablePoints: z.string().regex(/^\d+$/),
     expiresAt: timestampSchema,
-    basedOnCheckoutVersion: checkoutVersionSchema,
     basedOnPricingQuoteRevision: revisionSchema,
     basedOnCustomerEligibilityRevision: revisionSchema,
   })
@@ -1356,7 +1350,6 @@ const loyaltyCheckoutContextSchema = z
   .object({
     executionId: identifierSchema,
     checkoutId: identifierSchema,
-    checkoutVersion: checkoutVersionSchema,
     storeId: identifierSchema,
     customerId: identifierSchema.nullable(),
     currencyCode: currencyCodeSchema,
@@ -1536,8 +1529,6 @@ export const checkoutRecalculationResultSchema = z
   .object({
     executionId: identifierSchema,
     checkoutId: identifierSchema,
-    basedOnCheckoutVersion: checkoutVersionSchema,
-    resultRevision: revisionSchema,
     preliminaryPricing: checkoutPipelineStageOutcomeSchema(
       "PRICING_PRELIMINARY",
       calculatePreliminaryPricingResultSchema,

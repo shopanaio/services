@@ -343,7 +343,6 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
     >(DeliveryActions.releaseSelections, {
       storeId: input.storeId,
       checkoutId: input.sessionParams.checkoutId,
-      checkoutVersion: input.sessionParams.expectedCheckoutVersion,
       groupIds: input.deliveryGroupIds,
       reason: "Checkout payment expired or failed before settlement.",
       releasedAt: new Date(await DBOS.now()).toISOString(),
@@ -376,7 +375,6 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
       const base = {
         storeId: input.storeId,
         checkoutId: input.sessionParams.checkoutId,
-        checkoutVersion: input.sessionParams.expectedCheckoutVersion,
         reservationId: reservation.points.reservationId,
         quoteId: reservation.points.quoteId,
         quoteRevision: reservation.points.quoteRevision,

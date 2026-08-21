@@ -268,11 +268,9 @@ export interface OrderCreateInput {
 }
 export interface OrderUpdateInput extends Omit<OrderCreateInput, "clientMutationId"> {
   id: string;
-  expectedVersion: number;
 }
 export interface VersionedOrderInput {
   id: string;
-  expectedVersion: number;
 }
 export interface OrderDeleteInput extends VersionedOrderInput {}
 export interface OrderCancelInput extends VersionedOrderInput {

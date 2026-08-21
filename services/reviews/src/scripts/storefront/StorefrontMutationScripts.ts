@@ -11,7 +11,7 @@ type AnswerCreate = Parameters<ProductQuestionAnswerRepository["create"]>[0];
 
 export interface StorefrontReviewUpdateParams {
   id: string;
-  expectedRevision: number;
+
   contentPatch: ContentPatch;
   rating?: number;
   ratings?: ReviewRatings;
@@ -33,7 +33,7 @@ export class StorefrontReviewUpdateScript extends BaseScript<
   ): Promise<StorefrontReviewUpdateResult> {
     const updated = await this.repository.content.update(
       params.id,
-      params.expectedRevision,
+
       params.contentPatch,
     );
     if (updated.status !== "applied") {
@@ -63,7 +63,7 @@ export class StorefrontReviewUpdateScript extends BaseScript<
 
 export interface StorefrontQuestionAnswerCreateParams {
   questionId: string;
-  expectedRevision: number;
+
   maxAnswers: number;
   input: AnswerCreate;
 }
@@ -94,7 +94,7 @@ export class StorefrontQuestionAnswerCreateScript extends BaseScript<
     }
     const acquired = await this.repository.content.update(
       params.questionId,
-      params.expectedRevision,
+
       {},
     );
     if (acquired.status !== "applied") {

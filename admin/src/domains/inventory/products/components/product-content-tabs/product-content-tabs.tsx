@@ -62,7 +62,7 @@ export const ProductContentTabs = ({ product }: IProductContentTabsProps) => {
   ) => {
     const result = await updateProduct({
       productId: product.id,
-      expectedRevision: product.revision,
+
       operations: {
         content: buildContentInput(values),
       },

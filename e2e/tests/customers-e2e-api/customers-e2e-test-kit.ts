@@ -61,12 +61,12 @@ export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
 
   async adminAccountSettingsUpdate(
     enabledMethods: string[],
-    expectedRevision?: number,
+    
   ): Promise<Json> {
     const revision = expectedRevision ?? (await this.adminAccountSettings()).revision;
     const { data, errors } = await this.api.admin.mutation<Json>(
       'customers-admin-api/CustomerAccountsSettingsUpdate',
-      { throwOnError: false, variables: { input: { enabledMethods, expectedRevision: revision } } },
+      { throwOnError: false, variables: { input: { enabledMethods } } },
     );
     expect(errors ?? []).toHaveLength(0);
     return data.customersMutation.customerAccountsSettingsUpdate;
@@ -85,7 +85,7 @@ export class CustomersE2ETestKit extends CustomersStorefrontTestKit {
   async adminUpdate(
     operations: Json,
     customer: Json | undefined = undefined,
-    expectedRevision?: number,
+    
   ): Promise<Json> {
     const target = customer ?? (await this.adminCustomer());
     return updateCustomer(this.api, target, operations, expectedRevision ?? target.revision);

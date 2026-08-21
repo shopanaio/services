@@ -14,7 +14,7 @@ export class ProductQuestionDeleteScript extends BaseScript<
     if (!aggregate) return { userErrors: notFound("Product question") };
     const result = await this.repository.content.delete({
       id: params.id,
-      expectedRevision: params.expectedRevision,
+
       permanent: params.permanent ?? false,
     });
     if (result.status === "not_found") return { userErrors: notFound("Product question") };

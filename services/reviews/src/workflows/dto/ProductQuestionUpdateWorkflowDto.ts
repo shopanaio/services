@@ -71,7 +71,7 @@ export type ProductQuestionUpdateOperation =
 
 export interface ProductQuestionUpdateWorkflowInput {
   productQuestionId: string;
-  expectedRevision: number;
+
   operations: ProductQuestionUpdateOperation[];
   context: ReviewsMutationWorkflowContext;
 }

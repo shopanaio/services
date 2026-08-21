@@ -327,7 +327,7 @@ test.describe('Application Admin API - applications and auth configuration', () 
           input: {
             organizationId: scope.organizationId,
             applicationId: scope.applicationA.id,
-            expectedRevision: 1,
+            
             resource: 'urn:attacker:replacement',
           },
         },

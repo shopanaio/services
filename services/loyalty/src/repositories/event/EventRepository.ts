@@ -365,7 +365,7 @@ export class EventRepository extends BaseRepository {
 
   async updateUsage(
     id: string,
-    expectedRevision: number,
+
     input: Partial<
       Pick<
         NewEarningRuleUsage,
@@ -380,13 +380,7 @@ export class EventRepository extends BaseRepository {
         revision: sql`${earningRuleUsages.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(earningRuleUsages.storeId, this.storeId),
-          eq(earningRuleUsages.id, id),
-          eq(earningRuleUsages.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(earningRuleUsages.storeId, this.storeId), eq(earningRuleUsages.id, id)))
       .returning();
     return rows[0] ?? null;
   }

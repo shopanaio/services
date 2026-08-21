@@ -99,7 +99,6 @@ export class AppInstallationStore {
         status: "INSTALLING",
         targetVersion: input.targetVersion,
         configuration: input.configuration,
-        configurationVersion: current.configurationVersion + 1,
         installedByUserId: input.installedByUserId ?? current.installedByUserId,
         lastErrorCode: null,
         lastErrorMessage: null,
@@ -128,7 +127,6 @@ export class AppInstallationStore {
       status: "INSTALLING",
       targetVersion: input.targetVersion,
       configuration: input.configuration,
-      configurationVersion: 1,
       installedByUserId: input.installedByUserId,
     });
     await this.repository.scope.replace(installation.id, input.grantedScopes);
@@ -187,7 +185,6 @@ export class AppInstallationStore {
         ? {}
         : {
             configuration: input.configuration,
-            configurationVersion: installation.configurationVersion + 1,
           }),
     });
     if (!updated) {

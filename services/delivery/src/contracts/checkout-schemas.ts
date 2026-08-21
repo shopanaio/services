@@ -11,8 +11,6 @@ const context = z
     deadlineAt: timestamp,
     requestedAt: timestamp,
     checkoutId: id,
-    expectedCheckoutVersion: z.number().int().safe().nonnegative(),
-    targetCheckoutVersion: z.number().int().safe().positive(),
     storeId: id,
     currencyCode: z.string().regex(/^[A-Z]{3}$/),
     localeCode: z.string().max(64).nullable(),
@@ -100,7 +98,6 @@ export const SearchDeliveryOptionChoicesParamsSchema: z.ZodType<Delivery.SearchD
     .object({
       storeId: id,
       checkoutId: id,
-      checkoutVersion: z.number().int().safe().positive(),
       groupId: id,
       optionHandle: id,
       query: z.string().trim().max(255),

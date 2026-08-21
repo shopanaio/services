@@ -18,7 +18,6 @@ import { normalizeProductUpdateErrors } from "../mappers/product-errors.mapper";
 interface UpdateProductInput {
   productId: string;
   operations: ApiProductUpdateInput;
-  expectedRevision?: number | null;
 }
 
 interface UpdateProductResult {
@@ -48,7 +47,6 @@ export function useUpdateProduct(): UseUpdateProductReturn {
           variables: {
             productId: input.productId,
             operations: input.operations,
-            expectedRevision: input.expectedRevision ?? null,
           },
         });
 

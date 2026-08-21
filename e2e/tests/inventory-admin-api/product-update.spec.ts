@@ -144,7 +144,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             title: 'Updated Title',
           },
@@ -171,7 +171,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             handle: newHandle,
           },
@@ -190,7 +190,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             content: {
               description: {
@@ -235,7 +235,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             seo: {
               seoTitle: 'SEO Optimized Title',
@@ -264,7 +264,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             status: 'PUBLISHED',
           },
@@ -285,7 +285,7 @@ test.describe('ProductUpdate API', () => {
       const { data: publishData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { status: 'PUBLISHED' },
         },
       });
@@ -296,7 +296,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: { status: 'DRAFT' },
         },
       });
@@ -314,7 +314,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             title: 'Updated Multi-field Product',
             handle: newHandle,
@@ -356,7 +356,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             tags: [{ tagId: tag.id, action: 'ADD' }],
           },
@@ -379,7 +379,7 @@ test.describe('ProductUpdate API', () => {
       const first = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             tags: [{ tagId: tag.id, action: 'ADD' }],
           },
@@ -392,7 +392,7 @@ test.describe('ProductUpdate API', () => {
       const second = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: firstResult.product.revision,
+          
           operations: {
             tags: [{ tagId: tag.id, action: 'ADD' }],
           },
@@ -415,7 +415,7 @@ test.describe('ProductUpdate API', () => {
       const add = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             tags: [{ tagId: tag.id, action: 'ADD' }],
           },
@@ -427,7 +427,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: addResult.product.revision,
+          
           operations: {
             tags: [{ tagId: tag.id, action: 'REMOVE' }],
           },
@@ -449,7 +449,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             tags: [{ tagId: tag.id, action: 'REMOVE' }],
           },
@@ -478,7 +478,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId1, fileId2] },
             variants: [
@@ -523,7 +523,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId1, fileId2] },
             variants: [
@@ -575,7 +575,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId1, fileId2] },
             variants: [
@@ -624,7 +624,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -681,7 +681,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             title: 'Updated Combined Product',
             handle: newHandle,
@@ -745,7 +745,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { title: 'Updated with correct revision' },
         },
       });
@@ -764,7 +764,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: wrongRevision,
+          
           operations: { title: 'Should fail' },
         },
         throwOnError: false,
@@ -798,7 +798,7 @@ test.describe('ProductUpdate API', () => {
       const { data: firstUpdate } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { title: 'First Update' },
         },
       });
@@ -809,7 +809,7 @@ test.describe('ProductUpdate API', () => {
       const { data: secondUpdate } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision, // Old revision
+           // Old revision
           operations: { title: 'Second Update' },
         },
         throwOnError: false,
@@ -857,7 +857,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -892,7 +892,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -936,7 +936,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             title: 'Partial Failure Title', // Should succeed
             variants: [
@@ -990,7 +990,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {}, // Empty operations
         },
       });
@@ -1011,7 +1011,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { title: originalTitle }, // Same value
         },
       });
@@ -1029,7 +1029,7 @@ test.describe('ProductUpdate API', () => {
       const { data: uahUpdate } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -1048,7 +1048,7 @@ test.describe('ProductUpdate API', () => {
       const { data: usdUpdate } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             variants: [
               {
@@ -1070,7 +1070,7 @@ test.describe('ProductUpdate API', () => {
       const { data: first } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { title: 'First' },
         },
       });
@@ -1080,7 +1080,7 @@ test.describe('ProductUpdate API', () => {
       const { data: second } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision + 1,
+          
           operations: { title: 'Second' },
         },
       });
@@ -1090,7 +1090,7 @@ test.describe('ProductUpdate API', () => {
       const { data: third } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision + 2,
+          
           operations: { title: 'Third' },
         },
       });
@@ -1104,7 +1104,7 @@ test.describe('ProductUpdate API', () => {
       const { data: setData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             content: {
               excerpt: {
@@ -1124,7 +1124,7 @@ test.describe('ProductUpdate API', () => {
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             content: { excerpt: null },
           },
@@ -1177,7 +1177,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId1, fileId2] },
             variants: [
@@ -1219,7 +1219,7 @@ test.describe('ProductUpdate API', () => {
       const { data: addData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId] },
             variants: [{ variantId, media: { fileIds: [fileId] } }],
@@ -1236,7 +1236,7 @@ test.describe('ProductUpdate API', () => {
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             variants: [{ variantId, media: { fileIds: [] } }],
           },
@@ -1261,7 +1261,7 @@ test.describe('ProductUpdate API', () => {
       const { data: firstData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId] },
             variants: [{ variantId, media: { fileIds: [fileId] } }],
@@ -1275,7 +1275,7 @@ test.describe('ProductUpdate API', () => {
       const { data: secondData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             variants: [{ variantId, media: { fileIds: [fileId] } }],
           },
@@ -1298,7 +1298,7 @@ test.describe('ProductUpdate API', () => {
       const { data: firstData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId1, fileId2] },
             variants: [{ variantId, media: { fileIds: [fileId1, fileId2] } }],
@@ -1312,7 +1312,7 @@ test.describe('ProductUpdate API', () => {
       const { data: reorderData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             variants: [{ variantId, media: { fileIds: [fileId2, fileId1] } }],
           },
@@ -1372,7 +1372,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: {
               fileIds: [fileId1, fileId2],
@@ -1407,7 +1407,7 @@ test.describe('ProductUpdate API', () => {
       const { data: addData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId] },
           },
@@ -1421,7 +1421,7 @@ test.describe('ProductUpdate API', () => {
       const { data: clearData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             media: { fileIds: [] },
           },
@@ -1443,7 +1443,7 @@ test.describe('ProductUpdate API', () => {
       const { data: firstData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId1, fileId2, fileId3] },
           },
@@ -1456,7 +1456,7 @@ test.describe('ProductUpdate API', () => {
       const { data: reorderData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             media: { fileIds: [fileId3, fileId1, fileId2] },
           },
@@ -1486,7 +1486,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [productFileId, variantFileId] },
             variants: [
@@ -1525,7 +1525,7 @@ test.describe('ProductUpdate API', () => {
       const { data: firstData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             media: { fileIds: [fileId] },
           },
@@ -1538,7 +1538,7 @@ test.describe('ProductUpdate API', () => {
       const { data: secondData } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: newRevision,
+          
           operations: {
             media: { fileIds: [fileId] },
           },
@@ -1631,7 +1631,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -1677,7 +1677,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -1726,7 +1726,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -1775,7 +1775,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -1815,7 +1815,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -1881,7 +1881,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -1970,7 +1970,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -2065,7 +2065,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -2130,7 +2130,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { title: 'Updated Timestamp Product' },
         },
       });
@@ -2153,7 +2153,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { status: 'PUBLISHED' },
         },
       });
@@ -2182,7 +2182,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             tags: [{ tagId: wrongTypeTagId, action: 'ADD' }],
           },
@@ -2211,7 +2211,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { handle: uniqueHandle },
         },
         throwOnError: false,
@@ -2232,7 +2232,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { title: veryLongTitle },
         },
       });
@@ -2253,7 +2253,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: { handle: validHandle },
         },
       });
@@ -2270,7 +2270,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -2300,7 +2300,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {
@@ -2334,7 +2334,7 @@ test.describe('ProductUpdate API', () => {
       const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId,
-          expectedRevision: revision,
+          
           operations: {
             variants: [
               {

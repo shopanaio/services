@@ -14,9 +14,6 @@ export class ContentRedactScript extends BaseScript<ContentRedactParams, Content
   protected async execute(params: ContentRedactParams): Promise<ContentRedactResult> {
     const current = await this.repository.content.findById(params.contentId);
     if (!current) return { userErrors: [notFoundError("Content", "contentId")] };
-    if (current.revision !== params.expectedRevision) {
-      return { userErrors: [conflictError("Content", "expectedRevision")] };
-    }
     if (current.redactedAt) {
       return {
         userErrors: [
@@ -29,7 +26,7 @@ export class ContentRedactScript extends BaseScript<ContentRedactParams, Content
       };
     }
 
-    const updated = await this.repository.content.redact(params.contentId, params.expectedRevision);
+    const updated = await this.repository.content.redact(params.contentId);
     if (updated.status !== "applied") {
       return updated.status === "conflict"
         ? { userErrors: [conflictError("Content", "expectedRevision")] }
@@ -80,9 +77,6 @@ export class ContentRevisionRestoreScript extends BaseScript<
   ): Promise<ContentRevisionRestoreResult> {
     const current = await this.repository.content.findById(params.contentId);
     if (!current) return { userErrors: [notFoundError("Content", "contentId")] };
-    if (current.revision !== params.expectedRevision) {
-      return { userErrors: [conflictError("Content", "expectedRevision")] };
-    }
     const revision = await this.repository.moderation.findRevision(
       params.contentId,
       params.revision,
@@ -103,7 +97,7 @@ export class ContentRevisionRestoreScript extends BaseScript<
 
     const updated = await this.repository.content.restore(
       params.contentId,
-      params.expectedRevision,
+
       restored.value,
     );
     if (updated.status !== "applied") {

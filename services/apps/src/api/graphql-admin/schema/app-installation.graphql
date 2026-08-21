@@ -88,7 +88,6 @@ type AppInstallation implements Node @key(fields: "id") {
   targetVersion: String
   manifestHash: String
   configuration: JSON!
-  configurationVersion: Int!
   healthStatus: AppInstallationHealthStatus!
   lastError: AppInstallationError
   installedByUserId: ID

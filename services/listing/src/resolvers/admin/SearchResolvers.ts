@@ -175,24 +175,8 @@ function mapSearchField(field: SearchTextField): SearchField {
 
 export class ListingSearchMutationResolver extends ListingType<Record<string, never>> {
   async settingsUpdate(args: ListingSearchMutationSettingsUpdateArgs) {
-    if (!Number.isInteger(args.expectedVersion) || args.expectedVersion < 0) {
-      const userErrors = [
-        {
-          message: "Expected version must be a non-negative integer",
-          field: ["expectedVersion"],
-          code: "INVALID_EXPECTED_VERSION",
-        },
-      ];
-      return {
-        settings: null,
-        operationResults: [],
-        userErrors,
-      };
-    }
-
     const settings = args.operations.settings;
     const workflowInput: SearchSettingsUpdateWorkflowInput = {
-      expectedVersion: args.expectedVersion,
       settings: {
         fields: settings.fields.map((configuration) => ({
           field: toInternalSearchField(configuration.field),
@@ -205,7 +189,7 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     };
     const payloadHash = hashContent({
       v: 1,
-      expectedVersion: args.expectedVersion,
+
       settings: workflowInput.settings,
     });
     const result = await this.$ctx.kernel
@@ -231,7 +215,6 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
         result.settings && currentSettings
           ? {
               ...mapSearchSettings(currentSettings),
-              version: result.settings.version,
             }
           : null,
       operationResults: result.operationResults.map((operationResult) => ({
@@ -297,19 +280,11 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
         "synonymGroup",
       );
     }
-    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
-      return resourceMutationError(
-        "Expected version must be a positive integer",
-        ["input", "expectedVersion"],
-        "INVALID_EXPECTED_VERSION",
-        "synonymGroup",
-      );
-    }
 
     const workflowInput: SearchSynonymGroupUpdateWorkflowInput = {
       params: {
         groupId,
-        expectedVersion: args.input.expectedVersion,
+
         locale: args.input.locale,
         name: args.input.name,
         enabled: args.input.enabled,
@@ -407,14 +382,6 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
         "productBoost",
       );
     }
-    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
-      return resourceMutationError(
-        "Expected version must be a positive integer",
-        ["input", "expectedVersion"],
-        "INVALID_EXPECTED_VERSION",
-        "productBoost",
-      );
-    }
     const productIds = decodeProductIds(args.input.productIds);
     if ("error" in productIds) {
       return resourceMutationError(
@@ -428,7 +395,7 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
     const workflowInput: SearchProductBoostUpdateWorkflowInput = {
       params: {
         boostId,
-        expectedVersion: args.input.expectedVersion,
+
         locale: args.input.locale,
         name: args.input.name,
         enabled: args.input.enabled,
@@ -472,17 +439,9 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
         "synonymGroup",
       );
     }
-    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
-      return resourceMutationError(
-        "Expected version must be a positive integer",
-        ["input", "expectedVersion"],
-        "INVALID_EXPECTED_VERSION",
-        "synonymGroup",
-      );
-    }
 
     const workflowInput: SearchSynonymGroupDeleteWorkflowInput = {
-      params: { groupId, expectedVersion: args.input.expectedVersion },
+      params: { groupId },
       context: this.searchWorkflowContext(),
     };
     const result = await this.$ctx.kernel
@@ -520,17 +479,9 @@ export class ListingSearchMutationResolver extends ListingType<Record<string, ne
         "productBoost",
       );
     }
-    if (!Number.isInteger(args.input.expectedVersion) || args.input.expectedVersion <= 0) {
-      return resourceMutationError(
-        "Expected version must be a positive integer",
-        ["input", "expectedVersion"],
-        "INVALID_EXPECTED_VERSION",
-        "productBoost",
-      );
-    }
 
     const workflowInput: SearchProductBoostDeleteWorkflowInput = {
-      params: { boostId, expectedVersion: args.input.expectedVersion },
+      params: { boostId },
       context: this.searchWorkflowContext(),
     };
     const result = await this.$ctx.kernel
@@ -622,7 +573,6 @@ function mapSearchSettings(settings: SearchSettingsModel): ApiSearchSettings {
   });
 
   return {
-    version: settings.version,
     fields,
     typoToleranceEnabled: settings.typoToleranceEnabled,
     outOfStockPolicy: mapSearchOutOfStockPolicy(settings.outOfStockPolicy),

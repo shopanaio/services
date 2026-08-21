@@ -93,7 +93,7 @@ test.describe('Project Settings Admin API - contact details and address', () => 
       variables: {
         storeId: store.id,
         clientMutationId: `invalid-email-${crypto.randomUUID()}`,
-        expectedRevision: store.revision,
+        
         operations: {
           contactDetails: {
             ...validContact('Invalid email', store.name),

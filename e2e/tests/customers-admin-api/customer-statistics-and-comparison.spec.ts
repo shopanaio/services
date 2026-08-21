@@ -153,7 +153,6 @@ test.describe('Customers Admin API - statistics and comparison', () => {
       {
         schemaVersion: 1,
         checkoutId,
-        checkoutVersion: 1,
         storeId,
         customerId,
         occurredAt: completedAt,
@@ -350,7 +349,7 @@ test.describe('Customers Admin API - statistics and comparison', () => {
       throwOnError: false,
       variables: {
         customerId: customer.id,
-        expectedRevision: customer.revision,
+
         operations: { comparison: { items: [] } },
       },
     });

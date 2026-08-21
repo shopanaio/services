@@ -19,6 +19,5 @@ export interface SearchSettingsUpdateMutationData {
 }
 
 export interface SearchSettingsUpdateMutationVariables {
-  expectedVersion: number;
   operations: ApiSearchSettingsOperationsInput;
 }

@@ -516,10 +516,7 @@ type CatalogMutation @join__type(graph: CATALOG_ADMIN) {
     The product ID to update.
     """
     productId: ID!
-    """
-    Expected revision for optimistic locking. If provided, fails if product was modified.
-    """
-    expectedRevision: Int
+
     """
     Product-level operations.
     """
@@ -537,10 +534,7 @@ type CatalogMutation @join__type(graph: CATALOG_ADMIN) {
     The bundle ID to update.
     """
     bundleId: ID!
-    """
-    Expected revision for optimistic locking.
-    """
-    expectedRevision: Int!
+
     """
     Bundle-level operations.
     """
@@ -639,7 +633,7 @@ type CatalogMutation @join__type(graph: CATALOG_ADMIN) {
   """
   categoryUpdate(
     categoryId: ID!
-    expectedRevision: Int
+
     operations: CategoryUpdateInput
   ): CategoryUpdatePayload!
   """
@@ -11742,10 +11736,7 @@ input ProductBulkUpdateItem @join__type(graph: CATALOG_ADMIN) {
   The product ID to update.
   """
   productId: ID!
-  """
-  Expected revision for optimistic locking. If provided, fails if product was modified.
-  """
-  expectedRevision: Int
+
   """
   Product-level operations.
   """
@@ -11851,10 +11842,7 @@ input BundleConfigurationCreateInput @join__type(graph: CATALOG_ADMIN) {
   Product global ID of the bundle.
   """
   bundleId: ID!
-  """
-  Expected parent bundle product revision. Required for optimistic locking.
-  """
-  expectedRevision: Int!
+
   """
   Configuration name.
   """
@@ -11863,18 +11851,17 @@ input BundleConfigurationCreateInput @join__type(graph: CATALOG_ADMIN) {
 
 input BundleConfigurationUpdateInput @join__type(graph: CATALOG_ADMIN) {
   id: ID!
-  expectedRevision: Int!
+
   name: String
 }
 
 input BundleConfigurationDeleteInput @join__type(graph: CATALOG_ADMIN) {
   id: ID!
-  expectedRevision: Int!
 }
 
 input BundleGroupsSyncInput @join__type(graph: CATALOG_ADMIN) {
   configurationId: ID!
-  expectedRevision: Int!
+
   """
   Complete list of groups for this configuration.
   Groups not present in this list are deleted.
@@ -12053,7 +12040,7 @@ input BundlePriceRulePercentInput @join__type(graph: CATALOG_ADMIN) {
 
 input BundlePricingTemplatesSyncInput @join__type(graph: CATALOG_ADMIN) {
   configurationId: ID!
-  expectedRevision: Int!
+
   """
   Complete list of pricing templates for this configuration.
   Templates not present in this list are deleted.
@@ -12084,7 +12071,7 @@ input BundlePricingTemplateSyncItemInput @join__type(graph: CATALOG_ADMIN) {
 
 input BundleDependencyRulesSyncInput @join__type(graph: CATALOG_ADMIN) {
   configurationId: ID!
-  expectedRevision: Int!
+
   """
   Complete list of dependency rules for this configuration.
   Rules not present in this list are deleted.

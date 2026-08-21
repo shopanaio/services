@@ -349,7 +349,6 @@ export function SynonymGroupModal() {
 
     const result = await deleteSynonymGroup({
       id: current.id,
-      expectedVersion: current.version,
     });
     if (result.userErrors.length > 0) {
       message.error(result.userErrors[0].message);

@@ -45,10 +45,9 @@ export function useContentActions() {
     QuestionDeleteData,
     { input: ApiReviewContentDeleteInput }
   >(QUESTION_DELETE_MUTATION);
-  const [redactMutation, redactState] = useMutation<
-    ContentUpdateData,
-    { contentId: string; expectedRevision: number }
-  >(CONTENT_REDACT_MUTATION);
+  const [redactMutation, redactState] = useMutation<ContentUpdateData, { contentId: string }>(
+    CONTENT_REDACT_MUTATION,
+  );
 
   const deleteReview = useCallback(
     async (input: ApiReviewContentDeleteInput) => {
@@ -69,8 +68,8 @@ export function useContentActions() {
   );
 
   const redact = useCallback(
-    async (contentId: string, expectedRevision: number) => {
-      const result = await redactMutation({ variables: { contentId, expectedRevision } });
+    async (contentId: string) => {
+      const result = await redactMutation({ variables: { contentId } });
       const payload = result.data?.reviewsMutation.contentRedact;
       return { content: payload?.content ?? null, errors: collectErrors(payload) };
     },

@@ -146,7 +146,6 @@ const updateApplicationSchema = scopeSchema
     name: applicationNameSchema.optional(),
     displayName: z.string().trim().min(1).max(256).optional(),
     description: z.string().trim().max(4000).nullable().optional(),
-    expectedRevision: revisionSchema,
   })
   .strict()
   .refine(
@@ -156,7 +155,7 @@ const updateApplicationSchema = scopeSchema
       value.description !== undefined,
     { message: "At least one application field must be changed" },
   );
-const revisionedScopeSchema = scopeSchema.extend({ expectedRevision: revisionSchema }).strict();
+const revisionedScopeSchema = scopeSchema.extend({}).strict();
 const authBrandingPatchSchema = z
   .object({
     displayName: z.string().trim().min(1).max(80).nullable().optional(),
@@ -207,7 +206,6 @@ const authUpdateSchema = scopeSchema
     defaultLocale: z.literal("en").optional(),
     trustedOrigins: z.array(z.string().min(1).max(2048)).max(100).optional(),
     emailDelivery: emailDeliverySchema.optional(),
-    expectedRevision: revisionSchema,
   })
   .strict()
   .refine(
@@ -493,11 +491,11 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.applicationId,
       failureSafeDiff: { changedFields },
       execute: async (scope) => {
-        this.assertRevision(scope, value.expectedRevision);
+        this.assertRevision(scope);
         const revision = await this.repository.updateApplication({
           organizationId: scope.organizationId,
           applicationId: scope.applicationId,
-          expectedRevision: value.expectedRevision,
+
           patch: {
             ...(value.name !== undefined ? { name: value.name } : {}),
             ...(value.displayName !== undefined ? { displayName: value.displayName } : {}),
@@ -541,11 +539,10 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.applicationId,
       failureSafeDiff: { status: "archived", enabled: false },
       execute: async (scope) => {
-        this.assertRevision(scope, value.expectedRevision);
+        this.assertRevision(scope);
         const revision = await this.repository.archiveApplication({
           organizationId: scope.organizationId,
           applicationId: scope.applicationId,
-          expectedRevision: value.expectedRevision,
         });
         if (revision === null) throw revisionConflict();
         return {
@@ -590,7 +587,7 @@ export class ApplicationAuthAdminManagementService {
         ...(value.trustedOrigins ? { trustedOriginCount: value.trustedOrigins.length } : {}),
       },
       execute: async (scope, currentActor) => {
-        this.assertRevision(scope, value.expectedRevision);
+        this.assertRevision(scope);
         const branding = value.branding
           ? mergeBranding(scope.configuration.brandingJson, value.branding)
           : undefined;
@@ -633,7 +630,7 @@ export class ApplicationAuthAdminManagementService {
         };
         const updated = await this.repository.updateAuth({
           applicationId: scope.applicationId,
-          expectedRevision: value.expectedRevision,
+
           patch,
           trustedOrigins,
           emailDelivery: value.emailDelivery
@@ -682,12 +679,11 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.applicationId,
       failureSafeDiff: { enabled: value.enabled, changedFields: ["realmEnabled"] },
       execute: async (scope) => {
-        this.assertRevision(scope, value.expectedRevision);
+        this.assertRevision(scope);
         if (value.enabled) await this.assertRealmCanBeEnabled(scope);
         const updated = await this.repository.setRealmEnabled({
           applicationId: scope.applicationId,
           enabled: value.enabled,
-          expectedRevision: value.expectedRevision,
         });
         if (!updated) throw revisionConflict();
         return {
@@ -732,7 +728,7 @@ export class ApplicationAuthAdminManagementService {
         enabledCapabilities: capabilities,
       },
       execute: async (scope) => {
-        this.assertRevision(scope, value.expectedRevision);
+        this.assertRevision(scope);
         const needsEmailDelivery =
           value.methodId === "email_otp"
             ? capabilities.length > 0
@@ -776,7 +772,6 @@ export class ApplicationAuthAdminManagementService {
           applicationId: scope.applicationId,
           methodId: value.methodId,
           enabledCapabilities: capabilities,
-          expectedRevision: value.expectedRevision,
         });
         if (!updated) throw revisionConflict();
         return {
@@ -823,7 +818,7 @@ export class ApplicationAuthAdminManagementService {
       failureSafeDiff: { enabledMethods },
       skipAuthorization: options.authorization === "trusted_boundary",
       execute: async (scope) => {
-        this.assertRevision(scope, value.expectedRevision);
+        this.assertRevision(scope);
         const requiresDelivery =
           enabledMethods.includes("email_otp") ||
           (enabledMethods.includes("password") && scope.configuration.emailVerificationRequired);
@@ -841,7 +836,6 @@ export class ApplicationAuthAdminManagementService {
         const updated = await this.repository.replaceAuthMethods({
           applicationId: scope.applicationId,
           enabledMethods,
-          expectedRevision: value.expectedRevision,
         });
         if (!updated) throw revisionConflict();
         return {
@@ -999,7 +993,6 @@ export class ApplicationAuthAdminManagementService {
         const status = await this.repository.deleteProviderCredentials({
           applicationId: scope.applicationId,
           provider: value.provider,
-          expectedRevision: value.expectedRevision,
         });
         if (status === "not_configured") throw providerNotConfigured();
         if (status === "enabled") {
@@ -1038,7 +1031,6 @@ export class ApplicationAuthAdminManagementService {
         const prepared = await this.repository.prepareProviderValidation({
           applicationId: scope.applicationId,
           provider: value.provider,
-          expectedRevision: value.expectedRevision,
         });
         if (prepared.status === "not_configured") throw providerNotConfigured();
         if (prepared.status === "conflict") throw revisionConflict();
@@ -1215,7 +1207,6 @@ export class ApplicationAuthAdminManagementService {
       organizationId: string;
       applicationId: string;
       provider: "google" | "facebook";
-      expectedRevision: number;
     },
   >(input: {
     value: TValue;
@@ -1240,7 +1231,7 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.provider,
       failureSafeDiff: input.safeDiff,
       execute: async (scope, actor) => {
-        this.assertRevision(scope, value.expectedRevision);
+        this.assertRevision(scope);
         await input.execute(scope, actor);
         return {
           result: {
@@ -1421,11 +1412,7 @@ export class ApplicationAuthAdminManagementService {
     return scope;
   }
 
-  private assertRevision(scope: ApplicationAuthAdminMutationScope, expectedRevision: number): void {
-    if (scope.configuration.revision !== expectedRevision) {
-      throw revisionConflict();
-    }
-  }
+  private assertRevision(scope: ApplicationAuthAdminMutationScope): void {}
 
   private async assertRealmCanBeEnabled(scope: ApplicationAuthAdminMutationScope): Promise<void> {
     const configuration = scope.configuration;

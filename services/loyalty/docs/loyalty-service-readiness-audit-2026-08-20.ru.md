@@ -3,12 +3,13 @@
 Дата: 2026-08-20  
 Статус: **не готов к критерию implementation complete**  
 Предварительная общая готовность: **65%**  
-Тип проверки: статический аудит API, бизнес-логики, persistence, workflows, интеграций и e2e-покрытия
+Тип проверки: статический аудит API, бизнес-логики, persistence, workflows, интеграций и
+e2e-покрытия
 
 ## 1. Резюме
 
-`loyalty` уже является крупным функциональным bounded context, а не contract-only заготовкой.
-В сервисе реализованы:
+`loyalty` уже является крупным функциональным bounded context, а не contract-only заготовкой. В
+сервисе реализованы:
 
 - Admin и Storefront GraphQL subgraphs;
 - lifecycle программ и immutable published versions;
@@ -24,35 +25,34 @@
 - typed loyalty point events для основных ledger transitions.
 
 GraphQL API почти полностью связан с runtime-реализацией: заявленные root queries, mutations и
-storefront federation fields имеют резолверы, repositories и application services. Основные
-проблемы находятся не в наличии CRUD-методов, а в полноте бизнес-гарантий.
+storefront federation fields имеют резолверы, repositories и application services. Основные проблемы
+находятся не в наличии CRUD-методов, а в полноте бизнес-гарантий.
 
 Сервис нельзя признать завершённым по заявленному контракту по следующим причинам:
 
 1. Storefront presentation не применяет channel eligibility и не умеет корректно разрешать часть
    заявленных earning conditions.
-2. Universal external earning создаёт экономические записи, но не публикует соответствующие
-   loyalty domain events.
+2. Universal external earning создаёт экономические записи, но не публикует соответствующие loyalty
+   domain events.
 3. Несколько Admin mutations принимают обязательный `idempotencyKey`, но полностью игнорируют его.
 4. Time-based lifecycle реализован только как вызываемый maintenance workflow; владельца
    автоматического расписания в репозитории нет.
-5. Для части storefront `availableRewards` отсутствует завершённый customer-facing fulfillment
-   path.
+5. Для части storefront `availableRewards` отсутствует завершённый customer-facing fulfillment path.
 6. Часть существенных гарантий не проверяется существующими e2e-сценариями или проверяется
    недостаточно строго.
 
 Итоговый gate:
 
-| Критерий | Статус |
-|---|---|
-| Все заявленные GraphQL поля имеют runtime implementation | Почти выполнен |
-| Все заявленные broker actions имеют runtime implementation | Выполнен |
-| Все экономические операции атомарны и идемпотентны | Частично выполнен |
-| Storefront возвращает только авторитетные eligibility projections | Не выполнен |
-| Все заявленные события публикуются для каждого соответствующего transition | Не выполнен |
-| Time-based lifecycle работает без ручного Admin-вызова | Не подтверждён |
-| Все storefront rewards имеют понятный fulfillment lifecycle | Не выполнен |
-| Тестами подтверждены критические negative/concurrency branches | Частично выполнен |
+| Критерий                                                                   | Статус            |
+| -------------------------------------------------------------------------- | ----------------- |
+| Все заявленные GraphQL поля имеют runtime implementation                   | Почти выполнен    |
+| Все заявленные broker actions имеют runtime implementation                 | Выполнен          |
+| Все экономические операции атомарны и идемпотентны                         | Частично выполнен |
+| Storefront возвращает только авторитетные eligibility projections          | Не выполнен       |
+| Все заявленные события публикуются для каждого соответствующего transition | Не выполнен       |
+| Time-based lifecycle работает без ручного Admin-вызова                     | Не подтверждён    |
+| Все storefront rewards имеют понятный fulfillment lifecycle                | Не выполнен       |
+| Тестами подтверждены критические negative/concurrency branches             | Частично выполнен |
 
 ## 2. Scope и методика
 
@@ -205,9 +205,9 @@ durable placement/payment workflows.
 - `customerDeleted`;
 - `storeDeleted`.
 
-Catch-all handler преобразует остальные customer-scoped события в universal earning facts и
-выбирает trigger type для signup, review, referral, birthday, anniversary, login, subscription
-renewal и custom event.
+Catch-all handler преобразует остальные customer-scoped события в universal earning facts и выбирает
+trigger type для signup, review, referral, birthday, anniversary, login, subscription renewal и
+custom event.
 
 ### 4.5. Persistence и invariants
 
@@ -225,20 +225,20 @@ renewal и custom event.
 
 ## 5. Оценка по функциональным областям
 
-| Область | Оценка | Комментарий |
-|---|---:|---|
-| GraphQL wiring | 90% | Root API реализован, типы и loaders присутствуют |
-| Program/version lifecycle | 80% | Draft, publish, schedule, immutability и reference validation реализованы |
-| Points ledger | 85% | Append-only ledger, lots, allocations, balances и rebuild реализованы |
-| Checkout redemption | 80% | Полная action sequence и Checkout integration присутствуют |
-| Purchase earning/refunds | 80% | Orders facts, calculation snapshots, reversal и debt paths реализованы |
-| Universal earning | 60% | Rules исполняются, но outbound economic events неполны |
-| Tiers | 65% | Evaluation engine есть, но operational trigger зависит от maintenance/manual call |
-| Rewards | 60% | Definitions/entitlements/state machine есть, fulfillment неполон для части типов |
-| Monetary wallets | 75% | Ledger и conversion сильные, часть mutation audit/idempotency неполна |
-| Storefront presentation | 55% | Rich projection есть, но eligibility semantics неполны |
-| Operational lifecycle | 40% | Maintenance реализован, автоматическое расписание не найдено |
-| Verification confidence | 55% | Большой suite, но критические gaps не покрыты и suite не запускался |
+| Область                   | Оценка | Комментарий                                                                       |
+| ------------------------- | -----: | --------------------------------------------------------------------------------- |
+| GraphQL wiring            |    90% | Root API реализован, типы и loaders присутствуют                                  |
+| Program/version lifecycle |    80% | Draft, publish, schedule, immutability и reference validation реализованы         |
+| Points ledger             |    85% | Append-only ledger, lots, allocations, balances и rebuild реализованы             |
+| Checkout redemption       |    80% | Полная action sequence и Checkout integration присутствуют                        |
+| Purchase earning/refunds  |    80% | Orders facts, calculation snapshots, reversal и debt paths реализованы            |
+| Universal earning         |    60% | Rules исполняются, но outbound economic events неполны                            |
+| Tiers                     |    65% | Evaluation engine есть, но operational trigger зависит от maintenance/manual call |
+| Rewards                   |    60% | Definitions/entitlements/state machine есть, fulfillment неполон для части типов  |
+| Monetary wallets          |    75% | Ledger и conversion сильные, часть mutation audit/idempotency неполна             |
+| Storefront presentation   |    55% | Rich projection есть, но eligibility semantics неполны                            |
+| Operational lifecycle     |    40% | Maintenance реализован, автоматическое расписание не найдено                      |
+| Verification confidence   |    55% | Большой suite, но критические gaps не покрыты и suite не запускался               |
 
 ## 6. Блокирующие findings
 
@@ -271,8 +271,8 @@ context также не предоставляет domain channel identity, пр
 - product badges;
 - account opportunities.
 
-Checkout повторно выполнит canonical eligibility и отклонит такую redemption/earning operation.
-В результате Storefront показывает обещание, которое authoritative runtime не подтверждает.
+Checkout повторно выполнит canonical eligibility и отклонит такую redemption/earning operation. В
+результате Storefront показывает обещание, которое authoritative runtime не подтверждает.
 
 #### Проблема теста
 
@@ -359,8 +359,8 @@ Workflow возвращает только `{ success: true }` и не соби�
 - `src/workflows/ExternalRewardWorkflow.ts`;
 - `src/application/earning/EarningRuleEngine.ts`.
 
-Для purchase earning аналогичная публикация реализована отдельно в
-`OrderRewardEligibleWorkflow`, но universal event path её не использует.
+Для purchase earning аналогичная публикация реализована отдельно в `OrderRewardEligibleWorkflow`, но
+universal event path её не использует.
 
 #### Влияние
 
@@ -380,8 +380,8 @@ Points ledger и balance меняются без `loyaltyPointsEarned`. Downstre
 2. Вернуть из transactional step transaction/entitlement/wallet identifiers.
 3. После durable DB step публиковать события отдельными workflow calls с deterministic `callId`.
 4. Для point awards публиковать `loyaltyPointsEarned` с точным `programVersionId`.
-5. Явно определить contracts для monetary credit и reward issuance либо документировать, почему
-   они не являются public domain events.
+5. Явно определить contracts для monetary credit и reward issuance либо документировать, почему они
+   не являются public domain events.
 6. Добавить replay test, подтверждающий ровно одно economic event emission.
 
 ### LOY-READY-004 — Обязательные idempotency keys игнорируются частью Admin API
@@ -391,14 +391,14 @@ Points ledger и balance меняются без `loyaltyPointsEarned`. Downstre
 
 #### Затронутые mutations
 
-| Mutation | `idempotencyKey` в SDL | Реальное использование |
-|---|---:|---|
-| `accountStatusUpdate` | Да | Игнорируется |
-| `tierEvaluate` | Да | Игнорируется |
-| `tierMembershipRevoke` | Да | Игнорируется |
-| `monetaryWalletStatusUpdate` | Да | Игнорируется |
-| `accountBalanceRebuild` | Да | Игнорируется |
-| `monetaryWalletBalanceRebuild` | Да | Игнорируется |
+| Mutation                       | `idempotencyKey` в SDL | Реальное использование |
+| ------------------------------ | ---------------------: | ---------------------- |
+| `accountStatusUpdate`          |                     Да | Игнорируется           |
+| `tierEvaluate`                 |                     Да | Игнорируется           |
+| `tierMembershipRevoke`         |                     Да | Игнорируется           |
+| `monetaryWalletStatusUpdate`   |                     Да | Игнорируется           |
+| `accountBalanceRebuild`        |                     Да | Игнорируется           |
+| `monetaryWalletBalanceRebuild` |                     Да | Игнорируется           |
 
 Основные места:
 
@@ -475,9 +475,9 @@ Cron, recurring DBOS schedule, bootstrap registration или другой repo-o
 
 #### Дополнительная проблема batch semantics
 
-`limit` применяется к части candidate queries, но accounts загружаются через
-`listAllForStore()` и обрабатываются полностью. Это делает duration maintenance workflow
-неограниченной размером магазина и ослабляет retry/replay predictability.
+`limit` применяется к части candidate queries, но accounts загружаются через `listAllForStore()` и
+обрабатываются полностью. Это делает duration maintenance workflow неограниченной размером магазина
+и ослабляет retry/replay predictability.
 
 #### Требуемое исправление
 
@@ -605,19 +605,19 @@ reduction, отделённой от Pricing discount.
 
 ### 8.5. Refund and debt handling
 
-Order reversal path учитывает cumulative reversed economics, proportional/full reversal,
-previously reversed amounts, point debt policy, monetary reversal и redeemed point restoration.
+Order reversal path учитывает cumulative reversed economics, proportional/full reversal, previously
+reversed amounts, point debt policy, monetary reversal и redeemed point restoration.
 
 ## 9. Анализ тестового покрытия
 
 В репозитории найдено **292** loyalty e2e test cases:
 
-| Suite | Количество test cases |
-|---|---:|
-| `loyality-admin-api` | 121 |
-| `loyality-storefront-api` | 94 |
-| `loyality-e2e-api` | 77 |
-| Всего | 292 |
+| Suite                     | Количество test cases |
+| ------------------------- | --------------------: |
+| `loyality-admin-api`      |                   121 |
+| `loyality-storefront-api` |                    94 |
+| `loyality-e2e-api`        |                    77 |
+| Всего                     |                   292 |
 
 ### 9.1. Хорошо покрытые области
 
@@ -777,6 +777,5 @@ business completion blocked
 production readiness not confirmed
 ```
 
-После закрытия findings `LOY-READY-001`–`LOY-READY-005`, принятия решения по
-`LOY-READY-006` и прохождения разрешённой verification pipeline оценку готовности следует провести
-повторно.
+После закрытия findings `LOY-READY-001`–`LOY-READY-005`, принятия решения по `LOY-READY-006` и
+прохождения разрешённой verification pipeline оценку готовности следует провести повторно.

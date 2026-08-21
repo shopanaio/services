@@ -14,7 +14,7 @@ export class ReviewDeleteScript extends BaseScript<ReviewDeleteParams, ReviewDel
     try {
       result = await this.repository.content.delete({
         id: params.id,
-        expectedRevision: params.expectedRevision,
+
         permanent: params.permanent ?? false,
       });
     } catch (error) {

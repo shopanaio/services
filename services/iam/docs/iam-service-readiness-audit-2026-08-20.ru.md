@@ -15,8 +15,8 @@ IAM service нельзя считать завершённым или готов
 
 - `userUpdateEmail` и `userUpdatePassword` опубликованы в Admin GraphQL, но возвращают
   `NOT_IMPLEMENTED`;
-- одиночный запрос организации не подтверждает доступ текущего пользователя, хотя SDL обещает
-  выдачу только доступной организации;
+- одиночный запрос организации не подтверждает доступ текущего пользователя, хотя SDL обещает выдачу
+  только доступной организации;
 - production adapter распределённого rate limiting в репозитории отсутствует, а обязательные
   password/OTP операции без него fail closed с `503`;
 - production validation social-provider credentials отсутствует и всегда возвращает
@@ -30,8 +30,8 @@ IAM service нельзя считать завершённым или готов
 
 При этом application-scoped OAuth/OIDC и новый Application Admin API находятся в существенно более
 зрелом состоянии, чем legacy/platform user API: присутствуют application isolation, scoped Better
-Auth adapter, OAuth client management, hosted UI, resource guard, JWT live validation, service-linked
-resource protection, revisioned mutations и durable administrative audit.
+Auth adapter, OAuth client management, hosted UI, resource guard, JWT live validation,
+service-linked resource protection, revisioned mutations и durable administrative audit.
 
 ## 2. Область и методика аудита
 
@@ -61,23 +61,23 @@ Build также не запускался, поскольку код не из�
 требовалась. Все выводы о runtime-поведении основаны на статическом trace от внешнего контракта до
 resolver/service/repository и на уже существующих contract reports.
 
-Отдельно не проверялись реальные Google/Facebook credentials, внешняя notification delivery,
-reverse proxy и production keyring environment.
+Отдельно не проверялись реальные Google/Facebook credentials, внешняя notification delivery, reverse
+proxy и production keyring environment.
 
 ## 3. Итоговая оценка
 
-| Подсистема | Готовность | Решение | Основное обоснование |
-| --- | ---: | --- | --- |
-| Application Admin GraphQL | 85% | Conditional | Полный resolver surface, revision/audit/RBAC, 121 активный E2E scenario; нет production provider validator |
-| OAuth/OIDC + password application auth | 75% | Conditional | Основные protocol/security paths реализованы; production rate-limit wiring и часть hardening verification не закрыты |
-| Email OTP application auth | 55% | NO-GO | Runtime есть, но 30 из 44 заявленных E2E tests — `fixme` |
-| Phone OTP application auth | 35% | NO-GO | Runtime и Admin configuration есть, но только 2 активных E2E scenarios |
-| Social providers/account linking | 65% | NO-GO | Catalog/runtime/refactoring завершены; production validation и durable runtime audit не собраны |
-| Organizations/RBAC | 70% | NO-GO | CRUD/workflows/Casbin реализованы; найден authorization gap одиночного query и API defect denial reason |
-| Platform users/profile/sessions | 40% | NO-GO | Две публичные мутации не реализованы; locale/status fields и unauthenticated current некорректны |
-| Service-linked applications/resources | 80% | Conditional | Broker API, protected-resource guard и Customers integration присутствуют; verification ограничена |
-| Headless interactions/Auth Components | 0% | Out of current runtime / NO-GO if committed scope | Есть только проектный план, отсутствуют routes и пакеты |
-| Production operations/hardening | 45% | NO-GO | Нет production rate limiter/provider validator/runtime audit adapter; security matrix частично не исполняется |
+| Подсистема                             | Готовность | Решение                                           | Основное обоснование                                                                                                 |
+| -------------------------------------- | ---------: | ------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------- |
+| Application Admin GraphQL              |        85% | Conditional                                       | Полный resolver surface, revision/audit/RBAC, 121 активный E2E scenario; нет production provider validator           |
+| OAuth/OIDC + password application auth |        75% | Conditional                                       | Основные protocol/security paths реализованы; production rate-limit wiring и часть hardening verification не закрыты |
+| Email OTP application auth             |        55% | NO-GO                                             | Runtime есть, но 30 из 44 заявленных E2E tests — `fixme`                                                             |
+| Phone OTP application auth             |        35% | NO-GO                                             | Runtime и Admin configuration есть, но только 2 активных E2E scenarios                                               |
+| Social providers/account linking       |        65% | NO-GO                                             | Catalog/runtime/refactoring завершены; production validation и durable runtime audit не собраны                      |
+| Organizations/RBAC                     |        70% | NO-GO                                             | CRUD/workflows/Casbin реализованы; найден authorization gap одиночного query и API defect denial reason              |
+| Platform users/profile/sessions        |        40% | NO-GO                                             | Две публичные мутации не реализованы; locale/status fields и unauthenticated current некорректны                     |
+| Service-linked applications/resources  |        80% | Conditional                                       | Broker API, protected-resource guard и Customers integration присутствуют; verification ограничена                   |
+| Headless interactions/Auth Components  |         0% | Out of current runtime / NO-GO if committed scope | Есть только проектный план, отсутствуют routes и пакеты                                                              |
+| Production operations/hardening        |        45% | NO-GO                                             | Нет production rate limiter/provider validator/runtime audit adapter; security matrix частично не исполняется        |
 
 ### 3.1. Интерпретация процента
 
@@ -100,19 +100,20 @@ observable use cases:
 В SDL объявлено 48 namespace operations. Для всех операций существует одноимённый resolver method,
 то есть структурного пробела schema-to-resolver не найдено.
 
-| Namespace | Queries/mutations | Количество | Структурный resolver |
-| --- | --- | ---: | --- |
-| `UserQuery` | `current`, `mySessions`, `authorize` | 3 | Есть |
-| `OrganizationQuery` | `organization`, `organizations` | 2 | Есть |
-| `ApplicationQuery` | `application`, `applications` | 2 | Есть |
-| `AuthMutation` | `signUp`, `signIn`, `signOut`, `tokenRefresh` | 4 | Есть |
-| `UserMutation` | profile/email/password/session operations | 5 | Есть, две операции — stubs |
-| `RoleMutation` | create/update/delete | 3 | Есть |
-| `OrganizationMutation` | organization/member/ownership operations | 8 | Есть |
-| `ApplicationMutation` | application/auth/provider/client/user security operations | 21 | Есть |
+| Namespace              | Queries/mutations                                         | Количество | Структурный resolver       |
+| ---------------------- | --------------------------------------------------------- | ---------: | -------------------------- |
+| `UserQuery`            | `current`, `mySessions`, `authorize`                      |          3 | Есть                       |
+| `OrganizationQuery`    | `organization`, `organizations`                           |          2 | Есть                       |
+| `ApplicationQuery`     | `application`, `applications`                             |          2 | Есть                       |
+| `AuthMutation`         | `signUp`, `signIn`, `signOut`, `tokenRefresh`             |          4 | Есть                       |
+| `UserMutation`         | profile/email/password/session operations                 |          5 | Есть, две операции — stubs |
+| `RoleMutation`         | create/update/delete                                      |          3 | Есть                       |
+| `OrganizationMutation` | organization/member/ownership operations                  |          8 | Есть                       |
+| `ApplicationMutation`  | application/auth/provider/client/user security operations |         21 | Есть                       |
 
-Root namespaces `userQuery`, `organizationQuery`, `applicationQuery`, `authMutation`, `userMutation`,
-`roleMutation`, `organizationMutation` и `applicationMutation` также зарегистрированы.
+Root namespaces `userQuery`, `organizationQuery`, `applicationQuery`, `authMutation`,
+`userMutation`, `roleMutation`, `organizationMutation` и `applicationMutation` также
+зарегистрированы.
 
 Структурная полнота не означает поведенческую полноту. Подтверждённые functional gaps перечислены в
 разделах 6–8.
@@ -224,7 +225,8 @@ broker actions с linked-owner checks.
 **Контракт:** `UserMutation.userUpdateEmail` опубликован в Admin GraphQL.  
 **Факт:** script всегда возвращает `NOT_IMPLEMENTED`; repository method `updateEmail` существует, но
 из mutation business flow не вызывается.  
-**Влияние:** профильный UI содержит hook обновления email, но operation не может успешно завершиться.  
+**Влияние:** профильный UI содержит hook обновления email, но operation не может успешно
+завершиться.  
 **Файлы:**
 
 - `src/api/graphql-admin/schema/base.graphql`;
@@ -275,8 +277,8 @@ cross-user и cross-organization E2E.
 **Факт:** in-memory adapter создаётся только для `development`. В репозитории не найден provider
 production implementation. При `availability="required"` отсутствие port приводит к
 `503 temporarily_unavailable`.  
-**Влияние:** password sign-in/sign-up/reset, email OTP и phone OTP не являются production-operational
-в текущей composition без внешнего, нигде не собранного adapter.  
+**Влияние:** password sign-in/sign-up/reset, email OTP и phone OTP не являются
+production-operational в текущей composition без внешнего, нигде не собранного adapter.  
 **Файлы:**
 
 - `src/iam.nest-service.ts`;
@@ -328,9 +330,9 @@ SDL публикует поля как реальные user properties. Resolve
 
 ### IAM-P1-002. `userUpdateProfile(locale)` молча игнорируется
 
-Resolver передаёт GraphQL `locale` как `language`, script включает его в проверку «есть ли изменения»,
-но не добавляет в `updateData`. Repository также не принимает locale/language. Mutation может
-вернуть success без изменения значения.
+Resolver передаёт GraphQL `locale` как `language`, script включает его в проверку «есть ли
+изменения», но не добавляет в `updateData`. Repository также не принимает locale/language. Mutation
+может вернуть success без изменения значения.
 
 Это особенно опасно как silent-success defect: клиент не получает user error и считает настройку
 сохранённой.
@@ -346,9 +348,8 @@ GraphQL ожидает `AuthorizePayload.deniedReason`. Resolver возвращ�
 ### IAM-P1-004. Неаутентифицированный `userQuery.current` создаёт resolver с пустым ID
 
 Admin context middleware инициализирует `currentUser` объектом `{ id: "" }`. `current()` проверяет
-только существование объекта, а не `currentUser.id`, и создаёт `UserResolver("")`. Ожидаемый
-GraphQL contract — `current: null`, а фактическое выполнение может завершиться preload not found
-error.
+только существование объекта, а не `currentUser.id`, и создаёт `UserResolver("")`. Ожидаемый GraphQL
+contract — `current: null`, а фактическое выполнение может завершиться preload not found error.
 
 ### IAM-P1-005. `Role` federation reference не реализован
 
@@ -361,9 +362,9 @@ SDL объявляет `Role @key(fields: "id")`. `__resolveReference` всег�
 
 ### IAM-P1-006. Несогласованность документации OAuth Phase 0
 
-Compatibility spike продолжает указывать незакрытые exit gates, часть которых уже реализована в
-коде и phase reports. Документ также исторически утверждает отсутствие phone plugin/routes, хотя
-текущая реализация и OpenAPI их содержат.
+Compatibility spike продолжает указывать незакрытые exit gates, часть которых уже реализована в коде
+и phase reports. Документ также исторически утверждает отсутствие phone plugin/routes, хотя текущая
+реализация и OpenAPI их содержат.
 
 Это не runtime defect, но мешает объективному release decision. Нужен единый актуальный checklist
 без параллельных противоречащих статусов.
@@ -385,15 +386,15 @@ service, credential model и routes в кодовой базе отсутств�
 
 ### 8.1. Статическая инвентаризация активных suites
 
-| Suite | Spec files | Объявленных tests | `fixme` | Declared/runtime skips |
-| --- | ---: | ---: | ---: | ---: |
-| `application-admin-api` | 6 | 121 | 0 | 0 |
-| `application-auth-password` | 12 | 223 | 15 | 0 |
-| `application-auth-email-otp` | 10 | 44 | 30 | 0 |
-| `application-auth-phone-otp` | 1 | 2 | 0 | 0 |
-| `iam-admin-api` | 2 | 19 | 0 | 0 |
-| `rbac-api` | 23 | 210 | 0 | 9 declarations/calls |
-| `users-admin-api` | 2 | 10 | 0 | 0 |
+| Suite                        | Spec files | Объявленных tests | `fixme` | Declared/runtime skips |
+| ---------------------------- | ---------: | ----------------: | ------: | ---------------------: |
+| `application-admin-api`      |          6 |               121 |       0 |                      0 |
+| `application-auth-password`  |         12 |               223 |      15 |                      0 |
+| `application-auth-email-otp` |         10 |                44 |      30 |                      0 |
+| `application-auth-phone-otp` |          1 |                 2 |       0 |                      0 |
+| `iam-admin-api`              |          2 |                19 |       0 |                      0 |
+| `rbac-api`                   |         23 |               210 |       0 |   9 declarations/calls |
+| `users-admin-api`            |          2 |                10 |       0 |                      0 |
 
 Количество tests рассчитано статическим поиском вызовов `test(...)`, `test.fixme(...)` и
 `test.skip(...)`; оно не означает успешное выполнение.
@@ -456,8 +457,8 @@ service, credential model и routes в кодовой базе отсутств�
 
 ### 8.6. RBAC gaps
 
-Есть skipped Role Transitions suite и runtime skips для site-admin scenarios. Отдельные комментарии о
-не реализованном `roleUpdate` устарели относительно кода, что также требует очистки test contract.
+Есть skipped Role Transitions suite и runtime skips для site-admin scenarios. Отдельные комментарии
+о не реализованном `roleUpdate` устарели относительно кода, что также требует очистки test contract.
 
 Нужен обязательный targeted test singular organization access, поскольку текущие organization tests
 проверяют scoped list, но не подтверждают authorization для `organization(id|name)`.
@@ -466,17 +467,17 @@ service, credential model и routes в кодовой базе отсутств�
 
 ### 9.1. Обязательные зависимости
 
-| Dependency | Development | Production wiring в репозитории | Поведение при отсутствии |
-| --- | --- | --- | --- |
-| Root key provider | Environment | Environment contract | Startup/keyring failure |
-| Email delivery | Notifications default adapter | Есть broker adapter | Realm build/delivery fail closed |
-| SMS delivery | Notifications default adapter | Есть broker adapter | Phone flow fail closed |
-| SMS provider availability | Notifications default adapter | Есть broker adapter | Phone method configuration unavailable |
-| Rate limit | In-memory fallback | **Не найдено** | Required password/OTP returns 503 |
-| Admin audit | Local PostgreSQL adapter | Есть | Durable by default |
-| Runtime social audit | Logger fallback | **Не найдено** | Нет durable retention |
-| Provider credential validation | E2E-only deterministic adapter | **Не найдено** | Всегда `UNAVAILABLE` |
-| Distributed live-state invalidation | Optional | **Не найдено** | Local fan-out + до 30s cache reread ceiling |
+| Dependency                          | Development                    | Production wiring в репозитории | Поведение при отсутствии                    |
+| ----------------------------------- | ------------------------------ | ------------------------------- | ------------------------------------------- |
+| Root key provider                   | Environment                    | Environment contract            | Startup/keyring failure                     |
+| Email delivery                      | Notifications default adapter  | Есть broker adapter             | Realm build/delivery fail closed            |
+| SMS delivery                        | Notifications default adapter  | Есть broker adapter             | Phone flow fail closed                      |
+| SMS provider availability           | Notifications default adapter  | Есть broker adapter             | Phone method configuration unavailable      |
+| Rate limit                          | In-memory fallback             | **Не найдено**                  | Required password/OTP returns 503           |
+| Admin audit                         | Local PostgreSQL adapter       | Есть                            | Durable by default                          |
+| Runtime social audit                | Logger fallback                | **Не найдено**                  | Нет durable retention                       |
+| Provider credential validation      | E2E-only deterministic adapter | **Не найдено**                  | Всегда `UNAVAILABLE`                        |
+| Distributed live-state invalidation | Optional                       | **Не найдено**                  | Local fan-out + до 30s cache reread ceiling |
 
 Distributed invalidation optional по текущему contract и не является абсолютным blocker, если
 30-second ceiling принят как release SLA. Остальные три отсутствующих production adapters должны
@@ -501,33 +502,33 @@ Production должен дополнительно подтвердить:
 
 ### 10.1. OAuth/OIDC runtime plan
 
-| Критерий | Статус | Комментарий |
-| --- | --- | --- |
-| Application isolation | Частично подтверждён | Реализация сильная, но не вся negative matrix executable |
-| Immutable resource + PKCE | Реализован | Guard, client policy, claims присутствуют |
-| Password/email OTP flags | Реализован | Runtime есть; test closure неполный |
-| Delivery purposes/templates | Реализован | Production dependency behavior требует verification |
-| Safe account linking | Реализован | Catalog and explicit-link policy присутствуют |
-| Live validation | Реализован | Некоторые failure/fallback cases `fixme` |
-| Block/revoke/disable lifecycle | Реализован | Targeted coverage неполный |
-| Все negative security scenarios | **Не выполнен** | Password/OTP fixme matrix |
-| Runbooks | Частично | Operations docs есть, incident/retention/load closure не подтверждён |
-| Hosted UI CSP/CSRF/cookie/WCAG/locale | Частично | Код есть, вся verification matrix не закрыта |
-| Load/observability/audit retention | **Не выполнен** | Нет runtime durable audit adapter и load evidence |
+| Критерий                              | Статус               | Комментарий                                                          |
+| ------------------------------------- | -------------------- | -------------------------------------------------------------------- |
+| Application isolation                 | Частично подтверждён | Реализация сильная, но не вся negative matrix executable             |
+| Immutable resource + PKCE             | Реализован           | Guard, client policy, claims присутствуют                            |
+| Password/email OTP flags              | Реализован           | Runtime есть; test closure неполный                                  |
+| Delivery purposes/templates           | Реализован           | Production dependency behavior требует verification                  |
+| Safe account linking                  | Реализован           | Catalog and explicit-link policy присутствуют                        |
+| Live validation                       | Реализован           | Некоторые failure/fallback cases `fixme`                             |
+| Block/revoke/disable lifecycle        | Реализован           | Targeted coverage неполный                                           |
+| Все negative security scenarios       | **Не выполнен**      | Password/OTP fixme matrix                                            |
+| Runbooks                              | Частично             | Operations docs есть, incident/retention/load closure не подтверждён |
+| Hosted UI CSP/CSRF/cookie/WCAG/locale | Частично             | Код есть, вся verification matrix не закрыта                         |
+| Load/observability/audit retention    | **Не выполнен**      | Нет runtime durable audit adapter и load evidence                    |
 
 ### 10.2. Application Admin API plan
 
-| Критерий | Статус | Комментарий |
-| --- | --- | --- |
-| Settings/providers/clients/users через GraphQL | Реализован | Полный structural surface |
-| Trusted platform actor + Casbin | Реализован | Application mutations проверяют actor/RBAC |
-| Service-linked protection | Реализован | `@ProtectedResource` и broker boundary |
-| Protocol policy нельзя ослабить | Реализован | Server-owned client policy |
-| Secrets не попадают в audit | Реализован | Safe diff, hashed/encrypted storage |
-| Tenant isolation negative scenarios | В основном | Application Admin suite зрелая |
-| Revision/cache invalidation | Реализован | Optimistic revision + local/distributed bus contract |
-| Durable admin audit fail closed | Реализован | Local PostgreSQL adapter |
-| Полностью настроить realm без БД | **Не выполнен полностью** | Provider validation production unavailable; dependencies требуют external wiring |
+| Критерий                                       | Статус                    | Комментарий                                                                      |
+| ---------------------------------------------- | ------------------------- | -------------------------------------------------------------------------------- |
+| Settings/providers/clients/users через GraphQL | Реализован                | Полный structural surface                                                        |
+| Trusted platform actor + Casbin                | Реализован                | Application mutations проверяют actor/RBAC                                       |
+| Service-linked protection                      | Реализован                | `@ProtectedResource` и broker boundary                                           |
+| Protocol policy нельзя ослабить                | Реализован                | Server-owned client policy                                                       |
+| Secrets не попадают в audit                    | Реализован                | Safe diff, hashed/encrypted storage                                              |
+| Tenant isolation negative scenarios            | В основном                | Application Admin suite зрелая                                                   |
+| Revision/cache invalidation                    | Реализован                | Optimistic revision + local/distributed bus contract                             |
+| Durable admin audit fail closed                | Реализован                | Local PostgreSQL adapter                                                         |
+| Полностью настроить realm без БД               | **Не выполнен полностью** | Provider validation production unavailable; dependencies требуют external wiring |
 
 ### 10.3. Общий IAM contract
 
@@ -565,8 +566,7 @@ production adapter gaps и незакрытой E2E-матрицы.
 ### Этап 4. Contract/documentation convergence
 
 1. Обновить OAuth compatibility spike на фактическое состояние Phase 2–7 и phone OTP.
-2. Зафиксировать scope headless interactions: current release exclusion или обязательная
-   реализация.
+2. Зафиксировать scope headless interactions: current release exclusion или обязательная реализация.
 3. Свести phase reports, plans и operations runbook в единый release checklist.
 4. Добавить evidence для load, audit retention, incident response и provider/delivery outage.
 

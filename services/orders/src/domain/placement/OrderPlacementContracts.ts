@@ -279,7 +279,6 @@ export const createOrderFromCheckoutPlacementV1Schema: z.ZodType<CreateOrderFrom
     storeId: uuid,
     placementId: uuid,
     checkoutId: uuid,
-    checkoutVersion: z.number().int().positive(),
     resultRevision: nonEmpty,
     finalQuote: z.object({ quoteId: nonEmpty, revision: nonEmpty }),
     paymentMethodsRevision: nonEmpty,

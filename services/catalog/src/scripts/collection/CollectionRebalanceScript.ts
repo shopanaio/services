@@ -39,10 +39,9 @@ export class CollectionRebalanceScript extends BaseScript<
     if (syncOperation.affectedCount === 0) {
       return { collection, userErrors: [] };
     }
-    const refreshed = await this.repository.collection.bumpRevision(
-      params.collectionId,
-      { listingChanged: false },
-    );
+    const refreshed = await this.repository.collection.bumpRevision(params.collectionId, {
+      listingChanged: false,
+    });
     if (!refreshed) {
       throw new Error("Collection disappeared while rebalancing");
     }

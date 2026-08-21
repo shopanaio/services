@@ -142,7 +142,7 @@ test.describe('Customers E2E API — privacy data request synchronization', () =
   test('admin-completed correction is reflected in the next storefront profile query', async () => {
     await kit.storefrontUpdate({
       firstName: 'Before',
-      expectedRevision: await kit.revision(),
+      
       idempotencyKey: uniqueKey(),
     });
     const response = await create('CORRECTION', {

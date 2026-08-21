@@ -127,7 +127,6 @@ CREATE INDEX search_term_dictionary_stale_idx
 
 CREATE TABLE listing.search_settings (
   store_id uuid NOT NULL,
-  version int NOT NULL DEFAULT 1,
   enabled_fields jsonb NOT NULL,
   field_weights jsonb NOT NULL,
   typo_tolerance_enabled boolean NOT NULL DEFAULT false,
@@ -137,7 +136,6 @@ CREATE TABLE listing.search_settings (
   CONSTRAINT search_settings_store_unique UNIQUE (store_id),
   CONSTRAINT chk_search_settings_uuid_v7
     CHECK (substring(store_id::text FROM 15 FOR 1) = '7'),
-  CONSTRAINT chk_search_settings_version CHECK (version > 0),
   CONSTRAINT chk_search_settings_enabled_fields CHECK (jsonb_typeof(enabled_fields) = 'array'),
   CONSTRAINT chk_search_settings_field_weights CHECK (jsonb_typeof(field_weights) = 'object'),
   CONSTRAINT chk_search_settings_oos_policy
@@ -150,7 +148,6 @@ CREATE TABLE listing.search_synonym_group (
   locale "listing"."locale_code" NOT NULL,
   name varchar(128) NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
-  version int NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -163,8 +160,7 @@ CREATE TABLE listing.search_synonym_group (
       substring(store_id::text FROM 15 FOR 1) = '7'
       AND substring(group_id::text FROM 15 FOR 1) = '7'
     ),
-  CONSTRAINT chk_search_synonym_group_name CHECK (name <> ''),
-  CONSTRAINT chk_search_synonym_group_version CHECK (version > 0)
+  CONSTRAINT chk_search_synonym_group_name CHECK (name <> '')
 );
 
 CREATE TABLE listing.search_synonym_value (
@@ -235,7 +231,6 @@ CREATE TABLE listing.search_product_boost (
   locale "listing"."locale_code" NOT NULL,
   name varchar(128) NOT NULL,
   enabled boolean NOT NULL DEFAULT true,
-  version int NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -247,8 +242,7 @@ CREATE TABLE listing.search_product_boost (
       substring(store_id::text FROM 15 FOR 1) = '7'
       AND substring(boost_id::text FROM 15 FOR 1) = '7'
     ),
-  CONSTRAINT chk_search_product_boost_name CHECK (name <> ''),
-  CONSTRAINT chk_search_product_boost_version CHECK (version > 0)
+  CONSTRAINT chk_search_product_boost_name CHECK (name <> '')
 );
 
 CREATE TABLE listing.search_product_boost_phrase (

@@ -135,7 +135,7 @@ test.describe('Loyalty Admin API tier evaluation and benefits', () => {
     const membership = evaluated.data.loyaltyMutation.tierEvaluate.tierMembership;
     const input = {
       membershipId: membership.id,
-      expectedRevision: membership.revision,
+      
       effectiveAt: new Date().toISOString(),
       reasonCode: 'ADMIN_REVOKED',
       idempotencyKey: idempotencyKey('tier-revoke'),

@@ -28,7 +28,6 @@ export function QuestionModal() {
     if (!question) return;
     const result = await actions.deleteQuestion({
       id: question.id,
-      expectedRevision: question.revision,
     });
     if (!result.id || result.errors.length)
       throw new Error(

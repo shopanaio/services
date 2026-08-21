@@ -313,10 +313,9 @@ export enum AppLifecycleOperationType {
 /** Payload returned after accepting a lifecycle operation. */
 export type AppLifecyclePayload = {
   __typename?: 'AppLifecyclePayload';
-  /** Whether an earlier request with the same client mutation ID was reused. */
-  duplicate: Scalars['Boolean']['output'];
   installation: Maybe<AppInstallation>;
   operation: Maybe<AppLifecycleOperation>;
+  /** Whether an earlier request with the same client mutation ID was reused. */
   userErrors: Array<GenericUserError>;
 };
 
@@ -1728,7 +1727,6 @@ export type AppLifecycleOperationErrorResolvers<ContextType = ServiceContext, Pa
 }>;
 
 export type AppLifecyclePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppLifecyclePayload'] = ResolversParentTypes['AppLifecyclePayload']> = ResolversObject<{
-  duplicate?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   installation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType>;
   operation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;

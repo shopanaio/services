@@ -101,13 +101,13 @@ export function useHeadlessStorefrontActions(sdk: AdminAppSdk) {
   );
 
   const updatePolicy = useCallback(
-    (connectionId: string, permissions: string[], expectedRevision: number) =>
+    (connectionId: string, permissions: string[]) =>
       run(async () => {
         const data = await sdk.graphql.mutate(STOREFRONT_ACCESS_POLICY_UPDATE_MUTATION, {
           input: {
             connectionId,
             permissions,
-            expectedRevision,
+
             clientMutationId: mutationId(),
           },
         });

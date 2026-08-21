@@ -47,7 +47,7 @@ import {
   toCheckoutPricingDeliverySnapshot,
   toPaymentsCheckoutEvaluationContext,
 } from "./boundaries.js";
-import { canonicalJsonRevision, canonicalJsonSha256 } from "./canonicalJson.js";
+import { canonicalJsonRevision } from "./canonicalJson.js";
 import { CheckoutPipelineStageError } from "./CheckoutPipelineStageError.js";
 import {
   checkoutTracer,
@@ -399,7 +399,6 @@ export class CheckoutPipeline {
       const request = parseCheckoutRecalculationRequest(rawRequest);
       span.setAttributes({
         "checkout.id": request.context.checkoutId,
-        "checkout.version": request.context.expectedCheckoutVersion,
         "checkout.correlation_id": request.context.correlationId,
       });
       const deadlineAt = Date.parse(request.context.deadlineAt);
@@ -638,7 +637,6 @@ export class CheckoutPipeline {
                 context: {
                   executionId: request.context.executionId,
                   checkoutId: request.context.checkoutId,
-                  checkoutVersion: request.context.expectedCheckoutVersion + 1,
                   storeId: request.context.storeId,
                   customerId: request.context.buyer?.customerId ?? null,
                   currencyCode: request.context.currencyCode,
@@ -774,44 +772,9 @@ export class CheckoutPipeline {
       ] as const;
       const issues = stages.flatMap((stage) => stage.issues);
       const executionCompleted = this.runtime.now();
-      const resultRevisionPayload = {
-        schemaVersion: 1,
-        checkoutId: request.context.checkoutId,
-        basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
-        change: request.change,
-        stages: stages.map((outcome, index) => {
-          const stage = (
-            [
-              "PRICING_PRELIMINARY",
-              "DELIVERY",
-              "PRICING_FINAL",
-              "LOYALTY",
-              "PAYMENT",
-              "VALIDATION",
-            ] as const
-          )[index]!;
-          if (outcome.status === "SUCCESS")
-            return {
-              stage,
-              status: outcome.status,
-              revision: outcome.data.revision,
-              issues: outcome.issues,
-            };
-          if (outcome.status === "FAILED")
-            return {
-              stage,
-              status: outcome.status,
-              failure: outcome.failure,
-              issues: outcome.issues,
-            };
-          return { stage, status: outcome.status, reason: outcome.reason, issues: outcome.issues };
-        }),
-      };
       const result: CheckoutRecalculationResult = {
         executionId: request.context.executionId,
         checkoutId: request.context.checkoutId,
-        basedOnCheckoutVersion: request.context.expectedCheckoutVersion,
-        resultRevision: `checkout-pipeline-result:v1:sha256:${canonicalJsonSha256(resultRevisionPayload)}`,
         preliminaryPricing,
         delivery,
         finalPricing,

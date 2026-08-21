@@ -141,7 +141,7 @@ test.describe('Loyalty Storefront API available rewards', () => {
     const revoked = await kit.api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', {
       variables: { input: {
         entitlementId: kit.id('LoyaltyRewardEntitlement', entitlement.rawId),
-        expectedRevision: 1, reasonCode: 'E2E_REVOKED',
+         reasonCode: 'E2E_REVOKED',
         idempotencyKey: idempotencyKey('storefront-revoke'),
       } },
     });

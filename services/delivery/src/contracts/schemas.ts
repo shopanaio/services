@@ -440,8 +440,6 @@ export const DeliveryProviderRouteSnapshotSchema = z.discriminatedUnion("capabil
 const deliveryOptionBindingBaseShape = {
   optionHandle: identifierSchema,
   checkoutId: identifierSchema,
-  basedOnCheckoutVersion: nonNegativeIntegerSchema,
-  targetCheckoutVersion: positiveIntegerSchema,
   groupId: identifierSchema,
   profileId: identifierSchema,
   methodDefinitionId: identifierSchema,
@@ -656,8 +654,6 @@ export const DeliveryCarrierServiceRateRequestSchema = z
     effectiveAt: timestampSchema,
     storeId: identifierSchema,
     checkoutId: identifierSchema,
-    basedOnCheckoutVersion: nonNegativeIntegerSchema,
-    targetCheckoutVersion: positiveIntegerSchema,
     groupId: identifierSchema,
     ratePlanRevision: revisionSchema,
     eligibilityRevision: revisionSchema,
@@ -1544,7 +1540,6 @@ export const DeliveryLifecycleActionSchemas = {
       organizationId: identifierSchema,
       storeId: identifierSchema,
       checkoutId: identifierSchema,
-      checkoutVersion: nonNegativeIntegerSchema,
       deliveryRevision: revisionSchema,
       committedAt: timestampSchema,
       idempotencyKey: idempotencyKeySchema,
@@ -1574,7 +1569,6 @@ export const DeliveryLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       checkoutId: identifierSchema,
-      checkoutVersion: nonNegativeIntegerSchema,
       groupIds: z.array(identifierSchema).min(1).max(DELIVERY_PROVIDER_MAX_COLLECTION_ITEMS),
       reason: z.string().trim().min(1).max(1_000),
       releasedAt: timestampSchema,

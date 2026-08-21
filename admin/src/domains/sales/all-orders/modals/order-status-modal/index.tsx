@@ -17,7 +17,7 @@ export function OrderStatusModal() {
   const submit = async () => {
     const result = await mutation.updateOrderStatus({
       id: value.entityId,
-      expectedVersion: value.expectedVersion,
+
       nextStatus: value.nextStatus,
       comment: comment.trim() || null,
     });

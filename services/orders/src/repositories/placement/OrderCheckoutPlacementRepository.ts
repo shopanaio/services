@@ -135,9 +135,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     }
 
     for (const group of input.snapshot.deliveryGroups) {
-      const deliverySubtotalAmount = BigInt(
-        group.selectedMethod?.quotedAmount.amountMinor ?? "0",
-      );
+      const deliverySubtotalAmount = BigInt(group.selectedMethod?.quotedAmount.amountMinor ?? "0");
       const deliveryTaxAmount = (group.deliveryTaxLines ?? []).reduce(
         (total, taxLine) => total + BigInt(taxLine.amount.amountMinor),
         0n,

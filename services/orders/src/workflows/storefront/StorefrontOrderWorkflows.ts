@@ -1,9 +1,5 @@
 import { Injectable } from "@nestjs/common";
-import {
-  InjectBroker,
-  type ServiceBroker,
-  Workflow,
-} from "@shopana/shared-kernel";
+import { InjectBroker, type ServiceBroker, Workflow } from "@shopana/shared-kernel";
 import type {
   AdminOrderCommandInput,
   AdminOrderCommandResult,

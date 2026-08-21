@@ -32,7 +32,7 @@ export class ProductQuestionAnswerDeleteScript extends BaseScript<
 
     const result = await this.repository.content.delete({
       id: input.answerId,
-      expectedRevision: input.expectedRevision,
+
       permanent: input.permanent ?? false,
     });
     if (result.status === "not_found") {

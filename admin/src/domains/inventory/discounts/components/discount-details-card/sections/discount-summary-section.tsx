@@ -55,7 +55,7 @@ export function DiscountSummarySection({
     void (async () => {
       const result = await updateDiscount({
         discountId: discount.id,
-        expectedRevision: discount.revision,
+
         operations: {
           lifecycle: { state },
         },

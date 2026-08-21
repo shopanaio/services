@@ -29,7 +29,7 @@ interface UseUpdateStoreReturn {
    */
   updateStore: (
     storeId: string,
-    expectedRevision: number,
+
     operations: ApiStoreUpdateInput,
     clientMutationId?: string,
   ) => Promise<UpdateStoreResult>;
@@ -80,7 +80,7 @@ export function useUpdateStore(): UseUpdateStoreReturn {
     {
       storeId: string;
       clientMutationId: string;
-      expectedRevision: number;
+
       operations: ApiStoreUpdateInput;
     }
   >(UPDATE_STORE_MUTATION);
@@ -88,7 +88,7 @@ export function useUpdateStore(): UseUpdateStoreReturn {
   const updateStore = useCallback(
     async (
       storeId: string,
-      expectedRevision: number,
+
       operations: ApiStoreUpdateInput,
       clientMutationId = crypto.randomUUID(),
     ): Promise<UpdateStoreResult> => {
@@ -96,7 +96,7 @@ export function useUpdateStore(): UseUpdateStoreReturn {
         variables: {
           storeId,
           clientMutationId,
-          expectedRevision,
+
           operations,
         },
       });

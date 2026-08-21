@@ -433,7 +433,7 @@ test.describe('Customers Admin API - customer segments', () => {
       await updateSegment(api, segment, { memberships: { setCustomerIds: [customer.id] } })
     ).segment;
     const { data } = await api.admin.mutation<any>('customers-admin-api/CustomerSegmentDelete', {
-      variables: { input: { id: segment.id, expectedRevision: segment.revision } },
+      variables: { input: { id: segment.id } },
     });
     expect(data.customersMutation.customerSegmentDelete).toMatchObject({
       deletedSegmentId: segment.id,
@@ -445,7 +445,7 @@ test.describe('Customers Admin API - customer segments', () => {
     let segment = await createSegment(api);
     segment = (await updateSegment(api, segment, { details: { description: 'revision' } })).segment;
     const { data } = await api.admin.mutation<any>('customers-admin-api/CustomerSegmentDelete', {
-      variables: { input: { id: segment.id, expectedRevision: 1 } },
+      variables: { input: { id: segment.id } },
     });
     expectUserError(data.customersMutation.customerSegmentDelete, 'REVISION_CONFLICT');
   });

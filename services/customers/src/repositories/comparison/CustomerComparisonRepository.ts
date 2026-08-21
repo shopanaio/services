@@ -236,7 +236,6 @@ export class CustomerComparisonRepository extends BaseRepository {
     customerId: string;
     productId: string;
     variantId: string;
-    expectedRevision: number;
   }): Promise<CustomerComparisonAddResult> {
     if (!(await this.lockActiveCustomer(input.customerId))) {
       return { status: "customer_not_found" };
@@ -244,13 +243,7 @@ export class CustomerComparisonRepository extends BaseRepository {
 
     let comparison = await this.lockComparison(input.customerId);
     if (!comparison) {
-      if (input.expectedRevision !== 0) {
-        return { status: "conflict", actualRevision: 0 };
-      }
       comparison = await this.createComparison(input.customerId);
-    }
-    if (comparison.revision !== input.expectedRevision) {
-      return { status: "conflict", actualRevision: comparison.revision };
     }
 
     const existing = await this.findItemByVariantId(comparison.id, input.variantId);
@@ -294,7 +287,6 @@ export class CustomerComparisonRepository extends BaseRepository {
   async removeVariant(input: {
     customerId: string;
     variantId: string;
-    expectedRevision: number;
   }): Promise<CustomerComparisonRemoveResult> {
     if (!(await this.lockActiveCustomer(input.customerId))) {
       return { status: "customer_not_found" };
@@ -304,9 +296,6 @@ export class CustomerComparisonRepository extends BaseRepository {
       return input.expectedRevision === 0
         ? { status: "not_selected", actualRevision: 0 }
         : { status: "conflict", actualRevision: 0 };
-    }
-    if (comparison.revision !== input.expectedRevision) {
-      return { status: "conflict", actualRevision: comparison.revision };
     }
 
     const item = await this.findItemByVariantId(comparison.id, input.variantId);
@@ -333,7 +322,6 @@ export class CustomerComparisonRepository extends BaseRepository {
   async clearVariants(input: {
     customerId: string;
     variantIds: readonly string[];
-    expectedRevision: number;
   }): Promise<CustomerComparisonClearResult> {
     if (!(await this.lockActiveCustomer(input.customerId))) {
       return { status: "customer_not_found" };
@@ -348,9 +336,6 @@ export class CustomerComparisonRepository extends BaseRepository {
             revision: 0,
           }
         : { status: "conflict", actualRevision: 0 };
-    }
-    if (comparison.revision !== input.expectedRevision) {
-      return { status: "conflict", actualRevision: comparison.revision };
     }
 
     const variantIds = [...new Set(input.variantIds)];

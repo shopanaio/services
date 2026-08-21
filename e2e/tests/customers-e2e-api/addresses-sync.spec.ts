@@ -31,7 +31,7 @@ test.describe('Customers E2E API — address synchronization', () => {
       'CustomerAddressCreateInput',
       {
         address: value,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -48,7 +48,7 @@ test.describe('Customers E2E API — address synchronization', () => {
       {
         addressId,
         address: value,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -60,7 +60,7 @@ test.describe('Customers E2E API — address synchronization', () => {
       'CustomerAddressDeleteInput',
       {
         addressId,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -132,7 +132,7 @@ test.describe('Customers E2E API — address synchronization', () => {
       {
         addressId: second.data!.payload.customerAddress!.id,
         defaults: ['SHIPPING', 'BILLING'],
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { revision defaultShippingAddress { id } defaultBillingAddress { id } } userErrors { ${USER_ERROR_FIELDS} }`,
@@ -157,7 +157,7 @@ test.describe('Customers E2E API — address synchronization', () => {
       {
         addressId: id,
         defaults: ['SHIPPING', 'BILLING'],
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { revision } userErrors { ${USER_ERROR_FIELDS} }`,
@@ -184,7 +184,7 @@ test.describe('Customers E2E API — address synchronization', () => {
     const rejected = await update(
       id,
       { ...address, city: 'Stale city' },
-      { expectedRevision: stale },
+      {  },
     );
     kit.expectUserError(rejected.data!.payload.userErrors, 'REVISION_CONFLICT', {
       retryable: true,

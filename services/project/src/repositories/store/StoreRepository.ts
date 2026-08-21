@@ -359,10 +359,7 @@ export class StoreRepository extends BaseRepository {
 
   /** Reserves the next internal store revision for a unified update. */
   @Transactional()
-  async acquireRevision(
-    id: string,
-    organizationId: string,
-  ): Promise<number | null> {
+  async acquireRevision(id: string, organizationId: string): Promise<number | null> {
     const [result] = await this.connection
       .update(store)
       .set({
@@ -370,11 +367,7 @@ export class StoreRepository extends BaseRepository {
         updatedAt: new Date(),
       })
       .where(
-        and(
-          eq(store.id, id),
-          eq(store.organizationId, organizationId),
-          isNull(store.deletedAt),
-        ),
+        and(eq(store.id, id), eq(store.organizationId, organizationId), isNull(store.deletedAt)),
       )
       .returning({ revision: store.revision });
 

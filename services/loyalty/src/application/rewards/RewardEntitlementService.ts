@@ -136,7 +136,7 @@ export class RewardEntitlementService {
 
   async transition(input: {
     entitlementId: string;
-    expectedRevision?: number;
+
     transition: EntitlementTransition;
     idempotencyKey: string;
     occurredAt: string;
@@ -160,13 +160,6 @@ export class RewardEntitlementService {
           );
         }
         return current;
-      }
-      if (input.expectedRevision !== undefined && current.revision !== input.expectedRevision) {
-        throw new LoyaltyDomainError(
-          "ENTITLEMENT_CONCURRENT_CHANGE",
-          "Reward entitlement changed concurrently",
-          true,
-        );
       }
       const change = this.transitionChange(current, input.transition, input.occurredAt);
       const updated = await this.repository.reward.updateEntitlementState(

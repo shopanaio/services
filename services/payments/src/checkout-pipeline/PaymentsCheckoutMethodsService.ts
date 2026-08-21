@@ -39,7 +39,6 @@ export class PaymentsCheckoutMethodsService {
         : await this.dependencies.bindings.resolveCommittedSelection({
             storeId: context.storeId,
             checkoutId: context.checkoutId,
-            checkoutVersion: context.expectedCheckoutVersion,
             methodHandle: params.selection.methodHandle,
             effectiveAt: context.effectiveAt,
           });
@@ -86,8 +85,6 @@ export class PaymentsCheckoutMethodsService {
     const candidates = normalize(executions, context.checkoutId);
     const discoveryRevision = contentRevision("payment-method-discovery", {
       checkoutId: context.checkoutId,
-      basedOnCheckoutVersion: context.expectedCheckoutVersion,
-      targetCheckoutVersion: context.targetCheckoutVersion,
       currencyCode: context.currencyCode,
       finalQuoteRevision: params.finalQuote.revision,
       loyaltyQuoteRevision: params.loyaltyRedemption?.quoteRevision ?? null,
@@ -145,7 +142,6 @@ export class PaymentsCheckoutMethodsService {
     const result: Payments.GetCheckoutAvailablePaymentMethodsResult = {
       executionId: context.executionId,
       checkoutId: context.checkoutId,
-      basedOnCheckoutVersion: context.expectedCheckoutVersion,
       currencyCode: context.currencyCode,
       revision,
       discoveryRevision,
@@ -161,8 +157,6 @@ export class PaymentsCheckoutMethodsService {
       await this.dependencies.bindings.stageCheckoutSnapshot({
         storeId: context.storeId,
         checkoutId: context.checkoutId,
-        basedOnCheckoutVersion: context.expectedCheckoutVersion,
-        targetCheckoutVersion: context.targetCheckoutVersion,
         finalQuoteRevision: params.finalQuote.revision,
         deliveryRevision: params.delivery.revision,
         discoveryRevision,
@@ -286,8 +280,6 @@ export class PaymentsCheckoutMethodsService {
     const { context } = params;
     const discoveryRevision = contentRevision("payment-method-discovery", {
       checkoutId: context.checkoutId,
-      basedOnCheckoutVersion: context.expectedCheckoutVersion,
-      targetCheckoutVersion: context.targetCheckoutVersion,
       currencyCode: context.currencyCode,
       finalQuoteRevision: params.finalQuote.revision,
       loyaltyQuoteRevision: params.loyaltyRedemption?.quoteRevision ?? null,
@@ -323,7 +315,6 @@ export class PaymentsCheckoutMethodsService {
     const result: Payments.GetCheckoutAvailablePaymentMethodsResult = {
       executionId: context.executionId,
       checkoutId: context.checkoutId,
-      basedOnCheckoutVersion: context.expectedCheckoutVersion,
       currencyCode: context.currencyCode,
       revision,
       discoveryRevision,
@@ -339,8 +330,6 @@ export class PaymentsCheckoutMethodsService {
       await this.dependencies.bindings.stageCheckoutSnapshot({
         storeId: context.storeId,
         checkoutId: context.checkoutId,
-        basedOnCheckoutVersion: context.expectedCheckoutVersion,
-        targetCheckoutVersion: context.targetCheckoutVersion,
         finalQuoteRevision: params.finalQuote.revision,
         deliveryRevision: params.delivery.revision,
         discoveryRevision,
@@ -442,8 +431,6 @@ function customizationInput(
     executionId: params.context.executionId,
     storeId: params.context.storeId,
     checkoutId: params.context.checkoutId,
-    basedOnCheckoutVersion: params.context.expectedCheckoutVersion,
-    targetCheckoutVersion: params.context.targetCheckoutVersion,
     currencyCode: params.context.currencyCode,
     localeCode: params.context.localeCode,
     channelCode: params.context.channelCode,

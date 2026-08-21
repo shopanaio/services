@@ -35,7 +35,7 @@ test.describe('Loyalty Admin API publication and configuration invariants', () =
     const rejected = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionPublish', {
       variables: { input: {
         programVersionId: overlappingDraft.id,
-        expectedRevision: overlappingDraft.revision,
+        
         effectiveFrom: future(30),
         idempotencyKey: idempotencyKey('overlapping-version'),
       } },
@@ -74,7 +74,7 @@ test.describe('Loyalty Admin API publication and configuration invariants', () =
     const calls = await Promise.all([1, 2].map((index) => api.admin.mutation<any>(
       'loyality-admin-api/ProgramVersionPublish',
       { variables: { input: {
-        programVersionId: version.id, expectedRevision: version.revision, effectiveFrom,
+        programVersionId: version.id,  effectiveFrom,
         idempotencyKey: idempotencyKey(`concurrent-publish-${index}`),
       } } },
     )));
@@ -112,7 +112,7 @@ test.describe('Loyalty Admin API publication and configuration invariants', () =
     ];
     const deleted = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionDelete', {
       variables: { input: {
-        programVersionId: version.id, expectedRevision: version.revision,
+        programVersionId: version.id, 
         idempotencyKey: idempotencyKey('cascade-version-delete'),
       } },
     });

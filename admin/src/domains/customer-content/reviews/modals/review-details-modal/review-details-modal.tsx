@@ -33,7 +33,7 @@ export function ReviewModal() {
 
   const handleDelete = async () => {
     if (!review) return;
-    const result = await actions.deleteReview({ id: review.id, expectedRevision: review.revision });
+    const result = await actions.deleteReview({ id: review.id });
     if (!result.id || result.errors.length)
       throw new Error(
         result.errors.map((item) => item.message).join(" ") || "Unable to delete review",

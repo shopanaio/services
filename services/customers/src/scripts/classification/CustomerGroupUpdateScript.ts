@@ -157,10 +157,7 @@ export class CustomerGroupUpdateScript extends BaseScript<
     }
 
     try {
-      const group = await this.repository.group.update(
-        params.id,
-        groupPatch(params.operations),
-      );
+      const group = await this.repository.group.update(params.id, groupPatch(params.operations));
       if (!group) return notFound();
 
       if (memberships) {

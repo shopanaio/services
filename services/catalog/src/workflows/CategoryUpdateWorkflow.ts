@@ -57,10 +57,7 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(input: CategoryUpdateWorkflowInput): Promise<CategoryUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(
-      input.categoryId,
-      input.context.storeId,
-    );
+    const acquired = await this.stepAcquireRevision(input.categoryId, input.context.storeId);
 
     if ("error" in acquired) {
       return {

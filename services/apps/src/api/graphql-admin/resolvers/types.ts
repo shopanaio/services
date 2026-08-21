@@ -37,7 +37,7 @@ export const typeResolvers: Partial<Resolvers> = {
       if ("manifest" in record && "manifestHash" in record) {
         return "AppManifestSnapshot";
       }
-      if ("appCode" in record && "configurationVersion" in record) {
+      if ("appCode" in record && "configuration" in record) {
         return "AppInstallation";
       }
       return null;

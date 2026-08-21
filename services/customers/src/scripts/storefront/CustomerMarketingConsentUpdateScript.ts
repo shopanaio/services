@@ -16,7 +16,7 @@ export interface StorefrontCustomerMarketingConsentUpdateParams {
   customerId: string;
   channel: StorefrontMarketingConsentChannel;
   state: StorefrontMarketingConsentTargetState;
-  expectedRevision: number;
+
   idempotencyKey: string;
   requestId: string;
 }
@@ -33,7 +33,7 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerMarketingConsentUpdateParams,
   ): Promise<StorefrontCustomerMarketingConsentUpdateResult> {
-    const revisionError = validateStorefrontExpectedRevision(params.expectedRevision);
+    const revisionError = validateStorefrontExpectedRevision();
     if (revisionError) return failed(revisionError);
     if (!isChannel(params.channel)) {
       return failed(storefrontError("INVALID_CHANNEL", "Unknown marketing channel", ["channel"]));
@@ -63,10 +63,7 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
       );
     }
 
-    const acquired = await this.repository.customer.acquireActiveRevision(
-      params.customerId,
-      params.expectedRevision,
-    );
+    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
     if (acquired.status !== "acquired") {
       return failed(revisionAcquireError(acquired));
     }

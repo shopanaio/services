@@ -136,7 +136,7 @@ export const StoreDefaultsModal = () => {
     setSubmitError(null);
     const result = await updateMutation.updateStore({
       storeId: store.id,
-      expectedRevision: store.revision,
+
       operations: mapStoreDefaultsInput(values, store),
     });
     const operationErrors = result.operationResults.flatMap(({ applied, errors }) =>

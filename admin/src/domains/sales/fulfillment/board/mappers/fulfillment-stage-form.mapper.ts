@@ -21,7 +21,7 @@ export function buildFulfillmentStageUpdateInput(
   values: FulfillmentStageFormValues,
   stage: ApiFulfillmentStage,
 ): FulfillmentStageUpdateInput {
-  const input: FulfillmentStageUpdateInput = { id: stage.id, expectedVersion: stage.version };
+  const input: FulfillmentStageUpdateInput = { id: stage.id };
   if (values.title.trim() !== stage.title) input.title = values.title.trim();
   if (values.handle.trim() !== stage.handle) input.handle = values.handle.trim();
   return input;

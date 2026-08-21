@@ -28,7 +28,6 @@ export async function checkoutPlacement(
   return mapPlaceOrderPayload(placement.result, {
     placementId: placement.placementId,
     checkoutId: placement.checkoutId,
-    resultRevision: placement.resultRevision,
     placementState: placement.status as ApiCheckoutPlacementState,
     failure: placement.failure,
   });

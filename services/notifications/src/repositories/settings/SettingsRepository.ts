@@ -40,12 +40,11 @@ export class SettingsRepository extends BaseRepository {
   async setDefinitionEnabled(input: {
     key: NotificationDefinitionKey;
     enabled: boolean;
-    expectedVersion: number;
+
     updatedBy?: string;
   }) {
     const current = await this.getDefinitionSetting(input.key);
     if (!current) {
-      if (input.expectedVersion !== 0) throw new Error("VERSION_CONFLICT");
       const rows = await this.connection
         .insert(notificationDefinitionSettings)
         .values({
@@ -69,7 +68,6 @@ export class SettingsRepository extends BaseRepository {
         and(
           eq(notificationDefinitionSettings.storeId, this.storeId),
           eq(notificationDefinitionSettings.definitionKey, input.key),
-          eq(notificationDefinitionSettings.version, input.expectedVersion),
         ),
       )
       .returning();
@@ -130,14 +128,13 @@ export class SettingsRepository extends BaseRepository {
     key: NotificationDefinitionKey;
     channel: NotificationChannel;
     enabled: boolean;
-    expectedVersion: number;
+
     senderName?: string;
     senderEmail?: string;
     replyTo?: string;
   }) {
     const current = await this.getChannelSetting(input.key, input.channel);
     if (!current) {
-      if (input.expectedVersion !== 0) throw new Error("VERSION_CONFLICT");
       const rows = await this.connection
         .insert(notificationChannelSettings)
         .values({
@@ -167,7 +164,6 @@ export class SettingsRepository extends BaseRepository {
           eq(notificationChannelSettings.storeId, this.storeId),
           eq(notificationChannelSettings.definitionKey, input.key),
           eq(notificationChannelSettings.channel, input.channel),
-          eq(notificationChannelSettings.version, input.expectedVersion),
         ),
       )
       .returning();

@@ -65,7 +65,7 @@ export interface QuestionUpdateMutationData {
 
 export interface QuestionUpdateMutationVariables {
   productQuestionId: string;
-  expectedRevision: number;
+
   operations: ApiProductQuestionUpdateInput;
 }
 

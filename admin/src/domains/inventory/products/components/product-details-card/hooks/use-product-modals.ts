@@ -74,7 +74,7 @@ export const useProductModals = (product: ApiProduct, options: UseProductModalsO
         };
         const result = await updateProduct({
           productId: product.id,
-          expectedRevision: product.revision,
+
           operations,
         });
 
@@ -129,7 +129,7 @@ export const useProductModals = (product: ApiProduct, options: UseProductModalsO
       onSave: async (values: Parameters<NonNullable<IEditSeoModalPayload["onSave"]>>[0]) => {
         const result = await updateProduct({
           productId: product.id,
-          expectedRevision: product.revision,
+
           operations: {
             seo: {
               seoTitle: values.seoTitle,
@@ -267,7 +267,7 @@ export const useProductModals = (product: ApiProduct, options: UseProductModalsO
 
           const result = await updateProduct({
             productId: product.id,
-            expectedRevision: product.revision,
+
             operations,
           });
 

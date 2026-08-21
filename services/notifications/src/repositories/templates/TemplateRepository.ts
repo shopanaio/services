@@ -72,7 +72,7 @@ export class TemplateRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async activate(input: { revisionId: string; expectedVersion: number; updatedBy?: string }) {
+  async activate(input: { revisionId: string; updatedBy?: string }) {
     const revision = await this.findRevision(input.revisionId);
     if (!revision) throw new Error("TEMPLATE_REVISION_NOT_FOUND");
     const identity = and(
@@ -89,7 +89,6 @@ export class TemplateRepository extends BaseRepository {
         .limit(1)
     )[0];
     if (!current) {
-      if (input.expectedVersion !== 0) throw new Error("VERSION_CONFLICT");
       const rows = await this.connection
         .insert(notificationTemplateActiveRevisions)
         .values({
@@ -111,7 +110,7 @@ export class TemplateRepository extends BaseRepository {
         updatedBy: input.updatedBy,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(identity, eq(notificationTemplateActiveRevisions.version, input.expectedVersion)))
+      .where(and(identity))
       .returning();
     if (!rows[0]) throw new Error("VERSION_CONFLICT");
     return rows[0];

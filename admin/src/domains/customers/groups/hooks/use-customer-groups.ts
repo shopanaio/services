@@ -96,7 +96,7 @@ export function useCustomerGroupMutations() {
         customerGroupUpdate: ApiCustomerGroupUpdatePayload;
       };
     },
-    { groupId: string; expectedRevision: number; operations: ApiCustomerGroupUpdateInput }
+    { groupId: string; operations: ApiCustomerGroupUpdateInput }
   >(CUSTOMER_GROUP_UPDATE_MUTATION);
   const [deleteMutation, deleteState] = useMutation<
     {
@@ -122,12 +122,12 @@ export function useCustomerGroupMutations() {
     },
     updateGroup: async (
       groupId: string,
-      expectedRevision: number,
+
       operations: ApiCustomerGroupUpdateInput,
     ) => {
       try {
         const result = await updateMutation({
-          variables: { groupId, expectedRevision, operations },
+          variables: { groupId, operations },
           refetchQueries: [CUSTOMER_GROUPS_QUERY],
         });
         const payload = result.data?.customersMutation.customerGroupUpdate;

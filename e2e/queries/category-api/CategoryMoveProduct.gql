@@ -3,12 +3,12 @@ mutation CategoryMoveProduct(
   $categoryId: ID!
   $afterProductId: ID
   $beforeProductId: ID
-  $expectedRevision: Int
+  
 ) {
   catalogMutation {
     productUpdate(
       productId: $productId
-      expectedRevision: $expectedRevision
+      
       operations: {
         categories: [
           {

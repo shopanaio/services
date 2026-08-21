@@ -77,7 +77,7 @@ export function ActiveFulfillment({
     statusModal.push({
       orderId: order.id,
       fulfillmentId: fulfillment.id,
-      expectedVersion: order.version,
+
       currentStatus: fulfillment.status,
       nextStatus,
       onSaved: refetch,
@@ -88,7 +88,7 @@ export function ActiveFulfillment({
       orderId: order.id,
       fulfillmentId: fulfillment.id,
       shippingItemId: fulfillment.shippingItem?.id,
-      expectedVersion: order.version,
+
       shippingMethodId: fulfillment.shippingItem?.shippingMethod.id,
       trackingCode: fulfillment.shippingItem?.trackingCode,
       onSaved: refetch,
@@ -96,7 +96,7 @@ export function ActiveFulfillment({
   const finishSplit = async () => {
     const result = await splitMutation.splitFulfillment({
       id: order.id,
-      expectedVersion: order.version,
+
       fulfillmentId: fulfillment.id,
       items: selectedIds.map((orderItemId) => ({
         orderItemId,
@@ -112,7 +112,7 @@ export function ActiveFulfillment({
   const undoSplit = async () => {
     const result = await undoMutation.undoFulfillmentSplit({
       id: order.id,
-      expectedVersion: order.version,
+
       fulfillmentId: fulfillment.id,
     });
     if (!result.order)

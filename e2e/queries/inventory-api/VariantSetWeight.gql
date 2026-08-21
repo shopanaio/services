@@ -1,13 +1,13 @@
 mutation VariantSetWeight(
   $productId: ID!
-  $expectedRevision: Int
+  
   $variantId: ID!
   $weight: Int!
 ) {
   catalogMutation {
     productUpdate(
       productId: $productId
-      expectedRevision: $expectedRevision
+      
       operations: {
         variants: [
           {

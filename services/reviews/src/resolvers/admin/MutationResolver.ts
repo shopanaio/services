@@ -137,7 +137,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       {
         params: {
           configurationId,
-          expectedRevision: args.expectedRevision,
+
           operations: args.operations,
         },
         context: this.mutationWorkflowContext(),
@@ -272,7 +272,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
 
     const workflowInput: ReviewUpdateWorkflowInput = {
       reviewId,
-      expectedRevision: args.expectedRevision,
+
       operations: mapped.operations,
       context: this.mutationWorkflowContext(),
     };
@@ -362,7 +362,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
 
     const workflowInput: ProductQuestionUpdateWorkflowInput = {
       productQuestionId,
-      expectedRevision: args.expectedRevision,
+
       operations: mapped.operations,
       context: this.mutationWorkflowContext(),
     };
@@ -455,7 +455,7 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
     const result = await this.runMutationWorkflow<ContentRedactWorkflowResult>(
       "contentRedact",
       {
-        params: { contentId, expectedRevision: args.expectedRevision },
+        params: { contentId },
         context: this.mutationWorkflowContext(),
       } satisfies ContentRedactWorkflowInput,
       contentId,
@@ -479,7 +479,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
         params: {
           contentId,
           revision: args.revision,
-          expectedRevision: args.expectedRevision,
         },
         context: this.mutationWorkflowContext(),
       } satisfies ContentRevisionRestoreWorkflowInput,

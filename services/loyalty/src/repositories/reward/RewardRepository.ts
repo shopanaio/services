@@ -473,7 +473,7 @@ export class RewardRepository extends BaseRepository {
 
   async updateEntitlementState(
     id: string,
-    expectedRevision: number,
+
     input: Partial<
       Pick<
         NewRewardEntitlement,
@@ -495,13 +495,7 @@ export class RewardRepository extends BaseRepository {
         revision: sql`${rewardEntitlements.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(rewardEntitlements.storeId, this.storeId),
-          eq(rewardEntitlements.id, id),
-          eq(rewardEntitlements.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(rewardEntitlements.storeId, this.storeId), eq(rewardEntitlements.id, id)))
       .returning();
     return rows[0] ?? null;
   }

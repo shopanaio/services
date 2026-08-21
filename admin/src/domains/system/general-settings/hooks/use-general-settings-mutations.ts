@@ -24,7 +24,7 @@ export const useUpdateGeneralSettings = () => {
     {
       storeId: string;
       clientMutationId: string;
-      expectedRevision: number;
+
       operations: ApiStoreUpdateInput;
     }
   >(UPDATE_GENERAL_SETTINGS_MUTATION);
@@ -32,7 +32,7 @@ export const useUpdateGeneralSettings = () => {
   const updateStore = useCallback(
     async (input: {
       storeId: string;
-      expectedRevision: number;
+
       operations: ApiStoreUpdateInput;
     }) => {
       const result = await mutate({

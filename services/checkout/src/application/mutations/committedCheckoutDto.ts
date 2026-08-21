@@ -181,7 +181,6 @@ export function committedCheckoutToDto(checkout: CheckoutCommittedSnapshot): Che
     status: checkout.lifecycle.status.toLowerCase(),
     expiresAt: checkout.lifecycle.expiresAt,
     metadata: {
-      resultRevision: result.resultRevision,
       loyaltyRedemption: loyalty
         ? {
             quoteId: loyalty.quoteId,

@@ -1992,7 +1992,6 @@ export type LoyaltyReservation = Node & {
   __typename?: 'LoyaltyReservation';
   account: LoyaltyAccount;
   checkoutId: Scalars['ID']['output'];
-  checkoutVersion: Scalars['Int']['output'];
   committedAt: Maybe<Scalars['DateTime']['output']>;
   createdAt: Scalars['DateTime']['output'];
   discount: LoyaltyMoney;
@@ -3623,7 +3622,6 @@ export type LoyaltyReservationResolvers<ContextType = ServiceContext, ParentType
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['LoyaltyReservation']>, { __typename: 'LoyaltyReservation' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   account?: Resolver<ResolversTypes['LoyaltyAccount'], ParentType, ContextType>;
   checkoutId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  checkoutVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   committedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   discount?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;

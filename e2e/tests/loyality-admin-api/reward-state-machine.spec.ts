@@ -79,7 +79,7 @@ test.describe('Loyalty Admin API reward entitlement state machine', () => {
     `;
     const result = await kit.api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRelease', {
       variables: { input: {
-        entitlementId: issued.id, expectedRevision: 2, reasonCode: 'ADMIN_RELEASED',
+        entitlementId: issued.id,  reasonCode: 'ADMIN_RELEASED',
         idempotencyKey: idempotencyKey('entitlement-release-success'),
       } },
     });
@@ -108,7 +108,7 @@ test.describe('Loyalty Admin API reward entitlement state machine', () => {
     expect(maintenance.data.loyaltyMutation.maintenanceRun.result.expiredRewards).toBe(1);
     const revoke = await kit.api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', {
       variables: { input: {
-        entitlementId: issued.id, expectedRevision: 2, reasonCode: 'TOO_LATE',
+        entitlementId: issued.id,  reasonCode: 'TOO_LATE',
         idempotencyKey: idempotencyKey('expired-revoke'),
       } },
     });

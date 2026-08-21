@@ -34,7 +34,7 @@ export function buildOrderCreateInput(values: OrderFormValues): OrderCreateInput
 }
 export function buildOrderUpdateInput(values: OrderFormValues, order: ApiOrder): OrderUpdateInput {
   const { clientMutationId: _clientMutationId, ...input } = buildOrderCreateInput(values);
-  return { ...input, id: order.id, expectedVersion: order.version };
+  return { ...input, id: order.id };
 }
 export function mapOrderToFormValues(order: ApiOrder): OrderFormValues {
   return {

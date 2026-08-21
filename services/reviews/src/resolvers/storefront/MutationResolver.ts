@@ -216,7 +216,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     if (errors.length) return { review: null, userErrors: errors };
     const result = await this.$ctx.kernel.runScript(StorefrontReviewUpdateScript, {
       id,
-      expectedRevision: args.input.expectedRevision,
+
       contentPatch: editPatch(args.input.content),
       rating: args.input.rating ?? undefined,
       ratings: args.input.ratings?.map((item) => ({
@@ -249,7 +249,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     if (ownership.error) return { deletedReviewId: null, userErrors: [ownership.error] };
     const result = await this.$ctx.kernel.runScript(ReviewDeleteScript, {
       id,
-      expectedRevision: args.input.expectedRevision,
+
       permanent: false,
     });
     if (result.productId)
@@ -312,7 +312,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     if (errors.length) return { productQuestion: null, userErrors: errors };
     const result = await this.$ctx.kernel.repository.content.update(
       id,
-      args.input.expectedRevision,
+
       editPatch(args.input.content),
     );
     if (result.status !== "applied")
@@ -337,7 +337,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     if (ownership.error) return { deletedProductQuestionId: null, userErrors: [ownership.error] };
     const result = await this.$ctx.kernel.runScript(ProductQuestionDeleteScript, {
       id,
-      expectedRevision: args.input.expectedRevision,
+
       permanent: false,
     });
     if (result.productId)
@@ -400,7 +400,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     const content = this.createContent(args.input.content, null, config.answerModerationMode);
     const created = await this.$ctx.kernel.runScript(StorefrontQuestionAnswerCreateScript, {
       questionId,
-      expectedRevision: args.input.expectedRevision,
+
       maxAnswers: config.maxAnswersPerQuestion,
       input: {
         content: mapCreatedContent(content),
@@ -442,7 +442,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     if (errors.length) return { answer: null, userErrors: errors };
     const result = await this.$ctx.kernel.repository.content.update(
       id,
-      args.input.expectedRevision,
+
       editPatch(args.input.content),
     );
     if (result.status !== "applied")
@@ -472,7 +472,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     const answer = await this.$ctx.kernel.repository.productQuestionAnswer.findById(id);
     const result = await this.$ctx.kernel.repository.content.delete({
       id,
-      expectedRevision: args.input.expectedRevision,
+
       permanent: false,
     });
     if (result.status !== "applied")

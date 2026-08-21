@@ -29,7 +29,7 @@ export class ListingStoreEventHandlers extends EventHandlers {
     try {
       const result = await Kernel.getInstance().repository.searchSettings.acquireVersion({
         storeId: event.payload.storeId,
-        expectedVersion: 0,
+
         initialValues: this.defaultSearchSettings(),
       });
 

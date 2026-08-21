@@ -2,33 +2,45 @@
 
 **Дата аудита:** 2026-08-20  
 **Объект:** `services/project`  
-**Цель:** оценить готовность Project service при условии, что всё заявленное API и связанная бизнес-логика должны быть завершены.  
+**Цель:** оценить готовность Project service при условии, что всё заявленное API и связанная
+бизнес-логика должны быть завершены.  
 **Итоговый статус:** **NOT READY**  
 **Оценочная готовность:** **около 60%**
 
 ## 1. Резюме
 
-Project service уже содержит содержательную реализацию Admin GraphQL API для lifecycle магазина, профиля, локалей, региональных настроек, branding, контактов, RBAC, optimistic concurrency и media-компенсаций. Эта часть значительно ближе к завершению, чем общий статус сервиса может подразумевать.
+Project service уже содержит содержательную реализацию Admin GraphQL API для lifecycle магазина,
+профиля, локалей, региональных настроек, branding, контактов, RBAC, optimistic concurrency и
+media-компенсаций. Эта часть значительно ближе к завершению, чем общий статус сервиса может
+подразумевать.
 
 Однако сервис нельзя считать feature-complete. Есть четыре блокирующие группы проблем:
 
 1. контракт изменения canonical store currency противоречит тестам и пользовательскому интерфейсу;
-2. Storefront Markets/Localization опубликованы как API, но не имеют owning write path и provisioning при создании store;
+2. Storefront Markets/Localization опубликованы как API, но не имеют owning write path и
+   provisioning при создании store;
 3. storefront E2E представлены двадцатью пустыми сценариями без запросов и assertions;
-4. lifecycle магазина не замкнут: нет status transition, полного IAM cleanup и строгой обработки всех внешних side effects.
+4. lifecycle магазина не замкнут: нет status transition, полного IAM cleanup и строгой обработки
+   всех внешних side effects.
 
-Главный практический результат: созданный стандартным `storeCreate` магазин не получает default market и не может гарантированно обслужить `localization`. Магазин, созданный со статусом `INACTIVE`, невозможно активировать через Project API. Валюта магазина после создания также не изменяется через опубликованный update contract, хотя Admin UI и E2E ожидают обратное.
+Главный практический результат: созданный стандартным `storeCreate` магазин не получает default
+market и не может гарантированно обслужить `localization`. Магазин, созданный со статусом
+`INACTIVE`, невозможно активировать через Project API. Валюта магазина после создания также не
+изменяется через опубликованный update contract, хотя Admin UI и E2E ожидают обратное.
 
 ## 2. Методика и ограничения
 
 Аудит выполнен как read-only статический анализ:
 
 - изучены Admin и Storefront GraphQL schemas;
-- проверено соответствие schema → generated types → resolvers → scripts/sagas → repositories → database models/migrations;
+- проверено соответствие schema → generated types → resolvers → scripts/sagas → repositories →
+  database models/migrations;
 - просмотрены broker actions и их потребители;
 - проверены E2E-сценарии Project Admin и Project Storefront;
-- реализация сопоставлена с правилами multi-tenancy, resolver/repository patterns и currency handling из knowledge base;
-- проверены явные `TODO`, заглушки, отсутствующие write paths и расхождения между API и тестовыми ожиданиями.
+- реализация сопоставлена с правилами multi-tenancy, resolver/repository patterns и currency
+  handling из knowledge base;
+- проверены явные `TODO`, заглушки, отсутствующие write paths и расхождения между API и тестовыми
+  ожиданиями.
 
 В соответствии с `AGENTS.md` не запускались:
 
@@ -37,7 +49,10 @@ Project service уже содержит содержательную реали�
 - dev/start server;
 - browser-проверки.
 
-Build также не запускался, поскольку код не изменялся и новая версия сервиса для аудита не требовалась. Поэтому выводы о runtime-поведении основаны на доступном коде и контрактах. Там, где поведение внешней инфраструктуры нельзя доказать статически, оно отмечено как риск, а не как подтверждённый дефект.
+Build также не запускался, поскольку код не изменялся и новая версия сервиса для аудита не
+требовалась. Поэтому выводы о runtime-поведении основаны на доступном коде и контрактах. Там, где
+поведение внешней инфраструктуры нельзя доказать статически, оно отмечено как риск, а не как
+подтверждённый дефект.
 
 ## 3. Заявленная зона ответственности
 
@@ -71,10 +86,10 @@ Build также не запускался, поскольку код не из�
 
 `StoreQuery` публикует:
 
-| Operation | Назначение | Статус |
-| --- | --- | --- |
+| Operation                | Назначение                          | Статус                           |
+| ------------------------ | ----------------------------------- | -------------------------------- |
 | `stores(organizationId)` | Список доступных stores организации | Реализовано, есть RBAC filtering |
-| `currentStore` | Store из trusted Admin context | Реализовано |
+| `currentStore`           | Store из trusted Admin context      | Реализовано                      |
 
 Источник: `src/api/graphql-admin/schema/base.graphql`.
 
@@ -82,14 +97,14 @@ Build также не запускался, поскольку код не из�
 
 `StoreMutation` публикует:
 
-| Operation | Назначение | Статус |
-| --- | --- | --- |
-| `storeCreate` | Создание store и внешних ресурсов | Частично завершено |
-| `storeUpdate` | Unified settings update | В основном реализовано, currency contract сломан |
-| `storeDelete` | Soft delete и cleanup | Частично завершено |
-| `localeCreate` | Добавление active/draft locale | Реализовано |
-| `localeDelete` | Удаление non-default locale | Реализовано |
-| `localeSetDefault` | Смена default locale с активацией draft | Реализовано |
+| Operation          | Назначение                              | Статус                                           |
+| ------------------ | --------------------------------------- | ------------------------------------------------ |
+| `storeCreate`      | Создание store и внешних ресурсов       | Частично завершено                               |
+| `storeUpdate`      | Unified settings update                 | В основном реализовано, currency contract сломан |
+| `storeDelete`      | Soft delete и cleanup                   | Частично завершено                               |
+| `localeCreate`     | Добавление active/draft locale          | Реализовано                                      |
+| `localeDelete`     | Удаление non-default locale             | Реализовано                                      |
+| `localeSetDefault` | Смена default locale с активацией draft | Реализовано                                      |
 
 ### 4.3 Admin Store projection
 
@@ -110,17 +125,18 @@ Admin `Store` публикует:
 - defaults;
 - currency formatting.
 
-Все опубликованные поля имеют resolver path или возвращаются как поля сформированного resolver value. Основной пробел находится не в чтении, а в lifecycle отдельных значений.
+Все опубликованные поля имеют resolver path или возвращаются как поля сформированного resolver
+value. Основной пробел находится не в чтении, а в lifecycle отдельных значений.
 
 ### 4.4 Storefront GraphQL
 
 Root `Query` публикует:
 
-| Operation | Назначение | Статус |
-| --- | --- | --- |
-| `store` | Публичный Store из trusted storefront context | Реализован read path |
-| `market(handle)` | Active market по handle | Реализован только read path |
-| `localization` | Localization default active market | Реализован только default path |
+| Operation        | Назначение                                    | Статус                         |
+| ---------------- | --------------------------------------------- | ------------------------------ |
+| `store`          | Публичный Store из trusted storefront context | Реализован read path           |
+| `market(handle)` | Active market по handle                       | Реализован только read path    |
+| `localization`   | Localization default active market            | Реализован только default path |
 
 Storefront types публикуют:
 
@@ -137,32 +153,36 @@ Read resolvers присутствуют, но supporting state нельзя со
 
 Project service регистрирует:
 
-| Action | Назначение | Статус |
-| --- | --- | --- |
-| `project.getCurrentStore` | Store по slug | Реализовано |
-| `project.getStoreById` | Store по raw UUID | Реализовано |
+| Action                     | Назначение                      | Статус                     |
+| -------------------------- | ------------------------------- | -------------------------- |
+| `project.getCurrentStore`  | Store по slug                   | Реализовано                |
+| `project.getStoreById`     | Store по raw UUID               | Реализовано                |
 | `project.listActiveStores` | Bounded enumeration для Listing | Реализовано с caller check |
 
-`project.getStoreById` используется Customers, Headless, Pricing, Checkout, Listing, Loyalty, Notifications и Catalog. Это делает корректность canonical currency, lifecycle status и configuration events системно значимой, а не локальной для Admin UI.
+`project.getStoreById` используется Customers, Headless, Pricing, Checkout, Listing, Loyalty,
+Notifications и Catalog. Это делает корректность canonical currency, lifecycle status и
+configuration events системно значимой, а не локальной для Admin UI.
 
 ## 5. Оценка готовности по подсистемам
 
-| Подсистема | Готовность | Обоснование |
-| --- | ---: | --- |
-| Admin store queries/profile | 80% | Полная projection, trusted context, RBAC; остаются lifecycle-зависимости |
-| Store creation | 65% | Store/IAM/media/events есть, но нет default market и полного compensation closure |
-| Unified settings update | 75% | Sections, revision, validation, idempotency, media compensation; currency contract неполон |
-| Locale lifecycle | 90% | Create/delete/default, draft activation, locking и tenant isolation реализованы |
-| Currency lifecycle | 40% | Создание и formatting есть, canonical currency update отсутствует |
-| Store status lifecycle | 35% | Status читается и задаётся только при создании |
-| Store deletion | 55% | Soft delete и events есть; IAM/media cleanup не гарантирован полностью |
-| Storefront Store projection | 65% | Resolver path есть, реальная E2E-проверка отсутствует |
-| Markets | 25% | Read repository/resolvers есть; CRUD/configuration/provisioning отсутствуют |
-| Localization | 30% | Default-market projection есть; hints, management и invariants не завершены |
-| Federation | 70% | Основные references присутствуют и storefront loaders tenant-scoped |
-| Automated verification | 55% | Admin scenarios многочисленны, storefront scenarios пусты; есть contract drift |
+| Подсистема                  | Готовность | Обоснование                                                                                |
+| --------------------------- | ---------: | ------------------------------------------------------------------------------------------ |
+| Admin store queries/profile |        80% | Полная projection, trusted context, RBAC; остаются lifecycle-зависимости                   |
+| Store creation              |        65% | Store/IAM/media/events есть, но нет default market и полного compensation closure          |
+| Unified settings update     |        75% | Sections, revision, validation, idempotency, media compensation; currency contract неполон |
+| Locale lifecycle            |        90% | Create/delete/default, draft activation, locking и tenant isolation реализованы            |
+| Currency lifecycle          |        40% | Создание и formatting есть, canonical currency update отсутствует                          |
+| Store status lifecycle      |        35% | Status читается и задаётся только при создании                                             |
+| Store deletion              |        55% | Soft delete и events есть; IAM/media cleanup не гарантирован полностью                     |
+| Storefront Store projection |        65% | Resolver path есть, реальная E2E-проверка отсутствует                                      |
+| Markets                     |        25% | Read repository/resolvers есть; CRUD/configuration/provisioning отсутствуют                |
+| Localization                |        30% | Default-market projection есть; hints, management и invariants не завершены                |
+| Federation                  |        70% | Основные references присутствуют и storefront loaders tenant-scoped                        |
+| Automated verification      |        55% | Admin scenarios многочисленны, storefront scenarios пусты; есть contract drift             |
 
-Итоговая оценка около 60% является инженерной оценкой полноты, а не арифметическим средним строк таблицы. При требовании «всё заявленное API и бизнес-логика завершены» итоговый gate остаётся бинарным: **NOT READY**.
+Итоговая оценка около 60% является инженерной оценкой полноты, а не арифметическим средним строк
+таблицы. При требовании «всё заявленное API и бизнес-логика завершены» итоговый gate остаётся
+бинарным: **NOT READY**.
 
 ## 6. Блокирующие находки
 
@@ -171,13 +191,16 @@ Project service регистрирует:
 **Severity:** Blocker  
 **Область:** Admin API, downstream services, Admin UI, events
 
-`StoreCurrencySettings` возвращает `currencyCode`, но `StoreCurrencySettingsUpdateInput` содержит только formatting options:
+`StoreCurrencySettings` возвращает `currencyCode`, но `StoreCurrencySettingsUpdateInput` содержит
+только formatting options:
 
 - `src/api/graphql-admin/schema/storeSettings.graphql:108-119`;
 - `src/api/graphql-admin/schema/storeSettings.graphql:168-177`;
 - `src/api/graphql-admin/generated/types.ts:341-363`.
 
-`StoreMutationResolver.mapStoreUpdateInput()` не маппит currency code. `StoreCurrencySettingsUpdateScript` обновляет только `store_currency_formatting`. На repository level изменение намеренно отклоняется:
+`StoreMutationResolver.mapStoreUpdateInput()` не маппит currency code.
+`StoreCurrencySettingsUpdateScript` обновляет только `store_currency_formatting`. На repository
+level изменение намеренно отклоняется:
 
 ```ts
 if (data.currencyCode !== undefined) {
@@ -201,9 +224,11 @@ if (data.currencyCode !== undefined) {
 - `e2e/tests/project-settings-admin-api/order-defaults-currency.spec.ts:221-231`;
 - `e2e/tests/project-settings-admin-api/saga-observability.spec.ts:39-67`.
 
-GraphQL input object с неизвестным `currencyCode` не соответствует схеме. Эти E2E-сценарии не могут проверить заявленное поведение на текущем contract.
+GraphQL input object с неизвестным `currencyCode` не соответствует схеме. Эти E2E-сценарии не могут
+проверить заявленное поведение на текущем contract.
 
-Admin UI также показывает currency selector, но mapper удаляет выбранный `currencyCode` и отправляет только formatting:
+Admin UI также показывает currency selector, но mapper удаляет выбранный `currencyCode` и отправляет
+только formatting:
 
 - `admin/src/domains/system/general-settings/modals/store-currency-modal/store-currency-modal.tsx:132-159`;
 - `admin/src/domains/system/general-settings/mappers/store-settings-input.mapper.ts:78-89`.
@@ -234,7 +259,8 @@ Admin UI также показывает currency selector, но mapper удал
 **Severity:** Blocker  
 **Область:** Storefront, Admin API, data ownership
 
-Storefront schema публикует полноценный `Market` и `MarketConnection`, но Project service не содержит:
+Storefront schema публикует полноценный `Market` и `MarketConnection`, но Project service не
+содержит:
 
 - Admin market queries;
 - `marketCreate`;
@@ -259,7 +285,8 @@ Storefront schema публикует полноценный `Market` и `MarketC
 
 `e2e/tests/project-storefront-api/markets.spec.ts:19-20`.
 
-**Воздействие:** опубликованный storefront API зависит от данных, для которых у owning service отсутствует поддерживаемый lifecycle.
+**Воздействие:** опубликованный storefront API зависит от данных, для которых у owning service
+отсутствует поддерживаемый lifecycle.
 
 ### PRJ-RDY-003 — Store creation не создаёт default market
 
@@ -277,7 +304,8 @@ Storefront schema публикует полноценный `Market` и `MarketC
 
 Источник: `src/sagas/StoreCreateSaga.ts:74-95`.
 
-Market, market country, market locale и market currency при этом не создаются. Миграции также не содержат default market seeding для нового store.
+Market, market country, market locale и market currency при этом не создаются. Миграции также не
+содержат default market seeding для нового store.
 
 `QueryResolver.localization()` требует active default market и иначе выбрасывает:
 
@@ -287,9 +315,12 @@ STORE_CONFIGURATION_ERROR: The storefront has no active default market
 
 Источник: `src/resolvers/storefront/QueryResolver.ts:19-29`.
 
-**Воздействие:** успешный `storeCreate` не приводит систему в состояние, достаточное для выполнения опубликованного non-null `localization: Localization!`.
+**Воздействие:** успешный `storeCreate` не приводит систему в состояние, достаточное для выполнения
+опубликованного non-null `localization: Localization!`.
 
-**Необходимое решение:** либо атомарно создавать минимальный default market из store locale/currency/timezone, либо включить обязательную market configuration фазу и не считать store storefront-ready до её завершения.
+**Необходимое решение:** либо атомарно создавать минимальный default market из store
+locale/currency/timezone, либо включить обязательную market configuration фазу и не считать store
+storefront-ready до её завершения.
 
 ### PRJ-RDY-004 — Storefront E2E являются пустыми заглушками
 
@@ -303,7 +334,8 @@ STORE_CONFIGURATION_ERROR: The storefront has no active default market
 - `markets.spec.ts` — 5;
 - `store-context.spec.ts` — 5.
 
-Все callbacks синхронные, содержат только комментарии и не выполняют API requests или assertions. Фактическое автоматизированное покрытие storefront Project API равно нулю.
+Все callbacks синхронные, содержат только комментарии и не выполняют API requests или assertions.
+Фактическое автоматизированное покрытие storefront Project API равно нулю.
 
 Не проверяются:
 
@@ -324,7 +356,8 @@ STORE_CONFIGURATION_ERROR: The storefront has no active default market
 **Severity:** High  
 **Область:** Store lifecycle
 
-`StoreStatus` и поле `Store.status` опубликованы. `StoreCreateInput.status` позволяет создать `INACTIVE` store. Однако:
+`StoreStatus` и поле `Store.status` опубликованы. `StoreCreateInput.status` позволяет создать
+`INACTIVE` store. Однако:
 
 - `StoreUpdateInput` не содержит status operation;
 - `UpdateStoreData` не содержит `status`;
@@ -337,7 +370,8 @@ STORE_CONFIGURATION_ERROR: The storefront has no active default market
 - `src/api/graphql-admin/schema/storeSettings.graphql:179-189`;
 - `src/repositories/store/StoreRepository.ts:74-85`.
 
-Storefront resolver скрывает inactive store, а `listActiveStores` также исключает его. Поэтому store, созданный `INACTIVE`, нельзя перевести в рабочее состояние через Project API.
+Storefront resolver скрывает inactive store, а `listActiveStores` также исключает его. Поэтому
+store, созданный `INACTIVE`, нельзя перевести в рабочее состояние через Project API.
 
 ### PRJ-RDY-006 — Store delete не завершает внешний lifecycle
 
@@ -349,18 +383,23 @@ Create saga создаёт store-scoped IAM roles и назначает creator 
 - store IAM domain/roles;
 - assignments/membership.
 
-Media deletion и `media.entityDeleted` обёрнуты в `try/catch`; исключения логируются и проглатываются:
+Media deletion и `media.entityDeleted` обёрнуты в `try/catch`; исключения логируются и
+проглатываются:
 
 - `src/sagas/StoreDeleteSaga.ts:73-84`;
 - `src/sagas/StoreDeleteSaga.ts:86-103`.
 
-После этого saga продолжает выполнение и может вернуть успешный `deletedStoreId`. Это расходится с сильной трактовкой lifecycle-теста «successful delete soft-deletes reads, media, and emits storeDeleted».
+После этого saga продолжает выполнение и может вернуть успешный `deletedStoreId`. Это расходится с
+сильной трактовкой lifecycle-теста «successful delete soft-deletes reads, media, and emits
+storeDeleted».
 
 Нужно явно выбрать семантику:
 
 - strict cleanup — mutation завершается только после durable cleanup;
-- accepted asynchronous cleanup — mutation возвращает отдельный lifecycle state, cleanup становится retryable workflow и наблюдаемым процессом;
-- documented best effort — допустимо только если orphan resources являются осознанной политикой и существует reconciliation.
+- accepted asynchronous cleanup — mutation возвращает отдельный lifecycle state, cleanup становится
+  retryable workflow и наблюдаемым процессом;
+- documented best effort — допустимо только если orphan resources являются осознанной политикой и
+  существует reconciliation.
 
 Сейчас policy не выражена в API и не доказана тестами отказов.
 
@@ -369,7 +408,8 @@ Media deletion и `media.entityDeleted` обёрнуты в `try/catch`; иск�
 **Severity:** High  
 **Область:** observability, downstream consistency
 
-При создании IAM workflow results явно проверяются через `result.success`. В то же время вызовы `events.emit` в create, update и delete paths не проверяют возвращаемый result.
+При создании IAM workflow results явно проверяются через `result.success`. В то же время вызовы
+`events.emit` в create, update и delete paths не проверяют возвращаемый result.
 
 Источники:
 
@@ -378,35 +418,43 @@ Media deletion и `media.entityDeleted` обёрнуты в `try/catch`; иск�
 - `src/sagas/StoreUpdateSaga.ts:582-621`;
 - `src/sagas/StoreDeleteSaga.ts:105-128`.
 
-Если `runWorkflow` всегда бросает исключение при failed result, риск закрывается инфраструктурным контрактом. Если он может вернуть `{ success: false }`, store lifecycle способен завершиться без обязательного event. Это необходимо подтвердить и закрепить тестом failure path.
+Если `runWorkflow` всегда бросает исключение при failed result, риск закрывается инфраструктурным
+контрактом. Если он может вернуть `{ success: false }`, store lifecycle способен завершиться без
+обязательного event. Это необходимо подтвердить и закрепить тестом failure path.
 
 ### PRJ-RDY-008 — Market invariants не защищены
 
 **Severity:** High  
 **Область:** data integrity, multi-tenancy
 
-Модель комментирует, что currency и locale membership валидируются application layer, но write layer отсутствует. Database constraints не гарантируют:
+Модель комментирует, что currency и locale membership валидируются application layer, но write layer
+отсутствует. Database constraints не гарантируют:
 
 - наличие хотя бы одной country;
 - наличие primary country;
 - наличие default locale в `market_locale`;
 - наличие default currency в `market_currency`;
-- совпадение `market_country.store_id`, `market_locale.store_id` и `market_currency.store_id` с owner store соответствующего market;
+- совпадение `market_country.store_id`, `market_locale.store_id` и `market_currency.store_id` с
+  owner store соответствующего market;
 - наличие default active market у storefront-ready store.
 
 Источник: `src/repositories/models/market.ts`.
 
-Storefront resolvers частично маскируют неконсистентные данные через tenant filters, но это не заменяет write-time invariants.
+Storefront resolvers частично маскируют неконсистентные данные через tenant filters, но это не
+заменяет write-time invariants.
 
 ## 7. Дополнительные замечания
 
 ### 7.1 Нулевая unit/integration test база внутри service package
 
-В `services/project` отсутствуют `*.spec.ts` и `*.test.ts`. Всё автоматизированное покрытие вынесено в E2E. Для sagas, validation mapping, currency/status rules и repository invariants это повышает стоимость диагностики и оставляет некоторые failure branches недоказанными.
+В `services/project` отсутствуют `*.spec.ts` и `*.test.ts`. Всё автоматизированное покрытие вынесено
+в E2E. Для sagas, validation mapping, currency/status rules и repository invariants это повышает
+стоимость диагностики и оставляет некоторые failure branches недоказанными.
 
 ### 7.2 Admin E2E объёмны, но не равны доказанной готовности
 
-В `e2e/tests/project-settings-admin-api` объявлено 133 test cases. Они хорошо описывают ожидаемое поведение:
+В `e2e/tests/project-settings-admin-api` объявлено 133 test cases. Они хорошо описывают ожидаемое
+поведение:
 
 - RBAC и tenant isolation;
 - global ID validation;
@@ -417,15 +465,23 @@ Storefront resolvers частично маскируют неконсистен�
 - safe errors;
 - lifecycle events.
 
-Однако currency fixture содержит поле, отсутствующее в schema. Поэтому количество сценариев нельзя интерпретировать как подтверждение passing state без устранения contract drift и фактического выполнения через разрешённый project workflow.
+Однако currency fixture содержит поле, отсутствующее в schema. Поэтому количество сценариев нельзя
+интерпретировать как подтверждение passing state без устранения contract drift и фактического
+выполнения через разрешённый project workflow.
 
 ### 7.3 Locale ordering явно не закреплён
 
-`LocaleRepository.findByStoreId()` не задаёт `orderBy`. Если API требует полностью deterministic ordering для `languageSettings`, порядок необходимо определить контрактом и реализовать в repository. Сейчас большинство тестов используют membership assertions, поэтому проблема не является blocker, но может проявиться в UI или snapshot tests.
+`LocaleRepository.findByStoreId()` не задаёт `orderBy`. Если API требует полностью deterministic
+ordering для `languageSettings`, порядок необходимо определить контрактом и реализовать в
+repository. Сейчас большинство тестов используют membership assertions, поэтому проблема не является
+blocker, но может проявиться в UI или snapshot tests.
 
 ### 7.4 Database singleton lifecycle
 
-`src/infrastructure/db/database.ts` кэширует Drizzle instance в module-level переменной, а `Kernel.close()` её не очищает. Для обычного single-start процесса это допустимо. Для in-process restart или подключения нового database client возможно повторное использование старого instance. Требуется либо документировать запрет restart, либо добавить controlled reset lifecycle.
+`src/infrastructure/db/database.ts` кэширует Drizzle instance в module-level переменной, а
+`Kernel.close()` её не очищает. Для обычного single-start процесса это допустимо. Для in-process
+restart или подключения нового database client возможно повторное использование старого instance.
+Требуется либо документировать запрет restart, либо добавить controlled reset lifecycle.
 
 ## 8. Что реализовано качественно
 
@@ -489,11 +545,13 @@ Storefront resolvers частично маскируют неконсистен�
 2. Зафиксировать lifecycle store status.
 3. Зафиксировать strict или asynchronous semantics внешнего cleanup.
 4. Определить storefront-ready state и обязанность иметь default market.
-5. Определить источник localization hints: GraphQL args, trusted gateway context или storefront access context.
+5. Определить источник localization hints: GraphQL args, trusted gateway context или storefront
+   access context.
 
 ### Этап 2 — Завершить currency и status
 
-1. Синхронизировать GraphQL schema, generated types, resolver mapper, DTO, script, repository, saga snapshot и Admin mapper.
+1. Синхронизировать GraphQL schema, generated types, resolver mapper, DTO, script, repository, saga
+   snapshot и Admin mapper.
 2. Добавить configuration revision/event semantics для допустимых currency/timezone изменений.
 3. Добавить status transition operation с RBAC, optimistic concurrency и event.
 4. Определить разрешённые переходы `ACTIVE ↔ INACTIVE`.
@@ -515,7 +573,8 @@ Storefront resolvers частично маскируют неконсистен�
 2. Определить поведение при Media cleanup failure.
 3. Проверять event workflow results или документировать throw-only contract.
 4. Добавить failure-path coverage для create/delete/event/IAM/media combinations.
-5. Исключить состояние, в котором mutation сообщает clean success при незавершённом обязательном side effect.
+5. Исключить состояние, в котором mutation сообщает clean success при незавершённом обязательном
+   side effect.
 
 ### Этап 5 — Завершить verification
 
@@ -590,4 +649,5 @@ Project service может считаться завершённым тольк�
 6. все 20 storefront E2E заменены рабочими сценариями;
 7. schema, generated types, Admin UI и E2E приведены к одному контракту.
 
-После закрытия этих пунктов целевая повторная оценка должна отдельно проверить runtime-поведение через разрешённый Shopana CLI workflow.
+После закрытия этих пунктов целевая повторная оценка должна отдельно проверить runtime-поведение
+через разрешённый Shopana CLI workflow.

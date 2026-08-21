@@ -191,7 +191,7 @@ export function useManagementMutations() {
     },
     {
       configurationId: string;
-      expectedRevision: number;
+
       operations: ApiReviewStoreConfigurationUpdateInput;
     }
   >(REVIEW_CONFIGURATION_UPDATE_MUTATION);
@@ -350,11 +350,11 @@ export function useManagementMutations() {
   return {
     updateConfiguration: (
       configurationId: string,
-      expectedRevision: number,
+
       operations: ApiReviewStoreConfigurationUpdateInput,
     ) =>
       run(
-        configurationUpdate({ variables: { configurationId, expectedRevision, operations } }),
+        configurationUpdate({ variables: { configurationId, operations } }),
         "storeConfigurationUpdate",
       ),
     createCriterion: (input: ApiReviewRatingCriterionCreateInput) =>

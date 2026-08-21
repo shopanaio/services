@@ -12,14 +12,14 @@ export interface OrderModalPayload extends IModalStackPayload {
 }
 export interface OrderStatusModalPayload extends IModalStackPayload {
   entityId: string;
-  expectedVersion: number;
+
   nextStatus: OrderStatus;
   onSaved?: () => Promise<unknown> | unknown;
 }
 export interface OrderPaymentStatusModalPayload extends IModalStackPayload {
   orderId: string;
   paymentItemId: string;
-  expectedVersion: number;
+
   currentStatus: OrderPaymentStatus;
   nextStatus: OrderPaymentStatus;
   onSaved?: () => Promise<unknown> | unknown;
@@ -27,7 +27,7 @@ export interface OrderPaymentStatusModalPayload extends IModalStackPayload {
 export interface OrderFulfillmentStatusModalPayload extends IModalStackPayload {
   orderId: string;
   fulfillmentId: string;
-  expectedVersion: number;
+
   currentStatus: OrderFulfillmentStatus;
   nextStatus: OrderFulfillmentStatus;
   onSaved?: () => Promise<unknown> | unknown;
@@ -37,14 +37,14 @@ export interface OrderShippingItemModalPayload extends IModalStackPayload {
   orderId: string;
   fulfillmentId: string;
   shippingItemId?: string;
-  expectedVersion: number;
+
   shippingMethodId?: string;
   trackingCode?: string | null;
   onSaved?: () => Promise<unknown> | unknown;
 }
 export interface OrderDetailsModalPayload extends IModalStackPayload {
   orderId: string;
-  expectedVersion: number;
+
   onSaved?: () => Promise<unknown> | unknown;
 }
 declare module "@/layouts/modals" {

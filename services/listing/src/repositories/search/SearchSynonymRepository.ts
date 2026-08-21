@@ -22,7 +22,7 @@ import {
 import {
   assertNonEmpty,
   assertUnique,
-  type SearchOptimisticMutationResult,
+  type SearchMutationResult,
   type SearchSynonymGroupAggregate,
   type SearchSynonymValueInput,
 } from "./searchRepositoryTypes.js";
@@ -59,12 +59,10 @@ export interface SearchSynonymGroupCreateInput {
 
 export interface SearchSynonymGroupUpdateInput extends SearchSynonymGroupCreateInput {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymGroupDeleteInput {
   groupId: string;
-  expectedVersion: number;
 }
 
 export interface SearchSynonymClaimConflict {
@@ -76,12 +74,12 @@ export class SearchSynonymRepository extends BaseRepository {
   @ReadOnly()
   async listEnabledHeaders(
     locale: string,
-  ): Promise<Array<Pick<SearchSynonymGroup, "groupId" | "version">>> {
+  ): Promise<Array<Pick<SearchSynonymGroup, "groupId" | "updatedAt">>> {
     assertNonEmpty(locale, "locale");
     return this.connection
       .select({
         groupId: searchSynonymGroup.groupId,
-        version: searchSynonymGroup.version,
+        updatedAt: searchSynonymGroup.updatedAt,
       })
       .from(searchSynonymGroup)
       .where(
@@ -229,7 +227,6 @@ export class SearchSynonymRepository extends BaseRepository {
       locale: input.locale,
       name: input.name,
       enabled: input.enabled,
-      version: 1,
       createdAt: now,
       updatedAt: now,
     };
@@ -247,14 +244,10 @@ export class SearchSynonymRepository extends BaseRepository {
   @Transactional()
   async update(
     input: SearchSynonymGroupUpdateInput,
-  ): Promise<SearchOptimisticMutationResult<SearchSynonymGroupAggregate>> {
+  ): Promise<SearchMutationResult<SearchSynonymGroupAggregate>> {
     this.assertWriteInput(input);
-    this.assertExpectedVersion(input.expectedVersion);
     const current = await this.lockGroup(input.groupId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     await this.connection
       .delete(searchSynonymClaim)
       .where(
@@ -272,21 +265,18 @@ export class SearchSynonymRepository extends BaseRepository {
         ),
       );
 
-    const nextVersion = current.version + 1;
     const groups = await this.connection
       .update(searchSynonymGroup)
       .set({
         locale: input.locale,
         name: input.name,
         enabled: input.enabled,
-        version: nextVersion,
         updatedAt: new Date().toISOString(),
       })
       .where(
         and(
           eq(searchSynonymGroup.storeId, this.storeId),
           eq(searchSynonymGroup.groupId, input.groupId),
-          eq(searchSynonymGroup.version, input.expectedVersion),
         ),
       )
       .returning();
@@ -303,13 +293,9 @@ export class SearchSynonymRepository extends BaseRepository {
   @Transactional()
   async delete(
     input: SearchSynonymGroupDeleteInput,
-  ): Promise<SearchOptimisticMutationResult<SearchSynonymGroupAggregate>> {
-    this.assertExpectedVersion(input.expectedVersion);
+  ): Promise<SearchMutationResult<SearchSynonymGroupAggregate>> {
     const current = await this.lockGroup(input.groupId);
     if (!current) return { status: "not_found" };
-    if (current.version !== input.expectedVersion) {
-      return { status: "conflict", currentVersion: current.version };
-    }
     const aggregate = {
       group: current,
       values: await this.getValues([input.groupId]),
@@ -320,7 +306,6 @@ export class SearchSynonymRepository extends BaseRepository {
         and(
           eq(searchSynonymGroup.storeId, this.storeId),
           eq(searchSynonymGroup.groupId, input.groupId),
-          eq(searchSynonymGroup.version, input.expectedVersion),
         ),
       )
       .returning({ groupId: searchSynonymGroup.groupId });
@@ -340,12 +325,6 @@ export class SearchSynonymRepository extends BaseRepository {
       .limit(1)
       .for("update");
     return rows[0] ?? null;
-  }
-
-  private assertExpectedVersion(expectedVersion: number): void {
-    if (!Number.isInteger(expectedVersion) || expectedVersion <= 0) {
-      throw new Error("expectedVersion must be a positive integer");
-    }
   }
 
   private async getValues(groupIds: readonly string[]): Promise<SearchSynonymValue[]> {

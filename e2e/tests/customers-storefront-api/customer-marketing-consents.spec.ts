@@ -34,7 +34,7 @@ test.describe('Customers Storefront API — marketing consents', () => {
       {
         channel,
         state,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -148,11 +148,11 @@ test.describe('Customers Storefront API — marketing consents', () => {
   test('stale and invalid revision reject consent changes', async () => {
     const stale = await kit.revision();
     expect(
-      (await transition('EMAIL', 'SUBSCRIBED', { expectedRevision: stale })).data?.payload
+      (await transition('EMAIL', 'SUBSCRIBED', {  })).data?.payload
         .userErrors,
     ).toEqual([]);
     for (const expectedRevision of [stale, 0, 1.5]) {
-      const response = await transition('EMAIL', 'SUBSCRIBED', { expectedRevision });
+      const response = await transition('EMAIL', 'SUBSCRIBED', {  });
       if (response.errors) kit.expectBadUserInput(response);
       else
         expect(['REVISION_CONFLICT', 'INVALID_REVISION']).toContain(
@@ -164,7 +164,7 @@ test.describe('Customers Storefront API — marketing consents', () => {
   test('same idempotency key returns the original consent transition', async () => {
     const key = uniqueKey();
     const revision = await kit.revision();
-    const overrides = { idempotencyKey: key, expectedRevision: revision };
+    const overrides = { idempotencyKey: key };
     const first = await transition('EMAIL', 'SUBSCRIBED', overrides);
     const replay = await transition('EMAIL', 'SUBSCRIBED', overrides);
     expect(replay.data?.payload).toEqual(first.data?.payload);
@@ -174,8 +174,8 @@ test.describe('Customers Storefront API — marketing consents', () => {
   test('concurrent opposite consent transitions allow one revision winner', async () => {
     const revision = await kit.revision();
     const [subscribe, unsubscribe] = await Promise.all([
-      transition('EMAIL', 'SUBSCRIBED', { expectedRevision: revision }),
-      transition('EMAIL', 'UNSUBSCRIBED', { expectedRevision: revision }),
+      transition('EMAIL', 'SUBSCRIBED', {  }),
+      transition('EMAIL', 'UNSUBSCRIBED', {  }),
     ]);
     const results = [subscribe.data!.payload, unsubscribe.data!.payload];
     expect(results.filter(({ userErrors }) => userErrors.length === 0)).toHaveLength(1);

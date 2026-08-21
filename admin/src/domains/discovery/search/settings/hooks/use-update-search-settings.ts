@@ -29,13 +29,10 @@ export function useUpdateSearchSettings() {
   >(SEARCH_SETTINGS_UPDATE_MUTATION);
 
   const updateSearchSettings = useCallback(
-    async (
-      expectedVersion: number,
-      operations: ApiSearchSettingsOperationsInput,
-    ): Promise<SearchSettingsUpdateResult> => {
+    async (operations: ApiSearchSettingsOperationsInput): Promise<SearchSettingsUpdateResult> => {
       try {
         const result = await mutate({
-          variables: { expectedVersion, operations },
+          variables: { operations },
         });
         const payload = result.data?.listingMutation.search.settingsUpdate;
         const operationResult =

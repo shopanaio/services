@@ -841,7 +841,7 @@ async function addListingProductTag(
   const product = await api.admin.product.findOne(productId);
   const updated = await api.admin.product.update({
     productId,
-    expectedRevision: product.revision,
+    
     operations: {
       tags: [{ action: 'ADD', tagId }],
     },
@@ -1116,7 +1116,7 @@ async function setVariantStock(
 ): Promise<ApiProduct> {
   return api.admin.product.update({
     productId: input.product.id,
-    expectedRevision: input.product.revision,
+    
     operations: {
       variants: [
         {
@@ -1207,7 +1207,7 @@ async function updateProductVariantInventory(
 
   return api.admin.product.update({
     productId: latestProduct.id,
-    expectedRevision: latestProduct.revision,
+    
     operations: {
       variants: [
         {

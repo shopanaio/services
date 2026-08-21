@@ -133,7 +133,6 @@ async function seedVariantBaseline(
   unique: string,
   variants: VariantFixture[],
 ) {
-  let expectedRevision = initialRevision;
 
   for (const [index, variant] of variants.entries()) {
     const sku = `VAR-${unique}-${variant.handle}`.toUpperCase();
@@ -177,7 +176,7 @@ async function seedVariantBaseline(
     const weightData = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
         productId,
-        expectedRevision,
+        
         variantId: variant.id,
         weight,
       },
@@ -188,7 +187,7 @@ async function seedVariantBaseline(
     const dimensionsData = await api.admin.mutation('inventory-api/VariantSetDimensions', {
       variables: {
         productId,
-        expectedRevision,
+        
         variantId: variant.id,
         length,
         width,

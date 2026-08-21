@@ -5,13 +5,10 @@ import {
 } from "./fragments";
 
 export const SEARCH_SETTINGS_UPDATE_MUTATION = gql`
-  mutation SearchSettingsUpdate(
-    $expectedVersion: Int!
-    $operations: SearchSettingsOperationsInput!
-  ) {
+  mutation SearchSettingsUpdate($operations: SearchSettingsOperationsInput!) {
     listingMutation {
       search {
-        settingsUpdate(expectedVersion: $expectedVersion, operations: $operations) {
+        settingsUpdate(operations: $operations) {
           settings {
             ...SearchSettingsEditorFields
           }

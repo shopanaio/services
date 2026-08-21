@@ -152,7 +152,6 @@ describe("place-order public idempotency identity", () => {
     organizationId: "0198c4d4-9c00-7000-8000-000000000001",
     storeId: "0198c4d4-9c00-7000-8000-000000000002",
     checkoutId: "0198c4d4-9c00-7000-8000-000000000003",
-    expectedResultRevision: "revision-1",
     idempotencyKey: "place-1",
     correlationId: "0198c4d4-9c00-7000-8000-000000000004",
     credentialId: "credential-1",

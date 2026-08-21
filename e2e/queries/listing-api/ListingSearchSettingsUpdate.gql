@@ -1,11 +1,11 @@
 mutation ListingSearchSettingsUpdate(
-  $expectedVersion: Int!
+  
   $operations: SearchSettingsOperationsInput!
 ) {
   listingMutation {
     search {
       settingsUpdate(
-        expectedVersion: $expectedVersion
+        
         operations: $operations
       ) {
         settings {

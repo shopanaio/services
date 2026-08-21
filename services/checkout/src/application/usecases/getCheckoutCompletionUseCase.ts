@@ -19,11 +19,8 @@ export class GetCheckoutCompletionUseCase {
     return {
       checkoutId: checkout.checkoutId,
       storeId: checkout.storeId,
-      checkoutVersion: checkout.version,
-      resultRevision: checkout.result.resultRevision,
       valid: validation.data.valid,
       quoteId: finalPricing.data.quoteId,
-      quoteRevision: finalPricing.data.revision,
       usageRequirements: finalPricing.data.usageRequirements,
     };
   }

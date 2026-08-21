@@ -250,7 +250,7 @@ export function EditGeneralSettingsModal() {
     const operations = buildDiscountGeneralUpdateInput(discount, values);
     const result = await mutation.updateDiscount({
       discountId: discount.id,
-      expectedRevision: discount.revision,
+
       operations,
     });
 

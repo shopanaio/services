@@ -45,20 +45,13 @@ export const placeOrder = async (
   } catch (error) {
     const userError = checkoutUserErrorFrom(error, ["input"]);
     if (!userError) throw error;
-    return mapPlaceOrderErrorPayload(userError, {
-      checkoutId: null,
-      resultRevision:
-        typeof args.input.expectedResultRevision === "string"
-          ? args.input.expectedResultRevision
-          : null,
-    });
+    return mapPlaceOrderErrorPayload(userError, { checkoutId: null });
   }
   const { broker, logger } = App.getInstance();
   const input: PlaceOrderWorkflowInput = {
     organizationId: ctx.organizationId,
     storeId: ctx.store.id,
     checkoutId: dto.checkoutId,
-    expectedResultRevision: dto.expectedResultRevision.trim(),
     idempotencyKey: dto.idempotencyKey,
     correlationId: uuidv7(),
     credentialId: ctx.storefrontAccess.credentialId,
@@ -83,7 +76,6 @@ export const placeOrder = async (
     return mapPlaceOrderPayload(result, {
       placementId: result.placementId,
       checkoutId: input.checkoutId,
-      resultRevision: input.expectedResultRevision,
     });
   } catch (error) {
     const code = errorCode(error);
@@ -98,7 +90,6 @@ export const placeOrder = async (
         },
         {
           checkoutId: input.checkoutId,
-          resultRevision: input.expectedResultRevision,
         },
       );
     }
@@ -116,7 +107,6 @@ export const placeOrder = async (
       return mapPlaceOrderPayload(placement.result, {
         placementId: placement.placementId,
         checkoutId: placement.checkoutId,
-        resultRevision: placement.resultRevision,
         placementState: placement.status as ApiCheckoutPlacementState,
         failure,
       });
@@ -131,7 +121,6 @@ export const placeOrder = async (
         },
         {
           checkoutId: input.checkoutId,
-          resultRevision: input.expectedResultRevision,
         },
       );
     }

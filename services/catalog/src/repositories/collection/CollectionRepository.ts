@@ -233,10 +233,7 @@ export class CollectionRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async bumpRevision(
-    id: string,
-    options: { listingChanged: boolean },
-  ): Promise<Collection | null> {
+  async bumpRevision(id: string, options: { listingChanged: boolean }): Promise<Collection | null> {
     return this.update(id, {}, options);
   }
 

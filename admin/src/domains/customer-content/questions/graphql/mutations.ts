@@ -20,17 +20,9 @@ export const QUESTION_CREATE_MUTATION = gql`
 `;
 
 export const QUESTION_UPDATE_MUTATION = gql`
-  mutation QuestionUpdate(
-    $productQuestionId: ID!
-    $expectedRevision: Int!
-    $operations: ProductQuestionUpdateInput
-  ) {
+  mutation QuestionUpdate($productQuestionId: ID!, $operations: ProductQuestionUpdateInput) {
     reviewsMutation {
-      productQuestionUpdate(
-        productQuestionId: $productQuestionId
-        expectedRevision: $expectedRevision
-        operations: $operations
-      ) {
+      productQuestionUpdate(productQuestionId: $productQuestionId, operations: $operations) {
         productQuestion {
           ...QuestionEditorFields
         }

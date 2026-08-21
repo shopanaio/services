@@ -29,17 +29,9 @@ export const CUSTOMER_SEGMENT_CREATE_MUTATION = gql`
 `;
 
 export const CUSTOMER_SEGMENT_UPDATE_MUTATION = gql`
-  mutation CustomerSegmentUpdate(
-    $segmentId: ID!
-    $expectedRevision: Int!
-    $operations: CustomerSegmentUpdateInput!
-  ) {
+  mutation CustomerSegmentUpdate($segmentId: ID!, $operations: CustomerSegmentUpdateInput!) {
     customersMutation {
-      customerSegmentUpdate(
-        segmentId: $segmentId
-        expectedRevision: $expectedRevision
-        operations: $operations
-      ) {
+      customerSegmentUpdate(segmentId: $segmentId, operations: $operations) {
         segment {
           ...CustomerSegmentListFields
         }

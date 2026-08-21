@@ -154,7 +154,7 @@ export const StoreCurrencyModal = () => {
     setSubmitError(null);
     const result = await updateMutation.updateStore({
       storeId: store.id,
-      expectedRevision: store.revision,
+
       operations: mapStoreCurrencyInput(formValues),
     });
     const operationErrors = result.operationResults.flatMap(

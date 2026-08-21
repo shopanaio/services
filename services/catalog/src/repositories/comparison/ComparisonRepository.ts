@@ -70,12 +70,7 @@ export class ComparisonRepository extends BaseRepository {
         revision: sql`${comparisonProfile.revision} + 1`,
         updatedAt: now,
       })
-      .where(
-        and(
-          eq(comparisonProfile.storeId, this.storeId),
-          eq(comparisonProfile.id, input.id),
-        ),
-      )
+      .where(and(eq(comparisonProfile.storeId, this.storeId), eq(comparisonProfile.id, input.id)))
       .returning();
     if (!updated) return null;
     await this.syncProfileChildren(input, now);

@@ -408,11 +408,7 @@ export class CustomerRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  async update(
-    id: string,
-    patch: CustomerPatch,
-    expectedRevision?: number,
-  ): Promise<Customer | null> {
+  async update(id: string, patch: CustomerPatch): Promise<Customer | null> {
     const now = new Date().toISOString();
     const update = {
       ...patch,
@@ -440,9 +436,6 @@ export class CustomerRepository extends BaseRepository {
       eq(customer.id, id),
       isNull(customer.deletedAt),
     ];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(customer.revision, expectedRevision));
-    }
 
     const rows = await this.connection
       .update(customer)
@@ -546,10 +539,7 @@ export class CustomerRepository extends BaseRepository {
    * Atomically acquires the aggregate revision for an authenticated customer
    * command. Storefront writes are deliberately restricted to ACTIVE rows.
    */
-  async acquireActiveRevision(
-    id: string,
-    expectedRevision: number,
-  ): Promise<CustomerRevisionAcquireResult> {
+  async acquireActiveRevision(id: string): Promise<CustomerRevisionAcquireResult> {
     const rows = await this.connection
       .update(customer)
       .set({
@@ -561,7 +551,6 @@ export class CustomerRepository extends BaseRepository {
           eq(customer.storeId, this.storeId),
           eq(customer.id, id),
           eq(customer.lifecycleStatus, "ACTIVE"),
-          eq(customer.revision, expectedRevision),
           isNull(customer.deletedAt),
         ),
       )
@@ -628,16 +617,13 @@ export class CustomerRepository extends BaseRepository {
     return rows.length === 1;
   }
 
-  async softDelete(id: string, expectedRevision?: number): Promise<Customer | null> {
+  async softDelete(id: string): Promise<Customer | null> {
     const now = new Date().toISOString();
     const conditions = [
       eq(customer.storeId, this.storeId),
       eq(customer.id, id),
       isNull(customer.deletedAt),
     ];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(customer.revision, expectedRevision));
-    }
     const rows = await this.connection
       .update(customer)
       .set({

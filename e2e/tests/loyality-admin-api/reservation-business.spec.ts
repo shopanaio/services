@@ -25,7 +25,7 @@ test.describe('Loyalty Admin API reservation business transitions', () => {
     const result = await kit.api.admin.mutation<any>('loyality-admin-api/ReservationRelease', {
       variables: { input: {
         reservationId: before.id,
-        expectedRevision: before.revision,
+        
         reasonCode: 'ADMIN_CUSTOMER_REQUEST',
         idempotencyKey: idempotencyKey('admin-release'),
       } },
@@ -50,14 +50,14 @@ test.describe('Loyalty Admin API reservation business transitions', () => {
   test('treats a repeated terminal release as a no-op without another restoration', async () => {
     const { fixture, reservation: reserved } = await kit.quotedReservation('80');
     const before = await reservation(reserved.reservationId);
-    const input = { reservationId: before.id, expectedRevision: before.revision, reasonCode: 'ADMIN_RELEASE', idempotencyKey: idempotencyKey('admin-release-first') };
+    const input = { reservationId: before.id,  reasonCode: 'ADMIN_RELEASE', idempotencyKey: idempotencyKey('admin-release-first') };
     const first = await kit.api.admin.mutation<any>('loyality-admin-api/ReservationRelease', { variables: { input } });
     expectNoUserErrors(first.data.loyaltyMutation.reservationRelease);
     const released = await reservation(reserved.reservationId);
     const repeated = await kit.api.admin.mutation<any>('loyality-admin-api/ReservationRelease', {
       variables: { input: {
         ...input,
-        expectedRevision: released.revision,
+        
         idempotencyKey: idempotencyKey('admin-release-noop'),
       } },
     });
@@ -76,7 +76,7 @@ test.describe('Loyalty Admin API reservation business transitions', () => {
     const result = await kit.api.admin.mutation<any>('loyality-admin-api/ReservationRelease', {
       variables: { input: {
         reservationId: committed.id,
-        expectedRevision: committed.revision,
+        
         reasonCode: 'INVALID_ADMIN_RELEASE',
         idempotencyKey: idempotencyKey('committed-release'),
       } },
@@ -94,7 +94,7 @@ test.describe('Loyalty Admin API reservation business transitions', () => {
       'loyality-admin-api/ReservationRelease',
       { variables: { input: {
         reservationId: before.id,
-        expectedRevision: before.revision,
+        
         reasonCode: `CONCURRENT_${suffix}`,
         idempotencyKey: idempotencyKey(`concurrent-${suffix}`),
       } } },

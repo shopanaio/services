@@ -18,7 +18,7 @@ export function useUpdateReview() {
   const updateReview = useCallback(
     async (
       reviewId: string,
-      expectedRevision: number,
+
       operations: ApiReviewUpdateInput,
     ): Promise<{
       review: ApiReview | null;
@@ -26,7 +26,7 @@ export function useUpdateReview() {
     }> => {
       try {
         const result = await mutate({
-          variables: { reviewId, expectedRevision, operations },
+          variables: { reviewId, operations },
           refetchQueries: [REVIEWS_QUERY],
         });
         const payload = result.data?.reviewsMutation.reviewUpdate;

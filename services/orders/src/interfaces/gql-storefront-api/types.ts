@@ -1463,7 +1463,6 @@ export type ApiOrderReturnRequest = ApiNode & {
 };
 
 export type ApiOrderReturnRequestCancelInput = {
-  expectedRevision: Scalars["Int"]["input"];
   idempotencyKey: Scalars["String"]["input"];
   returnRequestId: Scalars["ID"]["input"];
 };

@@ -76,7 +76,6 @@ export const canonicalPhysicalTables = {
     orderId: physical("uuid", "order_id"),
     placementId: physical("uuid", "placement_id"),
     checkoutId: physical("uuid", "checkout_id"),
-    checkoutVersion: physical("integer", "checkout_version"),
     resultRevision: physical("text", "result_revision"),
     finalQuoteId: physical("text", "final_quote_id"),
     finalQuoteRevision: physical("text", "final_quote_revision"),

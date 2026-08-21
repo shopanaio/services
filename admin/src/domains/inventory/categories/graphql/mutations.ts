@@ -24,17 +24,9 @@ export const CATEGORY_CREATE_MUTATION = gql`
 `;
 
 export const CATEGORY_UPDATE_MUTATION = gql`
-  mutation CategoryUpdate(
-    $categoryId: ID!
-    $expectedRevision: Int
-    $operations: CategoryUpdateInput
-  ) {
+  mutation CategoryUpdate($categoryId: ID!, $operations: CategoryUpdateInput) {
     catalogMutation {
-      categoryUpdate(
-        categoryId: $categoryId
-        expectedRevision: $expectedRevision
-        operations: $operations
-      ) {
+      categoryUpdate(categoryId: $categoryId, operations: $operations) {
         category {
           ...CategoryDetailsFields
         }

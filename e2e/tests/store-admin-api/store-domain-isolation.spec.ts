@@ -203,7 +203,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         storeId: owner.storeAId,
         clientMutationId: 'viewer-update-store-a',
-        expectedRevision: readData.storeQuery.currentStore!.revision,
+        
         operations: {
           contactDetails: {
             name: 'Hacked by Viewer',
@@ -248,7 +248,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         storeId: owner.storeBId,
         clientMutationId: 'manager-store-b-update',
-        expectedRevision: 0,
+        
         operations: {
           contactDetails: {
             name: 'Hacked Store B',
@@ -296,7 +296,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         storeId: owner.storeAId,
         clientMutationId: 'manager-store-a-update',
-        expectedRevision: storeAData.storeQuery.currentStore!.revision,
+        
         operations: {
           contactDetails: {
             name: 'Store A Updated',
@@ -320,7 +320,7 @@ test.describe('Store-Level Domain Isolation', () => {
       variables: {
         storeId: owner.storeBId,
         clientMutationId: 'manager-store-b-isolation-update',
-        expectedRevision: 0,
+        
         operations: {
           contactDetails: {
             name: 'Store B Updated',

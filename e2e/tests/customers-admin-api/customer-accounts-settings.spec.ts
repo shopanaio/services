@@ -24,10 +24,10 @@ async function settings(api: any) {
     Boolean,
   );
 }
-async function update(api: any, enabledMethods: string[], expectedRevision: number) {
+async function update(api: any, enabledMethods: string[]) {
   const { data, errors } = await api.admin.mutation<any>(
     'customers-admin-api/CustomerAccountsSettingsUpdate',
-    { throwOnError: false, variables: { input: { enabledMethods, expectedRevision } } },
+    { throwOnError: false, variables: { input: { enabledMethods } } },
   );
   return { payload: data?.customersMutation?.customerAccountsSettingsUpdate, errors };
 }
@@ -117,13 +117,13 @@ test.describe('Customers Admin API - customer account settings', () => {
 
   test('non-positive or unsafe expected revision is rejected', async ({ api }) => {
     for (const expectedRevision of [0, -1])
-      expectUserError((await update(api, [], expectedRevision)).payload, 'INVALID_INPUT', [
+      expectUserError((await update(api, [])).payload, 'INVALID_INPUT', [
         'input',
         'expectedRevision',
       ]);
     for (const expectedRevision of [1.5, Number.MAX_SAFE_INTEGER + 1])
       expectSafeTransportErrors(
-        (await update(api, [], expectedRevision)).errors,
+        (await update(api, [])).errors,
         /BAD_USER_INPUT|Int/iu,
       );
   });

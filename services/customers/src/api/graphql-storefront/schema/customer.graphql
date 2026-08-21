@@ -150,7 +150,6 @@ Customer-editable, non-authentication profile fields. Email and phone changes
 use IAM verification workflows and arrive here as verified projections.
 """
 input CustomerUpdateInput {
-  expectedRevision: Int!
   idempotencyKey: String!
   prefix: String
   firstName: String

@@ -1,6 +1,6 @@
 mutation VariantSetDimensions(
   $productId: ID!
-  $expectedRevision: Int
+  
   $variantId: ID!
   $width: Int!
   $height: Int!
@@ -9,7 +9,7 @@ mutation VariantSetDimensions(
   catalogMutation {
     productUpdate(
       productId: $productId
-      expectedRevision: $expectedRevision
+      
       operations: {
         variants: [
           {

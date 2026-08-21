@@ -226,12 +226,8 @@ export class AccountRepository extends BaseRepository {
         "status" | "mergedIntoAccountId" | "suspendedReason" | "suspendedAt" | "closedAt"
       >
     >,
-    expectedRevision?: number,
   ): Promise<Account | null> {
     const conditions = [eq(accounts.storeId, this.storeId), eq(accounts.id, id)];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(accounts.revision, expectedRevision));
-    }
     const rows = await this.connection
       .update(accounts)
       .set({

@@ -554,8 +554,7 @@ export function SearchProductBoostWhereInputSchema(): z.ZodObject<Properties<Sea
     phrases: z.lazy(() => StringFilterSchema().nullish()),
     phrasesCount: z.lazy(() => IntFilterSchema().nullish()),
     productsCount: z.lazy(() => IntFilterSchema().nullish()),
-    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    version: z.lazy(() => IntFilterSchema().nullish())
+    updatedAt: z.lazy(() => DateTimeFilterSchema().nullish())
   })
 }
 
@@ -617,8 +616,7 @@ export function SearchSynonymGroupWhereInputSchema(): z.ZodObject<Properties<Sea
     name: z.lazy(() => StringFilterSchema().nullish()),
     terms: z.lazy(() => StringFilterSchema().nullish()),
     updatedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    valuesCount: z.lazy(() => IntFilterSchema().nullish()),
-    version: z.lazy(() => IntFilterSchema().nullish())
+    valuesCount: z.lazy(() => IntFilterSchema().nullish())
   })
 }
 

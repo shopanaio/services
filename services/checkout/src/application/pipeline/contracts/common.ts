@@ -23,7 +23,6 @@ export type CheckoutPipelineMoney = Readonly<{
 export type CheckoutPipelineStageProvenance = Readonly<{
   executionId: string;
   checkoutId: string;
-  basedOnCheckoutVersion: number;
   currencyCode: string;
 }>;
 
@@ -164,7 +163,6 @@ export type CheckoutPipelineStageContext = Readonly<{
   deadlineAt: string;
   requestedAt: string;
   checkoutId: string;
-  expectedCheckoutVersion: number;
   storeId: string;
   currencyCode: string;
   localeCode: string | null;

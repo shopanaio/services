@@ -330,7 +330,6 @@ export function NotificationTemplateModal() {
         bodyTemplate: candidate.body,
         plainTextTemplate:
           dirtyChannel === NotificationChannel.Email ? candidate.plainText || null : null,
-        expectedVersion: candidate.pointerVersion,
       });
 
       if (!result.data || result.userErrors.length > 0) {

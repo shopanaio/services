@@ -45,7 +45,7 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
     const { data } = await api.admin.mutation('inventory-api/VariantSetDimensions', {
       variables: {
         productId: params.productId,
-        expectedRevision: params.revision,
+        
         variantId: params.variantId,
         width: params.width,
         height: params.height,
@@ -70,7 +70,7 @@ test.describe('Physical Attributes API (Dimensions & Weight)', () => {
     const { data } = await api.admin.mutation('inventory-api/VariantSetWeight', {
       variables: {
         productId: params.productId,
-        expectedRevision: params.revision,
+        
         variantId: params.variantId,
         weight: params.weight,
       },

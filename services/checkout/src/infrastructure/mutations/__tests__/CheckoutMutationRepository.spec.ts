@@ -12,7 +12,7 @@ function executor(rows: unknown[] = []) {
 
 describe("CheckoutMutationRepository", () => {
   it("loads only the requested checkout/store snapshot without defaults", async () => {
-    const execute = executor([{ snapshot: { checkoutId: "checkout-1", version: 7 } }]);
+    const execute = executor([{ snapshot: { checkoutId: "checkout-1" } }]);
     const repository = new CheckoutMutationRepository(execute);
 
     await expect(
@@ -21,7 +21,7 @@ describe("CheckoutMutationRepository", () => {
         storeId: "store-1",
         visitorId: "visitor-1234567890",
       }),
-    ).resolves.toEqual({ checkoutId: "checkout-1", version: 7 });
+    ).resolves.toEqual({ checkoutId: "checkout-1" });
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
     expect(sql).toContain('from "checkout"."checkout_current_snapshots"');
@@ -30,7 +30,7 @@ describe("CheckoutMutationRepository", () => {
     expect(sql).toContain("\"owner_visitor_id\" = 'visitor-1234567890'");
   });
 
-  it("guards both root and snapshot with the same expected version CAS", async () => {
+  it("updates the owned root and current snapshot in one statement", async () => {
     const execute = executor([]);
     const repository = new CheckoutMutationRepository(execute);
     const result = completeResult();
@@ -40,13 +40,11 @@ describe("CheckoutMutationRepository", () => {
         storeId: "store-1",
         checkoutId: "checkout-1",
         visitorId: "visitor-1234567890",
-        expectedVersion: 7,
-        nextVersion: 8,
+
         createdAt: "2026-08-02T10:00:00.000Z",
         draft: {
           checkoutId: "checkout-1",
           storeId: "store-1",
-          version: 8,
           currencyCode: "USD",
           localeCode: null,
           channelCode: "web",
@@ -69,13 +67,11 @@ describe("CheckoutMutationRepository", () => {
         },
         result: result as any,
       }),
-    ).resolves.toEqual({ status: "VERSION_CONFLICT" });
+    ).resolves.toEqual({ status: "NOT_COMMITTED" });
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
     expect(sql).toContain("WITH updated_checkout AS");
     expect(sql).toContain("checkout.checkout_current_snapshots");
-    expect(sql).toContain("version = 7");
-    expect(sql).toContain("checkout_version = 7");
     expect(sql).toContain("EXISTS");
     expect(sql).toContain("status IN ('OPEN', 'READY')");
     expect(sql).toContain("expires_at > CURRENT_TIMESTAMP");
@@ -105,7 +101,6 @@ describe("CheckoutMutationRepository", () => {
         draft: {
           checkoutId: "checkout-1",
           storeId: "store-1",
-          version: 1,
           currencyCode: "USD",
           localeCode: null,
           channelCode: "web",
@@ -128,7 +123,7 @@ describe("CheckoutMutationRepository", () => {
         },
         result: completeResult() as any,
       }),
-    ).resolves.toEqual({ status: "VERSION_CONFLICT" });
+    ).resolves.toEqual({ status: "NOT_COMMITTED" });
 
     const sql = (execute.query as jest.Mock).mock.calls[0][0] as string;
     expect(sql).toContain("WITH locked_reservation AS MATERIALIZED");
@@ -143,8 +138,6 @@ function completeResult() {
   return {
     executionId: "execution-1",
     checkoutId: "checkout-1",
-    basedOnCheckoutVersion: 7,
-    resultRevision: "sha256:revision",
     issues: [],
     preliminaryPricing: { status: "SUCCESS" },
     delivery: { status: "SUCCESS" },

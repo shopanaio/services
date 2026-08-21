@@ -34,7 +34,7 @@ test.describe('Customers E2E API — marketing consent synchronization', () => {
       {
         channel,
         state,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -111,7 +111,7 @@ test.describe('Customers E2E API — marketing consent synchronization', () => {
       },
     });
     expect(admin.userErrors).toEqual([]);
-    const rejected = await transition('EMAIL', 'UNSUBSCRIBED', { expectedRevision: stale });
+    const rejected = await transition('EMAIL', 'UNSUBSCRIBED', {  });
     kit.expectUserError(rejected.data!.payload.userErrors, 'REVISION_CONFLICT', {
       retryable: true,
     });
@@ -153,7 +153,7 @@ test.describe('Customers E2E API — marketing consent synchronization', () => {
             {
               channel: 'EMAIL',
               state: 'UNSUBSCRIBED',
-              expectedRevision: await storeB.revision(),
+              
               idempotencyKey: uniqueKey(),
             },
             `marketingConsent { ${CONSENT_FIELDS} } customer { revision } userErrors { ${USER_ERROR_FIELDS} }`,

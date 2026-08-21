@@ -63,7 +63,6 @@ export const PaymentSettlementConfirmationSchema = z
         confirmationId: identifierSchema,
         confirmedAt: timestampSchema,
         expiresAt: timestampSchema,
-        checkoutVersion: z.number().int().safe().nonnegative(),
         finalQuoteRevision: identifierSchema,
         inventoryReservationRevision: identifierSchema.nullable(),
       })
@@ -218,7 +217,6 @@ export const PaymentLifecycleActionSchemas = {
       storeId: identifierSchema,
       checkoutId: identifierSchema,
       orderId: identifierSchema,
-      expectedCheckoutVersion: expectedRevisionSchema,
       finalQuoteRevision: identifierSchema,
       targetAmount: PaymentMoneySchema,
       idempotencyKey: idempotencyKeySchema,
@@ -232,7 +230,6 @@ export const PaymentLifecycleActionSchemas = {
       checkoutId: identifierSchema,
       orderId: identifierSchema,
       paymentCollectionId: identifierSchema,
-      expectedCheckoutVersion: expectedRevisionSchema,
       finalQuoteRevision: identifierSchema,
       paymentMethodsRevision: identifierSchema,
       methodHandle: identifierSchema,

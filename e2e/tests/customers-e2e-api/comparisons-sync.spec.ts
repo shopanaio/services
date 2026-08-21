@@ -43,13 +43,13 @@ test.describe('Customers E2E API — comparison synchronization', () => {
   const add = async (variantId: string, target = kit) =>
     mutate(target, 'customerComparisonVariantAdd', 'CustomerComparisonVariantAddInput', {
       variantId,
-      expectedRevision: await comparisonRevision(target),
+      
       idempotencyKey: uniqueKey(),
     });
   const remove = async (variantId: string) =>
     mutate(kit, 'customerComparisonVariantRemove', 'CustomerComparisonVariantRemoveInput', {
       variantId,
-      expectedRevision: await comparisonRevision(),
+      
       idempotencyKey: uniqueKey(),
     });
   const product = (target = kit) =>
@@ -103,7 +103,7 @@ test.describe('Customers E2E API — comparison synchronization', () => {
         throwOnError: false,
         variables: {
           customerId: customer.id,
-          expectedRevision: customer.revision,
+          
           operations: { comparison: { items: [] } },
         },
       },

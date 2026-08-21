@@ -379,7 +379,7 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
           },
           input: {
             id: input.orderId,
-            expectedVersion: input.expectedVersion,
+
             idempotencyKey: input.idempotencyKey,
             reasonCode: input.reasonCode ?? "CUSTOMER_REQUEST",
             restock: true,
@@ -420,7 +420,7 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
           },
           input: {
             orderId: input.orderId,
-            expectedVersion: input.expectedVersion,
+
             idempotencyKey: input.idempotencyKey,
             lines: input.lines.map((line) => ({
               orderLineId: line.orderLineId,

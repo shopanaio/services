@@ -409,7 +409,7 @@ function bulkChild(
   let publicInput: Record<string, unknown>;
   if (action === "ARCHIVE" || action === "UNARCHIVE") {
     command = action === "ARCHIVE" ? "orderArchive" : "orderUnarchive";
-    publicInput = { id: target.id, expectedVersion: target.version, idempotencyKey };
+    publicInput = { id: target.id, idempotencyKey };
   } else if (action === "ADD_TAGS" || action === "REMOVE_TAGS") {
     command = "orderTagsUpdate";
     const requested = Array.isArray(parent.input.tags)
@@ -419,12 +419,12 @@ function bulkChild(
       action === "ADD_TAGS"
         ? [...new Set([...target.tags, ...requested])]
         : target.tags.filter((tag) => !requested.includes(tag));
-    publicInput = { id: target.id, expectedVersion: target.version, idempotencyKey, tags };
+    publicInput = { id: target.id, idempotencyKey, tags };
   } else if (action === "CANCEL") {
     command = "orderCancel";
     publicInput = {
       id: target.id,
-      expectedVersion: target.version,
+
       idempotencyKey,
       reasonCode: parent.input.reasonCode ?? "MERCHANT_DECISION",
       restock: true,
@@ -433,7 +433,7 @@ function bulkChild(
     command = "orderIntegrationSyncRequest";
     publicInput = {
       orderId: target.id,
-      expectedVersion: target.version,
+
       idempotencyKey,
       integrationLinkId: parent.input.integrationLinkId,
     };

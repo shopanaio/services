@@ -127,10 +127,7 @@ export function computeReturnEligibility(
       line.fulfilledQuantity,
       Math.max(0, line.quantity - line.cancelledQuantity),
     );
-    const maxReturnableQuantity = Math.max(
-      0,
-      fulfilledQuantity - line.requestedQuantity,
-    );
+    const maxReturnableQuantity = Math.max(0, fulfilledQuantity - line.requestedQuantity);
     let reasonCode: string | null = null;
     if (maxReturnableQuantity <= 0) reasonCode = "RETURN_QUANTITY_EXHAUSTED";
     else if (gate) reasonCode = gate;

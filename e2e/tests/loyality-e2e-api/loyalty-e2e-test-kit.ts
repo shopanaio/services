@@ -2,11 +2,7 @@
 import type { APIRequestContext } from '@playwright/test';
 import { expect } from '@playwright/test';
 import { composeGlobalId, decodeGlobalId } from '@utils/globalid';
-import {
-  idempotencyKey,
-  type Api,
-  type Json,
-} from '../loyality-admin-api/helpers';
+import { idempotencyKey, type Api, type Json } from '../loyality-admin-api/helpers';
 import {
   LoyaltyStorefrontTestKit,
   type LoyaltyFixture,
@@ -17,8 +13,7 @@ const ACTION_PROXY_URL =
   `http://127.0.0.1:${process.env.TEST_ACTION_PROXY_PORT ?? '15000'}`;
 
 export type ActionResult<T extends Json = Json> =
-  | { ok: true; result: T }
-  | { ok: false; code: string; message: string; retryable: boolean };
+  { ok: true; result: T } | { ok: false; code: string; message: string; retryable: boolean };
 
 export interface FundedFixture extends LoyaltyFixture {
   balanceRevision: number;
@@ -70,10 +65,7 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
     return body.result;
   }
 
-  async fundedAccount(
-    points = '1000',
-    versionOverrides: Json = {},
-  ): Promise<FundedFixture> {
+  async fundedAccount(points = '1000', versionOverrides: Json = {}): Promise<FundedFixture> {
     const fixture = await this.createActiveAccount(versionOverrides);
     const adjusted = await this.adjustPoints(fixture.account, 'CREDIT', points);
     return {
@@ -87,7 +79,6 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
     return {
       executionId: crypto.randomUUID(),
       checkoutId: crypto.randomUUID(),
-      checkoutVersion: 1,
       storeId: this.realm.storeId,
       customerId: this.customer.rawId,
       currencyCode: 'USD',
@@ -132,7 +123,6 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
     return this.callAction('loyalty.commitCheckoutLoyaltyRedemption', {
       storeId: context.storeId,
       checkoutId: context.checkoutId,
-      checkoutVersion: context.checkoutVersion,
       reservationId: reservation.reservationId,
       quoteId: quote.quoteId,
       quoteRevision: quote.revision,
@@ -158,12 +148,8 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
     });
   }
 
-  async quotedReservation(
-    points = '100',
-    fixture?: LoyaltyFixture,
-    context?: Json,
-  ) {
-    const resolvedFixture = fixture ?? await this.fundedAccount();
+  async quotedReservation(points = '100', fixture?: LoyaltyFixture, context?: Json) {
+    const resolvedFixture = fixture ?? (await this.fundedAccount());
     const resolvedContext = context ?? this.checkoutContext();
     const quoted = await this.quote(resolvedFixture, points, resolvedContext);
     expect(quoted.status).toBe('QUOTED');
@@ -208,21 +194,26 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
         eligibleAt: now,
         pricingQuoteId: crypto.randomUUID(),
         pricingQuoteRevision: crypto.randomUUID(),
-        lines: [{
-          orderLineId,
-          productId: crypto.randomUUID(),
-          variantId: crypto.randomUUID(),
-          categoryIds: [], tagIds: [], featureIds: [], optionValueIds: [],
-          quantity: 1,
-          eligibleAmountAfterProductDiscountsMinor: '1000',
-          eligibleAmountAfterAllDiscountsMinor: '1000',
-        }],
+        lines: [
+          {
+            orderLineId,
+            productId: crypto.randomUUID(),
+            variantId: crypto.randomUUID(),
+            categoryIds: [],
+            tagIds: [],
+            featureIds: [],
+            optionValueIds: [],
+            quantity: 1,
+            eligibleAmountAfterProductDiscountsMinor: '1000',
+            eligibleAmountAfterAllDiscountsMinor: '1000',
+          },
+        ],
         ...overrides.payload,
       },
       ...Object.fromEntries(
-        Object.entries(overrides).filter(([key]) => ![
-          'eventId', 'orderId', 'orderLineId', 'payload',
-        ].includes(key)),
+        Object.entries(overrides).filter(
+          ([key]) => !['eventId', 'orderId', 'orderLineId', 'payload'].includes(key),
+        ),
       ),
     };
   }
@@ -231,7 +222,9 @@ export class LoyaltyE2eTestKit extends LoyaltyStorefrontTestKit {
     return this.callAction(`loyalty.${event.eventType}`, {
       event,
       delivery: {
-        jobId: crypto.randomUUID(), attempt: 1, maxAttempts: 10,
+        jobId: crypto.randomUUID(),
+        attempt: 1,
+        maxAttempts: 10,
         idempotencyKey: `event:${event.eventId}`,
         ...overrides,
       },

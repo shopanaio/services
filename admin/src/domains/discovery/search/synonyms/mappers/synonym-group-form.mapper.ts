@@ -25,7 +25,6 @@ export function buildSynonymGroupCreateInput(
 export function buildSynonymGroupUpdateInput(
   values: SynonymGroupFormValues,
   id: string,
-  expectedVersion: number,
 ): ApiSearchSynonymGroupUpdateInput {
-  return { id, expectedVersion, ...synonymGroupValues(values) };
+  return { id, ...synonymGroupValues(values) };
 }

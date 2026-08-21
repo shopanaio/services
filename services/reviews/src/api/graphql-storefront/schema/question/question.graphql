@@ -111,10 +111,7 @@ Input for an authenticated customer answer to a product question.
 """
 input ProductQuestionAnswerCreateInput {
   productQuestionId: ID!
-  """
-  Revision returned by ProductQuestion.revision.
-  """
-  expectedRevision: Int!
+
   """
   Shared text, locale, and idempotency metadata. Guest author data is rejected
   because storefront question answers require an authenticated customer.
@@ -136,7 +133,7 @@ Customer-editable fields of an existing product question.
 """
 input ProductQuestionUpdateInput {
   productQuestionId: ID!
-  expectedRevision: Int!
+
   content: ReviewContentEditInput!
 }
 
@@ -155,7 +152,7 @@ Customer-editable fields of an existing question answer.
 """
 input ProductQuestionAnswerUpdateInput {
   answerId: ID!
-  expectedRevision: Int!
+
   content: ReviewContentEditInput!
 }
 

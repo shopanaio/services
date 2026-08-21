@@ -76,7 +76,6 @@ export interface DeliveryFulfillmentOrderHoldSnapshot {
 interface DeliveryCommittedMethodSnapshotBase {
   commitmentId: string;
   committedAt: string;
-  checkoutVersion: number;
   deliveryRevision: string;
   methodDefinitionId: string;
   code: string;

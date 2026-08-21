@@ -139,7 +139,6 @@ export class ReserveRedemptionWorkflow extends CheckoutWorkflowBase<
       occurredAt: input.context.requestedAt,
       reservationId: result.reservationId,
       checkoutId: input.context.checkoutId,
-      checkoutVersion: input.context.checkoutVersion,
       discountAmountMinor: result.discount.amountMinor,
       currencyCode: result.discount.currencyCode,
       expiresAt: result.expiresAt,

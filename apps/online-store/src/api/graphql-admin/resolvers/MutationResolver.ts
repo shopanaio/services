@@ -81,10 +81,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
     });
   }
 
-  pageUpdate(args: {
-    readonly pageId: string;
-    readonly operations: PageUpdateInput;
-  }) {
+  pageUpdate(args: { readonly pageId: string; readonly operations: PageUpdateInput }) {
     return this.entityPayload("page", async () => {
       const pageId = this.requiredId(args.pageId, GlobalIdEntity.OnlineStorePage, "pageId");
       if (args.operations.handle !== undefined) {
@@ -161,9 +158,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
     });
   }
 
-  pageDelete(args: {
-    readonly input: { readonly id: string };
-  }) {
+  pageDelete(args: { readonly input: { readonly id: string } }) {
     return this.deletePayload("deletedPageId", async () => {
       const pageId = this.requiredId(args.input.id, GlobalIdEntity.OnlineStorePage, "input.id");
       const deleted = await this.$ctx.repository.page.softDelete(this.scope, pageId);
@@ -213,9 +208,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
     });
   }
 
-  navigationMenuDelete(args: {
-    readonly input: { readonly id: string };
-  }) {
+  navigationMenuDelete(args: { readonly input: { readonly id: string } }) {
     return this.deletePayload("deletedNavigationMenuId", async () => {
       const menuId = this.requiredId(
         args.input.id,
@@ -363,16 +356,17 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
     });
   }
 
-  navigationMenuItemDelete(args: {
-    readonly input: { readonly id: string };
-  }) {
+  navigationMenuItemDelete(args: { readonly input: { readonly id: string } }) {
     return this.deletePayload("deletedNavigationMenuItemId", async () => {
       const itemId = this.requiredId(
         args.input.id,
         GlobalIdEntity.OnlineStoreNavigationMenuItem,
         "input.id",
       );
-      const deleted = await this.$ctx.repository.navigationMenuItem.deleteSubtree(this.scope, itemId);
+      const deleted = await this.$ctx.repository.navigationMenuItem.deleteSubtree(
+        this.scope,
+        itemId,
+      );
       if (!deleted) {
         throw operationError("ONLINE_STORE_NAVIGATION_ITEM_NOT_FOUND");
       }

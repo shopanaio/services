@@ -1243,10 +1243,7 @@ type CatalogMutation {
     """The product ID to update."""
     productId: ID!
 
-    """
-    Expected revision for optimistic locking. If provided, fails if product was modified.
-    """
-    expectedRevision: Int
+    
 
     """Product-level operations."""
     operations: ProductUpdateInput
@@ -1260,8 +1257,7 @@ type CatalogMutation {
     """The bundle ID to update."""
     bundleId: ID!
 
-    """Expected revision for optimistic locking."""
-    expectedRevision: Int!
+    
 
     """Bundle-level operations."""
     operations: BundleUpdateInput
@@ -1332,7 +1328,7 @@ type CatalogMutation {
   categoryCreate(input: CategoryCreateInput!): CategoryCreatePayload!
 
   """Unified category update with optimistic locking."""
-  categoryUpdate(categoryId: ID!, expectedRevision: Int, operations: CategoryUpdateInput): CategoryUpdatePayload!
+  categoryUpdate(categoryId: ID!,  operations: CategoryUpdateInput): CategoryUpdatePayload!
 
   """Move a category to a new parent or position"""
   categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
@@ -4878,10 +4874,7 @@ input ProductBulkUpdateItem {
   """The product ID to update."""
   productId: ID!
 
-  """
-  Expected revision for optimistic locking. If provided, fails if product was modified.
-  """
-  expectedRevision: Int
+  
 
   """Product-level operations."""
   operations: ProductUpdateInput
@@ -4964,10 +4957,7 @@ input BundleConfigurationCreateInput {
   """Product global ID of the bundle."""
   bundleId: ID!
 
-  """
-  Expected parent bundle product revision. Required for optimistic locking.
-  """
-  expectedRevision: Int!
+  
 
   """Configuration name."""
   name: String!
@@ -4975,18 +4965,18 @@ input BundleConfigurationCreateInput {
 
 input BundleConfigurationUpdateInput {
   id: ID!
-  expectedRevision: Int!
+  
   name: String
 }
 
 input BundleConfigurationDeleteInput {
   id: ID!
-  expectedRevision: Int!
+  
 }
 
 input BundleGroupsSyncInput {
   configurationId: ID!
-  expectedRevision: Int!
+  
 
   """
   Complete list of groups for this configuration.
@@ -5127,7 +5117,7 @@ input BundlePriceRulePercentInput {
 
 input BundlePricingTemplatesSyncInput {
   configurationId: ID!
-  expectedRevision: Int!
+  
 
   """
   Complete list of pricing templates for this configuration.
@@ -5156,7 +5146,7 @@ input BundlePricingTemplateSyncItemInput {
 
 input BundleDependencyRulesSyncInput {
   configurationId: ID!
-  expectedRevision: Int!
+  
 
   """
   Complete list of dependency rules for this configuration.

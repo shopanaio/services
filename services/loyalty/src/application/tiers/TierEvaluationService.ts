@@ -10,7 +10,7 @@ export class TierEvaluationService {
 
   async revoke(input: {
     membershipId: string;
-    expectedRevision: number;
+
     effectiveAt: string;
     reasonCode: string;
     actorId: string;
@@ -25,13 +25,6 @@ export class TierEvaluationService {
           "Loyalty tier membership was not found",
         );
       if (current.status === "REVOKED") return current;
-      if (current.revision !== input.expectedRevision) {
-        throw new LoyaltyDomainError(
-          "TIER_CONCURRENT_CHANGE",
-          "Tier membership changed concurrently",
-          true,
-        );
-      }
       if (current.status !== "ACTIVE")
         throw new LoyaltyDomainError(
           "TIER_MEMBERSHIP_NOT_ACTIVE",

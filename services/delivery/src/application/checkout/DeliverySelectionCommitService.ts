@@ -23,7 +23,6 @@ export class DeliverySelectionCommitService {
       const resolved = await this.dependencies.bindings.resolve({
         storeId: params.storeId,
         checkoutId: params.checkoutId,
-        checkoutVersion: params.checkoutVersion,
         groupId: selection.groupId,
         optionHandle: selection.optionHandle,
         effectiveAt: params.committedAt,
@@ -92,7 +91,6 @@ export class DeliverySelectionCommitService {
         organizationId: params.organizationId,
         storeId: params.storeId,
         checkoutId: params.checkoutId,
-        checkoutVersion: params.checkoutVersion,
         groupId: selection.groupId,
         optionHandle: selection.optionHandle,
         deliveryRevision: params.deliveryRevision,
@@ -115,7 +113,6 @@ export class DeliverySelectionCommitService {
     const releasedGroupIds = await this.dependencies.bindings.releaseCommitments({
       storeId: params.storeId,
       checkoutId: params.checkoutId,
-      checkoutVersion: params.checkoutVersion,
       groupIds: params.groupIds,
       releasedAt: params.releasedAt,
       reason: params.reason,

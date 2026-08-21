@@ -67,7 +67,7 @@ export class BalanceRepository extends BaseRepository {
 
   async update(
     accountId: string,
-    expectedRevision: number,
+
     input: Partial<
       Pick<
         NewAccountBalance,
@@ -91,11 +91,7 @@ export class BalanceRepository extends BaseRepository {
         updatedAt: new Date().toISOString(),
       })
       .where(
-        and(
-          eq(accountBalances.storeId, this.storeId),
-          eq(accountBalances.accountId, accountId),
-          eq(accountBalances.revision, expectedRevision),
-        ),
+        and(eq(accountBalances.storeId, this.storeId), eq(accountBalances.accountId, accountId)),
       )
       .returning();
     return rows[0] ?? null;

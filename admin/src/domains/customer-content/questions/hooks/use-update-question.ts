@@ -24,7 +24,7 @@ export function useUpdateQuestion() {
   const updateQuestion = useCallback(
     async (
       productQuestionId: string,
-      expectedRevision: number,
+
       operations: ApiProductQuestionUpdateInput,
       answerPlan: QuestionAnswerMutationPlan,
     ): Promise<{
@@ -40,7 +40,7 @@ export function useUpdateQuestion() {
         const result = await updateQuestionMutation({
           variables: {
             productQuestionId,
-            expectedRevision,
+
             operations: hasAnswerChanges ? { ...operations, answers: answerPlan } : operations,
           },
         });

@@ -14,7 +14,7 @@ test.describe('Loyalty Admin API program versions', () => {
 
   test('updates and explicitly clears nullable fields', async ({ api }) => {
     const { version } = await createDraft(api, {}, { effectiveTo: future(30), pointsExpiryDays: 30, maximumRedeemPointsPerOrder: '500' });
-    const result = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionUpdate', { variables: { input: { programVersionId: version.id, expectedRevision: version.revision, earningEnabled: false, clearEffectiveTo: true, clearPointsExpiryDays: true, clearMaximumRedeemPointsPerOrder: true, idempotencyKey: idempotencyKey('version-clear') } } });
+    const result = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionUpdate', { variables: { input: { programVersionId: version.id,  earningEnabled: false, clearEffectiveTo: true, clearPointsExpiryDays: true, clearMaximumRedeemPointsPerOrder: true, idempotencyKey: idempotencyKey('version-clear') } } });
     const payload = result.data.loyaltyMutation.programVersionUpdate;
     expectNoUserErrors(payload);
     expect(payload.programVersion).toMatchObject({ revision: 2, earningEnabled: false, effectiveTo: null, pointsExpiryDays: null, maximumRedeemPointsPerOrder: null });
@@ -57,16 +57,16 @@ test.describe('Loyalty Admin API program versions', () => {
   test('published versions cannot be changed or deleted', async ({ api }) => {
     const { version } = await createDraft(api);
     const published = await publishVersion(api, version);
-    const update = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionUpdate', { variables: { input: { programVersionId: published.id, expectedRevision: published.revision, redemptionEnabled: false, idempotencyKey: idempotencyKey('published-update') } } });
+    const update = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionUpdate', { variables: { input: { programVersionId: published.id,  redemptionEnabled: false, idempotencyKey: idempotencyKey('published-update') } } });
     expectUserError(update.data.loyaltyMutation.programVersionUpdate);
-    const deleted = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionDelete', { variables: { input: { programVersionId: published.id, expectedRevision: published.revision, idempotencyKey: idempotencyKey('published-delete') } } });
+    const deleted = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionDelete', { variables: { input: { programVersionId: published.id,  idempotencyKey: idempotencyKey('published-delete') } } });
     expectUserError(deleted.data.loyaltyMutation.programVersionDelete);
     expect(deleted.data.loyaltyMutation.programVersionDelete.deletedProgramVersionId).toBeNull();
   });
 
   test('deletes only a draft and removes it from node resolution', async ({ api }) => {
     const { version } = await createDraft(api);
-    const result = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionDelete', { variables: { input: { programVersionId: version.id, expectedRevision: version.revision, idempotencyKey: idempotencyKey('draft-delete') } } });
+    const result = await api.admin.mutation<any>('loyality-admin-api/ProgramVersionDelete', { variables: { input: { programVersionId: version.id,  idempotencyKey: idempotencyKey('draft-delete') } } });
     expectNoUserErrors(result.data.loyaltyMutation.programVersionDelete);
     expect(result.data.loyaltyMutation.programVersionDelete.deletedProgramVersionId).toBe(version.id);
     const node = await api.admin.query<any>('loyality-admin-api/Node', { variables: { id: version.id } });

@@ -106,7 +106,6 @@ export const CustomerAccountsModal = () => {
     try {
       const userErrors = await typedPayload.onSave({
         enabledMethods,
-        expectedRevision: typedPayload.settings.revision,
       });
       if (userErrors.length > 0) {
         message.error(userErrors.map(({ message: errorMessage }) => errorMessage).join("\n"));

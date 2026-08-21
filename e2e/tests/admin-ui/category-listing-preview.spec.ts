@@ -412,7 +412,7 @@ async function createPreviewProduct(
   });
   const taggedProduct = await api.admin.product.update({
     productId: product.id,
-    expectedRevision: product.revision,
+    
     operations: {
       tags: productTags.map((tag) => ({ tagId: tag.id, action: 'ADD' })),
     },

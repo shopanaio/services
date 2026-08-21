@@ -70,12 +70,12 @@ test.describe('Loyalty Admin API accounts and points ledger', () => {
     const account = await seedAccount(api, program);
     let revision = 1;
     for (const status of ['SUSPENDED', 'ACTIVE', 'CLOSED'] as const) {
-      const result = await api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', { variables: { input: { accountId: account.id, expectedRevision: revision, status, reason: `e2e ${status}`, idempotencyKey: idempotencyKey(`account-${status}`) } } });
+      const result = await api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', { variables: { input: { accountId: account.id,  status, reason: `e2e ${status}`, idempotencyKey: idempotencyKey(`account-${status}`) } } });
       expectNoUserErrors(result.data.loyaltyMutation.accountStatusUpdate);
       expect(result.data.loyaltyMutation.accountStatusUpdate.account.status).toBe(status);
       revision = result.data.loyaltyMutation.accountStatusUpdate.account.revision;
     }
-    const stale = await api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', { variables: { input: { accountId: account.id, expectedRevision: 1, status: 'ACTIVE', reason: 'stale', idempotencyKey: idempotencyKey('stale-status') } } });
+    const stale = await api.admin.mutation<any>('loyality-admin-api/AccountStatusUpdate', { variables: { input: { accountId: account.id,  status: 'ACTIVE', reason: 'stale', idempotencyKey: idempotencyKey('stale-status') } } });
     expectUserError(stale.data.loyaltyMutation.accountStatusUpdate);
   });
 

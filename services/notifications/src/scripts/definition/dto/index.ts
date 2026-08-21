@@ -41,14 +41,13 @@ export type NotificationChannelSettingWriteView = Awaited<
 export interface NotificationDefinitionSetEnabledParams {
   key: NotificationDefinitionKey;
   enabled: boolean;
-  expectedVersion: number;
 }
 
 export interface NotificationChannelSetEnabledParams {
   key: NotificationDefinitionKey;
   channel: NotificationChannel;
   enabled: boolean;
-  expectedVersion: number;
+
   senderName?: string;
   senderEmail?: string;
   replyTo?: string;

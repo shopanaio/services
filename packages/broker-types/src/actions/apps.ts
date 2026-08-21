@@ -72,7 +72,6 @@ export interface UpdateAppParams {
   installationId: string;
   storeId: string;
   configuration?: Record<string, unknown>;
-  expectedConfigurationVersion?: number;
   grantedScopes?: string[];
   secrets?: Record<string, string>;
   idempotencyKey: string;

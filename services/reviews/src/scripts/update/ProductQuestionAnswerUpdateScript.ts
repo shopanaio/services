@@ -84,7 +84,7 @@ export class ProductQuestionAnswerUpdateScript extends BaseScript<
 
     const acquired = await this.repository.content.update(
       input.answerId,
-      input.expectedRevision,
+
       mapped.patch,
     );
     if (acquired.status === "not_found") {

@@ -203,7 +203,7 @@ export class ContentRepository extends BaseRepository {
   @Transactional()
   async update(
     id: string,
-    expectedRevision: number,
+
     patch: ContentPatch,
   ): Promise<OptimisticMutationResult<ContentItem>> {
     const rows = await this.connection
@@ -217,7 +217,6 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
-          eq(contentItem.revision, expectedRevision),
           isNull(contentItem.deletedAt),
         ),
       )
@@ -245,13 +244,12 @@ export class ContentRepository extends BaseRepository {
   @Transactional()
   async delete(input: {
     id: string;
-    expectedRevision: number;
+
     permanent?: boolean;
   }): Promise<OptimisticMutationResult<ContentItem>> {
     const conditions = and(
       eq(contentItem.storeId, this.storeId),
       eq(contentItem.id, input.id),
-      eq(contentItem.revision, input.expectedRevision),
       isNull(contentItem.deletedAt),
     );
     const now = new Date().toISOString();
@@ -271,10 +269,7 @@ export class ContentRepository extends BaseRepository {
   }
 
   @Transactional()
-  async redact(
-    id: string,
-    expectedRevision: number,
-  ): Promise<OptimisticMutationResult<ContentItem>> {
+  async redact(id: string): Promise<OptimisticMutationResult<ContentItem>> {
     const now = new Date().toISOString();
     const rows = await this.connection
       .update(contentItem)
@@ -295,7 +290,6 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
-          eq(contentItem.revision, expectedRevision),
           isNull(contentItem.deletedAt),
         ),
       )
@@ -307,7 +301,7 @@ export class ContentRepository extends BaseRepository {
   @Transactional()
   async restore(
     id: string,
-    expectedRevision: number,
+
     patch: ContentRestorePatch,
   ): Promise<OptimisticMutationResult<ContentItem>> {
     const rows = await this.connection
@@ -321,7 +315,6 @@ export class ContentRepository extends BaseRepository {
         and(
           eq(contentItem.storeId, this.storeId),
           eq(contentItem.id, id),
-          eq(contentItem.revision, expectedRevision),
           isNull(contentItem.deletedAt),
         ),
       )
@@ -457,7 +450,7 @@ export class ContentRepository extends BaseRepository {
   @Transactional()
   async updateTranslation(
     id: string,
-    expectedRevision: number,
+
     patch: ContentTranslationPatch,
   ): Promise<OptimisticMutationResult<ContentTranslation>> {
     const rows = await this.connection
@@ -467,13 +460,7 @@ export class ContentRepository extends BaseRepository {
         revision: sql`${contentTranslation.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(contentTranslation.storeId, this.storeId),
-          eq(contentTranslation.id, id),
-          eq(contentTranslation.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(contentTranslation.storeId, this.storeId), eq(contentTranslation.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findTranslationById(id);
@@ -481,19 +468,10 @@ export class ContentRepository extends BaseRepository {
   }
 
   @Transactional()
-  async deleteTranslation(
-    id: string,
-    expectedRevision: number,
-  ): Promise<OptimisticMutationResult<ContentTranslation>> {
+  async deleteTranslation(id: string): Promise<OptimisticMutationResult<ContentTranslation>> {
     const rows = await this.connection
       .delete(contentTranslation)
-      .where(
-        and(
-          eq(contentTranslation.storeId, this.storeId),
-          eq(contentTranslation.id, id),
-          eq(contentTranslation.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(contentTranslation.storeId, this.storeId), eq(contentTranslation.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
     const current = await this.findTranslationById(id);

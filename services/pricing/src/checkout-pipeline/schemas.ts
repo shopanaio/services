@@ -30,7 +30,6 @@ const context = z
   .object({
     executionId: id,
     checkoutId: id,
-    expectedCheckoutVersion: z.number().int().safe().nonnegative(),
     currencyCode: currency,
     correlationId: id,
     deadlineAt: z.string().datetime({ offset: true }),
@@ -335,7 +334,6 @@ export const preliminaryCheckoutQuoteResultSchema = z
     revision,
     executionId: id,
     checkoutId: id,
-    basedOnCheckoutVersion: z.number().int().nonnegative(),
     currencyCode: currency,
     discountEvaluationRevision: revision,
     transformedLines: z.array(quotedLine),
@@ -359,7 +357,6 @@ const delivery = z
   .object({
     executionId: id,
     checkoutId: id,
-    basedOnCheckoutVersion: z.number().int().nonnegative(),
     currencyCode: currency,
     revision,
     basedOnPreliminaryRevision: revision,
@@ -403,7 +400,6 @@ export const finalCheckoutQuoteResultSchema = z
     revision,
     executionId: id,
     checkoutId: id,
-    basedOnCheckoutVersion: z.number().int().nonnegative(),
     currencyCode: currency,
     discountEvaluationRevision: revision,
     basedOnPreliminaryDiscountEvaluationRevision: revision,

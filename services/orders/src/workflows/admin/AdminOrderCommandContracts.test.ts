@@ -19,7 +19,7 @@ describe("Admin order business-logic contract", () => {
     expect(() =>
       parseAdminOrderPublicInput("orderArchive", {
         id,
-        expectedVersion: 1,
+
         idempotencyKey: "archive-1",
         storeId: id,
       }),
@@ -30,14 +30,14 @@ describe("Admin order business-logic contract", () => {
     expect(() =>
       parseAdminOrderPublicInput("orderArchive", {
         id,
-        expectedVersion: 0,
+
         idempotencyKey: "archive-1",
       }),
     ).toThrow("expectedVersion must be a positive integer");
     expect(() =>
       parseAdminOrderPublicInput("shipmentCancel", {
         shipmentId: "not-an-id",
-        expectedVersion: 1,
+
         reasonCode: "MERCHANT_DECISION",
         idempotencyKey: "shipment-cancel-1",
       }),
@@ -49,7 +49,7 @@ describe("Admin order business-logic contract", () => {
       parseAdminOrderPublicInput("orderReturnReceive", {
         returnId: id,
         locationId: id,
-        expectedVersion: 2,
+
         lines: [
           {
             orderLineId: id,
@@ -60,7 +60,7 @@ describe("Admin order business-logic contract", () => {
         ],
         idempotencyKey: "receive-1",
       }),
-    ).toMatchObject({ returnId: id, expectedVersion: 2 });
+    ).toMatchObject({ returnId: id });
     expect(() => parseAdminOrderPublicInput("ordersBulkAction", { action: "ARCHIVE" })).toThrow(
       "idempotencyKey is required",
     );
@@ -76,7 +76,7 @@ describe("Admin order business-logic contract", () => {
     expect(() =>
       parseAdminOrderPublicInput("shipmentCreate", {
         fulfillmentId: id,
-        expectedVersion: 1,
+
         idempotencyKey: "shipment-1",
         packages: [{ items: [{ orderLineId: id, quantity: 0 }] }],
       }),
@@ -85,7 +85,7 @@ describe("Admin order business-logic contract", () => {
       parseAdminOrderPublicInput("orderReturnReceive", {
         returnId: id,
         locationId: id,
-        expectedVersion: 1,
+
         idempotencyKey: "receive-2",
         lines: [
           {

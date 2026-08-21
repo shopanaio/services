@@ -81,7 +81,6 @@ export function useCustomerModals({
         setDeleteConflict(false);
         const result = await deletion.deleteCustomer({
           id: customer.id,
-          expectedRevision: customer.revision,
         });
         if (!result.deletedCustomerId) {
           if (result.userErrors.some((item) => item.code === "REVISION_CONFLICT"))

@@ -49,7 +49,7 @@ test.describe('Loyalty reward entitlements end to end', () => {
     const issued = await kit.issueReward(fixture.account, definition.id);
     const revoked = await kit.api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', {
       variables: { input: {
-        entitlementId: issued.id, expectedRevision: issued.revision,
+        entitlementId: issued.id, 
         reasonCode: 'E2E_REVOKED', idempotencyKey: idempotencyKey('revoke'),
       } },
     });

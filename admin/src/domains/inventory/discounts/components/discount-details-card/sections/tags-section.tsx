@@ -37,7 +37,7 @@ export function DiscountTagsSection({ discount, onRefresh }: DiscountTagsSection
   const saveTags = async (nextTags: EntityDetailsTagItem[]) => {
     const result = await updateDiscount({
       discountId: discount.id,
-      expectedRevision: discount.revision,
+
       operations: {
         tags: nextTags.map((tag) => tag.name),
       },

@@ -17,33 +17,11 @@ export class RecommendationPlacementPolicyUpsertScript extends BaseScript<
       input.placement,
     );
     if (!current) {
-      if (input.expectedVersion != null) {
-        return {
-          userErrors: [
-            {
-              message: "Policy does not exist",
-              field: ["input", "expectedVersion"],
-              code: "VERSION_CONFLICT",
-            },
-          ],
-        };
-      }
       const policy = await this.repository.recommendationPlacementPolicy.create(input);
       return {
         policy,
         generationTrigger: `policy:${policy.policyId}:${policy.version}`,
         userErrors: [],
-      };
-    }
-    if (input.expectedVersion == null || input.expectedVersion !== current.version) {
-      return {
-        userErrors: [
-          {
-            message: "Policy version changed",
-            field: ["input", "expectedVersion"],
-            code: "VERSION_CONFLICT",
-          },
-        ],
       };
     }
     if (

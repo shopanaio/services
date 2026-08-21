@@ -365,7 +365,7 @@ export const StoreSettingsModal = () => {
     setSubmitError(null);
     const result = await updateMutation.updateStore({
       storeId: store.id,
-      expectedRevision: store.revision,
+
       operations: mapStoreSettingsInput(section, values, store),
     });
 

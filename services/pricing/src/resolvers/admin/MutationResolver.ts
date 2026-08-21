@@ -94,7 +94,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
 
     const workflowInput: DiscountDeleteWorkflowInput = {
       discountId,
-      expectedRevision: args.input.expectedRevision,
+
       context: this.mutationWorkflowContext(),
     };
     const result = await this.runMutationWorkflow<DiscountDeleteWorkflowResult>(
@@ -255,7 +255,7 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
 
     const workflowInput: DiscountUpdateWorkflowInput = {
       discountId,
-      expectedRevision: args.expectedRevision,
+
       operations: mapped.operations,
       context: this.mutationWorkflowContext(),
     };

@@ -51,7 +51,7 @@ export function OrderShippingItemModal() {
         ? await create.createShippingItem({
             id: value.orderId,
             fulfillmentId: value.fulfillmentId,
-            expectedVersion: version,
+
             shippingMethodId: methodId,
             trackingCode: trackingCode.trim() || null,
           })
@@ -59,7 +59,7 @@ export function OrderShippingItemModal() {
             id: value.orderId,
             fulfillmentId: value.fulfillmentId,
             shippingItemId: value.shippingItemId!,
-            expectedVersion: version,
+
             shippingMethodId: methodId,
             trackingCode: trackingCode.trim() || null,
           });

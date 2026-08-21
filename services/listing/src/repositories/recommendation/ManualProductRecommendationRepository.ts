@@ -171,7 +171,7 @@ export class ManualProductRecommendationRepository extends BaseRepository {
 
   async update(
     id: string,
-    expectedVersion: number,
+
     patch: Partial<Omit<ManualRecommendationInput, "anchorProductId" | "placement">>,
   ): Promise<ManualProductRecommendation | null> {
     const [row] = await this.connection
@@ -185,21 +185,19 @@ export class ManualProductRecommendationRepository extends BaseRepository {
         and(
           eq(manualProductRecommendation.storeId, this.storeId),
           eq(manualProductRecommendation.recommendationId, id),
-          eq(manualProductRecommendation.version, expectedVersion),
         ),
       )
       .returning();
     return row ?? null;
   }
 
-  async delete(id: string, expectedVersion: number): Promise<string | null> {
+  async delete(id: string): Promise<string | null> {
     const [row] = await this.connection
       .delete(manualProductRecommendation)
       .where(
         and(
           eq(manualProductRecommendation.storeId, this.storeId),
           eq(manualProductRecommendation.recommendationId, id),
-          eq(manualProductRecommendation.version, expectedVersion),
         ),
       )
       .returning({ id: manualProductRecommendation.recommendationId });

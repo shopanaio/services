@@ -11,7 +11,6 @@ import {
 type Attempt = {
   storeId: string;
   checkoutId: string;
-  basedOnCheckoutVersion: number;
   executionId: string;
   requestDigest: string;
 };
@@ -53,7 +52,6 @@ export class PricingCheckoutQuoteRepository {
         id: payload.preliminaryQuoteId,
         storeId: input.storeId,
         checkoutId: input.checkoutId,
-        basedOnCheckoutVersion: input.basedOnCheckoutVersion,
         executionId: input.executionId,
         requestDigest: input.requestDigest,
         revision: payload.revision,
@@ -113,7 +111,6 @@ export class PricingCheckoutQuoteRepository {
         id: payload.quoteId,
         storeId: input.storeId,
         checkoutId: input.checkoutId,
-        basedOnCheckoutVersion: input.basedOnCheckoutVersion,
         executionId: input.executionId,
         preliminaryQuoteId,
         basedOnPreliminaryRevision: payload.basedOnPreliminaryRevision,

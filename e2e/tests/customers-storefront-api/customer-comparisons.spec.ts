@@ -38,21 +38,21 @@ test.describe('Customers Storefront API — comparisons', () => {
   const add = async (variantId: string, overrides: Record<string, unknown> = {}) =>
     mutate('customerComparisonVariantAdd', 'CustomerComparisonVariantAddInput', {
       variantId,
-      expectedRevision: await revision(),
+      
       idempotencyKey: uniqueKey(),
       ...overrides,
     });
   const remove = async (variantId: string, overrides: Record<string, unknown> = {}) =>
     mutate('customerComparisonVariantRemove', 'CustomerComparisonVariantRemoveInput', {
       variantId,
-      expectedRevision: await revision(),
+      
       idempotencyKey: uniqueKey(),
       ...overrides,
     });
   const clear = async (categoryId: string, overrides: Record<string, unknown> = {}) =>
     mutate('customerComparisonCategoryClear', 'CustomerComparisonCategoryClearInput', {
       categoryId,
-      expectedRevision: await revision(),
+      
       idempotencyKey: uniqueKey(),
       ...overrides,
     });
@@ -151,7 +151,7 @@ test.describe('Customers Storefront API — comparisons', () => {
       variables: {
         productId: current.id,
         categoryId: category.id,
-        expectedRevision: current.revision,
+        
       },
     });
     for (const edge of current.variants.edges) await add(edge.node.id);
@@ -168,7 +168,7 @@ test.describe('Customers Storefront API — comparisons', () => {
       variables: {
         productId: current.id,
         categoryId: category.id,
-        expectedRevision: current.revision,
+        
       },
     });
     const variant = current.variants.edges[0]!.node;
@@ -208,9 +208,9 @@ test.describe('Customers Storefront API — comparisons', () => {
     await add(variant.id);
     const stale = Math.max(0, (await revision()) - 1);
     for (const response of await Promise.all([
-      add(current.variants.edges[1]!.node.id, { expectedRevision: stale }),
-      remove(variant.id, { expectedRevision: stale }),
-      clear(category.id, { expectedRevision: stale }),
+      add(current.variants.edges[1]!.node.id, {  }),
+      remove(variant.id, {  }),
+      clear(category.id, {  }),
     ]))
       kit.expectUserError(response.data!.payload.userErrors, 'REVISION_CONFLICT', {
         retryable: true,
@@ -219,14 +219,14 @@ test.describe('Customers Storefront API — comparisons', () => {
   test('non-positive fractional and unsafe comparison revisions are rejected', async () => {
     const variant = (await product()).variants.edges[0]!.node;
     for (const expectedRevision of [-1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
-      const response = await add(variant.id, { expectedRevision });
+      const response = await add(variant.id, {  });
       if (response.errors) kit.expectBadUserInput(response);
       else kit.expectUserError(response.data!.payload.userErrors, 'INVALID_REVISION');
     }
   });
   test('retrying each comparison mutation with the same idempotency key is side-effect free', async () => {
     const variant = (await product()).variants.edges[0]!.node;
-    const input = { expectedRevision: 0, idempotencyKey: uniqueKey() };
+    const input = {  idempotencyKey: uniqueKey() };
     const first = await add(variant.id, input);
     const replay = await add(variant.id, input);
     expect(replay.data?.payload).toEqual(first.data?.payload);
@@ -237,17 +237,16 @@ test.describe('Customers Storefront API — comparisons', () => {
     const key = uniqueKey();
     await add(variants[0]!.id, { idempotencyKey: key });
     kit.expectUserError(
-      (await add(variants[1]!.id, { idempotencyKey: key, expectedRevision: 0 })).data!.payload
+      (await add(variants[1]!.id, { idempotencyKey: key })).data!.payload
         .userErrors,
       /IDEMPOTENCY/iu,
     );
   });
   test('concurrent comparison writes with one revision allow exactly one winner', async () => {
     const variants = (await product()).variants.edges.map((edge) => edge.node);
-    const expectedRevision = await revision();
     const results = await Promise.all([
-      add(variants[0]!.id, { expectedRevision }),
-      add(variants[1]!.id, { expectedRevision }),
+      add(variants[0]!.id, {  }),
+      add(variants[1]!.id, {  }),
     ]);
     expect(results.filter((item) => item.data!.payload.userErrors.length === 0)).toHaveLength(1);
     expect(
@@ -293,7 +292,7 @@ test.describe('Customers Storefront API — comparisons', () => {
       variables: {
         productId: current.id,
         categoryId: category.id,
-        expectedRevision: current.revision,
+        
       },
     });
     await add(current.variants.edges[0]!.node.id);

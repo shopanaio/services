@@ -205,8 +205,6 @@ export interface CreateOrderFromCheckoutPlacementV1Params {
   storeId: string;
   placementId: string;
   checkoutId: string;
-  checkoutVersion: number;
-  resultRevision: string;
   finalQuote: { quoteId: string; revision: string };
   paymentMethodsRevision: string;
   deliveryRevision: string;
@@ -581,7 +579,7 @@ export interface CancelOrderFromStorefrontParams {
   storeId: string;
   customerId: string;
   orderId: string;
-  expectedVersion: number;
+
   reasonCode: string | null;
   idempotencyKey: string;
   correlationId: string;
@@ -599,7 +597,7 @@ export interface CreateOrderReturnRequestFromStorefrontParams {
   storeId: string;
   customerId: string;
   orderId: string;
-  expectedVersion: number;
+
   lines: readonly Readonly<{
     orderLineId: string;
     quantity: number;

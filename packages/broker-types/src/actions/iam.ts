@@ -132,7 +132,6 @@ export interface GetServiceLinkedApplicationAuthSettingsParams {
 export interface UpdateServiceLinkedApplicationAuthSettingsParams extends GetServiceLinkedApplicationAuthSettingsParams {
   userId: string;
   enabledMethods: ApplicationAuthMethod[];
-  expectedRevision: number;
 }
 
 export interface ServiceLinkedApplicationAuthSettingsResult {

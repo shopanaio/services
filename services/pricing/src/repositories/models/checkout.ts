@@ -10,7 +10,6 @@ export const checkoutPreliminaryQuote = pricingSchema.table(
       .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     checkoutId: uuid("checkout_id").notNull(),
-    basedOnCheckoutVersion: integer("based_on_checkout_version").notNull(),
     executionId: text("execution_id").notNull(),
     requestDigest: text("request_digest").notNull(),
     revision: text("revision").notNull(),
@@ -56,7 +55,6 @@ export const checkoutFinalQuote = pricingSchema.table(
       .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     checkoutId: uuid("checkout_id").notNull(),
-    basedOnCheckoutVersion: integer("based_on_checkout_version").notNull(),
     executionId: text("execution_id").notNull(),
     preliminaryQuoteId: uuid("preliminary_quote_id")
       .notNull()

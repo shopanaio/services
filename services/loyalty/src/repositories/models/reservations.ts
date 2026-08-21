@@ -34,7 +34,6 @@ export const reservations = loyaltySchema.table(
     programVersionId: uuid("program_version_id").notNull(),
     accountId: uuid("account_id").notNull(),
     checkoutId: uuid("checkout_id").notNull(),
-    checkoutVersion: integer("checkout_version").notNull(),
     quoteId: uuid("quote_id").notNull(),
     quoteRevision: varchar("quote_revision", { length: 64 }).notNull(),
     points: bigint("points", { mode: "bigint" }).notNull(),

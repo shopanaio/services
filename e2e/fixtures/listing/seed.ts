@@ -233,7 +233,7 @@ async function addProductTags(
 ): Promise<ApiProduct> {
   return api.admin.product.update({
     productId: product.id,
-    expectedRevision: product.revision,
+    
     operations: {
       tags: tags.map((tag) => ({ tagId: tag.id, action: 'ADD' })),
     },

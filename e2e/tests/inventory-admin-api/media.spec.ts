@@ -42,13 +42,13 @@ test.describe('Product Media Registry API', () => {
   async function registerProductMedia(
     api: any,
     productId: string,
-    expectedRevision: number,
+    
     fileIds: string[],
   ): Promise<number> {
     const { data } = await api.admin.mutation('inventory-api/ProductUpdate', {
       variables: {
         productId,
-        expectedRevision,
+        
         operations: { media: { fileIds } },
       },
     });

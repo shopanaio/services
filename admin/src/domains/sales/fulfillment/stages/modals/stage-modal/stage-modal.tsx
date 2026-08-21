@@ -127,7 +127,6 @@ export function FulfillmentStageModal() {
     try {
       const result = await deleteMutation.deleteStage({
         id: query.stage.id,
-        expectedVersion: query.stage.version,
       });
       if (!result.deletedStageId || result.userErrors.length) {
         setGlobalErrors(result.userErrors.map((error) => error.message));

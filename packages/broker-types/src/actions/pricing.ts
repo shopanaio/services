@@ -46,7 +46,6 @@ export interface PricingCheckoutMoney {
 export interface PricingCheckoutStageProvenance {
   executionId: string;
   checkoutId: string;
-  basedOnCheckoutVersion: number;
   currencyCode: string;
 }
 
@@ -91,7 +90,6 @@ export interface PricingCheckoutBuyerEligibilityContext {
 export interface PricingCheckoutEvaluationContext {
   executionId: string;
   checkoutId: string;
-  expectedCheckoutVersion: number;
   currencyCode: string;
   correlationId: string;
   deadlineAt: string;

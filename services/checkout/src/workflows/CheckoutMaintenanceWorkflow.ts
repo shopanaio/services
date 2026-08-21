@@ -358,7 +358,6 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
     >(DeliveryActions.releaseSelections, {
       storeId: placement.storeId,
       checkoutId: placement.checkoutId,
-      checkoutVersion: placement.checkoutVersion,
       groupIds: placement.deliveryGroupIds,
       reason: "Checkout placement did not reach a payable order state.",
       releasedAt,
@@ -393,7 +392,6 @@ export class CheckoutMaintenanceWorkflow extends BrokerWorkflows<
       const base = {
         storeId: placement.storeId,
         checkoutId: placement.checkoutId,
-        checkoutVersion: placement.checkoutVersion,
         reservationId: reservation.points.reservationId,
         quoteId: reservation.points.quoteId,
         quoteRevision: reservation.points.quoteRevision,

@@ -71,7 +71,7 @@ export interface CreateAdminApplicationInput {
 export interface UpdateAdminApplicationInput {
   organizationId: string;
   applicationId: string;
-  expectedRevision: number;
+
   patch: {
     name?: string;
     displayName?: string;
@@ -81,7 +81,7 @@ export interface UpdateAdminApplicationInput {
 
 export interface UpdateAdminApplicationAuthInput {
   applicationId: string;
-  expectedRevision: number;
+
   patch: Partial<ApplicationAuthMutableConfiguration>;
   trustedOrigins?: readonly string[];
   emailDelivery?: ApplicationAuthDeliveryProfileInput;
@@ -93,7 +93,7 @@ export interface ConfigureAdminApplicationProviderInput {
   clientId: string;
   clientSecret: string;
   scopes: readonly string[];
-  expectedRevision: number;
+
   actorId: string;
 }
 
@@ -102,7 +102,7 @@ export interface UpdateAdminApplicationProviderInput {
   provider: ApplicationAuthProviderName;
   enabled?: boolean;
   scopes?: readonly string[];
-  expectedRevision: number;
+
   actorId: string;
 }
 
@@ -111,7 +111,7 @@ export interface RotateAdminApplicationProviderCredentialsInput {
   provider: ApplicationAuthProviderName;
   clientId: string;
   clientSecret: string;
-  expectedRevision: number;
+
   actorId: string;
 }
 
@@ -366,7 +366,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   @Transactional()
   async updateApplication(input: UpdateAdminApplicationInput): Promise<number | null> {
-    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
+    const revision = await this.claimRevision(input.applicationId);
     if (revision === null) return null;
     const rows = await this.connection
       .update(application)
@@ -387,9 +387,8 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   async archiveApplication(input: {
     organizationId: string;
     applicationId: string;
-    expectedRevision: number;
   }): Promise<number | null> {
-    const revision = await this.claimRevision(input.applicationId, input.expectedRevision, {
+    const revision = await this.claimRevision(input.applicationId, {
       realmEnabled: false,
     });
     if (revision === null) return null;
@@ -414,7 +413,6 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     input: UpdateAdminApplicationAuthInput,
   ): Promise<ApplicationAuthConfigurationRecord | null> {
     const current = await this.findConfiguration(input.applicationId);
-    if (!current || current.revision !== input.expectedRevision) return null;
     const mutable = applicationAuthMutableConfigurationSchema.parse({
       registrationMode: current.registrationMode,
       passwordSignUpEnabled: current.passwordSignUpEnabled,
@@ -441,12 +439,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, input.applicationId)))
       .returning();
     if (!updated) return null;
 
@@ -480,7 +473,6 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   async setRealmEnabled(input: {
     applicationId: string;
     enabled: boolean;
-    expectedRevision: number;
   }): Promise<ApplicationAuthConfigurationRecord | null> {
     const [updated] = await this.connection
       .update(applicationAuthConfiguration)
@@ -489,12 +481,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, input.applicationId)))
       .returning();
     return updated ?? null;
   }
@@ -504,7 +491,6 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     applicationId: string;
     methodId: "password" | "email_otp" | "phone_otp";
     enabledCapabilities: readonly ("sign_in" | "sign_up" | "password_reset")[];
-    expectedRevision: number;
   }): Promise<ApplicationAuthConfigurationRecord | null> {
     const enabled = new Set(input.enabledCapabilities);
     const patch =
@@ -530,12 +516,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, input.applicationId)))
       .returning();
     return updated ?? null;
   }
@@ -544,7 +525,6 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   async replaceAuthMethods(input: {
     applicationId: string;
     enabledMethods: readonly ("password" | "email_otp" | "phone_otp")[];
-    expectedRevision: number;
   }): Promise<ApplicationAuthConfigurationRecord | null> {
     const enabled = new Set(input.enabledMethods);
     const [updated] = await this.connection
@@ -559,12 +539,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, input.applicationId),
-          eq(applicationAuthConfiguration.revision, input.expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, input.applicationId)))
       .returning();
     return updated ?? null;
   }
@@ -593,7 +568,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       scopes: [...input.scopes],
       updatedBy: input.actorId,
     });
-    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
+    const revision = await this.claimRevision(input.applicationId);
     if (revision === null) return null;
     const encrypted = this.encryptProviderCredentials(
       input.applicationId,
@@ -633,7 +608,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     }
     assertApplicationSocialProviderScopes(provider, scopes);
     if (input.enabled === true) this.assertStoredProviderCredentials(current, provider);
-    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
+    const revision = await this.claimRevision(input.applicationId);
     if (revision === null) return null;
     const [updated] = await this.connection
       .update(applicationAuthProvider)
@@ -671,7 +646,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       scopes,
       updatedBy: input.actorId,
     });
-    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
+    const revision = await this.claimRevision(input.applicationId);
     if (revision === null) return null;
     const encrypted = this.encryptProviderCredentials(
       input.applicationId,
@@ -704,13 +679,12 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   async deleteProviderCredentials(input: {
     applicationId: string;
     provider: ApplicationAuthProviderName;
-    expectedRevision: number;
   }): Promise<"deleted" | "not_configured" | "enabled" | "conflict"> {
     const provider = parseApplicationAuthProviderName(input.provider);
     const current = await this.findProvider(input.applicationId, provider);
     if (!current) return "not_configured";
     if (current.enabled) return "enabled";
-    const revision = await this.claimRevision(input.applicationId, input.expectedRevision);
+    const revision = await this.claimRevision(input.applicationId);
     if (revision === null) return "conflict";
     const rows = await this.connection
       .delete(applicationAuthProvider)
@@ -732,7 +706,6 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   async prepareProviderValidation(input: {
     applicationId: string;
     provider: ApplicationAuthProviderName;
-    expectedRevision: number;
   }): Promise<
     | {
         status: "ready";
@@ -748,9 +721,6 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
     const configuration = await this.findConfiguration(input.applicationId);
     if (!configuration) {
       return { status: "not_configured", revision: input.expectedRevision };
-    }
-    if (configuration.revision !== input.expectedRevision) {
-      return { status: "conflict", revision: configuration.revision };
     }
     const provider = parseApplicationAuthProviderName(input.provider);
     const current = await this.findProvider(input.applicationId, provider);
@@ -826,7 +796,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
 
   private async claimRevision(
     applicationId: string,
-    expectedRevision: number,
+
     patch: Partial<Pick<ApplicationAuthConfigurationRecord, "realmEnabled">> = {},
   ): Promise<number | null> {
     const [updated] = await this.connection
@@ -836,12 +806,7 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
         revision: sql`${applicationAuthConfiguration.revision} + 1`,
         updatedAt: new Date(),
       })
-      .where(
-        and(
-          eq(applicationAuthConfiguration.applicationId, applicationId),
-          eq(applicationAuthConfiguration.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(applicationAuthConfiguration.applicationId, applicationId)))
       .returning({ revision: applicationAuthConfiguration.revision });
     return updated?.revision ?? null;
   }

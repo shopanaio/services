@@ -102,7 +102,7 @@ export interface UpdatePayload {
 
 interface UpdateOptions {
   clientMutationId?: string;
-  expectedRevision?: number;
+  
   storeId?: string;
 }
 
@@ -207,7 +207,7 @@ export async function requestStoreUpdate(
     variables: {
       storeId: options.storeId ?? store.id,
       clientMutationId: options.clientMutationId ?? `settings-${crypto.randomUUID()}`,
-      expectedRevision: options.expectedRevision ?? store.revision,
+      
       operations,
     },
   });

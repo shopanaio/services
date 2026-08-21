@@ -49,7 +49,6 @@ export function useNotificationSettings() {
             input: {
               key: definition.key,
               enabled,
-              expectedVersion: definition.version,
             },
           },
           optimisticResponse: {

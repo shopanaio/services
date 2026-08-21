@@ -39,7 +39,7 @@ test.describe('Customers Storefront API — addresses', () => {
       'CustomerAddressCreateInput',
       {
         address,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -57,7 +57,7 @@ test.describe('Customers Storefront API — addresses', () => {
       {
         addressId,
         address,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -70,7 +70,7 @@ test.describe('Customers Storefront API — addresses', () => {
       'CustomerAddressDeleteInput',
       {
         addressId,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -88,7 +88,7 @@ test.describe('Customers Storefront API — addresses', () => {
       {
         addressId,
         defaults: selected,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
         ...overrides,
       },
@@ -401,10 +401,10 @@ test.describe('Customers Storefront API — addresses', () => {
     expect(advanced.data?.payload.userErrors).toEqual([]);
     const stale = (await kit.revision()) - 1;
     const responses = await Promise.all([
-      create(minimalAddress, { expectedRevision: stale }),
-      update(address.globalId, minimalAddress, { expectedRevision: stale }),
-      remove(address.globalId, { expectedRevision: stale }),
-      defaults(address.globalId, ['SHIPPING'], { expectedRevision: stale }),
+      create(minimalAddress, {  }),
+      update(address.globalId, minimalAddress, {  }),
+      remove(address.globalId, {  }),
+      defaults(address.globalId, ['SHIPPING'], {  }),
     ]);
     for (const response of responses) {
       kit.expectUserError(response.data!.payload.userErrors, 'REVISION_CONFLICT', {
@@ -416,7 +416,7 @@ test.describe('Customers Storefront API — addresses', () => {
   test('retrying each address mutation with the same idempotency key is side-effect free', async () => {
     const revision = await kit.revision();
     const key = uniqueKey();
-    const input = { address: minimalAddress, expectedRevision: revision, idempotencyKey: key };
+    const input = { address: minimalAddress,  idempotencyKey: key };
     const first = await create(minimalAddress, input);
     const second = await create(minimalAddress, input);
     expect(second.data?.payload).toEqual(first.data?.payload);
@@ -432,10 +432,10 @@ test.describe('Customers Storefront API — addresses', () => {
     const revision = await kit.revision();
     const results = await Promise.all([
       defaults(a.data!.payload.customerAddress!.id as string, ['SHIPPING'], {
-        expectedRevision: revision,
+        
       }),
       defaults(b.data!.payload.customerAddress!.id as string, ['SHIPPING'], {
-        expectedRevision: revision,
+        
       }),
     ]);
     expect(results.filter((result) => result.data!.payload.userErrors.length === 0)).toHaveLength(

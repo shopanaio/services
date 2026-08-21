@@ -64,7 +64,6 @@ export function toCheckoutPipelineStageContext(
     deadlineAt: context.deadlineAt,
     requestedAt: context.requestedAt,
     checkoutId: context.checkoutId,
-    expectedCheckoutVersion: context.expectedCheckoutVersion,
     storeId: context.storeId,
     currencyCode: context.currencyCode,
     localeCode: context.localeCode,
@@ -97,7 +96,6 @@ export function toPaymentsCheckoutEvaluationContext(
 ): GetAvailablePaymentMethodsRequest["context"] {
   return {
     ...toCheckoutPipelineEligibilityContext(context),
-    targetCheckoutVersion: context.expectedCheckoutVersion + 1,
   };
 }
 
@@ -106,7 +104,6 @@ export function toCheckoutDeliveryContext(
 ): CalculateDeliveryOptionsRequest["context"] {
   return {
     ...toCheckoutPipelineEligibilityContext(context),
-    targetCheckoutVersion: context.expectedCheckoutVersion + 1,
   };
 }
 
@@ -164,7 +161,6 @@ export function toCheckoutPricingDeliverySnapshot(
   return {
     executionId: delivery.executionId,
     checkoutId: delivery.checkoutId,
-    basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
     currencyCode: delivery.currencyCode,
     revision: delivery.revision,
     basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
@@ -198,7 +194,6 @@ export function toCheckoutPaymentDeliverySnapshot(
     {
       executionId: delivery.executionId,
       checkoutId: delivery.checkoutId,
-      basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
       currencyCode: delivery.currencyCode,
       revision: delivery.revision,
       basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
@@ -215,7 +210,6 @@ export function toCheckoutPaymentDeliverySnapshot(
   return {
     executionId: delivery.executionId,
     checkoutId: delivery.checkoutId,
-    basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
     currencyCode: delivery.currencyCode,
     revision: delivery.revision,
     basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
@@ -252,7 +246,6 @@ function toPricingDeliverySnapshot(
   return {
     executionId: delivery.executionId,
     checkoutId: delivery.checkoutId,
-    basedOnCheckoutVersion: delivery.basedOnCheckoutVersion,
     currencyCode: delivery.currencyCode,
     revision: delivery.revision,
     basedOnPreliminaryRevision: delivery.basedOnPreliminaryRevision,
@@ -288,11 +281,6 @@ export function parseCalculateDeliveryOptionsRequest(
 ): CalculateDeliveryOptionsRequest {
   assertPayloadSize(value, "delivery options request");
   const request = calculateDeliveryOptionsRequestSchema.parse(value);
-  assertEqual(
-    request.context.targetCheckoutVersion,
-    request.context.expectedCheckoutVersion + 1,
-    "Delivery target checkout version must follow the committed base version",
-  );
   assertProvenance(request.context, request.preliminary);
   assertPreliminaryCurrencies(request.preliminary, request.context.currencyCode);
   assertPreliminaryPricingArithmetic(request.preliminary);
@@ -323,11 +311,6 @@ export function parseGetAvailablePaymentMethodsRequest(
 ): GetAvailablePaymentMethodsRequest {
   assertPayloadSize(value, "payment methods request");
   const request = getAvailablePaymentMethodsRequestSchema.parse(value);
-  assertEqual(
-    request.context.targetCheckoutVersion,
-    request.context.expectedCheckoutVersion + 1,
-    "Payment target checkout version must follow the committed base version",
-  );
   assertProvenance(request.context, request.finalQuote);
   assertProvenance(request.context, request.delivery);
   assertEqual(
@@ -386,11 +369,6 @@ export function parseCheckoutLoyaltyQuoteResult(
       request.context.checkoutId,
       "Loyalty reward checkout mismatch",
     );
-    assertEqual(
-      result.rewardContext.checkoutVersion,
-      request.context.checkoutVersion,
-      "Loyalty reward checkout version mismatch",
-    );
   }
   if (result.payableAfterLoyalty.currencyCode !== request.context.currencyCode) {
     throw new CheckoutPipelineBoundaryError("Loyalty quote uses another currency");
@@ -400,16 +378,6 @@ export function parseCheckoutLoyaltyQuoteResult(
       result.context.checkoutId,
       request.context.checkoutId,
       "Loyalty context checkout mismatch",
-    );
-    assertEqual(
-      result.context.checkoutVersion,
-      request.context.checkoutVersion,
-      "Loyalty context version mismatch",
-    );
-    assertEqual(
-      result.quote.basedOnCheckoutVersion,
-      request.context.checkoutVersion,
-      "Loyalty quote checkout version mismatch",
     );
     assertEqual(
       result.quote.basedOnPricingQuoteRevision,
@@ -997,11 +965,6 @@ export function parseCheckoutRecalculationResult(
     "Pipeline result checkoutId does not match request",
   );
   assertEqual(
-    result.basedOnCheckoutVersion,
-    request.context.expectedCheckoutVersion,
-    "Pipeline result is based on a stale checkout version",
-  );
-  assertEqual(
     result.trace.executionId,
     request.context.executionId,
     "Execution trace executionId does not match request",
@@ -1074,7 +1037,6 @@ function assertSuccessfulStages(
     {
       context: {
         ...eligibilityContext,
-        targetCheckoutVersion: eligibilityContext.expectedCheckoutVersion + 1,
       },
       selection: request.cartIntent.selectedPaymentMethod,
       finalQuote,
@@ -1729,11 +1691,6 @@ function assertProvenance(
     result.checkoutId,
     context.checkoutId,
     "Stage result checkoutId does not match request",
-  );
-  assertEqual(
-    result.basedOnCheckoutVersion,
-    context.expectedCheckoutVersion,
-    "Stage result is based on a stale checkout version",
   );
   assertEqual(
     result.currencyCode,

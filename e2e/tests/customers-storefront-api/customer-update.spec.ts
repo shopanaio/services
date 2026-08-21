@@ -51,7 +51,7 @@ test.describe('Customers Storefront API — customer update', () => {
     };
     const response = await update({
       ...values,
-      expectedRevision: revision,
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.errors).toBeUndefined();
@@ -68,7 +68,7 @@ test.describe('Customers Storefront API — customer update', () => {
     await kit.updateCustomerRow({ firstName: 'Before', lastName: 'Preserved' });
     const response = await update({
       firstName: 'After',
-      expectedRevision: await kit.revision(),
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.data?.payload.userErrors).toEqual([]);
@@ -97,7 +97,7 @@ test.describe('Customers Storefront API — customer update', () => {
       gender: null,
       companyName: null,
       jobTitle: null,
-      expectedRevision: await kit.revision(),
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.data?.payload.userErrors).toEqual([]);
@@ -133,7 +133,7 @@ test.describe('Customers Storefront API — customer update', () => {
         {
           input: {
             [field]: field.endsWith('Verified') ? true : 'forged',
-            expectedRevision: await kit.revision(),
+            
             idempotencyKey: uniqueKey(field),
           },
         },
@@ -149,7 +149,7 @@ test.describe('Customers Storefront API — customer update', () => {
       companyName: '  Analytical Engines  ',
       preferredLocale: 'EN-gb',
       gender: '  non-binary  ',
-      expectedRevision: await kit.revision(),
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.data?.payload.userErrors).toEqual([]);
@@ -172,7 +172,7 @@ test.describe('Customers Storefront API — customer update', () => {
     ] as const) {
       const response = await update({
         [field]: value,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(field),
       });
       const error = kit.expectUserError(response.data!.payload.userErrors, 'INVALID_VALUE');
@@ -183,7 +183,7 @@ test.describe('Customers Storefront API — customer update', () => {
   test('valid supported BCP 47 locale is accepted', async () => {
     const response = await update({
       preferredLocale: 'uk-UA',
-      expectedRevision: await kit.revision(),
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.data?.payload.userErrors).toEqual([]);
@@ -194,7 +194,7 @@ test.describe('Customers Storefront API — customer update', () => {
     for (const preferredLocale of ['not_a_locale', 'xx-ZZ', 'en--US']) {
       const response = await update({
         preferredLocale,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
       });
       kit.expectUserError(response.data!.payload.userErrors, 'UNSUPPORTED_LOCALE');
@@ -204,7 +204,7 @@ test.describe('Customers Storefront API — customer update', () => {
   test('valid date of birth boundary is accepted', async () => {
     const response = await update({
       dateOfBirth: '2000-02-29',
-      expectedRevision: await kit.revision(),
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.data?.payload.userErrors).toEqual([]);
@@ -221,7 +221,7 @@ test.describe('Customers Storefront API — customer update', () => {
     ]) {
       const response = await update({
         dateOfBirth,
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
       });
       if (response.errors) {
@@ -237,14 +237,14 @@ test.describe('Customers Storefront API — customer update', () => {
     const applied = await update({
       firstName: 'Original',
       companyName: 'Original Co',
-      expectedRevision: stale,
+      
       idempotencyKey: uniqueKey(),
     });
     expect(applied.data?.payload.userErrors).toEqual([]);
     const response = await update({
       firstName: 'Partial',
       companyName: 'Must not write',
-      expectedRevision: stale,
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.data?.payload.customer).toBeNull();
@@ -261,7 +261,7 @@ test.describe('Customers Storefront API — customer update', () => {
     for (const expectedRevision of [0, -1, 1.5, Number.MAX_SAFE_INTEGER + 1]) {
       const response = await update({
         firstName: 'Invalid revision',
-        expectedRevision,
+        
         idempotencyKey: uniqueKey(),
       });
       if (response.errors) {
@@ -275,7 +275,7 @@ test.describe('Customers Storefront API — customer update', () => {
   test('retry with the same idempotency key returns the original profile result', async () => {
     const revision = await kit.revision();
     const idempotencyKey = uniqueKey();
-    const input = { firstName: 'Exactly once', expectedRevision: revision, idempotencyKey };
+    const input = { firstName: 'Exactly once',  idempotencyKey };
     const first = await update(input);
     const second = await update(input);
     expect(first.data?.payload.userErrors).toEqual([]);
@@ -287,12 +287,12 @@ test.describe('Customers Storefront API — customer update', () => {
     const idempotencyKey = uniqueKey();
     const revision = await kit.revision();
     expect(
-      (await update({ firstName: 'First', expectedRevision: revision, idempotencyKey })).data
+      (await update({ firstName: 'First',  idempotencyKey })).data
         ?.payload.userErrors,
     ).toEqual([]);
     const replay = await update({
       firstName: 'Different',
-      expectedRevision: revision,
+      
       idempotencyKey,
     });
     kit.expectUserError(replay.data!.payload.userErrors, /IDEMPOTENCY/iu);
@@ -303,7 +303,7 @@ test.describe('Customers Storefront API — customer update', () => {
     for (const idempotencyKey of ['', '   ', 'x'.repeat(257), 'contains\nnewline']) {
       const response = await update({
         firstName: 'No write',
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey,
       });
       kit.expectUserError(response.data!.payload.userErrors, 'INVALID_IDEMPOTENCY_KEY');
@@ -313,8 +313,8 @@ test.describe('Customers Storefront API — customer update', () => {
   test('concurrent updates with one revision allow exactly one winner', async () => {
     const revision = await kit.revision();
     const [a, b] = await Promise.all([
-      update({ firstName: 'Winner A', expectedRevision: revision, idempotencyKey: uniqueKey() }),
-      update({ firstName: 'Winner B', expectedRevision: revision, idempotencyKey: uniqueKey() }),
+      update({ firstName: 'Winner A',  idempotencyKey: uniqueKey() }),
+      update({ firstName: 'Winner B',  idempotencyKey: uniqueKey() }),
     ]);
     const payloads = [a.data!.payload, b.data!.payload];
     expect(payloads.filter(({ userErrors }) => userErrors.length === 0)).toHaveLength(1);

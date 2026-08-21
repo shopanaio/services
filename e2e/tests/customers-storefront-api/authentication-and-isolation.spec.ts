@@ -141,7 +141,7 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
       {
         addressId: address.globalId,
         address: { address1: 'Forged', city: 'Kyiv', countryCode: 'UA' },
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
       },
       `customerAddress { id } userErrors { ${USER_ERROR_FIELDS} }`,
@@ -173,7 +173,7 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
         'CustomerUpdateInput',
         {
           firstName: 'Unavailable',
-          expectedRevision: kit.customer.revision,
+          
           idempotencyKey: uniqueKey(state),
         },
         `customer { id } userErrors { ${USER_ERROR_FIELDS} }`,
@@ -260,7 +260,7 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
       'CustomerUpdateInput',
       {
         firstName: 'Revision advanced',
-        expectedRevision: currentRevision,
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { id } userErrors { ${USER_ERROR_FIELDS} }`,
@@ -274,7 +274,7 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
       'CustomerUpdateInput',
       {
         firstName: 'x'.repeat(129),
-        expectedRevision: await kit.revision(),
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { ${CUSTOMER_SUMMARY_FIELDS} } userErrors { ${USER_ERROR_FIELDS} }`,
@@ -287,7 +287,7 @@ test.describe('Customers Storefront API — authentication and isolation', () =>
       'CustomerUpdateInput',
       {
         firstName: 'Stale',
-        expectedRevision: currentRevision,
+        
         idempotencyKey: uniqueKey(),
       },
       `customer { id } userErrors { ${USER_ERROR_FIELDS} }`,

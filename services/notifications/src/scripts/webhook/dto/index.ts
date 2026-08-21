@@ -15,7 +15,6 @@ export interface NotificationWebhookUpdateParams {
   url?: string;
   apiVersion?: string;
   status?: "ACTIVE" | "DISABLED";
-  expectedVersion: number;
 }
 
 export type NotificationWebhookView = Awaited<ReturnType<WebhookRepository["create"]>>;

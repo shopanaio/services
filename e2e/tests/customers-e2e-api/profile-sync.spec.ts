@@ -48,7 +48,7 @@ test.describe('Customers E2E API — profile synchronization', () => {
       lastName: 'Hopper',
       companyName: 'US Navy',
       jobTitle: 'Rear admiral',
-      expectedRevision: before,
+      
       idempotencyKey: uniqueKey(),
     });
     expect(response.errors).toBeUndefined();
@@ -70,7 +70,7 @@ test.describe('Customers E2E API — profile synchronization', () => {
     expect(admin.userErrors).toEqual([]);
     const stale = await kit.storefrontUpdate({
       firstName: 'Stale storefront',
-      expectedRevision: before,
+      
       idempotencyKey: uniqueKey(),
     });
     onlyUserError(stale.data!.payload, 'REVISION_CONFLICT');
@@ -86,7 +86,7 @@ test.describe('Customers E2E API — profile synchronization', () => {
       kit.adminUpdate({ profile: { firstName: 'Admin winner' } }, customer, customer.revision),
       kit.storefrontUpdate({
         firstName: 'Storefront winner',
-        expectedRevision: customer.revision,
+        
         idempotencyKey: uniqueKey(),
       }),
     ]);

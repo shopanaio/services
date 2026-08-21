@@ -162,7 +162,7 @@ export function QuestionEditModal() {
         ? [
             {
               answerId: item.id,
-              expectedRevision: item.revision,
+
               operations: {
                 content: {
                   text: { body: item.body.trim(), locale: item.locale },
@@ -183,7 +183,7 @@ export function QuestionEditModal() {
       .filter((id) => !answers.some((item) => item.id === id))
       .flatMap((id) => {
         const source = question?.answers.edges.find(({ node }) => node.id === id)?.node;
-        return source ? [{ answerId: id, expectedRevision: source.revision }] : [];
+        return source ? [{ answerId: id }] : [];
       }),
   });
   const save = async () => {

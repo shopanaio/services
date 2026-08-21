@@ -3,32 +3,40 @@ export type InputMaybe<T> = Maybe<T>;
 export type Exact<T extends { [key: string]: unknown }> = { [K in keyof T]: T[K] };
 export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: Maybe<T[SubKey]> };
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
-export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
-export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = {
+  [_ in K]?: never;
+};
+export type Incremental<T> =
+  T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
-  ID: { input: string; output: string; }
-  String: { input: string; output: string; }
-  Boolean: { input: boolean; output: boolean; }
-  Int: { input: number; output: number; }
-  Float: { input: number; output: number; }
+  ID: { input: string; output: string };
+  String: { input: string; output: string };
+  Boolean: { input: boolean; output: boolean };
+  Int: { input: number; output: number };
+  Float: { input: number; output: number };
   /** Stable identifier of a catalog-owned authentication method. */
-  ApplicationAuthMethodId: { input: any; output: any; }
-  BigInt: { input: any; output: any; }
+  ApplicationAuthMethodId: { input: any; output: any };
+  /** An arbitrary-size integer serialized as a decimal string. */
+  BigInt: { input: any; output: any };
   /** Calendar date in ISO 8601 YYYY-MM-DD form. */
-  Date: { input: any; output: any; }
+  Date: { input: any; output: any };
   /** An ISO 8601 date-time string. */
-  DateTime: { input: string; output: string; }
-  /** Valid email address */
-  Email: { input: string; output: string; }
+  DateTime: { input: string; output: string };
+  /** An arbitrary-precision signed decimal serialized as a string. */
+  Decimal: { input: number; output: number };
+  /** A syntactically valid email address. */
+  Email: { input: string; output: string };
   /** An arbitrary JSON value. */
-  JSON: { input: object; output: object; }
+  JSON: { input: object; output: object };
   /** Unix timestamp in milliseconds */
-  Timestamp: { input: string; output: string; }
-  TransportOptions: { input: any; output: any; }
-  Upload: { input: File; output: File; }
-  join__FieldSet: { input: any; output: any; }
-  link__Import: { input: any; output: any; }
+  Timestamp: { input: string; output: string };
+  TransportOptions: { input: any; output: any };
+  /** An absolute RFC 3986 or RFC 3987 URL string. */
+  URL: { input: any; output: any };
+  Upload: { input: File; output: File };
+  join__FieldSet: { input: any; output: any };
+  link__Import: { input: any; output: any };
 };
 
 /**
@@ -37,25 +45,19 @@ export type Scalars = {
  * - admin includes write and read
  * - write includes read
  */
-export type Action =
-  | 'admin'
-  | 'read'
-  | 'write';
+export type Action = 'admin' | 'read' | 'write';
 
 export type ApiApiKey = {
   __typename?: 'ApiKey';
+  /** Federated ApiKey ID. */
   id: Scalars['ID']['output'];
 };
 
 /** How a capability is selected for execution. */
-export type AppCapabilityAssignmentMode =
-  | 'RESOURCE'
-  | 'STORE';
+export type AppCapabilityAssignmentMode = 'RESOURCE' | 'STORE';
 
 /** State of the route assignment used to resolve a capability. */
-export type AppCapabilityAssignmentStatus =
-  | 'ACTIVE'
-  | 'DISABLED';
+export type AppCapabilityAssignmentStatus = 'ACTIVE' | 'DISABLED';
 
 /** A concrete capability route contributed by an installed App. */
 export type ApiAppCapabilityBinding = ApiNode & {
@@ -72,11 +74,7 @@ export type ApiAppCapabilityBinding = ApiNode & {
 };
 
 /** State of a capability route owned by an installation. */
-export type AppCapabilityBindingStatus =
-  | 'ACTIVE'
-  | 'DEPRECATED'
-  | 'INACTIVE'
-  | 'MAINTENANCE';
+export type AppCapabilityBindingStatus = 'ACTIVE' | 'DEPRECATED' | 'INACTIVE' | 'MAINTENANCE';
 
 /** A capability declared by an App manifest. */
 export type ApiAppCapabilityDefinition = {
@@ -206,7 +204,6 @@ export type ApiAppInstallation = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-
 /** A bundled App installed in the current store. */
 export type ApiAppInstallationLifecycleOperationsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -214,7 +211,6 @@ export type ApiAppInstallationLifecycleOperationsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 /** A bundled App installed in the current store. */
 export type ApiAppInstallationManifestSnapshotsArgs = {
@@ -239,11 +235,7 @@ export type ApiAppInstallationError = {
 };
 
 /** Persisted health state of an App installation. */
-export type AppInstallationHealthStatus =
-  | 'DEGRADED'
-  | 'HEALTHY'
-  | 'UNHEALTHY'
-  | 'UNKNOWN';
+export type AppInstallationHealthStatus = 'DEGRADED' | 'HEALTHY' | 'UNHEALTHY' | 'UNKNOWN';
 
 /** A permission grant recorded for an App installation. */
 export type ApiAppInstallationScope = {
@@ -270,10 +262,7 @@ export type AppInstallationStatus =
   | 'UPDATING';
 
 /** Actor that initiated an App lifecycle operation. */
-export type AppLifecycleActorType =
-  | 'SERVICE'
-  | 'SYSTEM'
-  | 'USER';
+export type AppLifecycleActorType = 'SERVICE' | 'SYSTEM' | 'USER';
 
 /** A durable App lifecycle operation. */
 export type ApiAppLifecycleOperation = ApiNode & {
@@ -318,19 +307,10 @@ export type ApiAppLifecycleOperationError = {
 };
 
 /** Execution state of an App lifecycle operation. */
-export type AppLifecycleOperationStatus =
-  | 'FAILED'
-  | 'PENDING'
-  | 'RUNNING'
-  | 'SUCCEEDED';
+export type AppLifecycleOperationStatus = 'FAILED' | 'PENDING' | 'RUNNING' | 'SUCCEEDED';
 
 /** Type of an App lifecycle operation. */
-export type AppLifecycleOperationType =
-  | 'INSTALL'
-  | 'RESUME'
-  | 'SUSPEND'
-  | 'UNINSTALL'
-  | 'UPDATE';
+export type AppLifecycleOperationType = 'INSTALL' | 'RESUME' | 'SUSPEND' | 'UNINSTALL' | 'UPDATE';
 
 /** Payload returned after accepting a lifecycle operation. */
 export type ApiAppLifecyclePayload = {
@@ -409,18 +389,10 @@ export type ApiAppRuntimeHealth = {
 };
 
 /** Health reported by a ready App runtime. */
-export type AppRuntimeHealthStatus =
-  | 'DEGRADED'
-  | 'HEALTHY'
-  | 'UNHEALTHY';
+export type AppRuntimeHealthStatus = 'DEGRADED' | 'HEALTHY' | 'UNHEALTHY';
 
 /** Runtime state of a bundled App. */
-export type AppRuntimeStatus =
-  | 'FAILED'
-  | 'READY'
-  | 'REGISTERED'
-  | 'STARTING'
-  | 'STOPPED';
+export type AppRuntimeStatus = 'FAILED' | 'READY' | 'REGISTERED' | 'STARTING' | 'STOPPED';
 
 /** A write-only secret supplied during install or update. */
 export type ApiAppSecretInput = {
@@ -507,12 +479,10 @@ export type ApiApplication = ApiNode & {
   users: ApiApplicationUserConnection;
 };
 
-
 /** An organization-owned application authentication realm. */
 export type ApiApplicationOauthClientArgs = {
   clientId: Scalars['String']['input'];
 };
-
 
 /** An organization-owned application authentication realm. */
 export type ApiApplicationOauthClientsArgs = {
@@ -524,12 +494,10 @@ export type ApiApplicationOauthClientsArgs = {
   where?: InputMaybe<ApiApplicationOAuthClientWhereInput>;
 };
 
-
 /** An organization-owned application authentication realm. */
 export type ApiApplicationUserArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** An organization-owned application authentication realm. */
 export type ApiApplicationUsersArgs = {
@@ -559,9 +527,7 @@ export type ApiApplicationArchivePayload = {
 };
 
 /** Allowed background colors for hosted authentication UI. */
-export type ApplicationAuthBackgroundColor =
-  | 'SLATE'
-  | 'WHITE';
+export type ApplicationAuthBackgroundColor = 'SLATE' | 'WHITE';
 
 /** Branding values used by the hosted authentication UI. */
 export type ApiApplicationAuthBranding = {
@@ -631,12 +597,10 @@ export type ApiApplicationAuthConfiguration = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-
 /** Administrative authentication configuration of an application realm. */
 export type ApiApplicationAuthConfigurationAuthMethodArgs = {
   id: Scalars['ApplicationAuthMethodId']['input'];
 };
-
 
 /** Administrative authentication configuration of an application realm. */
 export type ApiApplicationAuthConfigurationProviderArgs = {
@@ -678,10 +642,7 @@ export type ApiApplicationAuthMethod = {
 };
 
 /** Capability exposed by an authentication method. */
-export type ApplicationAuthMethodCapability =
-  | 'PASSWORD_RESET'
-  | 'SIGN_IN'
-  | 'SIGN_UP';
+export type ApplicationAuthMethodCapability = 'PASSWORD_RESET' | 'SIGN_IN' | 'SIGN_UP';
 
 /** Result of updating an application authentication method. */
 export type ApiApplicationAuthMethodPayload = {
@@ -700,11 +661,7 @@ export type ApiApplicationAuthMethodUpdateInput = {
 };
 
 /** Allowed primary colors for hosted authentication UI. */
-export type ApplicationAuthPrimaryColor =
-  | 'BLUE'
-  | 'EMERALD'
-  | 'INDIGO'
-  | 'VIOLET';
+export type ApplicationAuthPrimaryColor = 'BLUE' | 'EMERALD' | 'INDIGO' | 'VIOLET';
 
 /** Canonical OAuth 2.1 and OpenID Connect URLs for an application realm. */
 export type ApiApplicationAuthProtocolUrls = {
@@ -775,9 +732,7 @@ export type ApiApplicationAuthProviderCredentialsRotateInput = {
 };
 
 /** Social authentication providers supported by the code-owned catalog. */
-export type ApplicationAuthProviderName =
-  | 'FACEBOOK'
-  | 'GOOGLE';
+export type ApplicationAuthProviderName = 'FACEBOOK' | 'GOOGLE';
 
 /** Result of changing a social provider configuration. */
 export type ApiApplicationAuthProviderPayload = {
@@ -823,10 +778,7 @@ export type ApiApplicationAuthProviderValidationPayload = {
 };
 
 /** Result status of a safe provider configuration validation. */
-export type ApplicationAuthProviderValidationStatus =
-  | 'INVALID'
-  | 'UNAVAILABLE'
-  | 'VALID';
+export type ApplicationAuthProviderValidationStatus = 'INVALID' | 'UNAVAILABLE' | 'VALID';
 
 /** Input for enabling or disabling an application realm. */
 export type ApiApplicationAuthRealmEnabledSetInput = {
@@ -881,7 +833,7 @@ export type ApiApplicationConnection = {
 /** Consent policy supported by the current protocol version. */
 export type ApplicationConsentMode =
   /** Authorization requires explicit user consent when consent is applicable. */
-  | 'EXPLICIT';
+  'EXPLICIT';
 
 /** Input for creating an application. */
 export type ApiApplicationCreateInput = {
@@ -965,126 +917,105 @@ export type ApiApplicationMutation = {
   applicationUserUnblock: ApiApplicationUserPayload;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationArchiveArgs = {
   input: ApiApplicationArchiveInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthMethodUpdateArgs = {
   input: ApiApplicationAuthMethodUpdateInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthProviderConfigureArgs = {
   input: ApiApplicationAuthProviderConfigureInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthProviderCredentialsDeleteArgs = {
   input: ApiApplicationAuthProviderCredentialsDeleteInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthProviderCredentialsRotateArgs = {
   input: ApiApplicationAuthProviderCredentialsRotateInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthProviderUpdateArgs = {
   input: ApiApplicationAuthProviderUpdateInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthProviderValidateArgs = {
   input: ApiApplicationAuthProviderValidateInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthRealmEnabledSetArgs = {
   input: ApiApplicationAuthRealmEnabledSetInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationAuthUpdateArgs = {
   input: ApiApplicationAuthUpdateInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationCreateArgs = {
   input: ApiApplicationCreateInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationOAuthClientArchiveArgs = {
   input: ApiApplicationOAuthClientArchiveInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationOAuthClientCreateArgs = {
   input: ApiApplicationOAuthClientCreateInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationOAuthClientEnabledSetArgs = {
   input: ApiApplicationOAuthClientEnabledSetInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationOAuthClientSecretRotateArgs = {
   input: ApiApplicationOAuthClientSecretRotateInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationOAuthClientSkipConsentSetArgs = {
   input: ApiApplicationOAuthClientSkipConsentSetInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationOAuthClientUpdateArgs = {
   input: ApiApplicationOAuthClientUpdateInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationUpdateArgs = {
   input: ApiApplicationUpdateInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationUserAccountUnlinkArgs = {
   input: ApiApplicationUserAccountUnlinkInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationUserBlockArgs = {
   input: ApiApplicationUserStatusSetInput;
 };
 
-
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationUserSessionsRevokeAllArgs = {
   input: ApiApplicationUserSessionsRevokeAllInput;
 };
-
 
 /** Application realm management mutations. */
 export type ApiApplicationMutationApplicationUserUnblockArgs = {
@@ -1181,9 +1112,7 @@ export type ApiApplicationOAuthClientEnabledSetInput = {
 };
 
 /** Environment used to enforce redirect URI policy. */
-export type ApplicationOAuthClientEnvironment =
-  | 'DEVELOPMENT'
-  | 'PRODUCTION';
+export type ApplicationOAuthClientEnvironment = 'DEVELOPMENT' | 'PRODUCTION';
 
 /** Ordering configuration for application OAuth clients. */
 export type ApiApplicationOAuthClientOrderByInput = {
@@ -1192,10 +1121,7 @@ export type ApiApplicationOAuthClientOrderByInput = {
 };
 
 /** Fields available for ordering application OAuth clients. */
-export type ApplicationOAuthClientOrderField =
-  | 'CREATED_AT'
-  | 'NAME'
-  | 'UPDATED_AT';
+export type ApplicationOAuthClientOrderField = 'CREATED_AT' | 'NAME' | 'UPDATED_AT';
 
 /** Result of changing an OAuth client. */
 export type ApiApplicationOAuthClientPayload = {
@@ -1231,9 +1157,7 @@ export type ApiApplicationOAuthClientSkipConsentSetInput = {
 };
 
 /** OAuth client confidentiality classification. */
-export type ApplicationOAuthClientType =
-  | 'CONFIDENTIAL'
-  | 'PUBLIC';
+export type ApplicationOAuthClientType = 'CONFIDENTIAL' | 'PUBLIC';
 
 /** Input for updating mutable OAuth client metadata. */
 export type ApiApplicationOAuthClientUpdateInput = {
@@ -1258,9 +1182,7 @@ export type ApiApplicationOAuthClientWhereInput = {
 };
 
 /** Token endpoint authentication method enforced by IAM. */
-export type ApplicationOAuthTokenEndpointAuthMethod =
-  | 'CLIENT_SECRET_BASIC'
-  | 'NONE';
+export type ApplicationOAuthTokenEndpointAuthMethod = 'CLIENT_SECRET_BASIC' | 'NONE';
 
 /** Ordering configuration for applications. */
 export type ApiApplicationOrderByInput = {
@@ -1271,11 +1193,7 @@ export type ApiApplicationOrderByInput = {
 };
 
 /** Fields available for ordering applications. */
-export type ApplicationOrderField =
-  | 'CREATED_AT'
-  | 'DISPLAY_NAME'
-  | 'NAME'
-  | 'UPDATED_AT';
+export type ApplicationOrderField = 'CREATED_AT' | 'DISPLAY_NAME' | 'NAME' | 'UPDATED_AT';
 
 /** Application realm management queries. */
 export type ApiApplicationQuery = {
@@ -1286,13 +1204,11 @@ export type ApiApplicationQuery = {
   applications: ApiApplicationConnection;
 };
 
-
 /** Application realm management queries. */
 export type ApiApplicationQueryApplicationArgs = {
   id: Scalars['ID']['input'];
   organizationId: Scalars['ID']['input'];
 };
-
 
 /** Application realm management queries. */
 export type ApiApplicationQueryApplicationsArgs = {
@@ -1340,7 +1256,7 @@ export type ApiApplicationUser = ApiNode & {
   __typename?: 'ApplicationUser';
   applicationId: Scalars['ID']['output'];
   createdAt: Scalars['DateTime']['output'];
-  email: Scalars['Email']['output'];
+  email?: Maybe<Scalars['Email']['output']>;
   emailVerified: Scalars['Boolean']['output'];
   firstName?: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
@@ -1349,6 +1265,8 @@ export type ApiApplicationUser = ApiNode & {
   /** Linked login accounts without provider credentials or tokens. */
   linkedAccounts: Array<ApiApplicationUserLinkedAccount>;
   name: Scalars['String']['output'];
+  phoneNumber?: Maybe<Scalars['String']['output']>;
+  phoneNumberVerified: Scalars['Boolean']['output'];
   /** Safe security metadata without credentials or token values. */
   security: ApiApplicationUserSecurityMetadata;
   status: ApplicationUserStatus;
@@ -1404,11 +1322,7 @@ export type ApiApplicationUserOrderByInput = {
 };
 
 /** Fields available for ordering application users. */
-export type ApplicationUserOrderField =
-  | 'CREATED_AT'
-  | 'EMAIL'
-  | 'NAME'
-  | 'UPDATED_AT';
+export type ApplicationUserOrderField = 'CREATED_AT' | 'EMAIL' | 'NAME' | 'UPDATED_AT';
 
 /** Result of changing an application user's security status. */
 export type ApiApplicationUserPayload = {
@@ -1441,9 +1355,7 @@ export type ApiApplicationUserSessionsRevokeAllPayload = {
 };
 
 /** Administrative security status of an application user. */
-export type ApplicationUserStatus =
-  | 'ACTIVE'
-  | 'BLOCKED';
+export type ApplicationUserStatus = 'ACTIVE' | 'BLOCKED';
 
 /** Input for blocking or unblocking an application user. */
 export type ApiApplicationUserStatusSetInput = {
@@ -1483,31 +1395,25 @@ export type ApiAppsMutation = {
   appUpdate: ApiAppLifecyclePayload;
 };
 
-
 export type ApiAppsMutationAppConfigureArgs = {
   input: ApiAppConfigureInput;
 };
-
 
 export type ApiAppsMutationAppInstallArgs = {
   input: ApiAppInstallInput;
 };
 
-
 export type ApiAppsMutationAppResumeArgs = {
   input: ApiAppInstallationActionInput;
 };
-
 
 export type ApiAppsMutationAppSuspendArgs = {
   input: ApiAppInstallationActionInput;
 };
 
-
 export type ApiAppsMutationAppUninstallArgs = {
   input: ApiAppInstallationActionInput;
 };
-
 
 export type ApiAppsMutationAppUpdateArgs = {
   input: ApiAppUpdateInput;
@@ -1525,21 +1431,17 @@ export type ApiAppsQuery = {
   apps: ApiAppConnection;
 };
 
-
 export type ApiAppsQueryAppDefinitionArgs = {
   code: Scalars['String']['input'];
 };
-
 
 export type ApiAppsQueryAppInstallationArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 export type ApiAppsQueryAppLifecycleOperationArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiAppsQueryAppsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -1558,21 +1460,17 @@ export type ApiAuthMutation = {
   tokenRefresh: ApiUserTokenRefreshPayload;
 };
 
-
 export type ApiAuthMutationSignInArgs = {
   input: ApiUserSignInInput;
 };
-
 
 export type ApiAuthMutationSignOutArgs = {
   input: ApiUserSignOutInput;
 };
 
-
 export type ApiAuthMutationSignUpArgs = {
   input: ApiUserSignUpInput;
 };
-
 
 export type ApiAuthMutationTokenRefreshArgs = {
   input: ApiUserTokenRefreshInput;
@@ -1609,10 +1507,7 @@ export type ApiAuthorizePayload = {
   deniedReason?: Maybe<Scalars['String']['output']>;
 };
 
-export type AutomaticFulfillmentMode =
-  | 'ALL_LINE_ITEMS'
-  | 'DISABLED'
-  | 'GIFT_CARDS_ONLY';
+export type AutomaticFulfillmentMode = 'ALL_LINE_ITEMS' | 'DISABLED' | 'GIFT_CARDS_ONLY';
 
 /** Input for uploading avatar or logo. */
 export type ApiAvatarUploadInput = {
@@ -1646,6 +1541,20 @@ export type ApiBigIntFilter = {
   _lte?: InputMaybe<Scalars['BigInt']['input']>;
   _neq?: InputMaybe<Scalars['BigInt']['input']>;
   _notIn?: InputMaybe<Array<Scalars['BigInt']['input']>>;
+};
+
+/** Comparison operators for big int; omitted operators do not constrain results. */
+export type ApiBigIntFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Validated input value for gt. */
+  gt?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Validated input value for gte. */
+  gte?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Validated input value for lt. */
+  lt?: InputMaybe<Scalars['BigInt']['input']>;
+  /** Validated input value for lte. */
+  lte?: InputMaybe<Scalars['BigInt']['input']>;
 };
 
 /** Filter operators for Boolean fields */
@@ -1704,10 +1613,7 @@ export type ApiBucketCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type BulkUpdateCancelReason =
-  | 'SUPERSEDED'
-  | 'SYSTEM'
-  | 'USER';
+export type BulkUpdateCancelReason = 'SUPERSEDED' | 'SYSTEM' | 'USER';
 
 /** Single operation in bulk update job. */
 export type ApiBulkUpdateItem = {
@@ -1750,12 +1656,7 @@ export type ApiBulkUpdateItemEdge = {
 };
 
 export type BulkUpdateItemStatus =
-  | 'CANCELLED'
-  | 'FAILED'
-  | 'PENDING'
-  | 'RUNNING'
-  | 'SUCCEEDED'
-  | 'SUPERSEDED';
+  'CANCELLED' | 'FAILED' | 'PENDING' | 'RUNNING' | 'SUCCEEDED' | 'SUPERSEDED';
 
 /** Job progress. All counters computed from items. */
 export type ApiBulkUpdateJobProgress = {
@@ -1778,11 +1679,7 @@ export type ApiBulkUpdateJobProgress = {
   total: Scalars['Int']['output'];
 };
 
-export type BulkUpdateJobStatus =
-  | 'CANCELLED'
-  | 'COMPLETED'
-  | 'QUEUED'
-  | 'RUNNING';
+export type BulkUpdateJobStatus = 'CANCELLED' | 'COMPLETED' | 'QUEUED' | 'RUNNING';
 
 export type BulkUpdateOpType =
   | 'PRODUCT_CATEGORY_UPDATE'
@@ -1817,358 +1714,68 @@ export type ApiBulkUpdateUserError = ApiUserError & {
   variantId?: Maybe<Scalars['ID']['output']>;
 };
 
+/** Orders Admin representation of calculated order. */
+export type ApiCalculatedOrder = {
+  __typename?: 'CalculatedOrder';
+  /** Projected value for balance delta. */
+  balanceDelta: ApiMoney;
+  /** Projected value for cost. */
+  cost: ApiOrderCost;
+  /** Projected value for lines. */
+  lines: Array<ApiOrderLine>;
+};
+
 export type ApiCatalogMutation = {
   __typename?: 'CatalogMutation';
-  /** Create a new category */
-  categoryCreate: ApiCategoryCreatePayload;
-  /** Delete a category */
-  categoryDelete: ApiCategoryDeletePayload;
-  /** Move a category to a new parent or position */
-  categoryMove: ApiCategoryMovePayload;
-  /** Rebalance category tree positions */
-  categoryRebalance: ApiCategoryRebalancePayload;
-  /** Unified category update with optimistic locking. */
-  categoryUpdate: ApiCategoryUpdatePayload;
-  /** Add products to a collection */
-  collectionAddProducts: ApiCollectionAddProductsPayload;
-  /** Create a new collection */
-  collectionCreate: ApiCollectionCreatePayload;
-  /** Delete a collection */
-  collectionDelete: ApiCollectionDeletePayload;
-  /** Move a product within a collection */
-  collectionMoveProduct: ApiCollectionMoveProductPayload;
-  /** Remove products from a collection */
-  collectionRemoveProducts: ApiCollectionRemoveProductsPayload;
-  /** Update an existing collection */
-  collectionUpdate: ApiCollectionUpdatePayload;
-  /** Update collection rules for automatic product inclusion */
-  collectionUpdateRules: ApiCollectionUpdateRulesPayload;
-  /**
-   * Start async bulk update.
-   * Requires X-Idempotency-Key header.
-   */
-  productBulkUpdate: ApiProductBulkUpdatePayload;
-  /** Create a new product */
-  productCreate: ApiProductCreatePayload;
-  /** Delete an existing product */
-  productDelete: ApiProductDeletePayload;
-  productOptionCategoryCreate: ApiProductOptionCategoryCreatePayload;
-  productOptionCategoryDelete: ApiProductOptionCategoryDeletePayload;
-  productOptionCategoryUpdate: ApiProductOptionCategoryUpdatePayload;
-  /**
-   * Unified product update with optimistic locking.
-   * Supports product, component, and variant updates in a single request.
-   */
-  productUpdate: ApiProductUpdatePayload;
-  /** Create a new tag */
-  tagCreate: ApiTagCreatePayload;
-  /** Delete a tag */
-  tagDelete: ApiTagDeletePayload;
-  /** Update an existing tag */
-  tagUpdate: ApiTagUpdatePayload;
-  /** Create a new vendor */
-  vendorCreate: ApiVendorCreatePayload;
+  categoryComparisonProfileSet: ApiCategoryComparisonProfilePayload;
+  comparisonProfileCreate: ApiComparisonProfilePayload;
+  comparisonProfileDelete: ApiComparisonProfileDeletePayload;
+  comparisonProfileUpdate: ApiComparisonProfilePayload;
+  productComparisonConfigurationSync: ApiProductComparisonConfigurationPayload;
 };
 
-
-export type ApiCatalogMutationCategoryCreateArgs = {
-  input: ApiCategoryCreateInput;
+export type ApiCatalogMutationCategoryComparisonProfileSetArgs = {
+  input: ApiCategoryComparisonProfileSetInput;
 };
 
-
-export type ApiCatalogMutationCategoryDeleteArgs = {
-  input: ApiCategoryDeleteInput;
+export type ApiCatalogMutationComparisonProfileCreateArgs = {
+  input: ApiComparisonProfileCreateInput;
 };
 
-
-export type ApiCatalogMutationCategoryMoveArgs = {
-  input: ApiCategoryMoveInput;
+export type ApiCatalogMutationComparisonProfileDeleteArgs = {
+  input: ApiComparisonProfileDeleteInput;
 };
 
-
-export type ApiCatalogMutationCategoryRebalanceArgs = {
-  input: ApiCategoryRebalanceInput;
+export type ApiCatalogMutationComparisonProfileUpdateArgs = {
+  input: ApiComparisonProfileUpdateInput;
 };
 
-
-export type ApiCatalogMutationCategoryUpdateArgs = {
-  categoryId: Scalars['ID']['input'];
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  operations?: InputMaybe<ApiCategoryUpdateInput>;
-};
-
-
-export type ApiCatalogMutationCollectionAddProductsArgs = {
-  input: ApiCollectionAddProductsInput;
-};
-
-
-export type ApiCatalogMutationCollectionCreateArgs = {
-  input: ApiCollectionCreateInput;
-};
-
-
-export type ApiCatalogMutationCollectionDeleteArgs = {
-  input: ApiCollectionDeleteInput;
-};
-
-
-export type ApiCatalogMutationCollectionMoveProductArgs = {
-  input: ApiCollectionMoveProductInput;
-};
-
-
-export type ApiCatalogMutationCollectionRemoveProductsArgs = {
-  input: ApiCollectionRemoveProductsInput;
-};
-
-
-export type ApiCatalogMutationCollectionUpdateArgs = {
-  input: ApiCollectionUpdateInput;
-};
-
-
-export type ApiCatalogMutationCollectionUpdateRulesArgs = {
-  input: ApiCollectionUpdateRulesInput;
-};
-
-
-export type ApiCatalogMutationProductBulkUpdateArgs = {
-  input: ApiProductBulkUpdateInput;
-};
-
-
-export type ApiCatalogMutationProductCreateArgs = {
-  input: ApiProductCreateInput;
-};
-
-
-export type ApiCatalogMutationProductDeleteArgs = {
-  input: ApiProductDeleteInput;
-};
-
-
-export type ApiCatalogMutationProductOptionCategoryCreateArgs = {
-  input: ApiProductOptionCategoryCreateInput;
-};
-
-
-export type ApiCatalogMutationProductOptionCategoryDeleteArgs = {
-  input: ApiProductOptionCategoryDeleteInput;
-};
-
-
-export type ApiCatalogMutationProductOptionCategoryUpdateArgs = {
-  input: ApiProductOptionCategoryUpdateInput;
-};
-
-
-export type ApiCatalogMutationProductUpdateArgs = {
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
-  operations?: InputMaybe<ApiProductUpdateInput>;
-  productId: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogMutationTagCreateArgs = {
-  input: ApiTagCreateInput;
-};
-
-
-export type ApiCatalogMutationTagDeleteArgs = {
-  input: ApiTagDeleteInput;
-};
-
-
-export type ApiCatalogMutationTagUpdateArgs = {
-  input: ApiTagUpdateInput;
-};
-
-
-export type ApiCatalogMutationVendorCreateArgs = {
-  input: ApiVendorCreateInput;
+export type ApiCatalogMutationProductComparisonConfigurationSyncArgs = {
+  input: ApiProductComparisonConfigurationSyncInput;
 };
 
 export type ApiCatalogQuery = {
   __typename?: 'CatalogQuery';
-  /** Get categories with Relay-style pagination */
-  categories: ApiCategoryConnection;
-  /** Get a category by ID */
-  category?: Maybe<ApiCategory>;
-  /** Get a collection by ID */
-  collection?: Maybe<ApiCollection>;
-  /** Get a collection by its handle */
-  collectionByHandle?: Maybe<ApiCollection>;
-  /** Preview count of products matching collection rules */
-  collectionRulesPreviewCount: Scalars['Int']['output'];
-  /** Get collections with Relay-style pagination */
-  collections: ApiCollectionConnection;
-  /** Get a node by its global ID */
-  node?: Maybe<ApiNode>;
-  /** Get multiple nodes by their global IDs */
-  nodes: Array<Maybe<ApiNode>>;
-  /** Get a product by ID */
-  product?: Maybe<ApiProduct>;
-  /** Get bulk update job by ID. */
-  productBulkUpdateJob?: Maybe<ApiProductBulkUpdateJob>;
-  /**
-   * Get product bulk update jobs for the current store.
-   * Defaults to active jobs when statusFilter is omitted.
-   */
-  productBulkUpdateJobs: ApiProductBulkUpdateJobConnection;
-  productOptionCategories: ApiProductOptionCategoryConnection;
-  productOptionCategory?: Maybe<ApiProductOptionCategory>;
-  /** Get products with Relay-style pagination */
-  products: ApiProductConnection;
-  /** Get a tag by ID */
-  tag?: Maybe<ApiTag>;
-  /** Get tags with Relay-style pagination */
-  tags: ApiTagConnection;
-  /** Get a variant by ID */
-  variant?: Maybe<ApiVariant>;
-  /** Get variants with Relay-style pagination */
-  variants: ApiVariantConnection;
-  /** Get a vendor by ID */
-  vendor?: Maybe<ApiVendor>;
-  /** Get vendors with Relay-style pagination */
-  vendors: ApiVendorConnection;
+  comparisonProfile?: Maybe<ApiComparisonProfile>;
+  comparisonProfiles: ApiComparisonProfileConnection;
+  productComparisonConfiguration: ApiProductComparisonConfiguration;
 };
 
+export type ApiCatalogQueryComparisonProfileArgs = {
+  id: Scalars['ID']['input'];
+};
 
-export type ApiCatalogQueryCategoriesArgs = {
+export type ApiCatalogQueryComparisonProfilesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
-  meta?: InputMaybe<ApiCategoryCategoriesMetaInput>;
-  orderBy?: InputMaybe<Array<ApiCategoryOrderByInput>>;
-  where?: InputMaybe<ApiCategoryWhereInput>;
+  orderBy?: InputMaybe<Array<ApiComparisonProfileOrderByInput>>;
+  where?: InputMaybe<ApiComparisonProfileWhereInput>;
 };
 
-
-export type ApiCatalogQueryCategoryArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryCollectionArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryCollectionByHandleArgs = {
-  handle: Scalars['String']['input'];
-};
-
-
-export type ApiCatalogQueryCollectionRulesPreviewCountArgs = {
-  rules: Array<ApiCollectionRuleInput>;
-};
-
-
-export type ApiCatalogQueryCollectionsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-};
-
-
-export type ApiCatalogQueryNodeArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryNodesArgs = {
-  ids: Array<Scalars['ID']['input']>;
-};
-
-
-export type ApiCatalogQueryProductArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryProductBulkUpdateJobArgs = {
-  jobId: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryProductBulkUpdateJobsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  statusFilter?: InputMaybe<Array<BulkUpdateJobStatus>>;
-};
-
-
-export type ApiCatalogQueryProductOptionCategoriesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiProductOptionCategoryOrderByInput>>;
-  where?: InputMaybe<ApiProductOptionCategoryWhereInput>;
-};
-
-
-export type ApiCatalogQueryProductOptionCategoryArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryProductsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  meta?: InputMaybe<ApiProductProductsMetaInput>;
-  orderBy?: InputMaybe<Array<ApiProductOrderByInput>>;
-  where?: InputMaybe<ApiProductWhereInput>;
-};
-
-
-export type ApiCatalogQueryTagArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryTagsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiTagOrderByInput>>;
-  where?: InputMaybe<ApiTagWhereInput>;
-};
-
-
-export type ApiCatalogQueryVariantArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryVariantsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiVariantOrderByInput>>;
-  where?: InputMaybe<ApiVariantWhereInput>;
-};
-
-
-export type ApiCatalogQueryVendorArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiCatalogQueryVendorsArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiVendorOrderByInput>>;
-  where?: InputMaybe<ApiVendorWhereInput>;
+export type ApiCatalogQueryProductComparisonConfigurationArgs = {
+  productId: Scalars['ID']['input'];
 };
 
 /** A category represents a hierarchical grouping of products. */
@@ -2190,6 +1797,8 @@ export type ApiCategory = ApiNode & {
   depth: Scalars['Int']['output'];
   /** The category description. */
   description?: Maybe<ApiRichText>;
+  directComparisonProfile?: Maybe<ApiComparisonProfile>;
+  effectiveComparisonProfile?: Maybe<ApiComparisonProfile>;
   /** Short category excerpt. */
   excerpt?: Maybe<ApiRichText>;
   /** The URL-friendly handle for the category. */
@@ -2221,6 +1830,18 @@ export type ApiCategory = ApiNode & {
 export type ApiCategoryCategoriesMetaInput = {
   hierarchyScope?: InputMaybe<ApiCategoryHierarchyScopeInput>;
   productsScope?: InputMaybe<ApiCategoryProductsScopeInput>;
+};
+
+export type ApiCategoryComparisonProfilePayload = {
+  __typename?: 'CategoryComparisonProfilePayload';
+  category?: Maybe<ApiCategory>;
+  effectiveComparisonProfile?: Maybe<ApiComparisonProfile>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiCategoryComparisonProfileSetInput = {
+  categoryId: Scalars['ID']['input'];
+  profileId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** A connection to a list of Category items. */
@@ -2301,9 +1922,7 @@ export type ApiCategoryHierarchyInput = {
   parentId?: InputMaybe<Scalars['ID']['input']>;
 };
 
-export type CategoryHierarchyScopeDirection =
-  | 'ANCESTORS'
-  | 'DESCENDANTS';
+export type CategoryHierarchyScopeDirection = 'ANCESTORS' | 'DESCENDANTS';
 
 export type ApiCategoryHierarchyScopeInput = {
   direction: CategoryHierarchyScopeDirection;
@@ -2312,9 +1931,7 @@ export type ApiCategoryHierarchyScopeInput = {
   referenceId: Scalars['ID']['input'];
 };
 
-export type CategoryHierarchyScopeMode =
-  | 'EXCLUDE'
-  | 'INCLUDE';
+export type CategoryHierarchyScopeMode = 'EXCLUDE' | 'INCLUDE';
 
 export type ApiCategoryMediaInput = {
   /** File IDs for category media. */
@@ -2406,9 +2023,7 @@ export type ApiCategorySortInput = {
   defaultSortDirection: SortDirection;
 };
 
-export type CategoryStatus =
-  | 'DRAFT'
-  | 'PUBLISHED';
+export type CategoryStatus = 'DRAFT' | 'PUBLISHED';
 
 /** Input for updating a category through section-based operations. */
 export type ApiCategoryUpdateInput = {
@@ -2475,6 +2090,12 @@ export type ApiCategoryWhereInput = {
   publishedAt?: InputMaybe<ApiDateTimeFilter>;
   /** Filter by updatedAt */
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
+};
+
+export type ApiCdnAdapterCapabilities = {
+  __typename?: 'CdnAdapterCapabilities';
+  signingModes: Array<Scalars['String']['output']>;
+  transformStrategies: Array<Scalars['String']['output']>;
 };
 
 export type ApiCdnConfiguration = ApiNode & {
@@ -2605,41 +2226,114 @@ export type ApiCdnRoutingRuleUpdateInput = {
   transformOverrides?: InputMaybe<Scalars['JSON']['input']>;
 };
 
+export type ApiCheckout = {
+  __typename?: 'Checkout';
+  /** Federated Checkout ID. */
+  id: Scalars['ID']['output'];
+};
+
+/**
+ * A merchandised group of products.
+ *
+ * MANUAL collections contain an explicitly ordered product set. RULE collections
+ * derive their product set from `rules`. The collection type is immutable after
+ * creation; create a new collection when a different membership model is needed.
+ *
+ * Collection content, SEO, publication, schedule, and default listing sort are
+ * managed independently from RULE membership. Every successful mutation that
+ * changes the collection increments `revision`.
+ */
 export type ApiCollection = ApiNode & {
   __typename?: 'Collection';
+  /** Inclusive start of the collection activity window. */
   activeFrom?: Maybe<Scalars['DateTime']['output']>;
+  /** Exclusive end of the collection activity window. */
   activeTo?: Maybe<Scalars['DateTime']['output']>;
+  /** Creation timestamp. */
   createdAt: Scalars['DateTime']['output'];
+  /**
+   * Default product ordering used when a listing request does not provide an
+   * explicit order. RULE collections cannot use MANUAL.
+   */
   defaultSort: ProductSortBy;
+  /**
+   * Direction for `defaultSort`. MANUAL is always ascending and NEWEST is always
+   * descending; PRICE and NAME support both directions.
+   */
   defaultSortDirection: SortDirection;
+  /** Localized long-form collection description. */
   description?: Maybe<ApiRichText>;
+  /** Localized short collection summary. */
   excerpt?: Maybe<ApiRichText>;
-  handle?: Maybe<Scalars['String']['output']>;
+  /** Unique, normalized storefront handle within the current store. */
+  handle: Scalars['String']['output'];
+  /** The globally unique collection ID. */
   id: Scalars['ID']['output'];
+  /**
+   * Whether the current time is inside the configured activity window. This field
+   * does not imply publication; use `isPublished` as well when determining Admin
+   * status.
+   */
   isActive: Scalars['Boolean']['output'];
+  /** Whether `publishedAt` is present and not in the future. */
   isPublished: Scalars['Boolean']['output'];
+  /** Internal revision used to coordinate the Catalog and Listing projections. */
+  listingRevision: Scalars['Int']['output'];
+  /** Collection media in storefront display order. */
   media: Array<ApiCollectionMediaItem>;
+  /** Localized display name for the request locale. */
   name: Scalars['String']['output'];
-  products: ApiCollectionProductConnection;
-  productsCount: Scalars['Int']['output'];
+  products: ApiListingConnection;
+  /** Publication timestamp, or null while the collection is a draft. */
   publishedAt?: Maybe<Scalars['DateTime']['output']>;
+  /**
+   * Optimistic-lock revision. Pass the latest value as `expectedRevision` to every
+   * mutation that changes an existing collection.
+   */
+  revision: Scalars['Int']['output'];
+  /**
+   * Complete ordered rule set for a RULE collection. The list is empty for MANUAL
+   * collections and may be empty for draft RULE collections.
+   *
+   * Top-level rules are always combined with logical AND. IN means that any value
+   * inside one rule may match; ALL means that every value inside that one rule must
+   * match. Rule order is presentation-only and does not change matching semantics.
+   */
   rules: Array<ApiCollectionRule>;
+  /** Localized search-engine and social-sharing metadata. */
   seo?: Maybe<ApiSeo>;
+  /** Immutable collection membership model. */
   type: CollectionType;
+  /** Timestamp of the most recent collection change. */
   updatedAt: Scalars['DateTime']['output'];
 };
 
-
+/**
+ * A merchandised group of products.
+ *
+ * MANUAL collections contain an explicitly ordered product set. RULE collections
+ * derive their product set from `rules`. The collection type is immutable after
+ * creation; create a new collection when a different membership model is needed.
+ *
+ * Collection content, SEO, publication, schedule, and default listing sort are
+ * managed independently from RULE membership. Every successful mutation that
+ * changes the collection increments `revision`.
+ */
 export type ApiCollectionProductsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
+  currency?: InputMaybe<CurrencyCode>;
+  facets?: InputMaybe<Array<ApiListingProductFilter>>;
   first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  sort?: InputMaybe<ApiProductSortInput>;
+  locale?: InputMaybe<LocaleCode>;
+  orderBy?: InputMaybe<ApiListingOrderByInput>;
+  query?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Adds products to a MANUAL collection. Duplicate memberships are ignored. */
 export type ApiCollectionAddProductsInput = {
+  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
   productIds: Array<Scalars['ID']['input']>;
 };
 
@@ -2649,6 +2343,58 @@ export type ApiCollectionAddProductsPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Stable feature or option source/value handle pair. */
+export type ApiCollectionAttributeRuleValue = {
+  __typename?: 'CollectionAttributeRuleValue';
+  /** Feature or option handle. */
+  sourceHandle: Scalars['String']['output'];
+  /** Feature-value or option-value handle within `sourceHandle`. */
+  valueHandle: Scalars['String']['output'];
+};
+
+export type ApiCollectionAttributeRuleValueInput = {
+  sourceHandle: Scalars['String']['input'];
+  valueHandle: Scalars['String']['input'];
+};
+
+/** Category membership rule. */
+export type ApiCollectionCategoryRule = ApiCollectionRule & {
+  __typename?: 'CollectionCategoryRule';
+  /**
+   * Category global IDs. Resolve display names through `catalogQuery.nodes` or
+   * `catalogQuery.categories`; the rule contract intentionally does not duplicate
+   * candidate labels.
+   */
+  categoryIds: Array<Scalars['ID']['output']>;
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiCollectionCategoryRuleInput = {
+  categoryIds: Array<Scalars['ID']['input']>;
+  operator: CollectionSetRuleOperator;
+};
+
+/** Removes every product from a MANUAL collection. */
+export type ApiCollectionClearProductsInput = {
+  clientMutationId: Scalars['String']['input'];
+  collectionId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+};
+
+export type ApiCollectionClearProductsPayload = {
+  __typename?: 'CollectionClearProductsPayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Single-bound comparison operator used by price and creation-time rules. */
+export type CollectionComparisonRuleOperator = 'EQ' | 'GT' | 'GTE' | 'LT' | 'LTE';
+
+/** Relay connection for collections. */
 export type ApiCollectionConnection = {
   __typename?: 'CollectionConnection';
   edges: Array<ApiCollectionEdge>;
@@ -2656,16 +2402,30 @@ export type ApiCollectionConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
+/**
+ * Creates a draft or published collection.
+ *
+ * RULE collections must first be created as drafts because rule persistence uses
+ * the revision-protected `collectionUpdateRules` mutation. After rules are saved,
+ * publish the collection with `collectionUpdate` and its latest revision.
+ */
 export type ApiCollectionCreateInput = {
   activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Caller-generated idempotency key. Reuse only when retrying the same input. */
+  clientMutationId: Scalars['String']['input'];
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<ApiRichTextInput>;
   excerpt?: InputMaybe<ApiRichTextInput>;
-  handle?: InputMaybe<Scalars['String']['input']>;
+  handle: Scalars['String']['input'];
+  /** Complete media replacement in display order. */
   media?: InputMaybe<Array<ApiCollectionMediaInput>>;
   name: Scalars['String']['input'];
+  /**
+   * Publish immediately. Must be false or omitted for RULE collections because a
+   * published RULE collection must already contain at least one rule.
+   */
   publish?: InputMaybe<Scalars['Boolean']['input']>;
   seo?: InputMaybe<ApiSeoInput>;
   type: CollectionType;
@@ -2677,7 +2437,42 @@ export type ApiCollectionCreatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Single-instant product creation-time comparison rule. */
+export type ApiCollectionCreatedAtComparisonRule = ApiCollectionRule & {
+  __typename?: 'CollectionCreatedAtComparisonRule';
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  instant: Scalars['DateTime']['output'];
+  operator: CollectionComparisonRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiCollectionCreatedAtComparisonRuleInput = {
+  instant: Scalars['DateTime']['input'];
+  operator: CollectionComparisonRuleOperator;
+};
+
+/** Inclusive product creation-time range rule. */
+export type ApiCollectionCreatedAtRangeRule = ApiCollectionRule & {
+  __typename?: 'CollectionCreatedAtRangeRule';
+  field: CollectionRuleField;
+  from: Scalars['DateTime']['output'];
+  id: Scalars['ID']['output'];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+  to: Scalars['DateTime']['output'];
+};
+
+/** Inclusive range. `from` must not be later than `to`. */
+export type ApiCollectionCreatedAtRangeRuleInput = {
+  from: Scalars['DateTime']['input'];
+  to: Scalars['DateTime']['input'];
+};
+
 export type ApiCollectionDeleteInput = {
+  clientMutationId: Scalars['String']['input'];
+  expectedRevision: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -2693,30 +2488,66 @@ export type ApiCollectionEdge = {
   node: ApiCollection;
 };
 
-export type ApiCollectionMediaInput = {
-  fileId: Scalars['ID']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
+/** Product-feature value rule. */
+export type ApiCollectionFeatureRule = ApiCollectionRule & {
+  __typename?: 'CollectionFeatureRule';
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+  /**
+   * Stable source/value handle pairs. Candidate labels are loaded separately with
+   * `listingQuery.facetValueCandidates(candidateType: FEATURE)`.
+   */
+  values: Array<ApiCollectionAttributeRuleValue>;
 };
 
+export type ApiCollectionFeatureRuleInput = {
+  operator: CollectionSetRuleOperator;
+  values: Array<ApiCollectionAttributeRuleValueInput>;
+};
+
+/** Variant availability rule. Equality is implicit. */
+export type ApiCollectionInStockRule = ApiCollectionRule & {
+  __typename?: 'CollectionInStockRule';
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+  value: Scalars['Boolean']['output'];
+};
+
+/** Equality is implicit: true matches available variants, false unavailable ones. */
+export type ApiCollectionInStockRuleInput = {
+  value: Scalars['Boolean']['input'];
+};
+
+/**
+ * One media reference. Array order in CollectionCreateInput.media or
+ * CollectionUpdateInput.media determines the persisted display order.
+ */
+export type ApiCollectionMediaInput = {
+  fileId: Scalars['ID']['input'];
+};
+
+/** A media reference and its zero-based display position. */
 export type ApiCollectionMediaItem = {
   __typename?: 'CollectionMediaItem';
   file: ApiFile;
   sortIndex: Scalars['Int']['output'];
 };
 
-export type ApiCollectionMeta = {
-  __typename?: 'CollectionMeta';
-  count: Scalars['Int']['output'];
-  page: Scalars['Int']['output'];
-  pageCount: Scalars['Int']['output'];
-  pageSize: Scalars['Int']['output'];
-  total: Scalars['Int']['output'];
-};
-
+/**
+ * Moves one product in a MANUAL collection. Provide at most one anchor. Omitting
+ * both anchors moves the product to the end.
+ */
 export type ApiCollectionMoveProductInput = {
   afterProductId?: InputMaybe<Scalars['ID']['input']>;
   beforeProductId?: InputMaybe<Scalars['ID']['input']>;
+  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
   productId: Scalars['ID']['input'];
 };
 
@@ -2726,21 +2557,81 @@ export type ApiCollectionMoveProductPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ApiCollectionProductConnection = {
-  __typename?: 'CollectionProductConnection';
-  edges: Array<ApiCollectionProductEdge>;
-  pageInfo: ApiPageInfo;
-  totalCount: Scalars['Int']['output'];
+/** Variant-option value rule. */
+export type ApiCollectionOptionRule = ApiCollectionRule & {
+  __typename?: 'CollectionOptionRule';
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+  /**
+   * Stable source/value handle pairs. Candidate labels are loaded separately with
+   * `listingQuery.facetValueCandidates(candidateType: OPTION)`.
+   */
+  values: Array<ApiCollectionAttributeRuleValue>;
 };
 
-export type ApiCollectionProductEdge = {
-  __typename?: 'CollectionProductEdge';
-  cursor: Scalars['String']['output'];
-  node: ApiProduct;
+export type ApiCollectionOptionRuleInput = {
+  operator: CollectionSetRuleOperator;
+  values: Array<ApiCollectionAttributeRuleValueInput>;
 };
 
-export type ApiCollectionRemoveProductsInput = {
+/** Single-bound price comparison rule. */
+export type ApiCollectionPriceComparisonRule = ApiCollectionRule & {
+  __typename?: 'CollectionPriceComparisonRule';
+  amountMinor: Scalars['BigInt']['output'];
+  currencyCode: CurrencyCode;
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  operator: CollectionComparisonRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiCollectionPriceComparisonRuleInput = {
+  amountMinor: Scalars['BigInt']['input'];
+  currencyCode: CurrencyCode;
+  operator: CollectionComparisonRuleOperator;
+};
+
+/** Inclusive price-range rule. */
+export type ApiCollectionPriceRangeRule = ApiCollectionRule & {
+  __typename?: 'CollectionPriceRangeRule';
+  currencyCode: CurrencyCode;
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  maxAmountMinor: Scalars['BigInt']['output'];
+  minAmountMinor: Scalars['BigInt']['output'];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+};
+
+/** Inclusive range. `minAmountMinor` must not exceed `maxAmountMinor`. */
+export type ApiCollectionPriceRangeRuleInput = {
+  currencyCode: CurrencyCode;
+  maxAmountMinor: Scalars['BigInt']['input'];
+  minAmountMinor: Scalars['BigInt']['input'];
+};
+
+/** Repairs rank spacing in a MANUAL collection without changing visible order. */
+export type ApiCollectionRebalanceInput = {
+  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
+};
+
+export type ApiCollectionRebalancePayload = {
+  __typename?: 'CollectionRebalancePayload';
+  collection?: Maybe<ApiCollection>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Removes products from a MANUAL collection. */
+export type ApiCollectionRemoveProductsInput = {
+  clientMutationId: Scalars['String']['input'];
+  collectionId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
   productIds: Array<Scalars['ID']['input']>;
 };
 
@@ -2750,32 +2641,149 @@ export type ApiCollectionRemoveProductsPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/**
+ * Common fields implemented by every concrete collection rule.
+ *
+ * Use `field` as the discriminator and select the corresponding concrete type with
+ * an inline fragment. Concrete rule types expose only operators and values valid
+ * for that field; rule values are never returned as untyped JSON.
+ */
 export type ApiCollectionRule = {
-  __typename?: 'CollectionRule';
-  field: Scalars['String']['output'];
+  /** Rule field discriminator. */
+  field: CollectionRuleField;
+  /**
+   * Persistence ID of the current rule row. `collectionUpdateRules` replaces the
+   * complete rule set, so this ID must not be used as a durable client-side draft
+   * identifier across saves.
+   */
   id: Scalars['ID']['output'];
-  operator: Scalars['String']['output'];
+  /**
+   * Aggregate status of external references used by this rule. VALID means every
+   * referenced entity currently exists; STALE means at least one no longer exists;
+   * NOT_APPLICABLE is used by rules without entity-ID references.
+   */
+  referenceStatus: CollectionRuleReferenceStatus;
+  /**
+   * Zero-based presentation position. Rules are evaluated with AND regardless of
+   * this value.
+   */
   sortIndex: Scalars['Int']['output'];
-  value: Scalars['JSON']['output'];
 };
 
+/** Field used to discriminate concrete CollectionRule implementations. */
+export type CollectionRuleField =
+  'CATEGORY' | 'CREATED_AT' | 'FEATURE' | 'IN_STOCK' | 'OPTION' | 'PRICE' | 'TAG' | 'VENDOR';
+
+/**
+ * One typed collection rule.
+ *
+ * Exactly one field must be provided. GraphQL 16 has no input unions, so this
+ * mutual-exclusion constraint is enforced by the mutation validator. The selected
+ * field determines the output rule type:
+ *
+ * - `category` -> CollectionCategoryRule
+ * - `tag` -> CollectionTagRule
+ * - `vendor` -> CollectionVendorRule
+ * - `feature` -> CollectionFeatureRule
+ * - `option` -> CollectionOptionRule
+ * - `priceComparison` -> CollectionPriceComparisonRule
+ * - `priceRange` -> CollectionPriceRangeRule
+ * - `inStock` -> CollectionInStockRule
+ * - `createdAtComparison` -> CollectionCreatedAtComparisonRule
+ * - `createdAtRange` -> CollectionCreatedAtRangeRule
+ */
 export type ApiCollectionRuleInput = {
-  field: Scalars['String']['input'];
-  operator: Scalars['String']['input'];
-  value: Scalars['JSON']['input'];
+  category?: InputMaybe<ApiCollectionCategoryRuleInput>;
+  createdAtComparison?: InputMaybe<ApiCollectionCreatedAtComparisonRuleInput>;
+  createdAtRange?: InputMaybe<ApiCollectionCreatedAtRangeRuleInput>;
+  feature?: InputMaybe<ApiCollectionFeatureRuleInput>;
+  inStock?: InputMaybe<ApiCollectionInStockRuleInput>;
+  option?: InputMaybe<ApiCollectionOptionRuleInput>;
+  priceComparison?: InputMaybe<ApiCollectionPriceComparisonRuleInput>;
+  priceRange?: InputMaybe<ApiCollectionPriceRangeRuleInput>;
+  tag?: InputMaybe<ApiCollectionTagRuleInput>;
+  vendor?: InputMaybe<ApiCollectionVendorRuleInput>;
 };
 
+/** Validity of entity-ID references stored by a rule. */
+export type CollectionRuleReferenceStatus =
+  /** The rule uses scalar values or stable handles rather than entity IDs. */
+  | 'NOT_APPLICABLE'
+  /** At least one referenced entity no longer exists. */
+  | 'STALE'
+  /** Every referenced entity currently exists. */
+  | 'VALID';
+
+/**
+ * Validates a transient rule set and computes its match count against the Listing
+ * index without changing collection state. Candidate labels must be loaded through
+ * their dedicated Catalog or Listing queries before building this input.
+ */
+export type ApiCollectionRulesPreviewCountInput = {
+  rules: Array<ApiCollectionRuleInput>;
+};
+
+/** Result of validating and evaluating a transient rule set. */
+export type ApiCollectionRulesPreviewCountPayload = {
+  __typename?: 'CollectionRulesPreviewCountPayload';
+  /** Matched product count, or null when validation or evaluation failed. */
+  count?: Maybe<Scalars['Int']['output']>;
+  /** Listing-index observation time used for this count. */
+  indexObservedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Canonical hash of the validated rule set. */
+  rulesHash?: Maybe<Scalars['String']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+/** Set-membership operator used by category, tag, feature, and option rules. */
+export type CollectionSetRuleOperator =
+  /** Every selected value must match. */
+  | 'ALL'
+  /** At least one selected value must match. */
+  | 'IN';
+
+/** Tag membership rule. */
+export type ApiCollectionTagRule = ApiCollectionRule & {
+  __typename?: 'CollectionTagRule';
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  operator: CollectionSetRuleOperator;
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+  /**
+   * Tag global IDs. Resolve picker labels through `catalogQuery.tags` and persisted
+   * values through `catalogQuery.nodes`.
+   */
+  tagIds: Array<Scalars['ID']['output']>;
+};
+
+export type ApiCollectionTagRuleInput = {
+  operator: CollectionSetRuleOperator;
+  tagIds: Array<Scalars['ID']['input']>;
+};
+
+/** How products become members of a collection. */
 export type CollectionType =
+  /** Products are explicitly added, removed, and ordered by an administrator. */
   | 'MANUAL'
+  /** Products are derived from an AND-combined rule set. */
   | 'RULE';
 
+/**
+ * Updates collection settings without changing its immutable type or rule set.
+ *
+ * Omitted fields remain unchanged. Null clears nullable content, SEO, or schedule
+ * fields where supported. Pass an empty `media` list to remove all media.
+ */
 export type ApiCollectionUpdateInput = {
   activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
+  clientMutationId: Scalars['String']['input'];
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<ApiRichTextInput>;
   excerpt?: InputMaybe<ApiRichTextInput>;
+  expectedRevision: Scalars['Int']['input'];
   handle?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   media?: InputMaybe<Array<ApiCollectionMediaInput>>;
@@ -2790,8 +2798,19 @@ export type ApiCollectionUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/**
+ * Atomically replaces the complete rule set of a RULE collection.
+ *
+ * Input array order becomes `sortIndex`; all top-level rules are combined with
+ * logical AND. The mutation supports at most 32 rules, at most 100 values in one
+ * feature or option rule, at most 256 set values across all rules, and a canonical
+ * serialized size of 64 KiB. A published RULE collection cannot be saved with an
+ * empty rule list.
+ */
 export type ApiCollectionUpdateRulesInput = {
+  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
+  expectedRevision: Scalars['Int']['input'];
   rules: Array<ApiCollectionRuleInput>;
 };
 
@@ -2799,6 +2818,200 @@ export type ApiCollectionUpdateRulesPayload = {
   __typename?: 'CollectionUpdateRulesPayload';
   collection?: Maybe<ApiCollection>;
   userErrors: Array<ApiGenericUserError>;
+};
+
+/** Vendor membership rule. Vendor rules always use IN semantics. */
+export type ApiCollectionVendorRule = ApiCollectionRule & {
+  __typename?: 'CollectionVendorRule';
+  field: CollectionRuleField;
+  id: Scalars['ID']['output'];
+  referenceStatus: CollectionRuleReferenceStatus;
+  sortIndex: Scalars['Int']['output'];
+  /**
+   * Vendor global IDs. Resolve picker labels through `catalogQuery.vendors` and
+   * persisted values through `catalogQuery.nodes`.
+   */
+  vendorIds: Array<Scalars['ID']['output']>;
+};
+
+/** Vendor rules use IN semantics; every listed vendor is an alternative. */
+export type ApiCollectionVendorRuleInput = {
+  vendorIds: Array<Scalars['ID']['input']>;
+};
+
+export type ComparisonCardinality = 'MULTIPLE' | 'SINGLE';
+
+export type ApiComparisonField = ApiNode & {
+  __typename?: 'ComparisonField';
+  canonicalUnit?: Maybe<Scalars['String']['output']>;
+  cardinality: ComparisonCardinality;
+  description?: Maybe<Scalars['String']['output']>;
+  featured: Scalars['Boolean']['output'];
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  options: Array<ApiComparisonFieldOption>;
+  sortIndex: Scalars['Int']['output'];
+  valueType: ComparisonValueType;
+};
+
+export type ApiComparisonFieldCreateInput = {
+  canonicalUnit?: InputMaybe<Scalars['String']['input']>;
+  cardinality: ComparisonCardinality;
+  description?: InputMaybe<Scalars['String']['input']>;
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  options: Array<ApiComparisonFieldOptionCreateInput>;
+  sortIndex: Scalars['Int']['input'];
+  valueType: ComparisonValueType;
+};
+
+export type ApiComparisonFieldInput = {
+  canonicalUnit?: InputMaybe<Scalars['String']['input']>;
+  cardinality: ComparisonCardinality;
+  description?: InputMaybe<Scalars['String']['input']>;
+  featured?: InputMaybe<Scalars['Boolean']['input']>;
+  handle: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  options: Array<ApiComparisonFieldOptionInput>;
+  sortIndex: Scalars['Int']['input'];
+  valueType: ComparisonValueType;
+};
+
+export type ApiComparisonFieldOption = ApiNode & {
+  __typename?: 'ComparisonFieldOption';
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiComparisonFieldOptionCreateInput = {
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type ApiComparisonFieldOptionInput = {
+  handle: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type ApiComparisonGroup = ApiNode & {
+  __typename?: 'ComparisonGroup';
+  fields: Array<ApiComparisonField>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+  sortIndex: Scalars['Int']['output'];
+};
+
+export type ApiComparisonGroupCreateInput = {
+  fields: Array<ApiComparisonFieldCreateInput>;
+  handle: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type ApiComparisonGroupInput = {
+  fields: Array<ApiComparisonFieldInput>;
+  handle: Scalars['String']['input'];
+  id?: InputMaybe<Scalars['ID']['input']>;
+  name: Scalars['String']['input'];
+  sortIndex: Scalars['Int']['input'];
+};
+
+export type ApiComparisonProfile = ApiNode & {
+  __typename?: 'ComparisonProfile';
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  groups: Array<ApiComparisonGroup>;
+  handle: Scalars['String']['output'];
+  id: Scalars['ID']['output'];
+  missingLabel: Scalars['String']['output'];
+  name: Scalars['String']['output'];
+  notApplicableLabel: Scalars['String']['output'];
+  revision: Scalars['Int']['output'];
+  unavailableLabel: Scalars['String']['output'];
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+export type ApiComparisonProfileConnection = {
+  __typename?: 'ComparisonProfileConnection';
+  edges: Array<ApiComparisonProfileEdge>;
+  nodes: Array<ApiComparisonProfile>;
+  pageInfo: ApiPageInfo;
+  totalCount: Scalars['Int']['output'];
+};
+
+export type ApiComparisonProfileCreateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  groups: Array<ApiComparisonGroupCreateInput>;
+  handle: Scalars['String']['input'];
+  missingLabel: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  notApplicableLabel: Scalars['String']['input'];
+  unavailableLabel: Scalars['String']['input'];
+};
+
+export type ApiComparisonProfileDeleteInput = {
+  id: Scalars['ID']['input'];
+};
+
+export type ApiComparisonProfileDeletePayload = {
+  __typename?: 'ComparisonProfileDeletePayload';
+  deletedComparisonProfileId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiComparisonProfileEdge = {
+  __typename?: 'ComparisonProfileEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiComparisonProfile;
+};
+
+export type ApiComparisonProfileOrderByInput = {
+  direction: SortDirection;
+  field: ComparisonProfileOrderField;
+};
+
+export type ComparisonProfileOrderField = 'CREATED_AT' | 'HANDLE' | 'UPDATED_AT';
+
+export type ApiComparisonProfilePayload = {
+  __typename?: 'ComparisonProfilePayload';
+  profile?: Maybe<ApiComparisonProfile>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiComparisonProfileUpdateInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedRevision: Scalars['Int']['input'];
+  groups: Array<ApiComparisonGroupInput>;
+  handle: Scalars['String']['input'];
+  id: Scalars['ID']['input'];
+  missingLabel: Scalars['String']['input'];
+  name: Scalars['String']['input'];
+  notApplicableLabel: Scalars['String']['input'];
+  unavailableLabel: Scalars['String']['input'];
+};
+
+export type ApiComparisonProfileWhereInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  handle?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ComparisonValueType = 'BOOLEAN' | 'DECIMAL' | 'ENUM' | 'INTEGER' | 'TEXT';
+
+/** Shared fields exposed by every Relay-style connection. */
+export type ApiConnection = {
+  /** Metadata required to continue forward or backward pagination. */
+  pageInfo: ApiPageInfo;
+  /** Total resources matching the filter before pagination. */
+  totalCount: Scalars['Int']['output'];
 };
 
 export type CountryCode =
@@ -3209,12 +3422,13 @@ export type CountryCode =
   /** Zimbabwe */
   | 'ZW';
 
-export type CropRegion =
-  | 'BOTTOM'
-  | 'CENTER'
-  | 'LEFT'
-  | 'RIGHT'
-  | 'TOP';
+/** Comparison operators for country code; omitted operators do not constrain results. */
+export type ApiCountryCodeFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<CountryCode>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<CountryCode>>;
+};
 
 /** Currency codes according to ISO 4217 */
 export type CurrencyCode =
@@ -3541,17 +3755,17 @@ export type CurrencyCode =
   /** Zimbabwean Dollar (Zimbabwe) - 2 decimals */
   | 'ZWL';
 
-export type CurrencyDisplay =
-  | 'CODE'
-  | 'NAME'
-  | 'NARROW_SYMBOL'
-  | 'SYMBOL';
+/** Comparison operators for currency code; omitted operators do not constrain results. */
+export type ApiCurrencyCodeFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<CurrencyCode>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<CurrencyCode>>;
+};
 
-export type CurrencyGrouping =
-  | 'ALWAYS'
-  | 'AUTO'
-  | 'MIN2'
-  | 'NEVER';
+export type CurrencyDisplay = 'CODE' | 'NAME' | 'NARROW_SYMBOL' | 'SYMBOL';
+
+export type CurrencyGrouping = 'ALWAYS' | 'AUTO' | 'MIN2' | 'NEVER';
 
 export type CurrencyRoundingMode =
   | 'CEIL'
@@ -3564,20 +3778,11 @@ export type CurrencyRoundingMode =
   | 'HALF_TRUNC'
   | 'TRUNC';
 
-export type CurrencySign =
-  | 'ACCOUNTING'
-  | 'STANDARD';
+export type CurrencySign = 'ACCOUNTING' | 'STANDARD';
 
-export type CurrencySignDisplay =
-  | 'ALWAYS'
-  | 'AUTO'
-  | 'EXCEPT_ZERO'
-  | 'NEGATIVE'
-  | 'NEVER';
+export type CurrencySignDisplay = 'ALWAYS' | 'AUTO' | 'EXCEPT_ZERO' | 'NEGATIVE' | 'NEVER';
 
-export type CurrencyTrailingZeroDisplay =
-  | 'AUTO'
-  | 'STRIP_IF_INTEGER';
+export type CurrencyTrailingZeroDisplay = 'AUTO' | 'STRIP_IF_INTEGER';
 
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomer = ApiNode & {
@@ -3607,6 +3812,7 @@ export type ApiCustomer = ApiNode & {
   groupMemberships: ApiCustomerGroupMembershipConnection;
   /** Opaque IAM principal identifier. Null for guests and imported profiles. */
   iamPrincipalId?: Maybe<Scalars['String']['output']>;
+  /** Federated Customer ID. */
   id: Scalars['ID']['output'];
   jobTitle?: Maybe<Scalars['String']['output']>;
   lastActivityAt?: Maybe<Scalars['DateTime']['output']>;
@@ -3634,7 +3840,6 @@ export type ApiCustomer = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomerAddressesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -3644,7 +3849,6 @@ export type ApiCustomerAddressesArgs = {
   orderBy?: InputMaybe<Array<ApiCustomerAddressOrderByInput>>;
   where?: InputMaybe<ApiCustomerAddressWhereInput>;
 };
-
 
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomerGroupMembershipsArgs = {
@@ -3656,7 +3860,6 @@ export type ApiCustomerGroupMembershipsArgs = {
   where?: InputMaybe<ApiCustomerGroupMembershipWhereInput>;
 };
 
-
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomerMonetaryStatisticsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -3666,7 +3869,6 @@ export type ApiCustomerMonetaryStatisticsArgs = {
   orderBy?: InputMaybe<Array<ApiCustomerMonetaryStatisticsOrderByInput>>;
   where?: InputMaybe<ApiCustomerMonetaryStatisticsWhereInput>;
 };
-
 
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomerSegmentMembershipsArgs = {
@@ -3678,7 +3880,6 @@ export type ApiCustomerSegmentMembershipsArgs = {
   where?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
 };
 
-
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomerTagAssignmentsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -3688,7 +3889,6 @@ export type ApiCustomerTagAssignmentsArgs = {
   orderBy?: InputMaybe<Array<ApiCustomerTagAssignmentOrderByInput>>;
   where?: InputMaybe<ApiCustomerTagAssignmentWhereInput>;
 };
-
 
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomerTaxExemptionsArgs = {
@@ -3700,7 +3900,6 @@ export type ApiCustomerTaxExemptionsArgs = {
   where?: InputMaybe<ApiCustomerTaxExemptionWhereInput>;
 };
 
-
 /** A store-scoped customer business profile owned by Customers. */
 export type ApiCustomerTaxIdentifiersArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -3711,10 +3910,7 @@ export type ApiCustomerTaxIdentifiersArgs = {
   where?: InputMaybe<ApiCustomerTaxIdentifierWhereInput>;
 };
 
-export type CustomerAccountStatus =
-  | 'GUEST'
-  | 'INVITED'
-  | 'REGISTERED';
+export type CustomerAccountStatus = 'GUEST' | 'INVITED' | 'REGISTERED';
 
 export type ApiCustomerAccountStatusFilter = {
   _eq?: InputMaybe<CustomerAccountStatus>;
@@ -3876,10 +4072,7 @@ export type ApiCustomerAddressUpdateOperationInput = {
   operations: ApiCustomerAddressPatchInput;
 };
 
-export type CustomerAddressValidationStatus =
-  | 'INVALID'
-  | 'UNVALIDATED'
-  | 'VALID';
+export type CustomerAddressValidationStatus = 'INVALID' | 'UNVALIDATED' | 'VALID';
 
 export type ApiCustomerAddressValidationStatusFilter = {
   _eq?: InputMaybe<CustomerAddressValidationStatus>;
@@ -3940,16 +4133,9 @@ export type ApiCustomerAddressesUpdateInput = {
 };
 
 /** Lifecycle states that a merchant administrator may select directly. */
-export type CustomerAdminLifecycleStatus =
-  | 'ACTIVE'
-  | 'BLOCKED'
-  | 'DISABLED';
+export type CustomerAdminLifecycleStatus = 'ACTIVE' | 'BLOCKED' | 'DISABLED';
 
-export type CustomerAssignmentSource =
-  | 'IMPORT'
-  | 'MANUAL'
-  | 'RULE'
-  | 'SYSTEM';
+export type CustomerAssignmentSource = 'IMPORT' | 'MANUAL' | 'RULE' | 'SYSTEM';
 
 export type ApiCustomerAssignmentSourceFilter = {
   _eq?: InputMaybe<CustomerAssignmentSource>;
@@ -3958,10 +4144,7 @@ export type ApiCustomerAssignmentSourceFilter = {
   _notIn?: InputMaybe<Array<CustomerAssignmentSource>>;
 };
 
-export type CustomerAuthenticationMethod =
-  | 'EMAIL_OTP'
-  | 'PASSWORD'
-  | 'PHONE_OTP';
+export type CustomerAuthenticationMethod = 'EMAIL_OTP' | 'PASSWORD' | 'PHONE_OTP';
 
 export type ApiCustomerAuthenticationMethodSettings = {
   __typename?: 'CustomerAuthenticationMethodSettings';
@@ -3970,9 +4153,7 @@ export type ApiCustomerAuthenticationMethodSettings = {
   method: CustomerAuthenticationMethod;
 };
 
-export type CustomerAuthenticationProvider =
-  | 'FACEBOOK'
-  | 'GOOGLE';
+export type CustomerAuthenticationProvider = 'FACEBOOK' | 'GOOGLE';
 
 export type ApiCustomerAuthenticationProviderSettings = {
   __typename?: 'CustomerAuthenticationProviderSettings';
@@ -4044,7 +4225,6 @@ export type ApiCustomerConsent = ApiNode & {
   withdrawnAt?: Maybe<Scalars['DateTime']['output']>;
 };
 
-
 /** Current consent state for one customer and channel. */
 export type ApiCustomerConsentEventsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -4056,16 +4236,9 @@ export type ApiCustomerConsentEventsArgs = {
 
 /** Consent states that a merchant administrator may set explicitly. */
 export type CustomerConsentAdminState =
-  | 'NOT_SUBSCRIBED'
-  | 'PENDING'
-  | 'SUBSCRIBED'
-  | 'UNSUBSCRIBED';
+  'NOT_SUBSCRIBED' | 'PENDING' | 'SUBSCRIBED' | 'UNSUBSCRIBED';
 
-export type CustomerConsentChannel =
-  | 'EMAIL'
-  | 'PUSH'
-  | 'SMS'
-  | 'WHATSAPP';
+export type CustomerConsentChannel = 'EMAIL' | 'PUSH' | 'SMS' | 'WHATSAPP';
 
 /** Immutable evidence record for a consent transition. */
 export type ApiCustomerConsentEvent = ApiNode & {
@@ -4126,18 +4299,10 @@ export type CustomerConsentEventOrderField =
   /** Sort by source */
   | 'source';
 
-export type CustomerConsentOptInLevel =
-  | 'CONFIRMED_OPT_IN'
-  | 'SINGLE_OPT_IN'
-  | 'UNKNOWN';
+export type CustomerConsentOptInLevel = 'CONFIRMED_OPT_IN' | 'SINGLE_OPT_IN' | 'UNKNOWN';
 
 export type CustomerConsentState =
-  | 'INVALID'
-  | 'NOT_SUBSCRIBED'
-  | 'PENDING'
-  | 'REDACTED'
-  | 'SUBSCRIBED'
-  | 'UNSUBSCRIBED';
+  'INVALID' | 'NOT_SUBSCRIBED' | 'PENDING' | 'REDACTED' | 'SUBSCRIBED' | 'UNSUBSCRIBED';
 
 export type ApiCustomerConsentStateFilter = {
   _eq?: InputMaybe<CustomerConsentState>;
@@ -4282,11 +4447,7 @@ export type CustomerDataRequestOrderField =
   | 'updatedAt';
 
 export type CustomerDataRequestStatus =
-  | 'CANCELLED'
-  | 'COMPLETED'
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'REJECTED';
+  'CANCELLED' | 'COMPLETED' | 'PENDING' | 'PROCESSING' | 'REJECTED';
 
 export type ApiCustomerDataRequestStatusFilter = {
   _eq?: InputMaybe<CustomerDataRequestStatus>;
@@ -4295,11 +4456,7 @@ export type ApiCustomerDataRequestStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerDataRequestStatus>>;
 };
 
-export type CustomerDataRequestType =
-  | 'ACCESS'
-  | 'CORRECTION'
-  | 'ERASURE'
-  | 'EXPORT';
+export type CustomerDataRequestType = 'ACCESS' | 'CORRECTION' | 'ERASURE' | 'EXPORT';
 
 export type ApiCustomerDataRequestTypeFilter = {
   _eq?: InputMaybe<CustomerDataRequestType>;
@@ -4405,7 +4562,6 @@ export type ApiCustomerGroup = ApiNode & {
   revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
-
 
 export type ApiCustomerGroupCustomerMembershipsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -4633,12 +4789,7 @@ export type ApiCustomerGroupWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
-export type CustomerLifecycleStatus =
-  | 'ACTIVE'
-  | 'BLOCKED'
-  | 'DISABLED'
-  | 'MERGED'
-  | 'REDACTED';
+export type CustomerLifecycleStatus = 'ACTIVE' | 'BLOCKED' | 'DISABLED' | 'MERGED' | 'REDACTED';
 
 export type ApiCustomerLifecycleStatusFilter = {
   _eq?: InputMaybe<CustomerLifecycleStatus>;
@@ -4725,11 +4876,7 @@ export type CustomerMergeOrderField =
   /** Sort by updatedAt */
   | 'updatedAt';
 
-export type CustomerMergeStatus =
-  | 'COMPLETED'
-  | 'FAILED'
-  | 'IN_PROGRESS'
-  | 'REQUESTED';
+export type CustomerMergeStatus = 'COMPLETED' | 'FAILED' | 'IN_PROGRESS' | 'REQUESTED';
 
 export type ApiCustomerMergeStatusFilter = {
   _eq?: InputMaybe<CustomerMergeStatus>;
@@ -4980,7 +5127,6 @@ export type ApiCustomerSegment = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-
 export type ApiCustomerSegmentCustomerMembershipsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -4990,9 +5136,7 @@ export type ApiCustomerSegmentCustomerMembershipsArgs = {
   where?: InputMaybe<ApiCustomerSegmentMembershipWhereInput>;
 };
 
-export type CustomerSegmentAttributeAvailability =
-  | 'AVAILABLE'
-  | 'UNAVAILABLE';
+export type CustomerSegmentAttributeAvailability = 'AVAILABLE' | 'UNAVAILABLE';
 
 export type ApiCustomerSegmentAttributeDescriptor = {
   __typename?: 'CustomerSegmentAttributeDescriptor';
@@ -5007,11 +5151,7 @@ export type ApiCustomerSegmentAttributeDescriptor = {
   valueType: Scalars['String']['output'];
 };
 
-export type CustomerSegmentAttributeKind =
-  | 'FUNCTION'
-  | 'LIST'
-  | 'SCALAR'
-  | 'VIRTUAL';
+export type CustomerSegmentAttributeKind = 'FUNCTION' | 'LIST' | 'SCALAR' | 'VIRTUAL';
 
 export type ApiCustomerSegmentConnection = {
   __typename?: 'CustomerSegmentConnection';
@@ -5057,9 +5197,7 @@ export type ApiCustomerSegmentDetailsUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type CustomerSegmentDiagnosticSeverity =
-  | 'ERROR'
-  | 'WARNING';
+export type CustomerSegmentDiagnosticSeverity = 'ERROR' | 'WARNING';
 
 export type ApiCustomerSegmentEdge = {
   __typename?: 'CustomerSegmentEdge';
@@ -5078,11 +5216,7 @@ export type ApiCustomerSegmentFunctionParameterDescriptor = {
   valueType: Scalars['String']['output'];
 };
 
-export type CustomerSegmentMaterializationStatus =
-  | 'FAILED'
-  | 'PENDING'
-  | 'READY'
-  | 'RUNNING';
+export type CustomerSegmentMaterializationStatus = 'FAILED' | 'PENDING' | 'READY' | 'RUNNING';
 
 export type ApiCustomerSegmentMembership = ApiNode & {
   __typename?: 'CustomerSegmentMembership';
@@ -5229,10 +5363,7 @@ export type ApiCustomerSegmentStateUpdateInput = {
   status?: InputMaybe<CustomerSegmentStatus>;
 };
 
-export type CustomerSegmentStatus =
-  | 'ACTIVE'
-  | 'ARCHIVED'
-  | 'DRAFT';
+export type CustomerSegmentStatus = 'ACTIVE' | 'ARCHIVED' | 'DRAFT';
 
 export type ApiCustomerSegmentStatusFilter = {
   _eq?: InputMaybe<CustomerSegmentStatus>;
@@ -5241,9 +5372,7 @@ export type ApiCustomerSegmentStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerSegmentStatus>>;
 };
 
-export type CustomerSegmentType =
-  | 'DYNAMIC'
-  | 'MANUAL';
+export type CustomerSegmentType = 'DYNAMIC' | 'MANUAL';
 
 export type ApiCustomerSegmentTypeFilter = {
   _eq?: InputMaybe<CustomerSegmentType>;
@@ -5341,7 +5470,6 @@ export type ApiCustomerTag = ApiNode & {
   normalizedName: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
-
 
 export type ApiCustomerTagCustomerAssignmentsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -5593,10 +5721,7 @@ export type ApiCustomerTaxExemptionPatchInput = {
   validTo?: InputMaybe<Scalars['Date']['input']>;
 };
 
-export type CustomerTaxExemptionStatus =
-  | 'ACTIVE'
-  | 'EXPIRED'
-  | 'REVOKED';
+export type CustomerTaxExemptionStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
 
 export type ApiCustomerTaxExemptionStatusFilter = {
   _eq?: InputMaybe<CustomerTaxExemptionStatus>;
@@ -5726,11 +5851,7 @@ export type ApiCustomerTaxIdentifierPatchInput = {
   value?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type CustomerTaxIdentifierStatus =
-  | 'EXPIRED'
-  | 'REJECTED'
-  | 'UNVERIFIED'
-  | 'VERIFIED';
+export type CustomerTaxIdentifierStatus = 'EXPIRED' | 'REJECTED' | 'UNVERIFIED' | 'VERIFIED';
 
 export type ApiCustomerTaxIdentifierStatusFilter = {
   _eq?: InputMaybe<CustomerTaxIdentifierStatus>;
@@ -5893,30 +6014,25 @@ export type ApiCustomersMutation = {
   customerUpdate: ApiCustomerUpdatePayload;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerAccountsSettingsUpdateArgs = {
   input: ApiCustomerAccountsSettingsUpdateInput;
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerCreateArgs = {
   input: ApiCustomerCreateInput;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerDataRequestCreateArgs = {
   input: ApiCustomerDataRequestCreateInput;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerDataRequestDeleteArgs = {
   input: ApiCustomerDataRequestDeleteInput;
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerDataRequestUpdateArgs = {
@@ -5924,24 +6040,20 @@ export type ApiCustomersMutationCustomerDataRequestUpdateArgs = {
   operations?: InputMaybe<ApiCustomerDataRequestUpdateInput>;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerDeleteArgs = {
   input: ApiCustomerDeleteInput;
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerGroupCreateArgs = {
   input: ApiCustomerGroupCreateInput;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerGroupDeleteArgs = {
   input: ApiCustomerGroupDeleteInput;
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerGroupUpdateArgs = {
@@ -5950,18 +6062,15 @@ export type ApiCustomersMutationCustomerGroupUpdateArgs = {
   operations: ApiCustomerGroupUpdateInput;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerMergeCreateArgs = {
   input: ApiCustomerMergeCreateInput;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerMergeDeleteArgs = {
   input: ApiCustomerMergeDeleteInput;
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerMergeUpdateArgs = {
@@ -5969,18 +6078,15 @@ export type ApiCustomersMutationCustomerMergeUpdateArgs = {
   operations?: InputMaybe<ApiCustomerMergeUpdateInput>;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerSegmentCreateArgs = {
   input: ApiCustomerSegmentCreateInput;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerSegmentDeleteArgs = {
   input: ApiCustomerSegmentDeleteInput;
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerSegmentUpdateArgs = {
@@ -5989,25 +6095,21 @@ export type ApiCustomersMutationCustomerSegmentUpdateArgs = {
   segmentId: Scalars['ID']['input'];
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerTagCreateArgs = {
   input: ApiCustomerTagCreateInput;
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerTagDeleteArgs = {
   input: ApiCustomerTagDeleteInput;
 };
 
-
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerTagUpdateArgs = {
   operations?: InputMaybe<ApiCustomerTagUpdateInput>;
   tagId: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer commands. */
 export type ApiCustomersMutationCustomerUpdateArgs = {
@@ -6047,36 +6149,30 @@ export type ApiCustomersQuery = {
   nodes: Array<Maybe<ApiNode>>;
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerAddressArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerByEmailArgs = {
   email: Scalars['Email']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerConsentArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerDataRequestArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerDataRequestsArgs = {
@@ -6088,12 +6184,10 @@ export type ApiCustomersQueryCustomerDataRequestsArgs = {
   where?: InputMaybe<ApiCustomerDataRequestWhereInput>;
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerGroupArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerGroupsArgs = {
@@ -6105,12 +6199,10 @@ export type ApiCustomersQueryCustomerGroupsArgs = {
   where?: InputMaybe<ApiCustomerGroupWhereInput>;
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerMergeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerMergesArgs = {
@@ -6122,12 +6214,10 @@ export type ApiCustomersQueryCustomerMergesArgs = {
   where?: InputMaybe<ApiCustomerMergeWhereInput>;
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerSegmentArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerSegmentPreviewArgs = {
@@ -6136,12 +6226,10 @@ export type ApiCustomersQueryCustomerSegmentPreviewArgs = {
   query: Scalars['String']['input'];
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerSegmentQueryValidateArgs = {
   query: Scalars['String']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerSegmentsArgs = {
@@ -6153,12 +6241,10 @@ export type ApiCustomersQueryCustomerSegmentsArgs = {
   where?: InputMaybe<ApiCustomerSegmentWhereInput>;
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerTagArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerTagsArgs = {
@@ -6170,18 +6256,15 @@ export type ApiCustomersQueryCustomerTagsArgs = {
   where?: InputMaybe<ApiCustomerTagWhereInput>;
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerTaxExemptionArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomerTaxIdentifierArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryCustomersArgs = {
@@ -6193,12 +6276,10 @@ export type ApiCustomersQueryCustomersArgs = {
   where?: InputMaybe<ApiCustomerWhereInput>;
 };
 
-
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped customer reads. The current Store is taken from trusted context. */
 export type ApiCustomersQueryNodesArgs = {
@@ -6239,6 +6320,34 @@ export type ApiDateTimeFilter = {
   _neq?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
+/** Comparison operators for date time; omitted operators do not constrain results. */
+export type ApiDateTimeFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Validated input value for gt. */
+  gt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Validated input value for gte. */
+  gte?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Validated input value for lt. */
+  lt?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Validated input value for lte. */
+  lte?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+/** Comparison operators for decimal; omitted operators do not constrain results. */
+export type ApiDecimalFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars['Decimal']['input']>;
+  /** Validated input value for gt. */
+  gt?: InputMaybe<Scalars['Decimal']['input']>;
+  /** Validated input value for gte. */
+  gte?: InputMaybe<Scalars['Decimal']['input']>;
+  /** Validated input value for lt. */
+  lt?: InputMaybe<Scalars['Decimal']['input']>;
+  /** Validated input value for lte. */
+  lte?: InputMaybe<Scalars['Decimal']['input']>;
+};
+
 /** Dimension (length) measurement units */
 export type DimensionUnit =
   /** Centimeter */
@@ -6251,6 +6360,19 @@ export type DimensionUnit =
   | 'm'
   /** Millimeter */
   | 'mm';
+
+/** Physical dimensions expressed in one supported length unit. */
+export type ApiDimensions = {
+  __typename?: 'Dimensions';
+  /** Height in unit. */
+  height: Scalars['Float']['output'];
+  /** Length in unit. */
+  length: Scalars['Float']['output'];
+  /** Unit shared by width, height, and length. */
+  unit: DimensionUnit;
+  /** Width in unit. */
+  width: Scalars['Float']['output'];
+};
 
 /** Input for setting dimensions (in millimeters). */
 export type ApiDimensionsInput = {
@@ -6314,7 +6436,6 @@ export type ApiDiscount = ApiNode & {
   usageReservations: ApiDiscountUsageReservationConnection;
 };
 
-
 /** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountCodesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -6324,7 +6445,6 @@ export type ApiDiscountCodesArgs = {
   orderBy?: InputMaybe<Array<ApiDiscountCodeOrderByInput>>;
   where?: InputMaybe<ApiDiscountCodeWhereInput>;
 };
-
 
 /** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountExternalReferencesArgs = {
@@ -6336,7 +6456,6 @@ export type ApiDiscountExternalReferencesArgs = {
   where?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
 };
 
-
 /** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountRedemptionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -6346,7 +6465,6 @@ export type ApiDiscountRedemptionsArgs = {
   orderBy?: InputMaybe<Array<ApiDiscountRedemptionOrderByInput>>;
   where?: InputMaybe<ApiDiscountRedemptionWhereInput>;
 };
-
 
 /** A store-scoped native or Commerce Function discount aggregate owned by Pricing. */
 export type ApiDiscountUsageReservationsArgs = {
@@ -6358,14 +6476,9 @@ export type ApiDiscountUsageReservationsArgs = {
   where?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
 };
 
-export type DiscountAllocationMethod =
-  | 'ACROSS'
-  | 'EACH';
+export type DiscountAllocationMethod = 'ACROSS' | 'EACH';
 
-export type DiscountAllocationTargetType =
-  | 'ORDER'
-  | 'ORDER_LINE'
-  | 'SHIPPING_LINE';
+export type DiscountAllocationTargetType = 'ORDER' | 'ORDER_LINE' | 'SHIPPING_LINE';
 
 /** Percentage or fixed-amount rule used by product and order discounts. */
 export type ApiDiscountAmountOffRule = {
@@ -6392,9 +6505,7 @@ export type ApiDiscountAmountOffRuleInput = {
   valueType: PriceAdjustmentValueType;
 };
 
-export type DiscountBenefitStrategy =
-  | 'ADJUSTMENT'
-  | 'FREE';
+export type DiscountBenefitStrategy = 'ADJUSTMENT' | 'FREE';
 
 export type ApiDiscountBuyXGetYRule = {
   __typename?: 'DiscountBuyXGetYRule';
@@ -6444,14 +6555,9 @@ export type ApiDiscountBuyerContextInput = {
   type: DiscountBuyerContextType;
 };
 
-export type DiscountBuyerContextType =
-  | 'ALL'
-  | 'CUSTOMERS'
-  | 'SEGMENTS';
+export type DiscountBuyerContextType = 'ALL' | 'CUSTOMERS' | 'SEGMENTS';
 
-export type DiscountCalculationStrategy =
-  | 'FUNCTION'
-  | 'NATIVE';
+export type DiscountCalculationStrategy = 'FUNCTION' | 'NATIVE';
 
 export type ApiDiscountCatalogTarget = ApiCategory | ApiProduct | ApiVariant;
 
@@ -6468,10 +6574,7 @@ export type ApiDiscountChannelInput = {
   featured?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type DiscountClass =
-  | 'ORDER'
-  | 'PRODUCT'
-  | 'SHIPPING';
+export type DiscountClass = 'ORDER' | 'PRODUCT' | 'SHIPPING';
 
 export type ApiDiscountClassFilter = {
   _eq?: InputMaybe<DiscountClass>;
@@ -6544,9 +6647,7 @@ export type DiscountCodeOrderField =
   | 'usageCount'
   | 'usageLimit';
 
-export type DiscountCodeStatus =
-  | 'ACTIVE'
-  | 'DISABLED';
+export type DiscountCodeStatus = 'ACTIVE' | 'DISABLED';
 
 export type ApiDiscountCodeStatusFilter = {
   _eq?: InputMaybe<DiscountCodeStatus>;
@@ -6667,12 +6768,7 @@ export type ApiDiscountEdge = {
 
 /** Lifecycle plus schedule-derived state used by Admin list views. */
 export type DiscountEffectiveStatus =
-  | 'ACTIVE'
-  | 'ARCHIVED'
-  | 'DRAFT'
-  | 'EXPIRED'
-  | 'PAUSED'
-  | 'SCHEDULED';
+  'ACTIVE' | 'ARCHIVED' | 'DRAFT' | 'EXPIRED' | 'PAUSED' | 'SCHEDULED';
 
 export type ApiDiscountEffectiveStatusFilter = {
   _eq?: InputMaybe<DiscountEffectiveStatus>;
@@ -6824,10 +6920,7 @@ export type ApiDiscountExternalReferenceWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
-export type DiscountExternalSyncDirection =
-  | 'BIDIRECTIONAL'
-  | 'EXPORT'
-  | 'IMPORT';
+export type DiscountExternalSyncDirection = 'BIDIRECTIONAL' | 'EXPORT' | 'IMPORT';
 
 export type ApiDiscountExternalSyncDirectionFilter = {
   _eq?: InputMaybe<DiscountExternalSyncDirection>;
@@ -6836,11 +6929,7 @@ export type ApiDiscountExternalSyncDirectionFilter = {
   _notIn?: InputMaybe<Array<DiscountExternalSyncDirection>>;
 };
 
-export type DiscountExternalSyncStatus =
-  | 'DISABLED'
-  | 'FAILED'
-  | 'PENDING'
-  | 'SYNCED';
+export type DiscountExternalSyncStatus = 'DISABLED' | 'FAILED' | 'PENDING' | 'SYNCED';
 
 export type ApiDiscountExternalSyncStatusFilter = {
   _eq?: InputMaybe<DiscountExternalSyncStatus>;
@@ -6888,19 +6977,12 @@ export type ApiDiscountFunctionBindingInput = {
   status?: InputMaybe<DiscountFunctionBindingStatus>;
 };
 
-export type DiscountFunctionBindingStatus =
-  | 'ACTIVE'
-  | 'DISABLED';
+export type DiscountFunctionBindingStatus = 'ACTIVE' | 'DISABLED';
 
-export type DiscountFunctionFailureMode =
-  | 'OPTIONAL'
-  | 'REQUIRED';
+export type DiscountFunctionFailureMode = 'OPTIONAL' | 'REQUIRED';
 
 export type DiscountKind =
-  | 'AMOUNT_OFF_ORDER'
-  | 'AMOUNT_OFF_PRODUCTS'
-  | 'BUY_X_GET_Y'
-  | 'FREE_SHIPPING';
+  'AMOUNT_OFF_ORDER' | 'AMOUNT_OFF_PRODUCTS' | 'BUY_X_GET_Y' | 'FREE_SHIPPING';
 
 export type ApiDiscountKindFilter = {
   _eq?: InputMaybe<DiscountKind>;
@@ -6913,9 +6995,7 @@ export type ApiDiscountLifecycleUpdateInput = {
   state: DiscountState;
 };
 
-export type DiscountMethod =
-  | 'AUTOMATIC'
-  | 'CODE';
+export type DiscountMethod = 'AUTOMATIC' | 'CODE';
 
 export type ApiDiscountMethodFilter = {
   _eq?: InputMaybe<DiscountMethod>;
@@ -7064,9 +7144,7 @@ export type DiscountRedemptionOrderField =
   | 'reversedAt'
   | 'status';
 
-export type DiscountRedemptionStatus =
-  | 'COMMITTED'
-  | 'REVERSED';
+export type DiscountRedemptionStatus = 'COMMITTED' | 'REVERSED';
 
 export type ApiDiscountRedemptionStatusFilter = {
   _eq?: InputMaybe<DiscountRedemptionStatus>;
@@ -7096,19 +7174,11 @@ export type ApiDiscountRedemptionWhereInput = {
   status?: InputMaybe<ApiDiscountRedemptionStatusFilter>;
 };
 
-export type DiscountReferenceStatus =
-  | 'STALE'
-  | 'VALID';
+export type DiscountReferenceStatus = 'STALE' | 'VALID';
 
-export type DiscountRequirementType =
-  | 'QUANTITY'
-  | 'SUBTOTAL';
+export type DiscountRequirementType = 'QUANTITY' | 'SUBTOTAL';
 
-export type DiscountReservationStatus =
-  | 'ACTIVE'
-  | 'COMMITTED'
-  | 'EXPIRED'
-  | 'RELEASED';
+export type DiscountReservationStatus = 'ACTIVE' | 'COMMITTED' | 'EXPIRED' | 'RELEASED';
 
 export type ApiDiscountReservationStatusFilter = {
   _eq?: InputMaybe<DiscountReservationStatus>;
@@ -7117,7 +7187,8 @@ export type ApiDiscountReservationStatusFilter = {
   _notIn?: InputMaybe<Array<DiscountReservationStatus>>;
 };
 
-export type ApiDiscountRule = ApiDiscountAmountOffRule | ApiDiscountBuyXGetYRule | ApiDiscountFreeShippingRule;
+export type ApiDiscountRule =
+  ApiDiscountAmountOffRule | ApiDiscountBuyXGetYRule | ApiDiscountFreeShippingRule;
 
 /** Exactly one rule field must match the owning discount kind. */
 export type ApiDiscountRuleInput = {
@@ -7131,11 +7202,7 @@ export type ApiDiscountScheduleInput = {
   startsAt: Scalars['DateTime']['input'];
 };
 
-export type DiscountState =
-  | 'ACTIVE'
-  | 'ARCHIVED'
-  | 'DRAFT'
-  | 'PAUSED';
+export type DiscountState = 'ACTIVE' | 'ARCHIVED' | 'DRAFT' | 'PAUSED';
 
 export type ApiDiscountStateFilter = {
   _eq?: InputMaybe<DiscountState>;
@@ -7156,9 +7223,7 @@ export type ApiDiscountTarget = {
   targetType: DiscountTargetType;
 };
 
-export type DiscountTargetRole =
-  | 'BENEFIT'
-  | 'QUALIFIER';
+export type DiscountTargetRole = 'BENEFIT' | 'QUALIFIER';
 
 export type ApiDiscountTargetSelection = {
   __typename?: 'DiscountTargetSelection';
@@ -7174,11 +7239,7 @@ export type ApiDiscountTargetSelectionInput = {
   targetType: DiscountTargetType;
 };
 
-export type DiscountTargetType =
-  | 'ALL_PRODUCTS'
-  | 'CATEGORIES'
-  | 'PRODUCTS'
-  | 'VARIANTS';
+export type DiscountTargetType = 'ALL_PRODUCTS' | 'CATEGORIES' | 'PRODUCTS' | 'VARIANTS';
 
 /** Discount-level sections executed by the unified discountUpdate workflow. */
 export type ApiDiscountUpdateInput = {
@@ -7250,13 +7311,7 @@ export type ApiDiscountUsageReservationOrderByInput = {
 };
 
 export type DiscountUsageReservationOrderField =
-  | 'closedAt'
-  | 'committedAt'
-  | 'createdAt'
-  | 'expiresAt'
-  | 'id'
-  | 'status'
-  | 'updatedAt';
+  'closedAt' | 'committedAt' | 'createdAt' | 'expiresAt' | 'id' | 'status' | 'updatedAt';
 
 export type ApiDiscountUsageReservationWhereInput = {
   _and?: InputMaybe<Array<ApiDiscountUsageReservationWhereInput>>;
@@ -7330,6 +7385,14 @@ export type ApiDiscountWhereInput = {
   usageLimit?: InputMaybe<ApiBigIntFilter>;
 };
 
+/** Expected mutation error displayable to an authorized Admin user. */
+export type ApiDisplayableError = {
+  /** Path to the invalid input field, or null for an aggregate-level error. */
+  field?: Maybe<Array<Scalars['String']['output']>>;
+  /** Human-readable error explanation. */
+  message: Scalars['String']['output'];
+};
+
 /** External media data (YouTube, Vimeo, etc). */
 export type ApiExternalMediaData = {
   __typename?: 'ExternalMediaData';
@@ -7356,7 +7419,7 @@ export type ApiFacet = ApiNode & {
 export type ApiFacetCreateInput = {
   facetType: FacetType;
   label: Scalars['String']['input'];
-  /** Defaults to both SEARCH and CATEGORY when omitted. */
+  /** Defaults to SEARCH, CATEGORY, and COLLECTION when omitted. */
   scopes?: InputMaybe<Array<FacetScopeType>>;
   selectionMode?: InputMaybe<FacetSelectionMode>;
   slug: Scalars['String']['input'];
@@ -7419,10 +7482,9 @@ export type ApiFacetRebalancePayload = {
  *
  * SEARCH applies to listing requests without a category context.
  * CATEGORY applies to every category-scoped listing request.
+ * COLLECTION applies to every collection-scoped listing request.
  */
-export type FacetScopeType =
-  | 'CATEGORY'
-  | 'SEARCH';
+export type FacetScopeType = 'CATEGORY' | 'COLLECTION' | 'SEARCH';
 
 export type ApiFacetScopesUpdateInput = {
   /** Only changed facets need to be included. All updates are applied atomically. */
@@ -7441,9 +7503,7 @@ export type ApiFacetScopesUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type FacetSelectionMode =
-  | 'MULTI'
-  | 'SINGLE';
+export type FacetSelectionMode = 'MULTI' | 'SINGLE';
 
 export type ApiFacetSource = {
   __typename?: 'FacetSource';
@@ -7567,19 +7627,9 @@ export type ApiFacetSwatchUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type FacetType =
-  | 'FEATURE'
-  | 'IN_STOCK'
-  | 'OPTION'
-  | 'PRICE'
-  | 'TAG';
+export type FacetType = 'FEATURE' | 'IN_STOCK' | 'OPTION' | 'PRICE' | 'TAG';
 
-export type FacetUiType =
-  | 'BOOLEAN'
-  | 'CHECKBOX'
-  | 'DROPDOWN'
-  | 'RADIO'
-  | 'RANGE';
+export type FacetUiType = 'BOOLEAN' | 'CHECKBOX' | 'DROPDOWN' | 'RADIO' | 'RANGE';
 
 export type ApiFacetUpdateInput = {
   id: Scalars['ID']['input'];
@@ -7650,10 +7700,7 @@ export type FacetValueCandidateOrderField =
   /** Sort by label */
   | 'label';
 
-export type FacetValueCandidateType =
-  | 'FEATURE'
-  | 'OPTION'
-  | 'TAG';
+export type FacetValueCandidateType = 'FEATURE' | 'OPTION' | 'TAG';
 
 /** Filter conditions for FacetValueCandidate */
 export type ApiFacetValueCandidateWhereInput = {
@@ -7704,9 +7751,7 @@ export type ApiFacetValueDeletePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type FacetValueKind =
-  | 'GROUP'
-  | 'SOURCE';
+export type FacetValueKind = 'GROUP' | 'SOURCE';
 
 export type ApiFacetValueMergeInput = {
   facetId: Scalars['ID']['input'];
@@ -7808,7 +7853,6 @@ export type ApiFile = ApiNode & {
   /** Usage summary for this file. */
   usage: ApiFileUsageSummary;
 };
-
 
 /** A file represents a stored media asset. */
 export type ApiFileUrlArgs = {
@@ -8035,10 +8079,7 @@ export type ApiFileRestorePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type FileStateScope =
-  | 'ACTIVE'
-  | 'ALL'
-  | 'DELETED';
+export type FileStateScope = 'ACTIVE' | 'ALL' | 'DELETED';
 
 /** Input for updating a file. */
 export type ApiFileUpdateInput = {
@@ -8203,6 +8244,303 @@ export type ApiFloatFilter = {
   _notIn?: InputMaybe<Array<Scalars['Float']['input']>>;
 };
 
+/** Execution fact consuming quantities allocated to a fulfillment order. */
+export type ApiFulfillment = ApiNode & {
+  __typename?: 'Fulfillment';
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Projected value for fulfillment order. */
+  fulfillmentOrder: ApiFulfillmentOrder;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for lines. */
+  lines: Array<ApiFulfillmentLine>;
+  /** Relay global ID identifying the location. */
+  locationId: Scalars['ID']['output'];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer: Scalars['Boolean']['output'];
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Projected value for shipments. */
+  shipments: Array<ApiShipment>;
+  /** Current lifecycle or derived projection status. */
+  status: FulfillmentStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+};
+
+/** Validated input for fulfillment cancel. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment. */
+  fulfillmentId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Validated input value for restock. */
+  restock?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Validated input for fulfillment create. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentCreateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for lines. */
+  lines: Array<ApiFulfillmentOrderLineQuantityInput>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Orders Admin representation of fulfillment hold. */
+export type ApiFulfillmentHold = ApiNode & {
+  __typename?: 'FulfillmentHold';
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Projected value for held by. */
+  heldBy: ApiOrderActor;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for note. */
+  note?: Maybe<Scalars['String']['output']>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['output'];
+  /** Timestamp for released, or null when it has not occurred. */
+  releasedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** Orders Admin representation of fulfillment line. */
+export type ApiFulfillmentLine = {
+  __typename?: 'FulfillmentLine';
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['output'];
+};
+
+/** Allocatable fulfillment work unit, separate from provider execution and physical shipment. */
+export type ApiFulfillmentOrder = ApiNode & {
+  __typename?: 'FulfillmentOrder';
+  /** Relay global ID identifying the assigned location. */
+  assignedLocationId: Scalars['ID']['output'];
+  /** Projected value for assigned service. */
+  assignedService?: Maybe<ApiFulfillmentServiceRoute>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Projected value for delivery group. */
+  deliveryGroup: ApiOrderDeliveryGroup;
+  /** Timestamp for fulfill, or null when it has not occurred. */
+  fulfillAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for fulfill by. */
+  fulfillBy?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for holds. */
+  holds: Array<ApiFulfillmentHold>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for lines. */
+  lines: Array<ApiFulfillmentOrderLine>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Current request status. */
+  requestStatus: FulfillmentRequestStatus;
+  /** Current lifecycle or derived projection status. */
+  status: FulfillmentOrderStatus;
+  /** Projected value for supported actions. */
+  supportedActions: Array<Scalars['String']['output']>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+};
+
+/** Validated input for fulfillment order cancel request. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderCancelRequestInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+};
+
+/** Validated input for fulfillment order hold. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderHoldInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+};
+
+/** Orders Admin representation of fulfillment order line. */
+export type ApiFulfillmentOrderLine = ApiNode & {
+  __typename?: 'FulfillmentOrderLine';
+  /** Projected fulfilled quantity. */
+  fulfilledQuantity: Scalars['Int']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['output'];
+  /** Projected remaining quantity. */
+  remainingQuantity: Scalars['Int']['output'];
+};
+
+/** Validated input for fulfillment order line quantity. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderLineQuantityInput = {
+  /** Relay global ID identifying the fulfillment order line. */
+  fulfillmentOrderLineId: Scalars['ID']['input'];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['input'];
+};
+
+/** Validated input for fulfillment order move. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderMoveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the location. */
+  locationId: Scalars['ID']['input'];
+  /** Stable service code. */
+  serviceCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Mutation result for fulfillment order; expected failures are returned in userErrors. */
+export type ApiFulfillmentOrderPayload = {
+  __typename?: 'FulfillmentOrderPayload';
+  /** Projected value for fulfillment order. */
+  fulfillmentOrder?: Maybe<ApiFulfillmentOrder>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for fulfillment order release hold. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderReleaseHoldInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars['ID']['input'];
+  /** Relay global ID identifying the hold. */
+  holdId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Validated input for fulfillment order split. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderSplitInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for lines. */
+  lines: Array<ApiFulfillmentOrderLineQuantityInput>;
+};
+
+/** Closed set of fulfillment order status values used by Orders Admin API. */
+export type FulfillmentOrderStatus =
+  /** Cancelled value of fulfillment order status. */
+  | 'CANCELLED'
+  /** Closed value of fulfillment order status. */
+  | 'CLOSED'
+  /** In progress value of fulfillment order status. */
+  | 'IN_PROGRESS'
+  /** On hold value of fulfillment order status. */
+  | 'ON_HOLD'
+  /** Open value of fulfillment order status. */
+  | 'OPEN'
+  /** Scheduled value of fulfillment order status. */
+  | 'SCHEDULED';
+
+/** Validated input for fulfillment order submit. Tenant identifiers come only from trusted context. */
+export type ApiFulfillmentOrderSubmitInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment order. */
+  fulfillmentOrderId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Mutation result for fulfillment; expected failures are returned in userErrors. */
+export type ApiFulfillmentPayload = {
+  __typename?: 'FulfillmentPayload';
+  /** Projected value for fulfillment. */
+  fulfillment?: Maybe<ApiFulfillment>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Closed set of fulfillment request status values used by Orders Admin API. */
+export type FulfillmentRequestStatus =
+  /** Accepted value of fulfillment request status. */
+  | 'ACCEPTED'
+  /** Cancellation accepted value of fulfillment request status. */
+  | 'CANCELLATION_ACCEPTED'
+  /** Cancellation rejected value of fulfillment request status. */
+  | 'CANCELLATION_REJECTED'
+  /** Cancellation requested value of fulfillment request status. */
+  | 'CANCELLATION_REQUESTED'
+  /** Rejected value of fulfillment request status. */
+  | 'REJECTED'
+  /** Submitted value of fulfillment request status. */
+  | 'SUBMITTED'
+  /** Unsubmitted value of fulfillment request status. */
+  | 'UNSUBMITTED';
+
+/** Orders Admin representation of fulfillment service route. */
+export type ApiFulfillmentServiceRoute = {
+  __typename?: 'FulfillmentServiceRoute';
+  /** Stable app code. */
+  appCode: Scalars['String']['output'];
+  /** Projected value for external reference. */
+  externalReference?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID identifying the installation. */
+  installationId: Scalars['ID']['output'];
+  /** Projected value for provider revision. */
+  providerRevision: Scalars['String']['output'];
+  /** Stable service code. */
+  serviceCode: Scalars['String']['output'];
+};
+
+/** Closed set of fulfillment status values used by Orders Admin API. */
+export type FulfillmentStatus =
+  /** Cancelled value of fulfillment status. */
+  | 'CANCELLED'
+  /** Failure value of fulfillment status. */
+  | 'FAILURE'
+  /** Open value of fulfillment status. */
+  | 'OPEN'
+  /** Pending value of fulfillment status. */
+  | 'PENDING'
+  /** Success value of fulfillment status. */
+  | 'SUCCESS';
+
 /** A generic user-facing mutation error. */
 export type ApiGenericUserError = ApiUserError & {
   __typename?: 'GenericUserError';
@@ -8235,48 +8573,40 @@ export type ApiHeadlessAppMutation = {
   storefrontPrivateCredentialCreate: ApiStorefrontPrivateCredentialCreatePayload;
 };
 
-
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationHeadlessStorefrontCreateArgs = {
   input: ApiHeadlessStorefrontCreateInput;
 };
-
 
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationHeadlessStorefrontDisconnectArgs = {
   input: ApiHeadlessStorefrontActionInput;
 };
 
-
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationHeadlessStorefrontResumeArgs = {
   input: ApiHeadlessStorefrontActionInput;
 };
-
 
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationHeadlessStorefrontSuspendArgs = {
   input: ApiHeadlessStorefrontActionInput;
 };
 
-
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationHeadlessStorefrontUpdateArgs = {
   input: ApiHeadlessStorefrontUpdateInput;
 };
-
 
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationStorefrontAccessPolicyUpdateArgs = {
   input: ApiStorefrontAccessPolicyUpdateInput;
 };
 
-
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationStorefrontCredentialRevokeArgs = {
   input: ApiStorefrontCredentialRevokeInput;
 };
-
 
 /** Headless App mutation namespace. */
 export type ApiHeadlessAppMutationStorefrontPrivateCredentialCreateArgs = {
@@ -8295,7 +8625,6 @@ export type ApiHeadlessAppQuery = {
   /** Permission catalog used to render the Headless access policy editor. */
   headlessStorefrontPermissionCatalog: Array<ApiHeadlessStorefrontPermissionDefinition>;
 };
-
 
 /** Headless App query namespace. */
 export type ApiHeadlessAppQueryHeadlessStorefrontConnectionArgs = {
@@ -8325,10 +8654,7 @@ export type ApiHeadlessStorefrontConnection = ApiNode & {
 };
 
 /** Lifecycle state of a Headless storefront connection. */
-export type HeadlessStorefrontConnectionStatus =
-  | 'ACTIVE'
-  | 'DISCONNECTED'
-  | 'SUSPENDED';
+export type HeadlessStorefrontConnectionStatus = 'ACTIVE' | 'DISCONNECTED' | 'SUSPENDED';
 
 /** Input for creating a Headless storefront connection. */
 export type ApiHeadlessStorefrontCreateInput = {
@@ -8377,10 +8703,7 @@ export type ApiHeadlessStorefrontPermissionDefinition = {
 };
 
 /** Risk level shown when an administrator grants a Storefront permission. */
-export type HeadlessStorefrontPermissionRisk =
-  | 'HIGH'
-  | 'LOW'
-  | 'MEDIUM';
+export type HeadlessStorefrontPermissionRisk = 'HIGH' | 'LOW' | 'MEDIUM';
 
 /** Input for changing a Headless storefront display name. */
 export type ApiHeadlessStorefrontUpdateInput = {
@@ -8396,7 +8719,6 @@ export type ApiHelloWorldAppQuery = {
   helloWorldGreeting: ApiHelloWorldGreeting;
   helloWorldSecretDigest: ApiHelloWorldSecretDigest;
 };
-
 
 /** Hello World App queries. */
 export type ApiHelloWorldAppQueryHelloWorldSecretDigestArgs = {
@@ -8430,16 +8752,42 @@ export type ApiIdFilter = {
   _notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
-export type ImageContentType =
-  | 'JPG'
-  | 'PNG'
-  | 'WEBP';
+/** Comparison operators for id; omitted operators do not constrain results. */
+export type ApiIdFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars['ID']['input']>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Validated input value for not in. */
+  notIn?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+export type ImageContentType = 'AVIF' | 'JPG' | 'PNG' | 'WEBP';
+
+/** How the image is resized to fit the requested box. */
+export type ImageFitMode = 'CONTAIN' | 'COVER' | 'FILL' | 'INSIDE' | 'OUTSIDE';
+
+/** Anchor used when FIT_MODE crops or pads the image. */
+export type ImageGravity =
+  | 'AUTO'
+  | 'BOTTOM'
+  | 'BOTTOM_LEFT'
+  | 'BOTTOM_RIGHT'
+  | 'CENTER'
+  | 'LEFT'
+  | 'RIGHT'
+  | 'TOP'
+  | 'TOP_LEFT'
+  | 'TOP_RIGHT';
 
 export type ApiImageTransformInput = {
-  crop?: InputMaybe<CropRegion>;
+  fit?: InputMaybe<ImageFitMode>;
+  gravity?: InputMaybe<ImageGravity>;
   maxHeight?: InputMaybe<Scalars['Int']['input']>;
   maxWidth?: InputMaybe<Scalars['Int']['input']>;
   preferredContentType?: InputMaybe<ImageContentType>;
+  /** Output quality, 1-100. Bounded by the selected CdnConfiguration's minQuality/maxQuality when configured. */
+  quality?: InputMaybe<Scalars['Int']['input']>;
   scale?: InputMaybe<Scalars['Int']['input']>;
 };
 
@@ -8609,9 +8957,7 @@ export type ApiInventoryItemWarehouseScopeInput = {
   referenceIds: Array<Scalars['ID']['input']>;
 };
 
-export type InventoryItemWarehouseScopeMode =
-  | 'EXCLUDE'
-  | 'INCLUDE';
+export type InventoryItemWarehouseScopeMode = 'EXCLUDE' | 'INCLUDE';
 
 export type ApiInventoryItemWhereInput = {
   /** Logical AND of multiple conditions */
@@ -8651,26 +8997,21 @@ export type ApiInventoryMutation = {
   warehouseUpdate: ApiWarehouseUpdatePayload;
 };
 
-
 export type ApiInventoryMutationWarehouseCreateArgs = {
   input: ApiWarehouseCreateInput;
 };
-
 
 export type ApiInventoryMutationWarehouseDeleteArgs = {
   input: ApiWarehouseDeleteInput;
 };
 
-
 export type ApiInventoryMutationWarehouseStockCreateArgs = {
   input: ApiWarehouseStockCreateInput;
 };
 
-
 export type ApiInventoryMutationWarehouseStockDeleteArgs = {
   input: ApiWarehouseStockDeleteInput;
 };
-
 
 export type ApiInventoryMutationWarehouseUpdateArgs = {
   input: ApiWarehouseUpdateInput;
@@ -8704,16 +9045,13 @@ export type ApiInventoryQuery = {
   warehouses: ApiWarehouseConnection;
 };
 
-
 export type ApiInventoryQueryInventoryItemArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 export type ApiInventoryQueryInventoryItemByVariantArgs = {
   variantId: Scalars['ID']['input'];
 };
-
 
 export type ApiInventoryQueryInventoryItemsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -8725,21 +9063,17 @@ export type ApiInventoryQueryInventoryItemsArgs = {
   where?: InputMaybe<ApiInventoryItemWhereInput>;
 };
 
-
 export type ApiInventoryQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiInventoryQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
 };
 
-
 export type ApiInventoryQueryWarehouseArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiInventoryQueryWarehouseAssignableVariantsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -8750,7 +9084,6 @@ export type ApiInventoryQueryWarehouseAssignableVariantsArgs = {
   warehouseId: Scalars['ID']['input'];
   where?: InputMaybe<ApiWarehouseAssignableVariantWhereInput>;
 };
-
 
 export type ApiInventoryQueryWarehousesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -8767,11 +9100,6 @@ export type ApiInventorySkuStatus = {
   lowStock: ApiSkuStatusMetric;
   outOfStock: ApiSkuStatusMetric;
   total: Scalars['Int']['output'];
-};
-
-export type ApiLabel = {
-  __typename?: 'Label';
-  id: Scalars['ID']['output'];
 };
 
 export type ApiListing = {
@@ -8815,10 +9143,7 @@ export type ApiListingFacet = {
   values: Array<ApiListingFacetValue>;
 };
 
-export type ListingFacetType =
-  | 'BOOLEAN'
-  | 'LIST'
-  | 'PRICE_RANGE';
+export type ListingFacetType = 'BOOLEAN' | 'LIST' | 'PRICE_RANGE';
 
 export type ApiListingFacetValue = {
   __typename?: 'ListingFacetValue';
@@ -8848,115 +9173,31 @@ export type ApiListingFacetValueFilter = {
 
 export type ApiListingMutation = {
   __typename?: 'ListingMutation';
-  /** Create a new facet. */
-  facetCreate: ApiFacetCreatePayload;
-  /** Delete a facet. */
-  facetDelete: ApiFacetDeletePayload;
-  /** Move a facet before or after another facet. */
-  facetMove: ApiFacetMovePayload;
-  /** Rebalance facet lexo ranks. */
-  facetRebalance: ApiFacetRebalancePayload;
-  /**
-   * Atomically replace scopes for multiple facets.
-   * No updates are applied when any input item is invalid.
-   */
-  facetScopesUpdate: ApiFacetScopesUpdatePayload;
-  /** Create a new facet swatch. */
-  facetSwatchCreate: ApiFacetSwatchCreatePayload;
-  /** Delete a facet swatch. */
-  facetSwatchDelete: ApiFacetSwatchDeletePayload;
-  /** Update an existing facet swatch. */
-  facetSwatchUpdate: ApiFacetSwatchUpdatePayload;
-  /** Update an existing facet. */
-  facetUpdate: ApiFacetUpdatePayload;
-  /** Create a new facet value. */
-  facetValueCreate: ApiFacetValueCreatePayload;
-  /** Delete a facet value. */
-  facetValueDelete: ApiFacetValueDeletePayload;
-  /**
-   * Attach source facet values to an existing or newly-created group value.
-   * This is the only mutation that merges source values into a group value.
-   */
-  facetValueMerge: ApiFacetValueMergePayload;
-  /**
-   * Detach source facet values from their group value and make them root values.
-   * This is the only mutation that unmerges source values.
-   */
-  facetValueUnmerge: ApiFacetValueUnmergePayload;
-  /** Update an existing facet value. */
-  facetValueUpdate: ApiFacetValueUpdatePayload;
-  /** Search configuration mutation namespace. */
-  search: ApiListingSearchMutation;
+  manualProductRecommendationCreate: ApiManualProductRecommendationPayload;
+  manualProductRecommendationDelete: ApiManualProductRecommendationDeletePayload;
+  manualProductRecommendationUpdate: ApiManualProductRecommendationPayload;
+  recommendationPlacementPolicySetEnabled: ApiRecommendationPlacementPolicyPayload;
+  recommendationPlacementPolicyUpsert: ApiRecommendationPlacementPolicyPayload;
 };
 
-
-export type ApiListingMutationFacetCreateArgs = {
-  input: ApiFacetCreateInput;
+export type ApiListingMutationManualProductRecommendationCreateArgs = {
+  input: ApiManualProductRecommendationCreateInput;
 };
 
-
-export type ApiListingMutationFacetDeleteArgs = {
-  input: ApiFacetDeleteInput;
+export type ApiListingMutationManualProductRecommendationDeleteArgs = {
+  input: ApiManualProductRecommendationDeleteInput;
 };
 
-
-export type ApiListingMutationFacetMoveArgs = {
-  input: ApiFacetMoveInput;
+export type ApiListingMutationManualProductRecommendationUpdateArgs = {
+  input: ApiManualProductRecommendationUpdateInput;
 };
 
-
-export type ApiListingMutationFacetRebalanceArgs = {
-  input: ApiFacetRebalanceInput;
+export type ApiListingMutationRecommendationPlacementPolicySetEnabledArgs = {
+  input: ApiRecommendationPlacementPolicySetEnabledInput;
 };
 
-
-export type ApiListingMutationFacetScopesUpdateArgs = {
-  input: ApiFacetScopesUpdateInput;
-};
-
-
-export type ApiListingMutationFacetSwatchCreateArgs = {
-  input: ApiFacetSwatchCreateInput;
-};
-
-
-export type ApiListingMutationFacetSwatchDeleteArgs = {
-  input: ApiFacetSwatchDeleteInput;
-};
-
-
-export type ApiListingMutationFacetSwatchUpdateArgs = {
-  input: ApiFacetSwatchUpdateInput;
-};
-
-
-export type ApiListingMutationFacetUpdateArgs = {
-  input: ApiFacetUpdateInput;
-};
-
-
-export type ApiListingMutationFacetValueCreateArgs = {
-  input: ApiFacetValueCreateInput;
-};
-
-
-export type ApiListingMutationFacetValueDeleteArgs = {
-  input: ApiFacetValueDeleteInput;
-};
-
-
-export type ApiListingMutationFacetValueMergeArgs = {
-  input: ApiFacetValueMergeInput;
-};
-
-
-export type ApiListingMutationFacetValueUnmergeArgs = {
-  input: ApiFacetValueUnmergeInput;
-};
-
-
-export type ApiListingMutationFacetValueUpdateArgs = {
-  input: ApiFacetValueUpdateInput;
+export type ApiListingMutationRecommendationPlacementPolicyUpsertArgs = {
+  input: ApiRecommendationPlacementPolicyUpsertInput;
 };
 
 export type ApiListingOrderByInput = {
@@ -8982,6 +9223,8 @@ export type ApiListingProductFilter = {
   productFacet?: InputMaybe<ApiListingFacetValueFilter>;
   /** Filter by product vendor. */
   productVendor?: InputMaybe<Scalars['String']['input']>;
+  /** Filter by indexed product status. */
+  statuses?: InputMaybe<Array<ListingProductStatus>>;
   /** Filter by product tag. */
   tag?: InputMaybe<Scalars['String']['input']>;
   /** Filter by variant-level listing facet value. */
@@ -8990,115 +9233,41 @@ export type ApiListingProductFilter = {
   variantOption?: InputMaybe<ApiListingVariantOptionFilter>;
 };
 
+export type ListingProductStatus = 'DRAFT' | 'PUBLISHED';
+
 export type ApiListingQuery = {
   __typename?: 'ListingQuery';
-  /** Get a facet by ID. */
-  facet?: Maybe<ApiFacet>;
-  /** Get available facet source candidates for create flow. */
-  facetSourceCandidates: ApiFacetSourceCandidateConnection;
-  /** Get a facet swatch by ID. */
-  facetSwatch?: Maybe<ApiFacetSwatch>;
-  /** Get all facet swatches. */
-  facetSwatches: Array<ApiFacetSwatch>;
-  /** Get a facet value by ID. */
-  facetValue?: Maybe<ApiFacetValue>;
-  /** Get available facet source value candidates for create and edit flows. */
-  facetValueCandidates: ApiFacetValueCandidateConnection;
-  /** Get all facet values for a specific facet. */
-  facetValues: Array<ApiFacetValue>;
-  /** Get all facets. */
-  facets: Array<ApiFacet>;
-  /**
-   * Get ordered listing structure for Admin.
-   *
-   * Listing service returns listing-owned order, pagination, counts, aggregates,
-   * and canonical entity references only. Entity details are resolved by owning
-   * subgraphs through federation.
-   */
-  listing: ApiListingConnection;
-  /** Get a node by its global ID. */
-  node?: Maybe<ApiNode>;
-  /** Get multiple nodes by their global IDs. */
-  nodes: Array<Maybe<ApiNode>>;
-  /** Search configuration and diagnostics namespace. */
-  search: ApiListingSearchQuery;
+  manualProductRecommendations: ApiManualProductRecommendationConnection;
+  recommendationPlacementPolicies: Array<ApiRecommendationPlacementPolicy>;
+  recommendationPlacementPolicy?: Maybe<ApiRecommendationPlacementPolicy>;
+  recommendationSnapshotPreview: ApiRecommendationSnapshotPreviewPayload;
 };
 
-
-export type ApiListingQueryFacetArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiListingQueryFacetSourceCandidatesArgs = {
+export type ApiListingQueryManualProductRecommendationsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
+  anchorProductId: Scalars['ID']['input'];
   first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  orderBy?: InputMaybe<Array<ApiFacetSourceCandidateOrderByInput>>;
-  where?: InputMaybe<ApiFacetSourceCandidateWhereInput>;
+  placement: RecommendationPlacement;
 };
 
-
-export type ApiListingQueryFacetSwatchArgs = {
-  id: Scalars['ID']['input'];
+export type ApiListingQueryRecommendationPlacementPolicyArgs = {
+  placement: RecommendationPlacement;
 };
 
-
-export type ApiListingQueryFacetValueArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiListingQueryFacetValueCandidatesArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  meta: ApiFacetValueCandidatesMetaInput;
-  orderBy?: InputMaybe<Array<ApiFacetValueCandidateOrderByInput>>;
-  where?: InputMaybe<ApiFacetValueCandidateWhereInput>;
-};
-
-
-export type ApiListingQueryFacetValuesArgs = {
-  facetId: Scalars['ID']['input'];
-};
-
-
-export type ApiListingQueryListingArgs = {
-  after?: InputMaybe<Scalars['String']['input']>;
-  before?: InputMaybe<Scalars['String']['input']>;
-  currency?: InputMaybe<CurrencyCode>;
-  facets?: InputMaybe<Array<ApiListingProductFilter>>;
-  first?: InputMaybe<Scalars['Int']['input']>;
-  last?: InputMaybe<Scalars['Int']['input']>;
-  locale?: InputMaybe<LocaleCode>;
-  orderBy?: InputMaybe<ApiListingOrderByInput>;
-  query?: InputMaybe<Scalars['String']['input']>;
-  scope?: InputMaybe<ApiListingScopeInput>;
-};
-
-
-export type ApiListingQueryNodeArgs = {
-  id: Scalars['ID']['input'];
-};
-
-
-export type ApiListingQueryNodesArgs = {
-  ids: Array<Scalars['ID']['input']>;
+export type ApiListingQueryRecommendationSnapshotPreviewArgs = {
+  input: ApiRecommendationSnapshotPreviewInput;
 };
 
 export type ApiListingScopeInput = {
   /** Category global ID. Required for CATEGORY and forbidden for GLOBAL. */
   categoryId?: InputMaybe<Scalars['ID']['input']>;
+  /** Collection global ID. Required for COLLECTION. */
+  collectionId?: InputMaybe<Scalars['ID']['input']>;
   /** Scope kind for the listing request. */
   kind: ListingScopeKind;
 };
 
-export type ListingScopeKind =
-  | 'CATEGORY'
-  | 'GLOBAL';
+export type ListingScopeKind = 'CATEGORY' | 'COLLECTION' | 'GLOBAL';
 
 export type ApiListingSearchMutation = {
   __typename?: 'ListingSearchMutation';
@@ -9112,37 +9281,30 @@ export type ApiListingSearchMutation = {
   synonymGroupUpdate: ApiSearchSynonymGroupPayload;
 };
 
-
 export type ApiListingSearchMutationProductBoostCreateArgs = {
   input: ApiSearchProductBoostCreateInput;
 };
-
 
 export type ApiListingSearchMutationProductBoostDeleteArgs = {
   input: ApiSearchConfigurationDeleteInput;
 };
 
-
 export type ApiListingSearchMutationProductBoostUpdateArgs = {
   input: ApiSearchProductBoostUpdateInput;
 };
-
 
 export type ApiListingSearchMutationSettingsUpdateArgs = {
   expectedVersion: Scalars['Int']['input'];
   operations: ApiSearchSettingsOperationsInput;
 };
 
-
 export type ApiListingSearchMutationSynonymGroupCreateArgs = {
   input: ApiSearchSynonymGroupCreateInput;
 };
 
-
 export type ApiListingSearchMutationSynonymGroupDeleteArgs = {
   input: ApiSearchConfigurationDeleteInput;
 };
-
 
 export type ApiListingSearchMutationSynonymGroupUpdateArgs = {
   input: ApiSearchSynonymGroupUpdateInput;
@@ -9160,17 +9322,14 @@ export type ApiListingSearchQuery = {
   synonymGroups: ApiSearchSynonymGroupConnection;
 };
 
-
 export type ApiListingSearchQueryExplainArgs = {
   locale: LocaleCode;
   query: Scalars['String']['input'];
 };
 
-
 export type ApiListingSearchQueryProductBoostArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiListingSearchQueryProductBoostsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -9182,11 +9341,9 @@ export type ApiListingSearchQueryProductBoostsArgs = {
   where?: InputMaybe<ApiSearchProductBoostWhereInput>;
 };
 
-
 export type ApiListingSearchQuerySynonymGroupArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiListingSearchQuerySynonymGroupsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -9197,17 +9354,9 @@ export type ApiListingSearchQuerySynonymGroupsArgs = {
   where?: InputMaybe<ApiSearchSynonymGroupWhereInput>;
 };
 
-export type ListingSortBy =
-  | 'CREATED'
-  | 'MANUAL'
-  | 'NAME'
-  | 'NEWEST'
-  | 'PRICE'
-  | 'RELEVANCE';
+export type ListingSortBy = 'CREATED' | 'MANUAL' | 'NAME' | 'NEWEST' | 'PRICE' | 'RELEVANCE';
 
-export type ListingSortDirection =
-  | 'asc'
-  | 'desc';
+export type ListingSortDirection = 'asc' | 'desc';
 
 export type ApiListingVariantOptionFilter = {
   /** Variant option name. */
@@ -9572,21 +9721,17 @@ export type ApiLoyaltyAccount = ApiNode & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-
 export type ApiLoyaltyAccountExpiringPointsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiLoyaltyAccountRewardEntitlementsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiLoyaltyAccountTierMembershipsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiLoyaltyAccountTransactionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -9635,11 +9780,7 @@ export type ApiLoyaltyAccountEdge = {
   node: ApiLoyaltyAccount;
 };
 
-export type LoyaltyAccountStatus =
-  | 'ACTIVE'
-  | 'CLOSED'
-  | 'MERGED'
-  | 'SUSPENDED';
+export type LoyaltyAccountStatus = 'ACTIVE' | 'CLOSED' | 'MERGED' | 'SUSPENDED';
 
 export type ApiLoyaltyAccountStatusUpdateInput = {
   accountId: Scalars['ID']['input'];
@@ -9665,17 +9806,9 @@ export type ApiLoyaltyAccountWhereInput = {
   tierIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
-export type LoyaltyActorType =
-  | 'ADMIN_USER'
-  | 'CUSTOMER'
-  | 'SERVICE'
-  | 'SYSTEM';
+export type LoyaltyActorType = 'ADMIN_USER' | 'CUSTOMER' | 'SERVICE' | 'SYSTEM';
 
-export type LoyaltyBalanceBucket =
-  | 'AVAILABLE'
-  | 'DEBT'
-  | 'PENDING'
-  | 'RESERVED';
+export type LoyaltyBalanceBucket = 'AVAILABLE' | 'DEBT' | 'PENDING' | 'RESERVED';
 
 export type ApiLoyaltyCatalogSelector = {
   __typename?: 'LoyaltyCatalogSelector';
@@ -9690,17 +9823,9 @@ export type ApiLoyaltyCatalogSelectorInput = {
 };
 
 export type LoyaltyCatalogSelectorType =
-  | 'ALL'
-  | 'CATEGORY'
-  | 'FEATURE'
-  | 'OPTION_VALUE'
-  | 'PRODUCT'
-  | 'TAG'
-  | 'VARIANT';
+  'ALL' | 'CATEGORY' | 'FEATURE' | 'OPTION_VALUE' | 'PRODUCT' | 'TAG' | 'VARIANT';
 
-export type LoyaltyDebtPolicy =
-  | 'REJECT_REVERSAL'
-  | 'TRACK_DEBT';
+export type LoyaltyDebtPolicy = 'REJECT_REVERSAL' | 'TRACK_DEBT';
 
 export type ApiLoyaltyDeletePayload = {
   __typename?: 'LoyaltyDeletePayload';
@@ -9856,9 +9981,7 @@ export type LoyaltyEarningTriggerType =
   | 'SIGNUP'
   | 'SUBSCRIPTION_RENEWAL';
 
-export type LoyaltyEligibleSpendBasis =
-  | 'AFTER_ALL_DISCOUNTS'
-  | 'AFTER_PRODUCT_DISCOUNTS';
+export type LoyaltyEligibleSpendBasis = 'AFTER_ALL_DISCOUNTS' | 'AFTER_PRODUCT_DISCOUNTS';
 
 export type ApiLoyaltyEventEvaluation = ApiNode & {
   __typename?: 'LoyaltyEventEvaluation';
@@ -9877,11 +10000,7 @@ export type ApiLoyaltyEventEvaluation = ApiNode & {
 };
 
 export type LoyaltyEventEvaluationDecision =
-  | 'AWARDED'
-  | 'BUDGET_EXHAUSTED'
-  | 'IGNORED'
-  | 'INELIGIBLE'
-  | 'LIMIT_REACHED';
+  'AWARDED' | 'BUDGET_EXHAUSTED' | 'IGNORED' | 'INELIGIBLE' | 'LIMIT_REACHED';
 
 export type ApiLoyaltyEventEvaluationWhereInput = {
   accountId?: InputMaybe<Scalars['ID']['input']>;
@@ -9944,11 +10063,7 @@ export type ApiLoyaltyLotAllocation = ApiNode & {
   transaction: ApiLoyaltyTransaction;
 };
 
-export type LoyaltyLotAllocationType =
-  | 'EXPIRE'
-  | 'MERGE'
-  | 'REDEEM'
-  | 'REVERSE';
+export type LoyaltyLotAllocationType = 'EXPIRE' | 'MERGE' | 'REDEEM' | 'REVERSE';
 
 export type ApiLoyaltyMaintenanceResult = {
   __typename?: 'LoyaltyMaintenanceResult';
@@ -9961,6 +10076,8 @@ export type ApiLoyaltyMaintenanceResult = {
   expiredReservations: Scalars['Int']['output'];
   expiredRewards: Scalars['Int']['output'];
   rebuiltBalances: Scalars['Int']['output'];
+  reconciledProgramVersions: Scalars['Int']['output'];
+  staleProgramVersions: Scalars['Int']['output'];
 };
 
 export type ApiLoyaltyMaintenanceRunInput = {
@@ -9976,20 +10093,11 @@ export type ApiLoyaltyMaintenanceRunPayload = {
   userErrors: Array<ApiLoyaltyUserError>;
 };
 
-export type LoyaltyModifierStackingMode =
-  | 'ADD'
-  | 'HIGHEST'
-  | 'MULTIPLY';
+export type LoyaltyModifierStackingMode = 'ADD' | 'HIGHEST' | 'MULTIPLY';
 
-export type LoyaltyMonetaryAdjustmentDirection =
-  | 'CREDIT'
-  | 'DEBIT';
+export type LoyaltyMonetaryAdjustmentDirection = 'CREDIT' | 'DEBIT';
 
-export type LoyaltyMonetaryBalanceBucket =
-  | 'AVAILABLE'
-  | 'DEBT'
-  | 'PENDING'
-  | 'RESERVED';
+export type LoyaltyMonetaryBalanceBucket = 'AVAILABLE' | 'DEBT' | 'PENDING' | 'RESERVED';
 
 export type ApiLoyaltyMonetaryCreditLot = ApiNode & {
   __typename?: 'LoyaltyMonetaryCreditLot';
@@ -10078,7 +10186,6 @@ export type ApiLoyaltyMonetaryWallet = ApiNode & {
   walletType: LoyaltyMonetaryWalletType;
 };
 
-
 export type ApiLoyaltyMonetaryWalletTransactionsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
 };
@@ -10123,11 +10230,7 @@ export type ApiLoyaltyMonetaryWalletPayload = {
   userErrors: Array<ApiLoyaltyUserError>;
 };
 
-export type LoyaltyMonetaryWalletStatus =
-  | 'ACTIVE'
-  | 'CLOSED'
-  | 'MERGED'
-  | 'SUSPENDED';
+export type LoyaltyMonetaryWalletStatus = 'ACTIVE' | 'CLOSED' | 'MERGED' | 'SUSPENDED';
 
 export type ApiLoyaltyMonetaryWalletStatusUpdateInput = {
   expectedRevision: Scalars['Int']['input'];
@@ -10137,9 +10240,7 @@ export type ApiLoyaltyMonetaryWalletStatusUpdateInput = {
   walletId: Scalars['ID']['input'];
 };
 
-export type LoyaltyMonetaryWalletType =
-  | 'CASHBACK'
-  | 'STORE_CREDIT';
+export type LoyaltyMonetaryWalletType = 'CASHBACK' | 'STORE_CREDIT';
 
 export type ApiLoyaltyMonetaryWalletWhereInput = {
   accountIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -10191,166 +10292,133 @@ export type ApiLoyaltyMutation = {
   tierUpdate: ApiLoyaltyTierPayload;
 };
 
-
 export type ApiLoyaltyMutationAccountBalanceRebuildArgs = {
   input: ApiLoyaltyAccountBalanceRebuildInput;
 };
-
 
 export type ApiLoyaltyMutationAccountStatusUpdateArgs = {
   input: ApiLoyaltyAccountStatusUpdateInput;
 };
 
-
 export type ApiLoyaltyMutationEarningRuleCreateArgs = {
   input: ApiLoyaltyEarningRuleCreateInput;
 };
-
 
 export type ApiLoyaltyMutationEarningRuleDeleteArgs = {
   input: ApiLoyaltyEarningRuleDeleteInput;
 };
 
-
 export type ApiLoyaltyMutationEarningRuleUpdateArgs = {
   input: ApiLoyaltyEarningRuleUpdateInput;
 };
-
 
 export type ApiLoyaltyMutationMaintenanceRunArgs = {
   input: ApiLoyaltyMaintenanceRunInput;
 };
 
-
 export type ApiLoyaltyMutationMonetaryWalletAdjustArgs = {
   input: ApiLoyaltyMonetaryWalletAdjustInput;
 };
-
 
 export type ApiLoyaltyMutationMonetaryWalletBalanceRebuildArgs = {
   input: ApiLoyaltyMonetaryWalletBalanceRebuildInput;
 };
 
-
 export type ApiLoyaltyMutationMonetaryWalletStatusUpdateArgs = {
   input: ApiLoyaltyMonetaryWalletStatusUpdateInput;
 };
-
 
 export type ApiLoyaltyMutationPointsAdjustArgs = {
   input: ApiLoyaltyPointsAdjustInput;
 };
 
-
 export type ApiLoyaltyMutationPointsConvertToMonetaryArgs = {
   input: ApiLoyaltyPointsConvertToMonetaryInput;
 };
-
 
 export type ApiLoyaltyMutationProgramCreateArgs = {
   input: ApiLoyaltyProgramCreateInput;
 };
 
-
 export type ApiLoyaltyMutationProgramUpdateArgs = {
   input: ApiLoyaltyProgramUpdateInput;
 };
-
 
 export type ApiLoyaltyMutationProgramVersionCreateArgs = {
   input: ApiLoyaltyProgramVersionCreateInput;
 };
 
-
 export type ApiLoyaltyMutationProgramVersionDeleteArgs = {
   input: ApiLoyaltyProgramVersionDeleteInput;
 };
-
 
 export type ApiLoyaltyMutationProgramVersionPublishArgs = {
   input: ApiLoyaltyProgramVersionPublishInput;
 };
 
-
 export type ApiLoyaltyMutationProgramVersionUpdateArgs = {
   input: ApiLoyaltyProgramVersionUpdateInput;
 };
-
 
 export type ApiLoyaltyMutationReservationReleaseArgs = {
   input: ApiLoyaltyReservationReleaseInput;
 };
 
-
 export type ApiLoyaltyMutationRewardDefinitionCreateArgs = {
   input: ApiLoyaltyRewardDefinitionCreateInput;
 };
-
 
 export type ApiLoyaltyMutationRewardDefinitionDeleteArgs = {
   input: ApiLoyaltyRewardDefinitionDeleteInput;
 };
 
-
 export type ApiLoyaltyMutationRewardDefinitionUpdateArgs = {
   input: ApiLoyaltyRewardDefinitionUpdateInput;
 };
-
 
 export type ApiLoyaltyMutationRewardEntitlementIssueArgs = {
   input: ApiLoyaltyRewardEntitlementIssueInput;
 };
 
-
 export type ApiLoyaltyMutationRewardEntitlementReleaseArgs = {
   input: ApiLoyaltyRewardEntitlementTransitionInput;
 };
-
 
 export type ApiLoyaltyMutationRewardEntitlementRevokeArgs = {
   input: ApiLoyaltyRewardEntitlementTransitionInput;
 };
 
-
 export type ApiLoyaltyMutationTierCreateArgs = {
   input: ApiLoyaltyTierCreateInput;
 };
-
 
 export type ApiLoyaltyMutationTierDeleteArgs = {
   input: ApiLoyaltyTierDeleteInput;
 };
 
-
 export type ApiLoyaltyMutationTierEvaluateArgs = {
   input: ApiLoyaltyTierEvaluateInput;
 };
-
 
 export type ApiLoyaltyMutationTierMembershipRevokeArgs = {
   input: ApiLoyaltyTierMembershipRevokeInput;
 };
 
-
 export type ApiLoyaltyMutationTierPolicyDeleteArgs = {
   input: ApiLoyaltyTierPolicyDeleteInput;
 };
-
 
 export type ApiLoyaltyMutationTierPolicyUpsertArgs = {
   input: ApiLoyaltyTierPolicyUpsertInput;
 };
 
-
 export type ApiLoyaltyMutationTierRewardBenefitCreateArgs = {
   input: ApiLoyaltyTierRewardBenefitCreateInput;
 };
 
-
 export type ApiLoyaltyMutationTierRewardBenefitDeleteArgs = {
   input: ApiLoyaltyTierRewardBenefitDeleteInput;
 };
-
 
 export type ApiLoyaltyMutationTierUpdateArgs = {
   input: ApiLoyaltyTierUpdateInput;
@@ -10389,9 +10457,7 @@ export type ApiLoyaltyPointsAdjustPayload = {
   userErrors: Array<ApiLoyaltyUserError>;
 };
 
-export type LoyaltyPointsAdjustmentDirection =
-  | 'CREDIT'
-  | 'DEBIT';
+export type LoyaltyPointsAdjustmentDirection = 'CREDIT' | 'DEBIT';
 
 export type ApiLoyaltyPointsConvertToMonetaryInput = {
   accountId: Scalars['ID']['input'];
@@ -10493,9 +10559,7 @@ export type ApiLoyaltyProgramEligibilityInput = {
   type: LoyaltyProgramEligibilityType;
 };
 
-export type LoyaltyProgramEligibilityType =
-  | 'ALL'
-  | 'SEGMENTS';
+export type LoyaltyProgramEligibilityType = 'ALL' | 'SEGMENTS';
 
 export type ApiLoyaltyProgramRules = {
   __typename?: 'LoyaltyProgramRules';
@@ -10510,11 +10574,7 @@ export type ApiLoyaltyProgramRulesInput = {
   schemaVersion?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type LoyaltyProgramStatus =
-  | 'ACTIVE'
-  | 'ARCHIVED'
-  | 'DRAFT'
-  | 'PAUSED';
+export type LoyaltyProgramStatus = 'ACTIVE' | 'ARCHIVED' | 'DRAFT' | 'PAUSED';
 
 export type ApiLoyaltyProgramUpdateInput = {
   expectedRevision: Scalars['Int']['input'];
@@ -10556,6 +10616,8 @@ export type ApiLoyaltyProgramVersion = ApiNode & {
   redeemAmountMinor: Scalars['BigInt']['output'];
   redeemPoints: Scalars['BigInt']['output'];
   redemptionEnabled: Scalars['Boolean']['output'];
+  referenceReconciliationCheckedAt?: Maybe<Scalars['DateTime']['output']>;
+  referenceReconciliationStatus: LoyaltyReferenceReconciliationStatus;
   refundPolicy: LoyaltyRefundPolicy;
   restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy;
   revision: Scalars['Int']['output'];
@@ -10631,11 +10693,7 @@ export type ApiLoyaltyProgramVersionPublishPayload = {
   userErrors: Array<ApiLoyaltyUserError>;
 };
 
-export type LoyaltyProgramVersionStatus =
-  | 'ACTIVE'
-  | 'DRAFT'
-  | 'RETIRED'
-  | 'SCHEDULED';
+export type LoyaltyProgramVersionStatus = 'ACTIVE' | 'DRAFT' | 'RETIRED' | 'SCHEDULED';
 
 export type ApiLoyaltyProgramVersionUpdateInput = {
   activationDelaySeconds?: InputMaybe<Scalars['Int']['input']>;
@@ -10711,11 +10769,9 @@ export type ApiLoyaltyQuery = {
   transactions: ApiLoyaltyTransactionConnection;
 };
 
-
 export type ApiLoyaltyQueryAccountArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryAccountsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -10725,87 +10781,71 @@ export type ApiLoyaltyQueryAccountsArgs = {
   where?: InputMaybe<ApiLoyaltyAccountWhereInput>;
 };
 
-
 export type ApiLoyaltyQueryCustomerAccountArgs = {
   customerId: Scalars['ID']['input'];
   programId?: InputMaybe<Scalars['ID']['input']>;
 };
 
-
 export type ApiLoyaltyQueryEarningRuleArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryEarningRuleUsagesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   where: ApiLoyaltyEarningRuleUsageWhereInput;
 };
 
-
 export type ApiLoyaltyQueryEventEvaluationArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryEventEvaluationsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   where: ApiLoyaltyEventEvaluationWhereInput;
 };
 
-
 export type ApiLoyaltyQueryEventFactArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryEventFactsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   where?: InputMaybe<ApiLoyaltyEventFactWhereInput>;
 };
 
-
 export type ApiLoyaltyQueryMonetaryTransactionArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryMonetaryTransactionsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   walletId: Scalars['ID']['input'];
 };
 
-
 export type ApiLoyaltyQueryMonetaryWalletArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryMonetaryWalletsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   where: ApiLoyaltyMonetaryWalletWhereInput;
 };
 
-
 export type ApiLoyaltyQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
 };
 
-
 export type ApiLoyaltyQueryProgramArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 export type ApiLoyaltyQueryProgramVersionArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryProgramsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -10815,11 +10855,9 @@ export type ApiLoyaltyQueryProgramsArgs = {
   where?: InputMaybe<ApiLoyaltyProgramWhereInput>;
 };
 
-
 export type ApiLoyaltyQueryReservationArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryReservationsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -10829,48 +10867,39 @@ export type ApiLoyaltyQueryReservationsArgs = {
   where?: InputMaybe<ApiLoyaltyReservationWhereInput>;
 };
 
-
 export type ApiLoyaltyQueryRewardDefinitionArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 export type ApiLoyaltyQueryRewardEntitlementArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryRewardEntitlementsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   where: ApiLoyaltyRewardEntitlementWhereInput;
 };
 
-
 export type ApiLoyaltyQueryTierArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 export type ApiLoyaltyQueryTierMembershipArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryTierMembershipsArgs = {
   accountId: Scalars['ID']['input'];
   first?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiLoyaltyQueryTierPolicyArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 export type ApiLoyaltyQueryTransactionArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiLoyaltyQueryTransactionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -10880,15 +10909,20 @@ export type ApiLoyaltyQueryTransactionsArgs = {
   where?: InputMaybe<ApiLoyaltyTransactionWhereInput>;
 };
 
-export type LoyaltyRefundPolicy =
-  | 'FULL_REVERSAL'
-  | 'PROPORTIONAL';
+/**
+ * Whether cross-service references (segments, catalog selectors, Pricing
+ * discounts) carried by a published program version's rules were still
+ * resolvable the last time reconciliation ran. Mutable operational metadata,
+ * separate from the immutable rules snapshot.
+ */
+export type LoyaltyReferenceReconciliationStatus = 'STALE' | 'VALID';
+
+export type LoyaltyRefundPolicy = 'FULL_REVERSAL' | 'PROPORTIONAL';
 
 export type ApiLoyaltyReservation = ApiNode & {
   __typename?: 'LoyaltyReservation';
   account: ApiLoyaltyAccount;
   checkoutId: Scalars['ID']['output'];
-  checkoutVersion: Scalars['Int']['output'];
   committedAt?: Maybe<Scalars['DateTime']['output']>;
   createdAt: Scalars['DateTime']['output'];
   discount: ApiLoyaltyMoney;
@@ -10944,11 +10978,7 @@ export type ApiLoyaltyReservationEvent = ApiNode & {
 };
 
 export type LoyaltyReservationEventType =
-  | 'COMMITTED'
-  | 'CREATED'
-  | 'EXPIRED'
-  | 'RELEASED'
-  | 'REVERSED';
+  'COMMITTED' | 'CREATED' | 'EXPIRED' | 'RELEASED' | 'REVERSED';
 
 export type ApiLoyaltyReservationReleaseInput = {
   expectedRevision: Scalars['Int']['input'];
@@ -10964,12 +10994,7 @@ export type ApiLoyaltyReservationReleasePayload = {
   userErrors: Array<ApiLoyaltyUserError>;
 };
 
-export type LoyaltyReservationStatus =
-  | 'ACTIVE'
-  | 'COMMITTED'
-  | 'EXPIRED'
-  | 'RELEASED'
-  | 'REVERSED';
+export type LoyaltyReservationStatus = 'ACTIVE' | 'COMMITTED' | 'EXPIRED' | 'RELEASED' | 'REVERSED';
 
 export type ApiLoyaltyReservationWhereInput = {
   accountIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -10983,9 +11008,7 @@ export type ApiLoyaltyReservationWhereInput = {
   statuses?: InputMaybe<Array<LoyaltyReservationStatus>>;
 };
 
-export type LoyaltyRestoredPointsExpiryPolicy =
-  | 'ORIGINAL_EXPIRY'
-  | 'RESET_FROM_RESTORE';
+export type LoyaltyRestoredPointsExpiryPolicy = 'ORIGINAL_EXPIRY' | 'RESET_FROM_RESTORE';
 
 export type ApiLoyaltyRewardDefinition = ApiNode & {
   __typename?: 'LoyaltyRewardDefinition';
@@ -11107,12 +11130,7 @@ export type ApiLoyaltyRewardEntitlementEvent = ApiNode & {
 };
 
 export type LoyaltyRewardEntitlementEventType =
-  | 'EXPIRED'
-  | 'ISSUED'
-  | 'REDEEMED'
-  | 'RELEASED'
-  | 'RESERVED'
-  | 'REVOKED';
+  'EXPIRED' | 'ISSUED' | 'REDEEMED' | 'RELEASED' | 'RESERVED' | 'REVOKED';
 
 export type ApiLoyaltyRewardEntitlementIssueInput = {
   accountId: Scalars['ID']['input'];
@@ -11130,11 +11148,7 @@ export type ApiLoyaltyRewardEntitlementPayload = {
 };
 
 export type LoyaltyRewardEntitlementStatus =
-  | 'EXPIRED'
-  | 'ISSUED'
-  | 'REDEEMED'
-  | 'RESERVED'
-  | 'REVOKED';
+  'EXPIRED' | 'ISSUED' | 'REDEEMED' | 'RESERVED' | 'REVOKED';
 
 export type ApiLoyaltyRewardEntitlementTransitionInput = {
   entitlementId: Scalars['ID']['input'];
@@ -11161,14 +11175,9 @@ export type LoyaltyRewardType =
   | 'POINTS'
   | 'VOUCHER';
 
-export type LoyaltyRoundingMode =
-  | 'DOWN'
-  | 'NEAREST'
-  | 'UP';
+export type LoyaltyRoundingMode = 'DOWN' | 'NEAREST' | 'UP';
 
-export type LoyaltySegmentMatchMode =
-  | 'ALL'
-  | 'ANY';
+export type LoyaltySegmentMatchMode = 'ALL' | 'ANY';
 
 export type ApiLoyaltyTier = ApiNode & {
   __typename?: 'LoyaltyTier';
@@ -11184,11 +11193,7 @@ export type ApiLoyaltyTier = ApiNode & {
   rewardBenefits: Array<ApiLoyaltyTierRewardBenefit>;
 };
 
-export type LoyaltyTierCalendarPeriod =
-  | 'MONTH'
-  | 'PROGRAM_YEAR'
-  | 'QUARTER'
-  | 'YEAR';
+export type LoyaltyTierCalendarPeriod = 'MONTH' | 'PROGRAM_YEAR' | 'QUARTER' | 'YEAR';
 
 export type ApiLoyaltyTierCreateInput = {
   code: Scalars['String']['input'];
@@ -11206,10 +11211,7 @@ export type ApiLoyaltyTierDeleteInput = {
   tierId: Scalars['ID']['input'];
 };
 
-export type LoyaltyTierDowngradePolicy =
-  | 'END_OF_MEMBERSHIP'
-  | 'GRACE_PERIOD'
-  | 'IMMEDIATE';
+export type LoyaltyTierDowngradePolicy = 'END_OF_MEMBERSHIP' | 'GRACE_PERIOD' | 'IMMEDIATE';
 
 export type ApiLoyaltyTierEvaluateInput = {
   accountId: Scalars['ID']['input'];
@@ -11226,10 +11228,7 @@ export type ApiLoyaltyTierEvaluatePayload = {
   userErrors: Array<ApiLoyaltyUserError>;
 };
 
-export type LoyaltyTierEvaluationWindowType =
-  | 'CALENDAR'
-  | 'LIFETIME'
-  | 'ROLLING';
+export type LoyaltyTierEvaluationWindowType = 'CALENDAR' | 'LIFETIME' | 'ROLLING';
 
 export type ApiLoyaltyTierInput = {
   code: Scalars['String']['input'];
@@ -11273,12 +11272,7 @@ export type ApiLoyaltyTierMembershipEvent = ApiNode & {
 };
 
 export type LoyaltyTierMembershipEventType =
-  | 'DOWNGRADED'
-  | 'EXPIRED'
-  | 'QUALIFIED'
-  | 'RENEWED'
-  | 'REVOKED'
-  | 'UPGRADED';
+  'DOWNGRADED' | 'EXPIRED' | 'QUALIFIED' | 'RENEWED' | 'REVOKED' | 'UPGRADED';
 
 export type ApiLoyaltyTierMembershipRevokeInput = {
   effectiveAt?: InputMaybe<Scalars['DateTime']['input']>;
@@ -11288,10 +11282,7 @@ export type ApiLoyaltyTierMembershipRevokeInput = {
   reasonCode: Scalars['String']['input'];
 };
 
-export type LoyaltyTierMembershipStatus =
-  | 'ACTIVE'
-  | 'EXPIRED'
-  | 'REVOKED';
+export type LoyaltyTierMembershipStatus = 'ACTIVE' | 'EXPIRED' | 'REVOKED';
 
 export type ApiLoyaltyTierPayload = {
   __typename?: 'LoyaltyTierPayload';
@@ -11352,9 +11343,7 @@ export type ApiLoyaltyTierPolicyUpsertInput = {
   windowType: LoyaltyTierEvaluationWindowType;
 };
 
-export type LoyaltyTierRequalificationPolicy =
-  | 'AUTOMATIC'
-  | 'MANUAL';
+export type LoyaltyTierRequalificationPolicy = 'AUTOMATIC' | 'MANUAL';
 
 export type ApiLoyaltyTierRewardBenefit = ApiNode & {
   __typename?: 'LoyaltyTierRewardBenefit';
@@ -11452,14 +11441,7 @@ export type LoyaltyTransactionKind =
   | 'REVERSE_EARN';
 
 export type LoyaltyTransactionSource =
-  | 'ADMIN'
-  | 'CHECKOUT'
-  | 'EXPIRATION'
-  | 'IMPORT'
-  | 'MERGE'
-  | 'ORDER'
-  | 'REFUND'
-  | 'SYSTEM';
+  'ADMIN' | 'CHECKOUT' | 'EXPIRATION' | 'IMPORT' | 'MERGE' | 'ORDER' | 'REFUND' | 'SYSTEM';
 
 export type ApiLoyaltyTransactionWhereInput = {
   accountIds?: InputMaybe<Array<Scalars['ID']['input']>>;
@@ -11480,6 +11462,114 @@ export type ApiLoyaltyUserError = ApiUserError & {
   field?: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
   retryable: Scalars['Boolean']['output'];
+};
+
+export type ApiManualProductRecommendation = ApiNode & {
+  __typename?: 'ManualProductRecommendation';
+  action: ManualRecommendationAction;
+  anchorProduct: ApiProduct;
+  anchorReferenceStatus: RecommendationReferenceStatus;
+  boost?: Maybe<Scalars['String']['output']>;
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  endsAt?: Maybe<Scalars['DateTime']['output']>;
+  id: Scalars['ID']['output'];
+  placement: RecommendationPlacement;
+  position?: Maybe<Scalars['Int']['output']>;
+  startsAt?: Maybe<Scalars['DateTime']['output']>;
+  targetProduct: ApiProduct;
+  targetReferenceStatus: RecommendationReferenceStatus;
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiManualProductRecommendationConnection = {
+  __typename?: 'ManualProductRecommendationConnection';
+  edges: Array<ApiManualProductRecommendationEdge>;
+  nodes: Array<ApiManualProductRecommendation>;
+  pageInfo: ApiPageInfo;
+};
+
+export type ApiManualProductRecommendationCreateInput = {
+  action: ManualRecommendationAction;
+  anchorProductId: Scalars['ID']['input'];
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled: Scalars['Boolean']['input'];
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  placement: RecommendationPlacement;
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId: Scalars['ID']['input'];
+};
+
+export type ApiManualProductRecommendationDeleteInput = {
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ApiManualProductRecommendationDeletePayload = {
+  __typename?: 'ManualProductRecommendationDeletePayload';
+  deletedId?: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiManualProductRecommendationEdge = {
+  __typename?: 'ManualProductRecommendationEdge';
+  cursor: Scalars['String']['output'];
+  node: ApiManualProductRecommendation;
+};
+
+export type ApiManualProductRecommendationPayload = {
+  __typename?: 'ManualProductRecommendationPayload';
+  recommendation?: Maybe<ApiManualProductRecommendation>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiManualProductRecommendationUpdateInput = {
+  action?: InputMaybe<ManualRecommendationAction>;
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ManualRecommendationAction = 'BOOST' | 'EXCLUDE' | 'PIN';
+
+export type ApiManualRecommendationDraftChangeInput = {
+  create?: InputMaybe<ApiManualRecommendationDraftCreateInput>;
+  delete?: InputMaybe<ApiManualRecommendationDraftDeleteInput>;
+  update?: InputMaybe<ApiManualRecommendationDraftUpdateInput>;
+};
+
+export type ApiManualRecommendationDraftCreateInput = {
+  action: ManualRecommendationAction;
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled: Scalars['Boolean']['input'];
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId: Scalars['ID']['input'];
+};
+
+export type ApiManualRecommendationDraftDeleteInput = {
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+};
+
+export type ApiManualRecommendationDraftUpdateInput = {
+  action?: InputMaybe<ManualRecommendationAction>;
+  boost?: InputMaybe<Scalars['String']['input']>;
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  endsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  expectedVersion: Scalars['Int']['input'];
+  id: Scalars['ID']['input'];
+  position?: InputMaybe<Scalars['Int']['input']>;
+  startsAt?: InputMaybe<Scalars['DateTime']['input']>;
+  targetProductId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 /** Image/video dimensions. */
@@ -11525,124 +11615,100 @@ export type ApiMediaMutation = {
   mediaSourceUpdate: ApiMediaSourcePayload;
 };
 
-
 export type ApiMediaMutationAvatarUploadArgs = {
   input: ApiAvatarUploadInput;
 };
-
 
 export type ApiMediaMutationBucketCreateArgs = {
   input: ApiBucketCreateInput;
 };
 
-
 export type ApiMediaMutationCdnConfigurationCreateArgs = {
   input: ApiCdnConfigurationCreateInput;
 };
-
 
 export type ApiMediaMutationCdnConfigurationDeleteArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 export type ApiMediaMutationCdnConfigurationSetDefaultArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiMediaMutationCdnConfigurationTestArgs = {
   input: ApiCdnConfigurationTestInput;
 };
 
-
 export type ApiMediaMutationCdnConfigurationUpdateArgs = {
   input: ApiCdnConfigurationUpdateInput;
 };
-
 
 export type ApiMediaMutationCdnRoutingRuleCreateArgs = {
   input: ApiCdnRoutingRuleCreateInput;
 };
 
-
 export type ApiMediaMutationCdnRoutingRuleDeleteArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiMediaMutationCdnRoutingRuleUpdateArgs = {
   input: ApiCdnRoutingRuleUpdateInput;
 };
 
-
 export type ApiMediaMutationFileClearErrorArgs = {
   input: ApiFileClearErrorInput;
 };
-
 
 export type ApiMediaMutationFileCreateExternalArgs = {
   input: ApiFileCreateExternalInput;
 };
 
-
 export type ApiMediaMutationFileDeleteArgs = {
   input: ApiFileDeleteInput;
 };
-
 
 export type ApiMediaMutationFileDeleteManyArgs = {
   input: ApiFileDeleteManyInput;
 };
 
-
 export type ApiMediaMutationFileRestoreArgs = {
   input: ApiFileRestoreInput;
 };
-
 
 export type ApiMediaMutationFileRestoreManyArgs = {
   input: ApiFileRestoreManyInput;
 };
 
-
 export type ApiMediaMutationFileUpdateArgs = {
   input: ApiFileUpdateInput;
 };
-
 
 export type ApiMediaMutationFileUploadArgs = {
   input: ApiFileUploadMultipartInput;
 };
 
-
 export type ApiMediaMutationFileUploadFromUrlArgs = {
   input: ApiFileUploadFromUrlInput;
 };
-
 
 export type ApiMediaMutationMediaSourceCreateArgs = {
   input: ApiMediaSourceCreateInput;
 };
 
-
 export type ApiMediaMutationMediaSourceDeleteArgs = {
   input: ApiMediaSourceDeleteInput;
 };
-
 
 export type ApiMediaMutationMediaSourceUpdateArgs = {
   input: ApiMediaSourceUpdateInput;
 };
 
-export type MediaProcessingStatus =
-  | 'FAILED'
-  | 'PENDING'
-  | 'PROCESSING'
-  | 'READY';
+export type MediaProcessingStatus = 'FAILED' | 'PENDING' | 'PROCESSING' | 'READY';
 
 export type ApiMediaQuery = {
   __typename?: 'MediaQuery';
+  /** Which transformStrategy/signingMode keys are actually registered and usable. */
+  cdnAdapterCapabilities: ApiCdnAdapterCapabilities;
   /** Resolve and inspect the CDN route for a current-store file. */
   cdnDeliveryPreview: ApiCdnDeliveryPreview;
   /** Get a file by ID */
@@ -11660,7 +11726,6 @@ export type ApiMediaQuery = {
   nodes: Array<Maybe<ApiNode>>;
 };
 
-
 export type ApiMediaQueryCdnDeliveryPreviewArgs = {
   configurationId?: InputMaybe<Scalars['ID']['input']>;
   country?: InputMaybe<Scalars['String']['input']>;
@@ -11668,11 +11733,9 @@ export type ApiMediaQueryCdnDeliveryPreviewArgs = {
   transform?: InputMaybe<ApiImageTransformInput>;
 };
 
-
 export type ApiMediaQueryFileArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiMediaQueryFilesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -11684,11 +11747,9 @@ export type ApiMediaQueryFilesArgs = {
   where?: InputMaybe<ApiFileWhereInput>;
 };
 
-
 export type ApiMediaQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 export type ApiMediaQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
@@ -11743,12 +11804,7 @@ export type ApiMediaSourceUpdateInput = {
   sourceFileId: Scalars['ID']['input'];
 };
 
-export type MediaType =
-  | 'EXTERNAL_VIDEO'
-  | 'GENERIC_FILE'
-  | 'IMAGE'
-  | 'MODEL_3D'
-  | 'VIDEO';
+export type MediaType = 'EXTERNAL_VIDEO' | 'GENERIC_FILE' | 'IMAGE' | 'MODEL_3D' | 'VIDEO';
 
 /**
  * Member with role assignment.
@@ -11857,6 +11913,27 @@ export type ApiMembership = {
   roles: Array<ApiRole>;
 };
 
+/**
+ * Exact monetary value.
+ *
+ * amount is an arbitrary-precision decimal string at the GraphQL boundary.
+ */
+export type ApiMoney = {
+  __typename?: 'Money';
+  /** Exact decimal amount serialized as a string. */
+  amount: Scalars['Decimal']['output'];
+  /** ISO 4217 currency code. */
+  currencyCode: CurrencyCode;
+};
+
+/** Validated input for money. Tenant identifiers come only from trusted context. */
+export type ApiMoneyInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: Scalars['Decimal']['input'];
+  /** ISO 4217 currency code. */
+  currencyCode: CurrencyCode;
+};
+
 export type ApiMutation = {
   __typename?: 'Mutation';
   /** Application realm management mutations. */
@@ -11881,6 +11958,8 @@ export type ApiMutation = {
   notificationsMutation: ApiNotificationsMutation;
   /** Online Store content mutation namespace. */
   onlineStoreAppMutation: ApiOnlineStoreAppMutation;
+  /** Entry point for all store-scoped Orders Admin commands. */
+  ordersMutation: ApiOrdersMutation;
   /** Organization management mutations. */
   organizationMutation: ApiOrganizationMutation;
   /** Pricing Admin mutation namespace. */
@@ -11902,14 +11981,9 @@ export type ApiNode = {
   id: Scalars['ID']['output'];
 };
 
-export type NotificationAudience =
-  | 'CUSTOMER'
-  | 'STAFF';
+export type NotificationAudience = 'CUSTOMER' | 'STAFF';
 
-export type NotificationChannel =
-  | 'EMAIL'
-  | 'SMS'
-  | 'WEBHOOK';
+export type NotificationChannel = 'EMAIL' | 'SMS' | 'WEBHOOK';
 
 export type ApiNotificationChannelSetEnabledPayload = {
   __typename?: 'NotificationChannelSetEnabledPayload';
@@ -12066,10 +12140,7 @@ export type ApiNotificationTestMessageInput = {
   userId?: InputMaybe<Scalars['ID']['input']>;
 };
 
-export type NotificationWebhookApiStability =
-  | 'DEPRECATED'
-  | 'STABLE'
-  | 'UNSTABLE';
+export type NotificationWebhookApiStability = 'DEPRECATED' | 'STABLE' | 'UNSTABLE';
 
 export type ApiNotificationWebhookApiVersion = {
   __typename?: 'NotificationWebhookApiVersion';
@@ -12113,9 +12184,7 @@ export type ApiNotificationWebhookEvent = {
   title: Scalars['String']['output'];
 };
 
-export type NotificationWebhookFormat =
-  | 'JSON'
-  | 'XML';
+export type NotificationWebhookFormat = 'JSON' | 'XML';
 
 export type ApiNotificationWebhookSecretPayload = {
   __typename?: 'NotificationWebhookSecretPayload';
@@ -12123,9 +12192,7 @@ export type ApiNotificationWebhookSecretPayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type NotificationWebhookStatus =
-  | 'ACTIVE'
-  | 'DISABLED';
+export type NotificationWebhookStatus = 'ACTIVE' | 'DISABLED';
 
 export type ApiNotificationWebhookSubscription = {
   __typename?: 'NotificationWebhookSubscription';
@@ -12177,51 +12244,41 @@ export type ApiNotificationsMutation = {
   upsertStaffRecipient: ApiStaffRecipientUpsertPayload;
 };
 
-
 export type ApiNotificationsMutationCreateWebhookArgs = {
   input: ApiNotificationWebhookCreateInput;
 };
-
 
 export type ApiNotificationsMutationDeleteStaffRecipientArgs = {
   input: ApiStaffRecipientDeleteInput;
 };
 
-
 export type ApiNotificationsMutationDeleteWebhookArgs = {
   input: ApiNotificationWebhookDeleteInput;
 };
-
 
 export type ApiNotificationsMutationPreviewArgs = {
   input: ApiNotificationPreviewInput;
 };
 
-
 export type ApiNotificationsMutationSendTestArgs = {
   input: ApiNotificationTestMessageInput;
 };
-
 
 export type ApiNotificationsMutationSetChannelEnabledArgs = {
   input: ApiNotificationChannelSettingInput;
 };
 
-
 export type ApiNotificationsMutationSetDefinitionEnabledArgs = {
   input: ApiNotificationDefinitionSetEnabledInput;
 };
-
 
 export type ApiNotificationsMutationUpdateTemplateArgs = {
   input: ApiNotificationTemplateUpdateInput;
 };
 
-
 export type ApiNotificationsMutationUpdateWebhookArgs = {
   input: ApiNotificationWebhookUpdateInput;
 };
-
 
 export type ApiNotificationsMutationUpsertStaffRecipientArgs = {
   input: ApiStaffNotificationRecipientInput;
@@ -12237,11 +12294,9 @@ export type ApiNotificationsQuery = {
   webhookSubscriptions: Array<ApiNotificationWebhookSubscription>;
 };
 
-
 export type ApiNotificationsQueryChannelSettingsArgs = {
   key: Scalars['String']['input'];
 };
-
 
 export type ApiNotificationsQueryTemplateArgs = {
   channel: NotificationChannel;
@@ -12263,54 +12318,45 @@ export type ApiOnlineStoreAppMutation = {
   pageUpdate: ApiOnlineStorePageUpdatePayload;
 };
 
-
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationNavigationMenuCreateArgs = {
   input: ApiOnlineStoreNavigationMenuCreateInput;
 };
-
 
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationNavigationMenuDeleteArgs = {
   input: ApiOnlineStoreNavigationMenuDeleteInput;
 };
 
-
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationNavigationMenuItemCreateArgs = {
   input: ApiOnlineStoreNavigationMenuItemCreateInput;
 };
-
 
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationNavigationMenuItemDeleteArgs = {
   input: ApiOnlineStoreNavigationMenuItemDeleteInput;
 };
 
-
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationNavigationMenuItemUpdateArgs = {
   input: ApiOnlineStoreNavigationMenuItemUpdateInput;
 };
-
 
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationNavigationMenuUpdateArgs = {
   input: ApiOnlineStoreNavigationMenuUpdateInput;
 };
 
-
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationPageCreateArgs = {
   input: ApiOnlineStorePageCreateInput;
 };
 
-
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationPageDeleteArgs = {
   input: ApiOnlineStorePageDeleteInput;
 };
-
 
 /** Admin mutations scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppMutationPageUpdateArgs = {
@@ -12340,18 +12386,15 @@ export type ApiOnlineStoreAppQuery = {
   pages: ApiOnlineStorePageConnection;
 };
 
-
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryNavigationMenuArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryNavigationMenuByHandleArgs = {
   handle: Scalars['String']['input'];
 };
-
 
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryNavigationMenusArgs = {
@@ -12363,30 +12406,25 @@ export type ApiOnlineStoreAppQueryNavigationMenusArgs = {
   where?: InputMaybe<ApiOnlineStoreNavigationMenuWhereInput>;
 };
 
-
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
 };
 
-
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryPageArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryPageByHandleArgs = {
   handle: Scalars['String']['input'];
 };
-
 
 /** Admin queries scoped to the active Online Store App installation. */
 export type ApiOnlineStoreAppQueryPagesArgs = {
@@ -12576,11 +12614,7 @@ export type ApiOnlineStoreNavigationTargetInput = {
 };
 
 export type OnlineStoreNavigationTargetType =
-  | 'CATEGORY'
-  | 'COLLECTION'
-  | 'PAGE'
-  | 'PRODUCT'
-  | 'URL';
+  'CATEGORY' | 'COLLECTION' | 'PAGE' | 'PRODUCT' | 'URL';
 
 /** A localized content page owned by an Online Store installation. */
 export type ApiOnlineStorePage = ApiNode & {
@@ -12665,9 +12699,7 @@ export type OnlineStorePageOrderField =
   /** Sort by updatedAt */
   | 'updatedAt';
 
-export type OnlineStorePageStatus =
-  | 'DRAFT'
-  | 'PUBLISHED';
+export type OnlineStorePageStatus = 'DRAFT' | 'PUBLISHED';
 
 export type ApiOnlineStorePageUpdateInput = {
   body?: InputMaybe<ApiRichTextInput>;
@@ -12745,111 +12777,2729 @@ export type OperationType =
   | 'VARIANT_DELETE'
   | 'VARIANT_UPDATE';
 
-export type ApiOrder = {
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrder = ApiNode & {
   __typename?: 'Order';
+  /** Projected value for activity. */
+  activity: ApiOrderActivityConnection;
+  /** Projected value for admin note. */
   adminNote?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for archived, or null when it has not occurred. */
+  archivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for available actions. */
+  availableActions: Array<OrderAction>;
+  /** Projected value for billing address. */
+  billingAddress?: Maybe<ApiOrderAddress>;
+  /** Timestamp for cancelled, or null when it has not occurred. */
+  cancelledAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for checkout. */
+  checkout?: Maybe<ApiCheckout>;
+  /** Projected value for checkout placement. */
+  checkoutPlacement?: Maybe<ApiOrderCheckoutPlacement>;
+  /** Timestamp for closed, or null when it has not occurred. */
+  closedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for contact. */
+  contact: ApiOrderContact;
+  /** Projected value for cost. */
+  cost: ApiOrderCost;
+  /** Timestamp for created, or null when it has not occurred. */
   createdAt: Scalars['DateTime']['output'];
-  createdBy: ApiOrderActor;
-  currencyCode: Scalars['String']['output'];
-  customerIdentity: ApiOrderCustomerIdentity;
+  /** ISO 4217 currency code. */
+  currencyCode: CurrencyCode;
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields: Scalars['JSON']['output'];
+  /** Projected value for customer. */
+  customer?: Maybe<ApiCustomer>;
+  /** Projected value for customer note. */
   customerNote?: Maybe<Scalars['String']['output']>;
-  customerStatistic: ApiOrderCustomerStatistic;
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
-  discountTotal?: Maybe<Scalars['BigInt']['output']>;
-  grandTotal: Scalars['BigInt']['output'];
+  /** Projected value for customer snapshot. */
+  customerSnapshot: ApiOrderCustomerSnapshot;
+  /** Projected value for delivery groups. */
+  deliveryGroups: Array<ApiOrderDeliveryGroup>;
+  /** Current delivery status. */
+  deliveryStatus: OrderDeliveryStatus;
+  /** Projected value for discounts. */
+  discounts: Array<ApiOrderDiscount>;
+  /** Projected value for exchanges. */
+  exchanges: ApiOrderExchangeConnection;
+  /** Timestamp for expires, or null when it has not occurred. */
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for fulfillment orders. */
+  fulfillmentOrders: Array<ApiFulfillmentOrder>;
+  /** Current fulfillment status. */
+  fulfillmentStatus: OrderFulfillmentStatus;
+  /** Projected value for fulfillments. */
+  fulfillments: Array<ApiFulfillment>;
+  /** Relay global ID of this resource. */
   id: Scalars['ID']['output'];
-  labels: Array<ApiLabel>;
+  /** Projected value for integration links. */
+  integrationLinks: Array<ApiOrderIntegrationLink>;
+  /** Projected value for lines. */
   lines: Array<ApiOrderLine>;
+  /** Stable locale code. */
+  localeCode?: Maybe<LocaleCode>;
+  /** Store-local order number serialized without precision loss. */
   number: Scalars['BigInt']['output'];
-  shippingTotal?: Maybe<Scalars['BigInt']['output']>;
+  /** Projected value for origin. */
+  origin: OrderOrigin;
+  /** Projected value for payment. */
+  payment: ApiOrderPayment;
+  /** Current payment status. */
+  paymentStatus: OrderPaymentStatus;
+  /** Timestamp for placed, or null when it has not occurred. */
+  placedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for refunds. */
+  refunds: ApiOrderRefundConnection;
+  /** Current return status. */
+  returnStatus: OrderReturnStatus;
+  /** Projected value for returns. */
+  returns: ApiOrderReturnConnection;
+  /** Projected value for risk level. */
+  riskLevel: OrderRiskLevel;
+  /** Projected value for shipments. */
+  shipments: Array<ApiShipment>;
+  /** Projected value for shipping address. */
+  shippingAddress?: Maybe<ApiOrderAddress>;
+  /** Projected value for source. */
+  source?: Maybe<ApiOrderSource>;
+  /** Current lifecycle or derived projection status. */
   status: OrderStatus;
-  subtotal: Scalars['BigInt']['output'];
-  tags: Array<ApiTag>;
-  taxTotal?: Maybe<Scalars['BigInt']['output']>;
+  /** Projected value for tags. */
+  tags: Array<Scalars['String']['output']>;
+  /** Projected value for tax lines. */
+  taxLines: Array<ApiOrderTaxLine>;
+  /** Projected total quantity. */
+  totalQuantity: Scalars['Int']['output'];
+  /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars['DateTime']['output'];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
 };
 
-export type ApiOrderActor = ApiApiKey | ApiUser;
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderActivityArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
 
-export type ApiOrderCustomerIdentity = {
-  __typename?: 'OrderCustomerIdentity';
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderExchangesArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderRefundsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
+export type ApiOrderReturnsArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+};
+
+/** Closed set of order action values used by Orders Admin API. */
+export type OrderAction =
+  /** Archive value of order action. */
+  | 'ARCHIVE'
+  /** Cancel value of order action. */
+  | 'CANCEL'
+  /** Capture payment value of order action. */
+  | 'CAPTURE_PAYMENT'
+  /** Close value of order action. */
+  | 'CLOSE'
+  /** Complete draft value of order action. */
+  | 'COMPLETE_DRAFT'
+  /** Create exchange value of order action. */
+  | 'CREATE_EXCHANGE'
+  /** Create fulfillment value of order action. */
+  | 'CREATE_FULFILLMENT'
+  /** Create return value of order action. */
+  | 'CREATE_RETURN'
+  /** Edit lines value of order action. */
+  | 'EDIT_LINES'
+  /** Record manual payment value of order action. */
+  | 'RECORD_MANUAL_PAYMENT'
+  /** Refund value of order action. */
+  | 'REFUND'
+  /** Reopen value of order action. */
+  | 'REOPEN'
+  /** Request integration sync value of order action. */
+  | 'REQUEST_INTEGRATION_SYNC'
+  /** Retry payment value of order action. */
+  | 'RETRY_PAYMENT'
+  /** Unarchive value of order action. */
+  | 'UNARCHIVE'
+  /** Update details value of order action. */
+  | 'UPDATE_DETAILS'
+  /** Void payment value of order action. */
+  | 'VOID_PAYMENT';
+
+/** Append-only audit and activity timeline entry. */
+export type ApiOrderActivity = ApiNode & {
+  __typename?: 'OrderActivity';
+  /** Projected value for actor. */
+  actor: ApiOrderActor;
+  /** Structured snapshot or audit data with secrets excluded. */
+  data: Scalars['JSON']['output'];
+  /** Timestamp for happened, or null when it has not occurred. */
+  happenedAt: Scalars['DateTime']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Human-readable explanation safe for an authorized Admin user. */
+  message?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for recorded, or null when it has not occurred. */
+  recordedAt: Scalars['DateTime']['output'];
+  /** Projected value for sequence. */
+  sequence: Scalars['BigInt']['output'];
+  /** Projected value for type. */
+  type: Scalars['String']['output'];
+  /** Projected value for visibility. */
+  visibility: Scalars['String']['output'];
+};
+
+/** Relay-style paginated connection of order activity resources. */
+export type ApiOrderActivityConnection = ApiConnection & {
+  __typename?: 'OrderActivityConnection';
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderActivityEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderActivity>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Cursor and resource pair for a order activity connection. */
+export type ApiOrderActivityEdge = {
+  __typename?: 'OrderActivityEdge';
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars['String']['output'];
+  /** Projected value for node. */
+  node: ApiOrderActivity;
+};
+
+/** Mutation result for order activity; expected failures are returned in userErrors. */
+export type ApiOrderActivityPayload = {
+  __typename?: 'OrderActivityPayload';
+  /** Projected value for activity. */
+  activity?: Maybe<ApiOrderActivity>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Orders Admin representation of order actor. */
+export type ApiOrderActor = {
+  __typename?: 'OrderActor';
+  /** Projected value for api key. */
+  apiKey?: Maybe<ApiApiKey>;
+  /** Projected value for display name. */
+  displayName?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID of this resource. */
+  id?: Maybe<Scalars['ID']['output']>;
+  /** Projected value for type. */
+  type: OrderActorType;
+  /** Projected value for user. */
+  user?: Maybe<ApiUser>;
+};
+
+/** Closed set of order actor type values used by Orders Admin API. */
+export type OrderActorType =
+  /** Api key value of order actor type. */
+  | 'API_KEY'
+  /** App value of order actor type. */
+  | 'APP'
+  /** Customer value of order actor type. */
+  | 'CUSTOMER'
+  /** System value of order actor type. */
+  | 'SYSTEM'
+  /** User value of order actor type. */
+  | 'USER';
+
+/** Order-local postal address snapshot retained for billing, delivery, and audit. */
+export type ApiOrderAddress = ApiNode & {
+  __typename?: 'OrderAddress';
+  /** Projected value for address1. */
+  address1?: Maybe<Scalars['String']['output']>;
+  /** Projected value for address2. */
+  address2?: Maybe<Scalars['String']['output']>;
+  /** Projected value for city. */
+  city?: Maybe<Scalars['String']['output']>;
+  /** Projected value for company. */
+  company?: Maybe<Scalars['String']['output']>;
+  /** Stable country code. */
   countryCode?: Maybe<CountryCode>;
-  customer?: Maybe<ApiCustomer>;
-  data?: Maybe<Scalars['JSON']['output']>;
-  email?: Maybe<Scalars['Email']['output']>;
+  /** Structured snapshot or audit data with secrets excluded. */
+  data: Scalars['JSON']['output'];
+  /** Projected value for email. */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Projected value for first name. */
+  firstName?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for last name. */
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for middle name. */
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for phone. */
+  phone?: Maybe<Scalars['String']['output']>;
+  /** Stable postal code. */
+  postalCode?: Maybe<Scalars['String']['output']>;
+  /** Stable province code. */
+  provinceCode?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for redacted, or null when it has not occurred. */
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** Validated input for order address. Tenant identifiers come only from trusted context. */
+export type ApiOrderAddressInput = {
+  /** Validated input value for address1. */
+  address1?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for address2. */
+  address2?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for city. */
+  city?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for company. */
+  company?: InputMaybe<Scalars['String']['input']>;
+  /** Stable country code. */
+  countryCode: CountryCode;
+  /** Structured snapshot or audit data with secrets excluded. */
+  data?: InputMaybe<Scalars['JSON']['input']>;
+  /** Validated input value for email. */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for first name. */
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for last name. */
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for middle name. */
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for phone. */
+  phone?: InputMaybe<Scalars['String']['input']>;
+  /** Stable postal code. */
+  postalCode?: InputMaybe<Scalars['String']['input']>;
+  /** Stable province code. */
+  provinceCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Validated input for order admin note update. Tenant identifiers come only from trusted context. */
+export type ApiOrderAdminNoteUpdateInput = {
+  /** Validated input value for admin note. */
+  adminNote?: InputMaybe<Scalars['String']['input']>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Validated input for order archive. Tenant identifiers come only from trusted context. */
+export type ApiOrderArchiveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Validated input for order bulk selection. Tenant identifiers come only from trusted context. */
+export type ApiOrderBulkSelectionInput = {
+  /** Validated input value for excluded ids. */
+  excludedIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Validated input value for ids. */
+  ids?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Validated input value for where. */
+  where?: InputMaybe<ApiOrderWhereInput>;
+};
+
+/** Validated input for order cancel. Tenant identifiers come only from trusted context. */
+export type ApiOrderCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Validated input value for refund mode. */
+  refundMode?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for restock. */
+  restock?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Checkout-owned placement provenance projected into Orders. */
+export type ApiOrderCheckoutPlacement = {
+  __typename?: 'OrderCheckoutPlacement';
+  /** Relay global ID identifying the checkout. */
+  checkoutId: Scalars['ID']['output'];
+  /** Projected value for checkout version. */
+  /** Timestamp for confirmed, or null when it has not occurred. */
+  confirmedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for contract version. */
+  contractVersion: Scalars['Int']['output'];
+  /** Projected value for delivery revision. */
+  deliveryRevision: Scalars['String']['output'];
+  /** Timestamp for failed, or null when it has not occurred. */
+  failedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for final quote revision. */
+  finalQuoteRevision: Scalars['String']['output'];
+  /** Projected value for payment methods revision. */
+  paymentMethodsRevision: Scalars['String']['output'];
+  /** Relay global ID identifying the placement. */
+  placementId: Scalars['ID']['output'];
+  /** Projected value for result revision. */
+  resultRevision: Scalars['String']['output'];
+  /** Projected value for snapshot hash. */
+  snapshotHash: Scalars['String']['output'];
+  /** Current lifecycle or derived projection status. */
+  status: OrderPlacementStatus;
+};
+
+/** Validated input for order close. Tenant identifiers come only from trusted context. */
+export type ApiOrderCloseInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for reason. */
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Validated input for order comment add. Tenant identifiers come only from trusted context. */
+export type ApiOrderCommentAddInput = {
+  /** Validated input value for comment. */
+  comment: Scalars['String']['input'];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for visibility. */
+  visibility?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Validated input for order complete draft. Tenant identifiers come only from trusted context. */
+export type ApiOrderCompleteDraftInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+/** Relay-style paginated connection of order resources. */
+export type ApiOrderConnection = ApiConnection & {
+  __typename?: 'OrderConnection';
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrder>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Order-local contact snapshot with explicit redaction state. */
+export type ApiOrderContact = {
+  __typename?: 'OrderContact';
+  /** Projected value for company. */
+  company?: Maybe<Scalars['String']['output']>;
+  /** Projected value for email. */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Projected value for first name. */
+  firstName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for last name. */
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for middle name. */
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for note. */
+  note?: Maybe<Scalars['String']['output']>;
+  /** Projected value for phone. */
+  phone?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for redacted, or null when it has not occurred. */
+  redactedAt?: Maybe<Scalars['DateTime']['output']>;
+};
+
+/** Validated input for order contact. Tenant identifiers come only from trusted context. */
+export type ApiOrderContactInput = {
+  /** Validated input value for company. */
+  company?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for email. */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for first name. */
+  firstName?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for last name. */
+  lastName?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for middle name. */
+  middleName?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for phone. */
+  phone?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Server-calculated totals in one currency. Paid, refunded, and outstanding amounts derive from successful financial facts. */
+export type ApiOrderCost = {
+  __typename?: 'OrderCost';
+  /** Monetary adjustment in the order currency. */
+  adjustmentAmount: ApiMoney;
+  /** Monetary discount in the order currency. */
+  discountAmount: ApiMoney;
+  /** Monetary duty in the order currency. */
+  dutyAmount: ApiMoney;
+  /** Monetary outstanding in the order currency. */
+  outstandingAmount: ApiMoney;
+  /** Monetary paid in the order currency. */
+  paidAmount: ApiMoney;
+  /** Monetary refunded in the order currency. */
+  refundedAmount: ApiMoney;
+  /** Monetary shipping in the order currency. */
+  shippingAmount: ApiMoney;
+  /** Monetary subtotal in the order currency. */
+  subtotalAmount: ApiMoney;
+  /** Monetary tax in the order currency. */
+  taxAmount: ApiMoney;
+  /** Monetary total in the order currency. */
+  totalAmount: ApiMoney;
+};
+
+/** Validated input for order create. Tenant identifiers come only from trusted context. */
+export type ApiOrderCreateInput = {
+  /** Validated input value for admin note. */
+  adminNote?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for billing address. */
+  billingAddress?: InputMaybe<ApiOrderAddressInput>;
+  /** Optional client correlation value echoed by supported payloads. */
+  clientMutationId?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for contact. */
+  contact: ApiOrderContactInput;
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
+  /** Relay global ID identifying the customer. */
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  /** Validated input value for customer note. */
+  customerNote?: InputMaybe<Scalars['String']['input']>;
+  /** Relay global ID identifying the external. */
+  externalId?: InputMaybe<Scalars['String']['input']>;
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for lines. */
+  lines: Array<ApiOrderLineCreateInput>;
+  /** Stable locale code. */
+  localeCode?: InputMaybe<LocaleCode>;
+  /** Stable payment method code. */
+  paymentMethodCode?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for shipping. */
+  shipping?: InputMaybe<ApiOrderDeliveryInput>;
+  /** Stable source code. */
+  sourceCode?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for tags. */
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Validated input for order custom fields update. Tenant identifiers come only from trusted context. */
+export type ApiOrderCustomFieldsUpdateInput = {
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields: Scalars['JSON']['input'];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Validated input for order customer set. Tenant identifiers come only from trusted context. */
+export type ApiOrderCustomerSetInput = {
+  /** Relay global ID identifying the customer. */
+  customerId?: InputMaybe<Scalars['ID']['input']>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Immutable customer identity captured for the commercial record independently of later profile changes. */
+export type ApiOrderCustomerSnapshot = {
+  __typename?: 'OrderCustomerSnapshot';
+  /** Projected value for company. */
+  company?: Maybe<Scalars['String']['output']>;
+  /** Stable country code. */
+  countryCode?: Maybe<CountryCode>;
+  /** Relay global ID identifying the customer. */
+  customerId?: Maybe<Scalars['ID']['output']>;
+  /** Projected value for email. */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Projected value for first name. */
+  firstName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for last name. */
+  lastName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for middle name. */
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Projected value for phone. */
   phone?: Maybe<Scalars['String']['output']>;
 };
 
-export type ApiOrderCustomerStatistic = {
-  __typename?: 'OrderCustomerStatistic';
-  totalAuthorizedOrders: Scalars['Int']['output'];
-  totalGuestOrders: Scalars['Int']['output'];
-  totalRevenue: Scalars['Int']['output'];
+/** Validated input for order delete. Tenant identifiers come only from trusted context. */
+export type ApiOrderDeleteInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
 };
 
-export type ApiOrderDeliveryAddress = {
-  __typename?: 'OrderDeliveryAddress';
-  address1: Scalars['String']['output'];
-  address2?: Maybe<Scalars['String']['output']>;
-  city: Scalars['String']['output'];
-  countryCode: CountryCode;
-  data?: Maybe<Scalars['JSON']['output']>;
-  email?: Maybe<Scalars['Email']['output']>;
-  firstName?: Maybe<Scalars['String']['output']>;
-  id: Scalars['ID']['output'];
-  lastName?: Maybe<Scalars['String']['output']>;
-  postalCode?: Maybe<Scalars['String']['output']>;
-  provinceCode?: Maybe<Scalars['String']['output']>;
+/** Mutation result for order delete; expected failures are returned in userErrors. */
+export type ApiOrderDeletePayload = {
+  __typename?: 'OrderDeletePayload';
+  /** Relay global ID identifying the deleted. */
+  deletedId?: Maybe<Scalars['ID']['output']>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
 };
 
-export type ApiOrderLine = {
-  __typename?: 'OrderLine';
+/** Orders Admin representation of order delivery group. */
+export type ApiOrderDeliveryGroup = ApiNode & {
+  __typename?: 'OrderDeliveryGroup';
+  /** Projected value for address. */
+  address?: Maybe<ApiOrderAddress>;
+  /** Timestamp for created, or null when it has not occurred. */
   createdAt: Scalars['DateTime']['output'];
-  discountAmount: Scalars['Int']['output'];
+  /** Relay global ID of this resource. */
   id: Scalars['ID']['output'];
-  purchasableId: Scalars['ID']['output'];
-  quantity: Scalars['Int']['output'];
-  subtotalAmount: Scalars['Int']['output'];
-  taxAmount?: Maybe<Scalars['Int']['output']>;
-  totalAmount: Scalars['Int']['output'];
-  unitComparePrice: Scalars['Int']['output'];
-  unitPrice: Scalars['Int']['output'];
+  /** Projected value for lines. */
+  lines: Array<ApiOrderLine>;
+  /** Projected value for recipient. */
+  recipient?: Maybe<ApiOrderContact>;
+  /** Projected value for selected method. */
+  selectedMethod?: Maybe<ApiOrderDeliveryMethod>;
+  /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiOrderQuery = {
-  __typename?: 'OrderQuery';
-  order?: Maybe<ApiOrder>;
-  orders: ApiOrdersOutput;
+/** Validated input for order delivery. Tenant identifiers come only from trusted context. */
+export type ApiOrderDeliveryInput = {
+  /** Validated input value for address. */
+  address?: InputMaybe<ApiOrderAddressInput>;
+  /** Stable method code. */
+  methodCode?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for recipient. */
+  recipient?: InputMaybe<ApiOrderContactInput>;
 };
 
+/** Orders Admin representation of order delivery method. */
+export type ApiOrderDeliveryMethod = {
+  __typename?: 'OrderDeliveryMethod';
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Stable machine-readable code. */
+  code: Scalars['String']['output'];
+  /** Projected value for customer input. */
+  customerInput: Scalars['JSON']['output'];
+  /** Projected value for payment model. */
+  paymentModel?: Maybe<Scalars['String']['output']>;
+  /** Stable provider code. */
+  providerCode: Scalars['String']['output'];
+  /** Projected value for provider snapshot. */
+  providerSnapshot: Scalars['JSON']['output'];
+  /** Projected value for title. */
+  title: Scalars['String']['output'];
+  /** Projected value for type. */
+  type: Scalars['String']['output'];
+};
 
-export type ApiOrderQueryOrderArgs = {
+/** Closed set of order delivery status values used by Orders Admin API. */
+export type OrderDeliveryStatus =
+  /** Cancelled value of order delivery status. */
+  | 'CANCELLED'
+  /** Delayed value of order delivery status. */
+  | 'DELAYED'
+  /** Delivered value of order delivery status. */
+  | 'DELIVERED'
+  /** Delivery attempted value of order delivery status. */
+  | 'DELIVERY_ATTEMPTED'
+  /** Exception value of order delivery status. */
+  | 'EXCEPTION'
+  /** In transit value of order delivery status. */
+  | 'IN_TRANSIT'
+  /** Not shipped value of order delivery status. */
+  | 'NOT_SHIPPED'
+  /** Out for delivery value of order delivery status. */
+  | 'OUT_FOR_DELIVERY'
+  /** Partially shipped value of order delivery status. */
+  | 'PARTIALLY_SHIPPED'
+  /** Returned to sender value of order delivery status. */
+  | 'RETURNED_TO_SENDER'
+  /** Shipped value of order delivery status. */
+  | 'SHIPPED';
+
+/** Comparison operators for order delivery status; omitted operators do not constrain results. */
+export type ApiOrderDeliveryStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderDeliveryStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderDeliveryStatus>>;
+};
+
+/** Validated input for dimensions. Tenant identifiers come only from trusted context. */
+export type ApiOrderDimensionsInput = {
+  /** Validated input value for height. */
+  height: Scalars['Float']['input'];
+  /** Validated input value for length. */
+  length: Scalars['Float']['input'];
+  /** Validated input value for unit. */
+  unit: DimensionUnit;
+  /** Validated input value for width. */
+  width: Scalars['Float']['input'];
+};
+
+/** Orders Admin representation of order discount. */
+export type ApiOrderDiscount = ApiNode & {
+  __typename?: 'OrderDiscount';
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Stable machine-readable code. */
+  code?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for metadata. */
+  metadata: Scalars['JSON']['output'];
+  /** Projected value for source. */
+  source: Scalars['String']['output'];
+  /** Projected value for target. */
+  target: Scalars['String']['output'];
+  /** Projected value for title. */
+  title: Scalars['String']['output'];
+  /** Projected value for value. */
+  value: Scalars['Decimal']['output'];
+};
+
+/** Cursor and resource pair for a order connection. */
+export type ApiOrderEdge = {
+  __typename?: 'OrderEdge';
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars['String']['output'];
+  /** Projected value for node. */
+  node: ApiOrder;
+};
+
+/** Validated input for order edit abandon. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditAbandonInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Validated input for order edit begin. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditBeginInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+};
+
+/** Orders Admin representation of order edit change. */
+export type ApiOrderEditChange = ApiNode & {
+  __typename?: 'OrderEditChange';
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for kind. */
+  kind: Scalars['String']['output'];
+  /** Projected value for payload. */
+  payload: Scalars['JSON']['output'];
+};
+
+/** Validated input for order edit commit. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditCommitInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Committed order revision required to apply a staged edit. */
+  expectedOrderVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Validated input for order edit discount add. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditDiscountAddInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Validated input value for title. */
+  title: Scalars['String']['input'];
+};
+
+/** Validated input for order edit discount remove. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditDiscountRemoveInput = {
+  /** Relay global ID identifying the discount. */
+  discountId: Scalars['ID']['input'];
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Validated input for order edit line add. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditLineAddInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for line. */
+  line: ApiOrderLineCreateInput;
+};
+
+/** Validated input for order edit line remove. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditLineRemoveInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars['ID']['input'];
+};
+
+/** Validated input for order edit line update. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditLineUpdateInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars['ID']['input'];
+  /** Quantity validated against domain conservation invariants. */
+  quantity?: InputMaybe<Scalars['Int']['input']>;
+  /** Validated input value for unit price. */
+  unitPrice?: InputMaybe<ApiMoneyInput>;
+};
+
+/** Mutation result for order edit; expected failures are returned in userErrors. */
+export type ApiOrderEditPayload = {
+  __typename?: 'OrderEditPayload';
+  /** Projected value for edit. */
+  edit?: Maybe<ApiOrderEditSession>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Isolated and previewable staged edit for an OPEN order. */
+export type ApiOrderEditSession = ApiNode & {
+  __typename?: 'OrderEditSession';
+  /** Projected value for base order version. */
+  baseOrderVersion: Scalars['Int']['output'];
+  /** Projected value for calculated order. */
+  calculatedOrder: ApiCalculatedOrder;
+  /** Projected value for changes. */
+  changes: Array<ApiOrderEditChange>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Projected value for created by. */
+  createdBy: ApiOrderActor;
+  /** Timestamp for expires, or null when it has not occurred. */
+  expiresAt: Scalars['DateTime']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Current lifecycle or derived projection status. */
+  status: Scalars['String']['output'];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+};
+
+/** Validated input for order edit shipping update. Tenant identifiers come only from trusted context. */
+export type ApiOrderEditShippingUpdateInput = {
+  /** Relay global ID identifying the edit. */
+  editId: Scalars['ID']['input'];
+  /** Staged edit revision observed by the client. */
+  expectedEditVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for shipping. */
+  shipping: ApiOrderDeliveryInput;
+};
+
+/** Exchange linking inbound return quantities with outbound replacement lines. */
+export type ApiOrderExchange = ApiNode & {
+  __typename?: 'OrderExchange';
+  /** Projected value for balance. */
+  balance: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for inbound lines. */
+  inboundLines: Array<ApiOrderReturnLine>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Projected value for outbound lines. */
+  outboundLines: Array<ApiOrderLine>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderExchangeStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+};
+
+/** Validated input for order exchange cancel. Tenant identifiers come only from trusted context. */
+export type ApiOrderExchangeCancelInput = {
+  /** Relay global ID identifying the exchange. */
+  exchangeId: Scalars['ID']['input'];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+};
+
+/** Relay-style paginated connection of order exchange resources. */
+export type ApiOrderExchangeConnection = ApiConnection & {
+  __typename?: 'OrderExchangeConnection';
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderExchangeEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderExchange>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Validated input for order exchange create. Tenant identifiers come only from trusted context. */
+export type ApiOrderExchangeCreateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for inbound lines. */
+  inboundLines: Array<ApiOrderReturnLineInput>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Validated input value for outbound lines. */
+  outboundLines: Array<ApiOrderLineCreateInput>;
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Cursor and resource pair for a order exchange connection. */
+export type ApiOrderExchangeEdge = {
+  __typename?: 'OrderExchangeEdge';
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars['String']['output'];
+  /** Projected value for node. */
+  node: ApiOrderExchange;
+};
+
+/** Mutation result for order exchange; expected failures are returned in userErrors. */
+export type ApiOrderExchangePayload = {
+  __typename?: 'OrderExchangePayload';
+  /** Projected value for exchange. */
+  exchange?: Maybe<ApiOrderExchange>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Closed set of order exchange status values used by Orders Admin API. */
+export type OrderExchangeStatus =
+  /** Cancelled value of order exchange status. */
+  | 'CANCELLED'
+  /** Completed value of order exchange status. */
+  | 'COMPLETED'
+  /** Open value of order exchange status. */
+  | 'OPEN'
+  /** Requested value of order exchange status. */
+  | 'REQUESTED';
+
+/** Closed set of order fulfillment status values used by Orders Admin API. */
+export type OrderFulfillmentStatus =
+  /** Cancelled value of order fulfillment status. */
+  | 'CANCELLED'
+  /** Fulfilled value of order fulfillment status. */
+  | 'FULFILLED'
+  /** On hold value of order fulfillment status. */
+  | 'ON_HOLD'
+  /** Partially fulfilled value of order fulfillment status. */
+  | 'PARTIALLY_FULFILLED'
+  /** Scheduled value of order fulfillment status. */
+  | 'SCHEDULED'
+  /** Unfulfilled value of order fulfillment status. */
+  | 'UNFULFILLED';
+
+/** Comparison operators for order fulfillment status; omitted operators do not constrain results. */
+export type ApiOrderFulfillmentStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderFulfillmentStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderFulfillmentStatus>>;
+};
+
+/** Closed set of order integration kind values used by Orders Admin API. */
+export type OrderIntegrationKind =
+  /** Analytics value of order integration kind. */
+  | 'ANALYTICS'
+  /** Crm value of order integration kind. */
+  | 'CRM'
+  /** Erp value of order integration kind. */
+  | 'ERP'
+  /** Marketplace value of order integration kind. */
+  | 'MARKETPLACE'
+  /** Wms value of order integration kind. */
+  | 'WMS';
+
+/** Pinned relationship and synchronization state for a CRM, ERP, marketplace, WMS, or analytics integration. */
+export type ApiOrderIntegrationLink = ApiNode & {
+  __typename?: 'OrderIntegrationLink';
+  /** Stable app code. */
+  appCode: Scalars['String']['output'];
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Projected value for direction. */
+  direction: OrderSyncDirection;
+  /** Relay global ID identifying the external. */
+  externalId?: Maybe<Scalars['String']['output']>;
+  /** Projected value for external url. */
+  externalUrl?: Maybe<Scalars['URL']['output']>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Relay global ID identifying the installation. */
+  installationId: Scalars['ID']['output'];
+  /** Projected value for kind. */
+  kind: OrderIntegrationKind;
+  /** Stable last error code. */
+  lastErrorCode?: Maybe<Scalars['String']['output']>;
+  /** Projected value for last error message. */
+  lastErrorMessage?: Maybe<Scalars['String']['output']>;
+  /** Projected value for last exported order version. */
+  lastExportedOrderVersion?: Maybe<Scalars['Int']['output']>;
+  /** Projected value for last imported external version. */
+  lastImportedExternalVersion?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for last synced, or null when it has not occurred. */
+  lastSyncedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderIntegrationSyncStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Validated input for order integration link detach. Tenant identifiers come only from trusted context. */
+export type ApiOrderIntegrationLinkDetachInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the integration link. */
+  integrationLinkId: Scalars['ID']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Validated input value for reason. */
+  reason: Scalars['String']['input'];
+};
+
+/** Validated input for order integration sync request. Tenant identifiers come only from trusted context. */
+export type ApiOrderIntegrationSyncRequestInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Validated input value for force. */
+  force?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the integration link. */
+  integrationLinkId: Scalars['ID']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+};
+
+/** Validated input for order integration sync retry. Tenant identifiers come only from trusted context. */
+export type ApiOrderIntegrationSyncRetryInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the operation. */
+  operationId: Scalars['ID']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+};
+
+/** Closed set of order integration sync status values used by Orders Admin API. */
+export type OrderIntegrationSyncStatus =
+  /** Disabled value of order integration sync status. */
+  | 'DISABLED'
+  /** Failed value of order integration sync status. */
+  | 'FAILED'
+  /** Never synced value of order integration sync status. */
+  | 'NEVER_SYNCED'
+  /** Out of sync value of order integration sync status. */
+  | 'OUT_OF_SYNC'
+  /** Pending value of order integration sync status. */
+  | 'PENDING'
+  /** Synced value of order integration sync status. */
+  | 'SYNCED';
+
+/** Commercial line snapshot with conserved ordered, cancelled, fulfillable, fulfilled, returnable, returned, and refundable quantities. */
+export type ApiOrderLine = ApiNode & {
+  __typename?: 'OrderLine';
+  /** Projected cancelled quantity. */
+  cancelledQuantity: Scalars['Int']['output'];
+  /** Projected value for cost. */
+  cost: ApiOrderLineCost;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields: Scalars['JSON']['output'];
+  /** Projected fulfillable quantity. */
+  fulfillableQuantity: Scalars['Int']['output'];
+  /** Projected fulfilled quantity. */
+  fulfilledQuantity: Scalars['Int']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for image url. */
+  imageUrl?: Maybe<Scalars['URL']['output']>;
+  /** Projected value for parent line. */
+  parentLine?: Maybe<ApiOrderLine>;
+  /** Relay global ID identifying the product. */
+  productId?: Maybe<Scalars['ID']['output']>;
+  /** Relay global ID identifying the purchasable. */
+  purchasableId?: Maybe<Scalars['ID']['output']>;
+  /** Projected value for purchasable snapshot. */
+  purchasableSnapshot: Scalars['JSON']['output'];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['output'];
+  /** Projected refundable quantity. */
+  refundableQuantity: Scalars['Int']['output'];
+  /** Projected value for requires shipping. */
+  requiresShipping: Scalars['Boolean']['output'];
+  /** Projected returnable quantity. */
+  returnableQuantity: Scalars['Int']['output'];
+  /** Projected returned quantity. */
+  returnedQuantity: Scalars['Int']['output'];
+  /** Projected value for sku. */
+  sku?: Maybe<Scalars['String']['output']>;
+  /** Projected value for taxable. */
+  taxable: Scalars['Boolean']['output'];
+  /** Projected value for title. */
+  title: Scalars['String']['output'];
+  /** Projected value for unit cost. */
+  unitCost?: Maybe<ApiMoney>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Relay global ID identifying the variant. */
+  variantId?: Maybe<Scalars['ID']['output']>;
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+  /** Projected value for weight. */
+  weight?: Maybe<ApiWeight>;
+};
+
+/** Validated input for order line add. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineAddInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for line. */
+  line: ApiOrderLineCreateInput;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+};
+
+/** Orders Admin representation of order line cost. */
+export type ApiOrderLineCost = {
+  __typename?: 'OrderLineCost';
+  /** Monetary discount in the order currency. */
+  discountAmount: ApiMoney;
+  /** Monetary duty in the order currency. */
+  dutyAmount: ApiMoney;
+  /** Monetary subtotal in the order currency. */
+  subtotalAmount: ApiMoney;
+  /** Monetary tax in the order currency. */
+  taxAmount: ApiMoney;
+  /** Monetary total in the order currency. */
+  totalAmount: ApiMoney;
+  /** Projected value for unit compare at price. */
+  unitCompareAtPrice?: Maybe<ApiMoney>;
+  /** Projected value for unit price. */
+  unitPrice: ApiMoney;
+};
+
+/** Validated input for order line create. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineCreateInput = {
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
+  /** Relay global ID identifying the purchasable. */
+  purchasableId?: InputMaybe<Scalars['ID']['input']>;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['input'];
+  /** Validated input value for requires shipping. */
+  requiresShipping?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Validated input value for sku. */
+  sku?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for taxable. */
+  taxable?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Validated input value for title. */
+  title: Scalars['String']['input'];
+  /** Validated input value for unit compare at price. */
+  unitCompareAtPrice?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for unit cost. */
+  unitCost?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for unit price. */
+  unitPrice: ApiMoneyInput;
+  /** Validated input value for weight. */
+  weight?: InputMaybe<ApiOrderWeightInput>;
+};
+
+/** Validated input for order line delete. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineDeleteInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars['ID']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+};
+
+/** Mutation result for order line; expected failures are returned in userErrors. */
+export type ApiOrderLinePayload = {
+  __typename?: 'OrderLinePayload';
+  /** Projected value for line. */
+  line?: Maybe<ApiOrderLine>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for order line update. Tenant identifiers come only from trusted context. */
+export type ApiOrderLineUpdateInput = {
+  /** Merchant-defined structured data; core business facts are not stored here. */
+  customFields?: InputMaybe<Scalars['JSON']['input']>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the line. */
+  lineId: Scalars['ID']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Quantity validated against domain conservation invariants. */
+  quantity?: InputMaybe<Scalars['Int']['input']>;
+  /** Validated input value for unit cost. */
+  unitCost?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for weight. */
+  weight?: InputMaybe<ApiOrderWeightInput>;
+};
+
+/** Validated input for order manual payment record. Tenant identifiers come only from trusted context. */
+export type ApiOrderManualPaymentRecordInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable method code. */
+  methodCode: Scalars['String']['input'];
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Timestamp for paid, or null when it has not occurred. */
+  paidAt: Scalars['DateTime']['input'];
+  /** Validated input value for reference. */
+  reference?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Durable DBOS operation handle for polling progress and terminal outcome. */
+export type ApiOrderOperation = ApiNode & {
+  __typename?: 'OrderOperation';
+  /** Timestamp for completed, or null when it has not occurred. */
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Stable failure code. */
+  failureCode?: Maybe<Scalars['String']['output']>;
+  /** Projected value for failure message. */
+  failureMessage?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['output'];
+  /** Projected value for kind. */
+  kind: OrderOperationKind;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Projected value for progress. */
+  progress?: Maybe<Scalars['Int']['output']>;
+  /** Relay global ID identifying the resource. */
+  resourceId?: Maybe<Scalars['ID']['output']>;
+  /** Whether retrying after transient state changes may succeed. */
+  retryable: Scalars['Boolean']['output'];
+  /** Timestamp for started, or null when it has not occurred. */
+  startedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderOperationStatus;
+};
+
+/** Closed set of order operation kind values used by Orders Admin API. */
+export type OrderOperationKind =
+  /** Bulk action value of order operation kind. */
+  | 'BULK_ACTION'
+  /** Fulfillment cancel value of order operation kind. */
+  | 'FULFILLMENT_CANCEL'
+  /** Fulfillment submit value of order operation kind. */
+  | 'FULFILLMENT_SUBMIT'
+  /** Integration sync value of order operation kind. */
+  | 'INTEGRATION_SYNC'
+  /** Order cancel value of order operation kind. */
+  | 'ORDER_CANCEL'
+  /** Order edit commit value of order operation kind. */
+  | 'ORDER_EDIT_COMMIT'
+  /** Payment capture value of order operation kind. */
+  | 'PAYMENT_CAPTURE'
+  /** Payment refund value of order operation kind. */
+  | 'PAYMENT_REFUND'
+  /** Payment retry value of order operation kind. */
+  | 'PAYMENT_RETRY'
+  /** Payment void value of order operation kind. */
+  | 'PAYMENT_VOID'
+  /** Return receive value of order operation kind. */
+  | 'RETURN_RECEIVE'
+  /** Shipment cancel value of order operation kind. */
+  | 'SHIPMENT_CANCEL'
+  /** Shipment create value of order operation kind. */
+  | 'SHIPMENT_CREATE'
+  /** Shipment reconcile value of order operation kind. */
+  | 'SHIPMENT_RECONCILE';
+
+/** Mutation result for order operation; expected failures are returned in userErrors. */
+export type ApiOrderOperationPayload = {
+  __typename?: 'OrderOperationPayload';
+  /** Durable operation returned for polling asynchronous work. */
+  operation?: Maybe<ApiOrderOperation>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Closed set of order operation status values used by Orders Admin API. */
+export type OrderOperationStatus =
+  /** Cancelled value of order operation status. */
+  | 'CANCELLED'
+  /** Failed value of order operation status. */
+  | 'FAILED'
+  /** Pending value of order operation status. */
+  | 'PENDING'
+  /** Running value of order operation status. */
+  | 'RUNNING'
+  /** Succeeded value of order operation status. */
+  | 'SUCCEEDED';
+
+/** Validated input for order order by. Tenant identifiers come only from trusted context. */
+export type ApiOrderOrderByInput = {
+  /** Validated input value for direction. */
+  direction: OrderSortDirection;
+  /** Input path associated with the error, when applicable. */
+  field: OrderSortField;
+};
+
+/** Closed set of order origin values used by Orders Admin API. */
+export type OrderOrigin =
+  /** Admin value of order origin. */
+  | 'ADMIN'
+  /** Api value of order origin. */
+  | 'API'
+  /** Checkout value of order origin. */
+  | 'CHECKOUT'
+  /** Crm value of order origin. */
+  | 'CRM'
+  /** Import value of order origin. */
+  | 'IMPORT'
+  /** Marketplace value of order origin. */
+  | 'MARKETPLACE';
+
+/** Mutation result for order; expected failures are returned in userErrors. */
+export type ApiOrderPayload = {
+  __typename?: 'OrderPayload';
+  /** Optional client correlation value echoed by supported payloads. */
+  clientMutationId?: Maybe<Scalars['String']['output']>;
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Read-only financial projection derived from attempts, transactions, refunds, and disputes. */
+export type ApiOrderPayment = {
+  __typename?: 'OrderPayment';
+  /** Projected value for attempts. */
+  attempts: Array<ApiOrderPaymentAttempt>;
+  /** Monetary authorized in the order currency. */
+  authorizedAmount: ApiMoney;
+  /** Monetary captured in the order currency. */
+  capturedAmount: ApiMoney;
+  /** Projected value for disputes. */
+  disputes: Array<ApiOrderPaymentDispute>;
+  /** Monetary outstanding in the order currency. */
+  outstandingAmount: ApiMoney;
+  /** Monetary refunded in the order currency. */
+  refundedAmount: ApiMoney;
+  /** Projected value for selected method. */
+  selectedMethod?: Maybe<ApiOrderPaymentMethod>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentStatus;
+  /** Projected value for transactions. */
+  transactions: Array<ApiOrderPaymentTransaction>;
+  /** Monetary voided in the order currency. */
+  voidedAmount: ApiMoney;
+};
+
+/** Orders Admin representation of order payment attempt. */
+export type ApiOrderPaymentAttempt = ApiNode & {
+  __typename?: 'OrderPaymentAttempt';
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Projected value for customer action. */
+  customerAction?: Maybe<Scalars['JSON']['output']>;
+  /** Timestamp for expires, or null when it has not occurred. */
+  expiresAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Stable failure code. */
+  failureCode?: Maybe<Scalars['String']['output']>;
+  /** Projected value for failure message. */
+  failureMessage?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Timestamp for processed, or null when it has not occurred. */
+  processedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Stable provider code. */
+  providerCode: Scalars['String']['output'];
+  /** Projected value for provider reference. */
+  providerReference?: Maybe<Scalars['String']['output']>;
+  /** Monetary requested in the order currency. */
+  requestedAmount: ApiMoney;
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Validated input for order payment capture. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentCaptureInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount?: InputMaybe<ApiMoneyInput>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Relay global ID identifying the transaction. */
+  transactionId: Scalars['ID']['input'];
+};
+
+/** Orders Admin representation of order payment dispute. */
+export type ApiOrderPaymentDispute = ApiNode & {
+  __typename?: 'OrderPaymentDispute';
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Stable provider code. */
+  providerCode: Scalars['String']['output'];
+  /** Projected value for provider reference. */
+  providerReference: Scalars['String']['output'];
+  /** Projected value for reason. */
+  reason?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for resolved, or null when it has not occurred. */
+  resolvedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Timestamp for response due, or null when it has not occurred. */
+  responseDueAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current lifecycle or derived projection status. */
+  status: Scalars['String']['output'];
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+};
+
+/** Orders Admin representation of order payment method. */
+export type ApiOrderPaymentMethod = {
+  __typename?: 'OrderPaymentMethod';
+  /** Stable machine-readable code. */
+  code: Scalars['String']['output'];
+  /** Projected value for customer input. */
+  customerInput: Scalars['JSON']['output'];
+  /** Projected value for flow. */
+  flow: Scalars['String']['output'];
+  /** Stable provider code. */
+  providerCode: Scalars['String']['output'];
+  /** Projected value for provider snapshot. */
+  providerSnapshot: Scalars['JSON']['output'];
+  /** Projected value for title. */
+  title: Scalars['String']['output'];
+};
+
+/** Validated input for order payment retry. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentRetryInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Stable payment method code. */
+  paymentMethodCode?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for return url. */
+  returnUrl?: InputMaybe<Scalars['URL']['input']>;
+};
+
+/** Closed set of order payment status values used by Orders Admin API. */
+export type OrderPaymentStatus =
+  /** Authorized value of order payment status. */
+  | 'AUTHORIZED'
+  /** Expired value of order payment status. */
+  | 'EXPIRED'
+  /** Failed value of order payment status. */
+  | 'FAILED'
+  /** Not required value of order payment status. */
+  | 'NOT_REQUIRED'
+  /** Paid value of order payment status. */
+  | 'PAID'
+  /** Partially paid value of order payment status. */
+  | 'PARTIALLY_PAID'
+  /** Partially refunded value of order payment status. */
+  | 'PARTIALLY_REFUNDED'
+  /** Pending value of order payment status. */
+  | 'PENDING'
+  /** Refunded value of order payment status. */
+  | 'REFUNDED'
+  /** Voided value of order payment status. */
+  | 'VOIDED';
+
+/** Comparison operators for order payment status; omitted operators do not constrain results. */
+export type ApiOrderPaymentStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderPaymentStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderPaymentStatus>>;
+};
+
+/** Validated input for order payment status override. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentStatusOverrideInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for note. */
+  note: Scalars['String']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentStatus;
+};
+
+/** Immutable authorization, capture, sale, refund, void, manual payment, or adjustment fact. */
+export type ApiOrderPaymentTransaction = ApiNode & {
+  __typename?: 'OrderPaymentTransaction';
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Stable failure code. */
+  failureCode?: Maybe<Scalars['String']['output']>;
+  /** Projected value for failure message. */
+  failureMessage?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for kind. */
+  kind: OrderPaymentTransactionKind;
+  /** Projected value for parent transaction. */
+  parentTransaction?: Maybe<ApiOrderPaymentTransaction>;
+  /** Timestamp for processed, or null when it has not occurred. */
+  processedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Stable provider code. */
+  providerCode: Scalars['String']['output'];
+  /** Projected value for provider reference. */
+  providerReference?: Maybe<Scalars['String']['output']>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderPaymentTransactionStatus;
+};
+
+/** Closed set of order payment transaction kind values used by Orders Admin API. */
+export type OrderPaymentTransactionKind =
+  /** Adjustment value of order payment transaction kind. */
+  | 'ADJUSTMENT'
+  /** Authorization value of order payment transaction kind. */
+  | 'AUTHORIZATION'
+  /** Capture value of order payment transaction kind. */
+  | 'CAPTURE'
+  /** Manual value of order payment transaction kind. */
+  | 'MANUAL'
+  /** Refund value of order payment transaction kind. */
+  | 'REFUND'
+  /** Sale value of order payment transaction kind. */
+  | 'SALE'
+  /** Void value of order payment transaction kind. */
+  | 'VOID';
+
+/** Closed set of order payment transaction status values used by Orders Admin API. */
+export type OrderPaymentTransactionStatus =
+  /** Cancelled value of order payment transaction status. */
+  | 'CANCELLED'
+  /** Failure value of order payment transaction status. */
+  | 'FAILURE'
+  /** Pending value of order payment transaction status. */
+  | 'PENDING'
+  /** Success value of order payment transaction status. */
+  | 'SUCCESS';
+
+/** Validated input for order payment void. Tenant identifiers come only from trusted context. */
+export type ApiOrderPaymentVoidInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Validated input value for reason. */
+  reason: Scalars['String']['input'];
+  /** Relay global ID identifying the transaction. */
+  transactionId: Scalars['ID']['input'];
+};
+
+/** Closed set of order placement status values used by Orders Admin API. */
+export type OrderPlacementStatus =
+  /** Awaiting finalization value of order placement status. */
+  | 'AWAITING_FINALIZATION'
+  /** Confirmed value of order placement status. */
+  | 'CONFIRMED'
+  /** Failed value of order placement status. */
+  | 'FAILED';
+
+/** Comparison operators for order placement status; omitted operators do not constrain results. */
+export type ApiOrderPlacementStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderPlacementStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderPlacementStatus>>;
+};
+
+/** Refund aggregate and its line and payment-transaction allocations. */
+export type ApiOrderRefund = ApiNode & {
+  __typename?: 'OrderRefund';
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for lines. */
+  lines: Array<ApiOrderRefundLine>;
+  /** Projected value for note. */
+  note?: Maybe<Scalars['String']['output']>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Timestamp for processed, or null when it has not occurred. */
+  processedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['output'];
+  /** Current lifecycle or derived projection status. */
+  status: OrderRefundStatus;
+  /** Projected value for transactions. */
+  transactions: Array<ApiOrderPaymentTransaction>;
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+};
+
+/** Relay-style paginated connection of order refund resources. */
+export type ApiOrderRefundConnection = ApiConnection & {
+  __typename?: 'OrderRefundConnection';
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderRefundEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderRefund>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Validated input for order refund create. Tenant identifiers come only from trusted context. */
+export type ApiOrderRefundCreateInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for lines. */
+  lines?: InputMaybe<Array<ApiOrderRefundLineInput>>;
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Validated input value for transaction allocations. */
+  transactionAllocations?: InputMaybe<Array<ApiOrderRefundTransactionAllocationInput>>;
+};
+
+/** Cursor and resource pair for a order refund connection. */
+export type ApiOrderRefundEdge = {
+  __typename?: 'OrderRefundEdge';
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars['String']['output'];
+  /** Projected value for node. */
+  node: ApiOrderRefund;
+};
+
+/** Orders Admin representation of order refund line. */
+export type ApiOrderRefundLine = {
+  __typename?: 'OrderRefundLine';
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Projected value for order line. */
+  orderLine?: Maybe<ApiOrderLine>;
+  /** Quantity validated against domain conservation invariants. */
+  quantity?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Validated input for order refund line. Tenant identifiers come only from trusted context. */
+export type ApiOrderRefundLineInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars['ID']['input'];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['input'];
+};
+
+/** Closed set of order refund status values used by Orders Admin API. */
+export type OrderRefundStatus =
+  /** Cancelled value of order refund status. */
+  | 'CANCELLED'
+  /** Failed value of order refund status. */
+  | 'FAILED'
+  /** Pending value of order refund status. */
+  | 'PENDING'
+  /** Succeeded value of order refund status. */
+  | 'SUCCEEDED';
+
+/** Validated input for order refund transaction allocation. Tenant identifiers come only from trusted context. */
+export type ApiOrderRefundTransactionAllocationInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Relay global ID identifying the transaction. */
+  transactionId: Scalars['ID']['input'];
+};
+
+/** Validated input for order reopen. Tenant identifiers come only from trusted context. */
+export type ApiOrderReopenInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for reason. */
+  reason: Scalars['String']['input'];
+};
+
+/** Return request and its approved, transported, received, and disposition quantities. */
+export type ApiOrderReturn = ApiNode & {
+  __typename?: 'OrderReturn';
+  /** Timestamp for approved, or null when it has not occurred. */
+  approvedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Timestamp for completed, or null when it has not occurred. */
+  completedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Projected value for customer note. */
+  customerNote?: Maybe<Scalars['String']['output']>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for lines. */
+  lines: Array<ApiOrderReturnLine>;
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Timestamp for received, or null when it has not occurred. */
+  receivedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Timestamp for requested, or null when it has not occurred. */
+  requestedAt: Scalars['DateTime']['output'];
+  /** Projected value for return shipment. */
+  returnShipment?: Maybe<ApiShipment>;
+  /** Projected value for staff note. */
+  staffNote?: Maybe<Scalars['String']['output']>;
+  /** Current lifecycle or derived projection status. */
+  status: OrderReturnRequestStatus;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+};
+
+/** Validated input for order return approve. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnApproveInput = {
+  /** Validated input value for create return shipment. */
+  createReturnShipment?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the location. */
+  locationId: Scalars['ID']['input'];
+  /** Relay global ID identifying the return. */
+  returnId: Scalars['ID']['input'];
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Validated input for order return cancel. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Relay global ID identifying the return. */
+  returnId: Scalars['ID']['input'];
+};
+
+/** Relay-style paginated connection of order return resources. */
+export type ApiOrderReturnConnection = ApiConnection & {
+  __typename?: 'OrderReturnConnection';
+  /** Cursor and resource pairs in this page. */
+  edges: Array<ApiOrderReturnEdge>;
+  /** Resources in this page. */
+  nodes: Array<ApiOrderReturn>;
+  /** Relay pagination metadata. */
+  pageInfo: ApiPageInfo;
+  /** Total matching resources before pagination. */
+  totalCount: Scalars['Int']['output'];
+};
+
+/** Validated input for order return create. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnCreateInput = {
+  /** Validated input value for customer note. */
+  customerNote?: InputMaybe<Scalars['String']['input']>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for lines. */
+  lines: Array<ApiOrderReturnLineInput>;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Relay global ID identifying the order. */
+  orderId: Scalars['ID']['input'];
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Cursor and resource pair for a order return connection. */
+export type ApiOrderReturnEdge = {
+  __typename?: 'OrderReturnEdge';
+  /** Opaque Relay cursor for this edge. */
+  cursor: Scalars['String']['output'];
+  /** Projected value for node. */
+  node: ApiOrderReturn;
+};
+
+/** Orders Admin representation of order return line. */
+export type ApiOrderReturnLine = {
+  __typename?: 'OrderReturnLine';
+  /** Projected damaged quantity. */
+  damagedQuantity: Scalars['Int']['output'];
+  /** Projected value for note. */
+  note?: Maybe<Scalars['String']['output']>;
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['output'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['output'];
+  /** Projected received quantity. */
+  receivedQuantity: Scalars['Int']['output'];
+  /** Projected restockable quantity. */
+  restockableQuantity: Scalars['Int']['output'];
+};
+
+/** Validated input for order return line. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnLineInput = {
+  /** Validated input value for note. */
+  note?: InputMaybe<Scalars['String']['input']>;
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars['ID']['input'];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+};
+
+/** Mutation result for order return; expected failures are returned in userErrors. */
+export type ApiOrderReturnPayload = {
+  __typename?: 'OrderReturnPayload';
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Projected value for return. */
+  return?: Maybe<ApiOrderReturn>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for order return receive. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnReceiveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for lines. */
+  lines: Array<ApiOrderReturnReceiveLineInput>;
+  /** Relay global ID identifying the location. */
+  locationId: Scalars['ID']['input'];
+  /** Validated input value for refund. */
+  refund?: InputMaybe<ApiOrderReturnRefundInput>;
+  /** Relay global ID identifying the return. */
+  returnId: Scalars['ID']['input'];
+};
+
+/** Validated input for order return receive line. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnReceiveLineInput = {
+  /** Requested damaged quantity. */
+  damagedQuantity: Scalars['Int']['input'];
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars['ID']['input'];
+  /** Requested received quantity. */
+  receivedQuantity: Scalars['Int']['input'];
+  /** Requested restockable quantity. */
+  restockableQuantity: Scalars['Int']['input'];
+};
+
+/** Validated input for order return refund. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnRefundInput = {
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoneyInput;
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+};
+
+/** Validated input for order return reject. Tenant identifiers come only from trusted context. */
+export type ApiOrderReturnRejectInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Relay global ID identifying the return. */
+  returnId: Scalars['ID']['input'];
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Closed set of order return request status values used by Orders Admin API. */
+export type OrderReturnRequestStatus =
+  /** Approved value of order return request status. */
+  | 'APPROVED'
+  /** Cancelled value of order return request status. */
+  | 'CANCELLED'
+  /** Completed value of order return request status. */
+  | 'COMPLETED'
+  /** In transit value of order return request status. */
+  | 'IN_TRANSIT'
+  /** Received value of order return request status. */
+  | 'RECEIVED'
+  /** Rejected value of order return request status. */
+  | 'REJECTED'
+  /** Requested value of order return request status. */
+  | 'REQUESTED';
+
+/** Closed set of order return status values used by Orders Admin API. */
+export type OrderReturnStatus =
+  /** None value of order return status. */
+  | 'NONE'
+  /** Partially returned value of order return status. */
+  | 'PARTIALLY_RETURNED'
+  /** Requested value of order return status. */
+  | 'REQUESTED'
+  /** Returned value of order return status. */
+  | 'RETURNED';
+
+/** Comparison operators for order return status; omitted operators do not constrain results. */
+export type ApiOrderReturnStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderReturnStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderReturnStatus>>;
+};
+
+/** Closed set of order risk level values used by Orders Admin API. */
+export type OrderRiskLevel =
+  /** High value of order risk level. */
+  | 'HIGH'
+  /** Low value of order risk level. */
+  | 'LOW'
+  /** Medium value of order risk level. */
+  | 'MEDIUM'
+  /** None value of order risk level. */
+  | 'NONE';
+
+/** Closed set of sort direction values used by Orders Admin API. */
+export type OrderSortDirection =
+  /** Asc value of sort direction. */
+  | 'ASC'
+  /** Desc value of sort direction. */
+  | 'DESC';
+
+/** Closed set of order sort field values used by Orders Admin API. */
+export type OrderSortField =
+  /** Created at value of order sort field. */
+  | 'CREATED_AT'
+  /** Customer name value of order sort field. */
+  | 'CUSTOMER_NAME'
+  /** Delivery status value of order sort field. */
+  | 'DELIVERY_STATUS'
+  /** Fulfillment status value of order sort field. */
+  | 'FULFILLMENT_STATUS'
+  /** Number value of order sort field. */
+  | 'NUMBER'
+  /** Payment status value of order sort field. */
+  | 'PAYMENT_STATUS'
+  /** Placed at value of order sort field. */
+  | 'PLACED_AT'
+  /** Status value of order sort field. */
+  | 'STATUS'
+  /** Total amount value of order sort field. */
+  | 'TOTAL_AMOUNT'
+  /** Updated at value of order sort field. */
+  | 'UPDATED_AT';
+
+/** Orders Admin representation of order source. */
+export type ApiOrderSource = {
+  __typename?: 'OrderSource';
+  /** Stable machine-readable code. */
+  code: Scalars['String']['output'];
+  /** Relay global ID identifying the external. */
+  externalId?: Maybe<Scalars['String']['output']>;
+  /** Projected value for external url. */
+  externalUrl?: Maybe<Scalars['URL']['output']>;
+};
+
+/** Closed set of order status values used by Orders Admin API. */
+export type OrderStatus =
+  /** Cancelled value of order status. */
+  | 'CANCELLED'
+  /** Closed value of order status. */
+  | 'CLOSED'
+  /** Draft value of order status. */
+  | 'DRAFT'
+  /** Open value of order status. */
+  | 'OPEN';
+
+/** Comparison operators for order status; omitted operators do not constrain results. */
+export type ApiOrderStatusFilterInput = {
+  /** Validated input value for eq. */
+  eq?: InputMaybe<OrderStatus>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<OrderStatus>>;
+};
+
+/** Closed set of order sync direction values used by Orders Admin API. */
+export type OrderSyncDirection =
+  /** Bidirectional value of order sync direction. */
+  | 'BIDIRECTIONAL'
+  /** Export value of order sync direction. */
+  | 'EXPORT'
+  /** Import value of order sync direction. */
+  | 'IMPORT';
+
+/** Validated input for order tags update. Tenant identifiers come only from trusted context. */
+export type ApiOrderTagsUpdateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Validated input value for tags. */
+  tags: Array<Scalars['String']['input']>;
+};
+
+/** Orders Admin representation of order tax line. */
+export type ApiOrderTaxLine = ApiNode & {
+  __typename?: 'OrderTaxLine';
+  /** Exact decimal amount serialized as a string. */
+  amount: ApiMoney;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for included. */
+  included: Scalars['Boolean']['output'];
+  /** Projected value for jurisdiction. */
+  jurisdiction?: Maybe<Scalars['String']['output']>;
+  /** Projected value for rate. */
+  rate: Scalars['Decimal']['output'];
+  /** Projected value for title. */
+  title: Scalars['String']['output'];
+};
+
+/** Validated input for order unarchive. Tenant identifiers come only from trusted context. */
+export type ApiOrderUnarchiveInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+};
+
+/** Validated input for order update. Tenant identifiers come only from trusted context. */
+export type ApiOrderUpdateInput = {
+  /** Validated input value for billing address. */
+  billingAddress?: InputMaybe<ApiOrderAddressInput>;
+  /** Validated input value for contact. */
+  contact?: InputMaybe<ApiOrderContactInput>;
+  /** Validated input value for customer note. */
+  customerNote?: InputMaybe<Scalars['String']['input']>;
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable locale code. */
+  localeCode?: InputMaybe<LocaleCode>;
+  /** Validated input value for shipping. */
+  shipping?: InputMaybe<ApiOrderDeliveryInput>;
+};
+
+/** Expected validation, permission, concurrency, or business-rule error returned by a mutation. */
+export type ApiOrderUserError = ApiDisplayableError & {
+  __typename?: 'OrderUserError';
+  /** Stable machine-readable code. */
+  code: Scalars['String']['output'];
+  /** Current server revision returned with a version conflict. */
+  currentVersion?: Maybe<Scalars['Int']['output']>;
+  /** Input path associated with the error, when applicable. */
+  field?: Maybe<Array<Scalars['String']['output']>>;
+  /** Human-readable explanation safe for an authorized Admin user. */
+  message: Scalars['String']['output'];
+  /** Whether retrying after transient state changes may succeed. */
+  retryable: Scalars['Boolean']['output'];
+};
+
+/** Validated input for weight. Tenant identifiers come only from trusted context. */
+export type ApiOrderWeightInput = {
+  /** Validated input value for unit. */
+  unit: WeightUnit;
+  /** Validated input value for value. */
+  value: Scalars['Float']['input'];
+};
+
+/** Composable store-scoped filter for order reads. */
+export type ApiOrderWhereInput = {
+  /** Validated input value for and. */
+  and?: InputMaybe<Array<ApiOrderWhereInput>>;
+  /** Validated input value for archived. */
+  archived?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt?: InputMaybe<ApiDateTimeFilterInput>;
+  /** ISO 4217 currency code. */
+  currencyCode?: InputMaybe<ApiCurrencyCodeFilterInput>;
+  /** Validated input value for customer email. */
+  customerEmail?: InputMaybe<ApiStringFilterInput>;
+  /** Relay global ID identifying the customer. */
+  customerId?: InputMaybe<ApiIdFilterInput>;
+  /** Validated input value for customer name. */
+  customerName?: InputMaybe<ApiStringFilterInput>;
+  /** Validated input value for customer phone. */
+  customerPhone?: InputMaybe<ApiStringFilterInput>;
+  /** Stable delivery method code. */
+  deliveryMethodCode?: InputMaybe<ApiStringFilterInput>;
+  /** Current delivery status. */
+  deliveryStatus?: InputMaybe<ApiOrderDeliveryStatusFilterInput>;
+  /** Relay global ID identifying the external. */
+  externalId?: InputMaybe<ApiStringFilterInput>;
+  /** Current fulfillment status. */
+  fulfillmentStatus?: InputMaybe<ApiOrderFulfillmentStatusFilterInput>;
+  /** Validated input value for has tracking. */
+  hasTracking?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Relay global ID of this resource. */
+  id?: InputMaybe<ApiIdFilterInput>;
+  /** Store-local order number serialized without precision loss. */
+  number?: InputMaybe<ApiBigIntFilterInput>;
+  /** Validated input value for or. */
+  or?: InputMaybe<Array<ApiOrderWhereInput>>;
+  /** Stable payment method code. */
+  paymentMethodCode?: InputMaybe<ApiStringFilterInput>;
+  /** Current payment status. */
+  paymentStatus?: InputMaybe<ApiOrderPaymentStatusFilterInput>;
+  /** Timestamp for placed, or null when it has not occurred. */
+  placedAt?: InputMaybe<ApiDateTimeFilterInput>;
+  /** Current placement status. */
+  placementStatus?: InputMaybe<ApiOrderPlacementStatusFilterInput>;
+  /** Current return status. */
+  returnStatus?: InputMaybe<ApiOrderReturnStatusFilterInput>;
+  /** Validated input value for shipping country. */
+  shippingCountry?: InputMaybe<ApiCountryCodeFilterInput>;
+  /** Stable source code. */
+  sourceCode?: InputMaybe<ApiStringFilterInput>;
+  /** Current lifecycle or derived projection status. */
+  status?: InputMaybe<ApiOrderStatusFilterInput>;
+  /** Validated input value for tag. */
+  tag?: InputMaybe<ApiStringFilterInput>;
+  /** Monetary total in the order currency. */
+  totalAmount?: InputMaybe<ApiDecimalFilterInput>;
+  /** Validated input value for tracking number. */
+  trackingNumber?: InputMaybe<ApiStringFilterInput>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt?: InputMaybe<ApiDateTimeFilterInput>;
+};
+
+/** Validated input for orders bulk action. Tenant identifiers come only from trusted context. */
+export type ApiOrdersBulkActionInput = {
+  /** Validated input value for action. */
+  action: OrdersBulkActionKind;
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the integration link. */
+  integrationLinkId?: InputMaybe<Scalars['ID']['input']>;
+  /** Stable audited reason code. */
+  reasonCode?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for selection. */
+  selection: ApiOrderBulkSelectionInput;
+  /** Validated input value for tags. */
+  tags?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
+/** Closed set of orders bulk action kind values used by Orders Admin API. */
+export type OrdersBulkActionKind =
+  /** Add tags value of orders bulk action kind. */
+  | 'ADD_TAGS'
+  /** Archive value of orders bulk action kind. */
+  | 'ARCHIVE'
+  /** Cancel value of orders bulk action kind. */
+  | 'CANCEL'
+  /** Remove tags value of orders bulk action kind. */
+  | 'REMOVE_TAGS'
+  /** Request integration sync value of orders bulk action kind. */
+  | 'REQUEST_INTEGRATION_SYNC'
+  /** Unarchive value of orders bulk action kind. */
+  | 'UNARCHIVE';
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutation = {
+  __typename?: 'OrdersMutation';
+  /** Start durable fulfillment cancellation and optional restocking. */
+  fulfillmentCancel: ApiOrderOperationPayload;
+  /** Create merchant-managed fulfillment facts for allocated quantities. */
+  fulfillmentCreate: ApiFulfillmentPayload;
+  /** Request cancellation from the pinned fulfillment service. */
+  fulfillmentOrderCancelRequest: ApiOrderOperationPayload;
+  /** Place a reasoned hold on fulfillment work. */
+  fulfillmentOrderHold: ApiFulfillmentOrderPayload;
+  /** Move fulfillment work to another location or pinned fulfillment-service route. */
+  fulfillmentOrderMove: ApiFulfillmentOrderPayload;
+  /** Release one fulfillment hold after optimistic concurrency validation. */
+  fulfillmentOrderReleaseHold: ApiFulfillmentOrderPayload;
+  /** Split selected remaining quantities into a new fulfillment work unit. */
+  fulfillmentOrderSplit: ApiFulfillmentOrderPayload;
+  /** Submit fulfillment work through its pinned fulfillment service. */
+  fulfillmentOrderSubmit: ApiOrderOperationPayload;
+  /** Update the current staff-only note and append an immutable audit event. */
+  orderAdminNoteUpdate: ApiOrderPayload;
+  /** Archive an order without changing lifecycle status. */
+  orderArchive: ApiOrderPayload;
+  /** Start durable cancellation across fulfillment, payment, inventory, and notifications. */
+  orderCancel: ApiOrderOperationPayload;
+  /** Close an eligible OPEN order. */
+  orderClose: ApiOrderPayload;
+  /** Append a staff or customer-visible comment to the immutable activity timeline. */
+  orderCommentAdd: ApiOrderActivityPayload;
+  /** Validate and transition a DRAFT order to OPEN. */
+  orderCompleteDraft: ApiOrderPayload;
+  /** Create an idempotent DRAFT order and calculate all totals server-side. */
+  orderCreate: ApiOrderPayload;
+  /** Replace validated merchant custom fields without storing core business facts in JSON. */
+  orderCustomFieldsUpdate: ApiOrderPayload;
+  /** Attach or detach the federated customer reference while preserving historical contact snapshots. */
+  orderCustomerSet: ApiOrderPayload;
+  /** Permanently delete a DRAFT order; placed orders are never physically deleted. */
+  orderDelete: ApiOrderDeletePayload;
+  /** Abandon an uncommitted staged edit. */
+  orderEditAbandon: ApiOrderEditPayload;
+  /** Begin an isolated staged edit of an OPEN order. */
+  orderEditBegin: ApiOrderEditPayload;
+  /** Durably commit a staged edit after verifying edit and order revisions. */
+  orderEditCommit: ApiOrderOperationPayload;
+  /** Add a reasoned manual discount to a staged edit. */
+  orderEditDiscountAdd: ApiOrderEditPayload;
+  /** Remove a proposed discount from a staged edit. */
+  orderEditDiscountRemove: ApiOrderEditPayload;
+  /** Add a proposed line to a staged edit and refresh its calculated preview. */
+  orderEditLineAdd: ApiOrderEditPayload;
+  /** Remove a proposed line without mutating the committed order. */
+  orderEditLineRemove: ApiOrderEditPayload;
+  /** Update a proposed line in a staged edit and refresh its calculated preview. */
+  orderEditLineUpdate: ApiOrderEditPayload;
+  /** Update proposed delivery details in a staged edit. */
+  orderEditShippingUpdate: ApiOrderEditPayload;
+  /** Cancel an eligible exchange. */
+  orderExchangeCancel: ApiOrderExchangePayload;
+  /** Create an exchange from eligible inbound quantities and replacement lines. */
+  orderExchangeCreate: ApiOrderExchangePayload;
+  /** Detach an integration link while preserving synchronization and audit history. */
+  orderIntegrationLinkDetach: ApiOrderPayload;
+  /** Request asynchronous synchronization through a pinned integration link. */
+  orderIntegrationSyncRequest: ApiOrderOperationPayload;
+  /** Retry a failed integration operation without changing its pinned route. */
+  orderIntegrationSyncRetry: ApiOrderOperationPayload;
+  /** Add a line directly to a DRAFT order and recalculate totals. */
+  orderLineAdd: ApiOrderLinePayload;
+  /** Delete a line directly from a DRAFT order. */
+  orderLineDelete: ApiOrderDeletePayload;
+  /** Update an editable DRAFT line and recalculate totals. */
+  orderLineUpdate: ApiOrderLinePayload;
+  /** Record an audited offline or imported payment fact. */
+  orderManualPaymentRecord: ApiOrderOperationPayload;
+  /** Start durable capture of an eligible authorization. */
+  orderPaymentCapture: ApiOrderOperationPayload;
+  /** Start a new payment attempt without rewriting previous attempts. */
+  orderPaymentRetry: ApiOrderOperationPayload;
+  /** Apply an elevated override only to offline or imported facts with a mandatory reason. */
+  orderPaymentStatusOverride: ApiOrderPayload;
+  /** Start durable voiding of an eligible authorization or transaction. */
+  orderPaymentVoid: ApiOrderOperationPayload;
+  /** Start a durable refund with optional line and transaction allocations. */
+  orderRefundCreate: ApiOrderOperationPayload;
+  /** Reopen an eligible CLOSED order. */
+  orderReopen: ApiOrderPayload;
+  /** Approve a return and optionally request a return shipment. */
+  orderReturnApprove: ApiOrderReturnPayload;
+  /** Cancel an eligible return request. */
+  orderReturnCancel: ApiOrderReturnPayload;
+  /** Create a return request for currently returnable quantities. */
+  orderReturnCreate: ApiOrderReturnPayload;
+  /** Start durable receipt, disposition, restocking, and optional refund processing. */
+  orderReturnReceive: ApiOrderOperationPayload;
+  /** Reject a return with a stable reason code. */
+  orderReturnReject: ApiOrderReturnPayload;
+  /** Replace normalized tags and append an immutable audit event. */
+  orderTagsUpdate: ApiOrderPayload;
+  /** Remove the archive marker without changing lifecycle status. */
+  orderUnarchive: ApiOrderPayload;
+  /** Update editable order details without directly overwriting derived aggregate statuses. */
+  orderUpdate: ApiOrderPayload;
+  /** Start a durable bulk action over an explicit or filtered order selection. */
+  ordersBulkAction: ApiOrderOperationPayload;
+  /** Start durable cancellation of an eligible shipment. */
+  shipmentCancel: ApiOrderOperationPayload;
+  /** Start merchant-managed or provider-managed physical shipment creation. */
+  shipmentCreate: ApiOrderOperationPayload;
+  /** Record confirmed physical delivery. */
+  shipmentMarkDelivered: ApiShipmentPayload;
+  /** Record physical handoff of a shipment. */
+  shipmentMarkShipped: ApiShipmentPayload;
+  /** Reconcile shipment state through its pinned provider route. */
+  shipmentReconcile: ApiOrderOperationPayload;
+  /** Replace merchant-managed tracking details. */
+  shipmentTrackingUpdate: ApiShipmentPayload;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentCancelArgs = {
+  input: ApiFulfillmentCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentCreateArgs = {
+  input: ApiFulfillmentCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderCancelRequestArgs = {
+  input: ApiFulfillmentOrderCancelRequestInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderHoldArgs = {
+  input: ApiFulfillmentOrderHoldInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderMoveArgs = {
+  input: ApiFulfillmentOrderMoveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderReleaseHoldArgs = {
+  input: ApiFulfillmentOrderReleaseHoldInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderSplitArgs = {
+  input: ApiFulfillmentOrderSplitInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationFulfillmentOrderSubmitArgs = {
+  input: ApiFulfillmentOrderSubmitInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderAdminNoteUpdateArgs = {
+  input: ApiOrderAdminNoteUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderArchiveArgs = {
+  input: ApiOrderArchiveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCancelArgs = {
+  input: ApiOrderCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCloseArgs = {
+  input: ApiOrderCloseInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCommentAddArgs = {
+  input: ApiOrderCommentAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCompleteDraftArgs = {
+  input: ApiOrderCompleteDraftInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCreateArgs = {
+  input: ApiOrderCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCustomFieldsUpdateArgs = {
+  input: ApiOrderCustomFieldsUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderCustomerSetArgs = {
+  input: ApiOrderCustomerSetInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderDeleteArgs = {
+  input: ApiOrderDeleteInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditAbandonArgs = {
+  input: ApiOrderEditAbandonInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditBeginArgs = {
+  input: ApiOrderEditBeginInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditCommitArgs = {
+  input: ApiOrderEditCommitInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditDiscountAddArgs = {
+  input: ApiOrderEditDiscountAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditDiscountRemoveArgs = {
+  input: ApiOrderEditDiscountRemoveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditLineAddArgs = {
+  input: ApiOrderEditLineAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditLineRemoveArgs = {
+  input: ApiOrderEditLineRemoveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditLineUpdateArgs = {
+  input: ApiOrderEditLineUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderEditShippingUpdateArgs = {
+  input: ApiOrderEditShippingUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderExchangeCancelArgs = {
+  input: ApiOrderExchangeCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderExchangeCreateArgs = {
+  input: ApiOrderExchangeCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderIntegrationLinkDetachArgs = {
+  input: ApiOrderIntegrationLinkDetachInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderIntegrationSyncRequestArgs = {
+  input: ApiOrderIntegrationSyncRequestInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderIntegrationSyncRetryArgs = {
+  input: ApiOrderIntegrationSyncRetryInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderLineAddArgs = {
+  input: ApiOrderLineAddInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderLineDeleteArgs = {
+  input: ApiOrderLineDeleteInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderLineUpdateArgs = {
+  input: ApiOrderLineUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderManualPaymentRecordArgs = {
+  input: ApiOrderManualPaymentRecordInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentCaptureArgs = {
+  input: ApiOrderPaymentCaptureInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentRetryArgs = {
+  input: ApiOrderPaymentRetryInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentStatusOverrideArgs = {
+  input: ApiOrderPaymentStatusOverrideInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderPaymentVoidArgs = {
+  input: ApiOrderPaymentVoidInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderRefundCreateArgs = {
+  input: ApiOrderRefundCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReopenArgs = {
+  input: ApiOrderReopenInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnApproveArgs = {
+  input: ApiOrderReturnApproveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnCancelArgs = {
+  input: ApiOrderReturnCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnCreateArgs = {
+  input: ApiOrderReturnCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnReceiveArgs = {
+  input: ApiOrderReturnReceiveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderReturnRejectArgs = {
+  input: ApiOrderReturnRejectInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderTagsUpdateArgs = {
+  input: ApiOrderTagsUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderUnarchiveArgs = {
+  input: ApiOrderUnarchiveInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderUpdateArgs = {
+  input: ApiOrderUpdateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrdersBulkActionArgs = {
+  input: ApiOrdersBulkActionInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentCancelArgs = {
+  input: ApiShipmentCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentCreateArgs = {
+  input: ApiShipmentCreateInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentMarkDeliveredArgs = {
+  input: ApiShipmentMarkDeliveredInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentMarkShippedArgs = {
+  input: ApiShipmentMarkShippedInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentReconcileArgs = {
+  input: ApiShipmentReconcileInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationShipmentTrackingUpdateArgs = {
+  input: ApiShipmentTrackingUpdateInput;
+};
+
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQuery = {
+  __typename?: 'OrdersQuery';
+  /** Find an order by Relay global ID in the current store; inaccessible resources resolve to null. */
+  order?: Maybe<ApiOrder>;
+  /** Find an order by its store-local number. */
+  orderByNumber?: Maybe<ApiOrder>;
+  /** Find a staged order edit by Relay global ID. */
+  orderEditSession?: Maybe<ApiOrderEditSession>;
+  /** Find a durable operation for workflow polling. */
+  orderOperation?: Maybe<ApiOrderOperation>;
+  /** List current-store orders with Relay pagination, composable filters, and deterministic sorting. */
+  orders: ApiOrderConnection;
+};
+
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderArgs = {
   id: Scalars['ID']['input'];
 };
 
-
-export type ApiOrderQueryOrdersArgs = {
-  input?: InputMaybe<ApiOrdersInput>;
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderByNumberArgs = {
+  number: Scalars['BigInt']['input'];
 };
 
-export type OrderStatus =
-  | 'ACTIVE'
-  | 'CANCELLED'
-  | 'CLOSED'
-  | 'DRAFT';
-
-export type ApiOrdersInput = {
-  order?: InputMaybe<Scalars['String']['input']>;
-  page?: InputMaybe<Scalars['Int']['input']>;
-  pageSize?: InputMaybe<Scalars['Int']['input']>;
-  where?: InputMaybe<Scalars['JSON']['input']>;
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderEditSessionArgs = {
+  id: Scalars['ID']['input'];
 };
 
-export type ApiOrdersOutput = {
-  __typename?: 'OrdersOutput';
-  data: Array<ApiOrder>;
-  meta: ApiCollectionMeta;
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrderOperationArgs = {
+  id: Scalars['ID']['input'];
+};
+
+/** Read namespace for the Orders Admin API. */
+export type ApiOrdersQueryOrdersArgs = {
+  after?: InputMaybe<Scalars['String']['input']>;
+  before?: InputMaybe<Scalars['String']['input']>;
+  first?: InputMaybe<Scalars['Int']['input']>;
+  last?: InputMaybe<Scalars['Int']['input']>;
+  orderBy?: InputMaybe<Array<ApiOrderOrderByInput>>;
+  where?: InputMaybe<ApiOrderWhereInput>;
 };
 
 /**
@@ -12875,7 +15525,6 @@ export type ApiOrganization = ApiNode & {
   /** Timestamp when the organization was last updated. */
   updatedAt?: Maybe<Scalars['DateTime']['output']>;
 };
-
 
 /**
  * Organization - top level entity for multi-tenancy.
@@ -12969,48 +15618,40 @@ export type ApiOrganizationMutation = {
   ownershipTransfer: ApiOwnershipTransferPayload;
 };
 
-
 /** Organization mutations. */
 export type ApiOrganizationMutationMemberAccessRemoveArgs = {
   input: ApiMemberAccessRemoveInput;
 };
-
 
 /** Organization mutations. */
 export type ApiOrganizationMutationMemberInviteArgs = {
   input: ApiMemberInviteInput;
 };
 
-
 /** Organization mutations. */
 export type ApiOrganizationMutationMemberRemoveArgs = {
   input: ApiMemberRemoveInput;
 };
-
 
 /** Organization mutations. */
 export type ApiOrganizationMutationMemberRoleChangeArgs = {
   input: ApiMemberRoleChangeInput;
 };
 
-
 /** Organization mutations. */
 export type ApiOrganizationMutationOrganizationCreateArgs = {
   input: ApiOrganizationCreateInput;
 };
-
 
 /** Organization mutations. */
 export type ApiOrganizationMutationOrganizationDeleteArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Organization mutations. */
 export type ApiOrganizationMutationOrganizationUpdateArgs = {
   input: ApiOrganizationUpdateInput;
 };
-
 
 /** Organization mutations. */
 export type ApiOrganizationMutationOwnershipTransferArgs = {
@@ -13051,13 +15692,11 @@ export type ApiOrganizationQuery = {
   organizations: ApiOrganizationConnection;
 };
 
-
 /** Organization queries. */
 export type ApiOrganizationQueryOrganizationArgs = {
   id?: InputMaybe<Scalars['ID']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
 };
-
 
 /** Organization queries. */
 export type ApiOrganizationQueryOrganizationsArgs = {
@@ -13165,30 +15804,25 @@ export type ApiPricingMutation = {
   discountUpdate: ApiDiscountUpdatePayload;
 };
 
-
 /** Store-scoped pricing commands. */
 export type ApiPricingMutationDiscountCreateArgs = {
   input: ApiDiscountCreateInput;
 };
-
 
 /** Store-scoped pricing commands. */
 export type ApiPricingMutationDiscountDeleteArgs = {
   input: ApiDiscountDeleteInput;
 };
 
-
 /** Store-scoped pricing commands. */
 export type ApiPricingMutationDiscountExternalReferenceCreateArgs = {
   input: ApiDiscountExternalReferenceCreateInput;
 };
 
-
 /** Store-scoped pricing commands. */
 export type ApiPricingMutationDiscountExternalReferenceDeleteArgs = {
   input: ApiDiscountExternalReferenceDeleteInput;
 };
-
 
 /** Store-scoped pricing commands. */
 export type ApiPricingMutationDiscountExternalReferenceUpdateArgs = {
@@ -13196,7 +15830,6 @@ export type ApiPricingMutationDiscountExternalReferenceUpdateArgs = {
   externalReferenceId: Scalars['ID']['input'];
   operations: ApiDiscountExternalReferenceUpdateInput;
 };
-
 
 /** Store-scoped pricing commands. */
 export type ApiPricingMutationDiscountUpdateArgs = {
@@ -13225,18 +15858,15 @@ export type ApiPricingQuery = {
   nodes: Array<Maybe<ApiNode>>;
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountCodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountCodesArgs = {
@@ -13248,12 +15878,10 @@ export type ApiPricingQueryDiscountCodesArgs = {
   where?: InputMaybe<ApiDiscountCodeWhereInput>;
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountExternalReferenceArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountExternalReferencesArgs = {
@@ -13265,18 +15893,15 @@ export type ApiPricingQueryDiscountExternalReferencesArgs = {
   where?: InputMaybe<ApiDiscountExternalReferenceWhereInput>;
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountRedemptionArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountRedemptionAllocationArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountRedemptionsArgs = {
@@ -13288,12 +15913,10 @@ export type ApiPricingQueryDiscountRedemptionsArgs = {
   where?: InputMaybe<ApiDiscountRedemptionWhereInput>;
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountUsageReservationArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountUsageReservationsArgs = {
@@ -13305,7 +15928,6 @@ export type ApiPricingQueryDiscountUsageReservationsArgs = {
   where?: InputMaybe<ApiDiscountUsageReservationWhereInput>;
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryDiscountsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -13316,12 +15938,10 @@ export type ApiPricingQueryDiscountsArgs = {
   where?: InputMaybe<ApiDiscountWhereInput>;
 };
 
-
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Store-scoped pricing reads. The current Store is taken from trusted context. */
 export type ApiPricingQueryNodesArgs = {
@@ -13358,56 +15978,58 @@ export type ApiPricingWidgetPayload = {
 };
 
 /** A product represents an item that can be sold. */
-export type ApiProduct = ApiListing & ApiNode & {
-  __typename?: 'Product';
-  /** Category assignments with relationship metadata. */
-  categoryAssignments: Array<ApiProductCategoryAssignment>;
-  /** The date and time when the product was created. */
-  createdAt: Scalars['DateTime']['output'];
-  /** The date and time when the product was deleted (soft delete). */
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Product description. */
-  description?: Maybe<ApiRichText>;
-  /** Short excerpt. */
-  excerpt?: Maybe<ApiRichText>;
-  /** The features of this product. */
-  features: Array<ApiProductFeature>;
-  /** The URL-friendly handle for the product. */
-  handle: Scalars['String']['output'];
-  /** The Product global ID. */
-  id: Scalars['ID']['output'];
-  /** Whether the product is currently published. */
-  isPublished: Scalars['Boolean']['output'];
-  /** Media registered on this product. */
-  media: Array<ApiProductMediaItem>;
-  /** The options available for this product. */
-  options: Array<ApiProductOption>;
-  /** Current product price range in the selected currency. */
-  priceRange?: Maybe<ApiProductPriceRange>;
-  /** The primary category assigned to this product. */
-  primaryCategory?: Maybe<ApiCategory>;
-  /** Product component data, or null when this product has no component configuration. */
-  productComponent?: Maybe<ApiProductComponent>;
-  /** The date and time when the product was published, or null if unpublished. */
-  publishedAt?: Maybe<Scalars['DateTime']['output']>;
-  /** Optimistic locking revision number. Incremented on each update. */
-  revision: Scalars['Int']['output'];
-  /** SEO and Open Graph metadata. */
-  seo?: Maybe<ApiProductSeo>;
-  /** The tags associated with this product. */
-  tags: Array<ApiTag>;
-  /** Product title. */
-  title: Scalars['String']['output'];
-  /** The date and time when the product was last updated. */
-  updatedAt: Scalars['DateTime']['output'];
-  /** The variants of this product. */
-  variants: ApiVariantConnection;
-  /** The total number of variants for this product. */
-  variantsCount: Scalars['Int']['output'];
-  /** The vendor associated with this product. */
-  vendor?: Maybe<ApiVendor>;
-};
-
+export type ApiProduct = ApiListing &
+  ApiNode & {
+    __typename?: 'Product';
+    /** Category assignments with relationship metadata. */
+    categoryAssignments: Array<ApiProductCategoryAssignment>;
+    comparisonConfiguration: ApiProductComparisonConfiguration;
+    /** The date and time when the product was created. */
+    createdAt: Scalars['DateTime']['output'];
+    /** The date and time when the product was deleted (soft delete). */
+    deletedAt?: Maybe<Scalars['DateTime']['output']>;
+    /** Product description. */
+    description?: Maybe<ApiRichText>;
+    effectiveComparisonProfile?: Maybe<ApiComparisonProfile>;
+    /** Short excerpt. */
+    excerpt?: Maybe<ApiRichText>;
+    /** The features of this product. */
+    features: Array<ApiProductFeature>;
+    /** The URL-friendly handle for the product. */
+    handle: Scalars['String']['output'];
+    /** The Product global ID. */
+    id: Scalars['ID']['output'];
+    /** Whether the product is currently published. */
+    isPublished: Scalars['Boolean']['output'];
+    /** Media registered on this product. */
+    media: Array<ApiProductMediaItem>;
+    /** The options available for this product. */
+    options: Array<ApiProductOption>;
+    /** Current product price range in the selected currency. */
+    priceRange?: Maybe<ApiProductPriceRange>;
+    /** The primary category assigned to this product. */
+    primaryCategory?: Maybe<ApiCategory>;
+    /** Product component data, or null when this product has no component configuration. */
+    productComponent?: Maybe<ApiProductComponent>;
+    /** The date and time when the product was published, or null if unpublished. */
+    publishedAt?: Maybe<Scalars['DateTime']['output']>;
+    /** Optimistic locking revision number. Incremented on each update. */
+    revision: Scalars['Int']['output'];
+    /** SEO and Open Graph metadata. */
+    seo?: Maybe<ApiProductSeo>;
+    /** The tags associated with this product. */
+    tags: Array<ApiTag>;
+    /** Product title. */
+    title: Scalars['String']['output'];
+    /** The date and time when the product was last updated. */
+    updatedAt: Scalars['DateTime']['output'];
+    /** The variants of this product. */
+    variants: ApiVariantConnection;
+    /** The total number of variants for this product. */
+    variantsCount: Scalars['Int']['output'];
+    /** The vendor associated with this product. */
+    vendor?: Maybe<ApiVendor>;
+  };
 
 /** A product represents an item that can be sold. */
 export type ApiProductVariantsArgs = {
@@ -13457,7 +16079,6 @@ export type ApiProductBulkUpdateJob = {
   totalProducts: Scalars['Int']['output'];
 };
 
-
 /** Bulk update job with progress. */
 export type ApiProductBulkUpdateJobItemsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -13498,11 +16119,7 @@ export type ApiProductCategoryAssignment = {
   isPrimary: Scalars['Boolean']['output'];
 };
 
-export type ProductCategoryOperationAction =
-  | 'ADD'
-  | 'MOVE'
-  | 'REMOVE'
-  | 'SET_PRIMARY';
+export type ProductCategoryOperationAction = 'ADD' | 'MOVE' | 'REMOVE' | 'SET_PRIMARY';
 
 /** Product category assignment operation for unified product updates. */
 export type ApiProductCategoryOperationInput = {
@@ -13515,6 +16132,104 @@ export type ApiProductCategoryOperationInput = {
   /** The category to update for the product. */
   categoryId: Scalars['ID']['input'];
 };
+
+export type ProductComparisonCompatibilityStatus =
+  'FULL' | 'INCOMPATIBLE' | 'NO_PROFILE' | 'PROFILE_DISABLED';
+
+export type ApiProductComparisonConfiguration = {
+  __typename?: 'ProductComparisonConfiguration';
+  compatibilityStatus: ProductComparisonCompatibilityStatus;
+  effectiveProfile?: Maybe<ApiComparisonProfile>;
+  entries: Array<ApiProductComparisonConfigurationEntry>;
+  product: ApiProduct;
+  unmappedFeatures: Array<ApiProductFeature>;
+  unmappedOptions: Array<ApiProductOption>;
+};
+
+export type ApiProductComparisonConfigurationEntry = {
+  __typename?: 'ProductComparisonConfigurationEntry';
+  feature?: Maybe<ApiProductFeature>;
+  featureValues: Array<ApiProductComparisonNormalizedFeatureValue>;
+  field: ApiComparisonField;
+  notApplicableReason?: Maybe<Scalars['String']['output']>;
+  option?: Maybe<ApiProductOption>;
+  optionValues: Array<ApiProductComparisonNormalizedOptionValue>;
+  sourceKind: ProductComparisonSourceKind;
+};
+
+export type ApiProductComparisonConfigurationPayload = {
+  __typename?: 'ProductComparisonConfigurationPayload';
+  configuration?: Maybe<ApiProductComparisonConfiguration>;
+  userErrors: Array<ApiGenericUserError>;
+};
+
+export type ApiProductComparisonConfigurationSyncInput = {
+  expectedProductRevision: Scalars['Int']['input'];
+  mappings: Array<ApiProductComparisonFieldMappingInput>;
+  productId: Scalars['ID']['input'];
+  profileId: Scalars['ID']['input'];
+};
+
+export type ApiProductComparisonFeatureMappingInput = {
+  featureId: Scalars['ID']['input'];
+  values: Array<ApiProductComparisonFeatureValueMappingInput>;
+};
+
+export type ApiProductComparisonFeatureValueMappingInput = {
+  value: ApiProductComparisonNormalizedValueInput;
+  valueId: Scalars['ID']['input'];
+};
+
+export type ApiProductComparisonFieldMappingInput = {
+  feature?: InputMaybe<ApiProductComparisonFeatureMappingInput>;
+  fieldId: Scalars['ID']['input'];
+  notApplicable?: InputMaybe<ApiProductComparisonNotApplicableInput>;
+  option?: InputMaybe<ApiProductComparisonOptionMappingInput>;
+};
+
+export type ApiProductComparisonNormalizedFeatureValue = {
+  __typename?: 'ProductComparisonNormalizedFeatureValue';
+  booleanValue?: Maybe<Scalars['Boolean']['output']>;
+  decimalValue?: Maybe<Scalars['String']['output']>;
+  fieldOption?: Maybe<ApiComparisonFieldOption>;
+  integerValue?: Maybe<Scalars['BigInt']['output']>;
+  textValue?: Maybe<Scalars['String']['output']>;
+  value: ApiProductFeatureValue;
+};
+
+export type ApiProductComparisonNormalizedOptionValue = {
+  __typename?: 'ProductComparisonNormalizedOptionValue';
+  booleanValue?: Maybe<Scalars['Boolean']['output']>;
+  decimalValue?: Maybe<Scalars['String']['output']>;
+  fieldOption?: Maybe<ApiComparisonFieldOption>;
+  integerValue?: Maybe<Scalars['BigInt']['output']>;
+  textValue?: Maybe<Scalars['String']['output']>;
+  value: ApiProductOptionValue;
+};
+
+export type ApiProductComparisonNormalizedValueInput = {
+  booleanValue?: InputMaybe<Scalars['Boolean']['input']>;
+  decimalValue?: InputMaybe<Scalars['String']['input']>;
+  fieldOptionId?: InputMaybe<Scalars['ID']['input']>;
+  integerValue?: InputMaybe<Scalars['BigInt']['input']>;
+  textValue?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiProductComparisonNotApplicableInput = {
+  reason?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type ApiProductComparisonOptionMappingInput = {
+  optionId: Scalars['ID']['input'];
+  values: Array<ApiProductComparisonOptionValueMappingInput>;
+};
+
+export type ApiProductComparisonOptionValueMappingInput = {
+  value: ApiProductComparisonNormalizedValueInput;
+  valueId: Scalars['ID']['input'];
+};
+
+export type ProductComparisonSourceKind = 'FEATURE' | 'MISSING' | 'NOT_APPLICABLE' | 'OPTION';
 
 /** Product component configuration associated one-to-one with a Catalog Product. */
 export type ApiProductComponent = {
@@ -13533,29 +16248,31 @@ export type ApiProductComponent = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
-export type ApiProductComponentAdjustmentPriceRule = ApiNode & ApiProductComponentPriceRule & {
-  __typename?: 'ProductComponentAdjustmentPriceRule';
-  /** Currency-specific values for FIXED_AMOUNT adjustments. */
-  amounts: Array<ApiProductComponentPriceRuleAmount>;
-  /** The globally unique ID of the price rule. */
-  id: Scalars['ID']['output'];
-  /** Whether the adjustment decreases or increases the base price. */
-  operation: PriceAdjustmentOperation;
-  /** Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments. */
-  percentageBps?: Maybe<Scalars['Int']['output']>;
-  /** Apply a fixed-amount or percentage adjustment to the base price. */
-  strategy: ProductComponentPriceStrategy;
-  /** Whether the adjustment uses a percentage or fixed amount. */
-  valueType: PriceAdjustmentValueType;
-};
+export type ApiProductComponentAdjustmentPriceRule = ApiNode &
+  ApiProductComponentPriceRule & {
+    __typename?: 'ProductComponentAdjustmentPriceRule';
+    /** Currency-specific values for FIXED_AMOUNT adjustments. */
+    amounts: Array<ApiProductComponentPriceRuleAmount>;
+    /** The globally unique ID of the price rule. */
+    id: Scalars['ID']['output'];
+    /** Whether the adjustment decreases or increases the base price. */
+    operation: PriceAdjustmentOperation;
+    /** Percentage in basis points from 1 to 10000 for PERCENTAGE adjustments. */
+    percentageBps?: Maybe<Scalars['Int']['output']>;
+    /** Apply a fixed-amount or percentage adjustment to the base price. */
+    strategy: ProductComponentPriceStrategy;
+    /** Whether the adjustment uses a percentage or fixed amount. */
+    valueType: PriceAdjustmentValueType;
+  };
 
-export type ApiProductComponentBasePriceRule = ApiNode & ApiProductComponentPriceRule & {
-  __typename?: 'ProductComponentBasePriceRule';
-  /** The globally unique ID of the price rule. */
-  id: Scalars['ID']['output'];
-  /** Use the referenced product or variant base price. */
-  strategy: ProductComponentPriceStrategy;
-};
+export type ApiProductComponentBasePriceRule = ApiNode &
+  ApiProductComponentPriceRule & {
+    __typename?: 'ProductComponentBasePriceRule';
+    /** The globally unique ID of the price rule. */
+    id: Scalars['ID']['output'];
+    /** Use the referenced product or variant base price. */
+    strategy: ProductComponentPriceStrategy;
+  };
 
 export type ApiProductComponentCondition = ApiNode & {
   __typename?: 'ProductComponentCondition';
@@ -13577,9 +16294,7 @@ export type ApiProductComponentCondition = ApiNode & {
   value?: Maybe<Scalars['Int']['output']>;
 };
 
-export type ProductComponentConditionCategory =
-  | 'NUMERIC'
-  | 'STATE_CHECK';
+export type ProductComponentConditionCategory = 'NUMERIC' | 'STATE_CHECK';
 
 export type ApiProductComponentConditionGroup = ApiNode & {
   __typename?: 'ProductComponentConditionGroup';
@@ -13605,16 +16320,9 @@ export type ApiProductComponentConditionGroupSyncItemInput = {
 };
 
 export type ProductComponentConditionOperator =
-  | 'EQ'
-  | 'GTE'
-  | 'IS_NOT_SELECTED'
-  | 'IS_SELECTED'
-  | 'LTE';
+  'EQ' | 'GTE' | 'IS_NOT_SELECTED' | 'IS_SELECTED' | 'LTE';
 
-export type ProductComponentConditionSubject =
-  | 'GROUP_TOTAL_QTY'
-  | 'ITEM_QTY'
-  | 'ITEM_SELECTED';
+export type ProductComponentConditionSubject = 'GROUP_TOTAL_QTY' | 'ITEM_QTY' | 'ITEM_SELECTED';
 
 export type ApiProductComponentConditionSyncItemInput = {
   /** Condition category. */
@@ -13697,10 +16405,7 @@ export type ApiProductComponentDependencyActionSyncItemInput = {
 };
 
 export type ProductComponentDependencyActionType =
-  | 'ADJUST_PRICE'
-  | 'HIDE'
-  | 'SET_REQUIRED'
-  | 'SHOW';
+  'ADJUST_PRICE' | 'HIDE' | 'SET_REQUIRED' | 'SHOW';
 
 export type ApiProductComponentDependencyRule = ApiNode & {
   __typename?: 'ProductComponentDependencyRule';
@@ -13745,24 +16450,18 @@ export type ApiProductComponentDependencyRuleSyncItemInput = {
   priority: Scalars['Int']['input'];
 };
 
-export type ProductComponentDependencyTargetType =
-  | 'CONFIGURATION'
-  | 'GROUP'
-  | 'ITEM';
+export type ProductComponentDependencyTargetType = 'CONFIGURATION' | 'GROUP' | 'ITEM';
 
-export type ProductComponentDisplayStyle =
-  | 'ACCORDION'
-  | 'FLAT'
-  | 'TABS'
-  | 'WIZARD';
+export type ProductComponentDisplayStyle = 'ACCORDION' | 'FLAT' | 'TABS' | 'WIZARD';
 
-export type ApiProductComponentFreePriceRule = ApiNode & ApiProductComponentPriceRule & {
-  __typename?: 'ProductComponentFreePriceRule';
-  /** The globally unique ID of the price rule. */
-  id: Scalars['ID']['output'];
-  /** Set the component item price to zero. */
-  strategy: ProductComponentPriceStrategy;
-};
+export type ApiProductComponentFreePriceRule = ApiNode &
+  ApiProductComponentPriceRule & {
+    __typename?: 'ProductComponentFreePriceRule';
+    /** The globally unique ID of the price rule. */
+    id: Scalars['ID']['output'];
+    /** Set the component item price to zero. */
+    strategy: ProductComponentPriceStrategy;
+  };
 
 export type ApiProductComponentGroup = ApiNode & {
   __typename?: 'ProductComponentGroup';
@@ -13883,10 +16582,7 @@ export type ApiProductComponentItemOptionValueSelection = ApiNode & {
 };
 
 export type ProductComponentItemOptionValueSelectionStatus =
-  | 'DESELECTED'
-  | 'NEW'
-  | 'SELECTED'
-  | 'UNAVAILABLE';
+  'DESELECTED' | 'NEW' | 'SELECTED' | 'UNAVAILABLE';
 
 export type ApiProductComponentItemOptionValueSelectionSyncItemInput = {
   /** Existing value selection ID. Null creates a new value selection. */
@@ -13937,13 +16633,9 @@ export type ApiProductComponentItemSyncItemInput = {
   visible: Scalars['Boolean']['input'];
 };
 
-export type ProductComponentItemType =
-  | 'PRODUCT'
-  | 'VARIANT';
+export type ProductComponentItemType = 'PRODUCT' | 'VARIANT';
 
-export type ProductComponentLogicOperator =
-  | 'AND'
-  | 'OR';
+export type ProductComponentLogicOperator = 'AND' | 'OR';
 
 /**
  * Product component operation in the unified product update.
@@ -13993,15 +16685,16 @@ export type ApiProductComponentOperationInput = {
   pricingTemplates?: InputMaybe<Array<ApiProductComponentPricingTemplateSyncItemInput>>;
 };
 
-export type ApiProductComponentOverridePriceRule = ApiNode & ApiProductComponentPriceRule & {
-  __typename?: 'ProductComponentOverridePriceRule';
-  /** Currency-specific absolute prices. */
-  amounts: Array<ApiProductComponentPriceRuleAmount>;
-  /** The globally unique ID of the price rule. */
-  id: Scalars['ID']['output'];
-  /** Replace the base price with a currency-specific absolute price. */
-  strategy: ProductComponentPriceStrategy;
-};
+export type ApiProductComponentOverridePriceRule = ApiNode &
+  ApiProductComponentPriceRule & {
+    __typename?: 'ProductComponentOverridePriceRule';
+    /** Currency-specific absolute prices. */
+    amounts: Array<ApiProductComponentPriceRuleAmount>;
+    /** The globally unique ID of the price rule. */
+    id: Scalars['ID']['output'];
+    /** Replace the base price with a currency-specific absolute price. */
+    strategy: ProductComponentPriceStrategy;
+  };
 
 export type ApiProductComponentPriceRule = {
   /** The globally unique ID of the price rule. */
@@ -14040,11 +16733,7 @@ export type ApiProductComponentPriceRuleInput = {
   valueType?: InputMaybe<PriceAdjustmentValueType>;
 };
 
-export type ProductComponentPriceStrategy =
-  | 'ADJUSTMENT'
-  | 'BASE'
-  | 'FREE'
-  | 'OVERRIDE';
+export type ProductComponentPriceStrategy = 'ADJUSTMENT' | 'BASE' | 'FREE' | 'OVERRIDE';
 
 export type ApiProductComponentPricingTemplate = ApiNode & {
   __typename?: 'ProductComponentPricingTemplate';
@@ -14776,45 +17465,45 @@ export type ApiProductProductsMetaInput = {
   categoriesScope?: InputMaybe<ApiProductCategoriesScopeInput>;
 };
 
-export type ApiProductQuestion = ApiNode & ApiReviewContent & {
-  __typename?: 'ProductQuestion';
-  answerState: ProductQuestionAnswerState;
-  answers: ApiProductQuestionAnswerConnection;
-  author: ApiReviewContentAuthor;
-  body: Scalars['String']['output'];
-  createdAt: Scalars['DateTime']['output'];
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
-  externalReferences: ApiReviewContentExternalReferenceConnection;
-  id: Scalars['ID']['output'];
-  idempotencyKey?: Maybe<Scalars['String']['output']>;
-  kind: ReviewContentKind;
-  locale: LocaleCode;
-  metrics: ApiReviewContentMetrics;
-  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
-  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
-  moderationCases: ApiReviewModerationCaseConnection;
-  moderationEvents: ApiReviewModerationEventConnection;
-  moderationNote?: Maybe<Scalars['String']['output']>;
-  moderationSignals: ApiReviewModerationSignalConnection;
-  product: ApiProduct;
-  publications: Array<ApiReviewContentPublication>;
-  publishedAt?: Maybe<Scalars['DateTime']['output']>;
-  redactedAt?: Maybe<Scalars['DateTime']['output']>;
-  reports: ApiReviewContentReportConnection;
-  revision: Scalars['Int']['output'];
-  revisions: ApiReviewContentRevisionConnection;
-  sourceChannel: Scalars['String']['output'];
-  sourceMetadata: Scalars['JSON']['output'];
-  status: ReviewContentStatus;
-  subscriptions: ApiProductQuestionSubscriptionConnection;
-  title?: Maybe<Scalars['String']['output']>;
-  translations: Array<ApiReviewContentTranslation>;
-  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-  variant?: Maybe<ApiVariant>;
-  votes: ApiReviewContentVoteConnection;
-};
-
+export type ApiProductQuestion = ApiNode &
+  ApiReviewContent & {
+    __typename?: 'ProductQuestion';
+    answerState: ProductQuestionAnswerState;
+    answers: ApiProductQuestionAnswerConnection;
+    author: ApiReviewContentAuthor;
+    body: Scalars['String']['output'];
+    createdAt: Scalars['DateTime']['output'];
+    deletedAt?: Maybe<Scalars['DateTime']['output']>;
+    externalReferences: ApiReviewContentExternalReferenceConnection;
+    id: Scalars['ID']['output'];
+    idempotencyKey?: Maybe<Scalars['String']['output']>;
+    kind: ReviewContentKind;
+    locale: LocaleCode;
+    metrics: ApiReviewContentMetrics;
+    moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+    moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+    moderationCases: ApiReviewModerationCaseConnection;
+    moderationEvents: ApiReviewModerationEventConnection;
+    moderationNote?: Maybe<Scalars['String']['output']>;
+    moderationSignals: ApiReviewModerationSignalConnection;
+    product: ApiProduct;
+    publications: Array<ApiReviewContentPublication>;
+    publishedAt?: Maybe<Scalars['DateTime']['output']>;
+    redactedAt?: Maybe<Scalars['DateTime']['output']>;
+    reports: ApiReviewContentReportConnection;
+    revision: Scalars['Int']['output'];
+    revisions: ApiReviewContentRevisionConnection;
+    sourceChannel: Scalars['String']['output'];
+    sourceMetadata: Scalars['JSON']['output'];
+    status: ReviewContentStatus;
+    subscriptions: ApiProductQuestionSubscriptionConnection;
+    title?: Maybe<Scalars['String']['output']>;
+    translations: Array<ApiReviewContentTranslation>;
+    unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+    updatedAt: Scalars['DateTime']['output'];
+    variant?: Maybe<ApiVariant>;
+    votes: ApiReviewContentVoteConnection;
+  };
 
 export type ApiProductQuestionAnswersArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14826,14 +17515,12 @@ export type ApiProductQuestionAnswersArgs = {
   where?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
 };
 
-
 export type ApiProductQuestionExternalReferencesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiProductQuestionModerationCasesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14842,14 +17529,12 @@ export type ApiProductQuestionModerationCasesArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiProductQuestionModerationEventsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiProductQuestionModerationSignalsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14858,14 +17543,12 @@ export type ApiProductQuestionModerationSignalsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiProductQuestionReportsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiProductQuestionRevisionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14874,14 +17557,12 @@ export type ApiProductQuestionRevisionsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiProductQuestionSubscriptionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiProductQuestionVotesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14890,44 +17571,44 @@ export type ApiProductQuestionVotesArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type ApiProductQuestionAnswer = ApiNode & ApiReviewContent & {
-  __typename?: 'ProductQuestionAnswer';
-  author: ApiReviewContentAuthor;
-  body: Scalars['String']['output'];
-  createdAt: Scalars['DateTime']['output'];
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
-  externalReferences: ApiReviewContentExternalReferenceConnection;
-  id: Scalars['ID']['output'];
-  idempotencyKey?: Maybe<Scalars['String']['output']>;
-  isAccepted: Scalars['Boolean']['output'];
-  isOfficial: Scalars['Boolean']['output'];
-  kind: ReviewContentKind;
-  locale: LocaleCode;
-  metrics: ApiReviewContentMetrics;
-  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
-  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
-  moderationCases: ApiReviewModerationCaseConnection;
-  moderationEvents: ApiReviewModerationEventConnection;
-  moderationNote?: Maybe<Scalars['String']['output']>;
-  moderationSignals: ApiReviewModerationSignalConnection;
-  publications: Array<ApiReviewContentPublication>;
-  publishedAt?: Maybe<Scalars['DateTime']['output']>;
-  question: ApiProductQuestion;
-  redactedAt?: Maybe<Scalars['DateTime']['output']>;
-  reports: ApiReviewContentReportConnection;
-  revision: Scalars['Int']['output'];
-  revisions: ApiReviewContentRevisionConnection;
-  sortIndex: Scalars['Int']['output'];
-  sourceChannel: Scalars['String']['output'];
-  sourceMetadata: Scalars['JSON']['output'];
-  status: ReviewContentStatus;
-  title?: Maybe<Scalars['String']['output']>;
-  translations: Array<ApiReviewContentTranslation>;
-  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-  votes: ApiReviewContentVoteConnection;
-};
-
+export type ApiProductQuestionAnswer = ApiNode &
+  ApiReviewContent & {
+    __typename?: 'ProductQuestionAnswer';
+    author: ApiReviewContentAuthor;
+    body: Scalars['String']['output'];
+    createdAt: Scalars['DateTime']['output'];
+    deletedAt?: Maybe<Scalars['DateTime']['output']>;
+    externalReferences: ApiReviewContentExternalReferenceConnection;
+    id: Scalars['ID']['output'];
+    idempotencyKey?: Maybe<Scalars['String']['output']>;
+    isAccepted: Scalars['Boolean']['output'];
+    isOfficial: Scalars['Boolean']['output'];
+    kind: ReviewContentKind;
+    locale: LocaleCode;
+    metrics: ApiReviewContentMetrics;
+    moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+    moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+    moderationCases: ApiReviewModerationCaseConnection;
+    moderationEvents: ApiReviewModerationEventConnection;
+    moderationNote?: Maybe<Scalars['String']['output']>;
+    moderationSignals: ApiReviewModerationSignalConnection;
+    publications: Array<ApiReviewContentPublication>;
+    publishedAt?: Maybe<Scalars['DateTime']['output']>;
+    question: ApiProductQuestion;
+    redactedAt?: Maybe<Scalars['DateTime']['output']>;
+    reports: ApiReviewContentReportConnection;
+    revision: Scalars['Int']['output'];
+    revisions: ApiReviewContentRevisionConnection;
+    sortIndex: Scalars['Int']['output'];
+    sourceChannel: Scalars['String']['output'];
+    sourceMetadata: Scalars['JSON']['output'];
+    status: ReviewContentStatus;
+    title?: Maybe<Scalars['String']['output']>;
+    translations: Array<ApiReviewContentTranslation>;
+    unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+    updatedAt: Scalars['DateTime']['output'];
+    votes: ApiReviewContentVoteConnection;
+  };
 
 export type ApiProductQuestionAnswerExternalReferencesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14936,14 +17617,12 @@ export type ApiProductQuestionAnswerExternalReferencesArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiProductQuestionAnswerModerationCasesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiProductQuestionAnswerModerationEventsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14952,14 +17631,12 @@ export type ApiProductQuestionAnswerModerationEventsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiProductQuestionAnswerModerationSignalsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiProductQuestionAnswerReportsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -14968,14 +17645,12 @@ export type ApiProductQuestionAnswerReportsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiProductQuestionAnswerRevisionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiProductQuestionAnswerVotesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15056,9 +17731,7 @@ export type ApiProductQuestionAnswerPropertiesUpdateInput = {
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type ProductQuestionAnswerState =
-  | 'ANSWERED'
-  | 'UNANSWERED';
+export type ProductQuestionAnswerState = 'ANSWERED' | 'UNANSWERED';
 
 export type ApiProductQuestionAnswerUpdateInput = {
   /** Text, author, source, moderation, translations, and publications. */
@@ -15229,10 +17902,7 @@ export type ApiProductQuestionSubscriptionEdge = {
   node: ApiProductQuestionSubscription;
 };
 
-export type ProductQuestionSubscriptionStatus =
-  | 'ACTIVE'
-  | 'PAUSED'
-  | 'UNSUBSCRIBED';
+export type ProductQuestionSubscriptionStatus = 'ACTIVE' | 'PAUSED' | 'UNSUBSCRIBED';
 
 export type ApiProductQuestionSubscriptionUpdateInput = {
   channel?: InputMaybe<ReviewNotificationChannel>;
@@ -15338,6 +18008,9 @@ export type ApiProductRatingCriterionSummary = {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type ProductRecommendationSource =
+  'CONTENT_SIMILARITY' | 'FALLBACK' | 'FREQUENTLY_BOUGHT_TOGETHER' | 'MANUAL' | 'POPULARITY';
+
 /** Read-only projection over currently published, non-deleted product reviews. */
 export type ApiProductReviewSummary = {
   __typename?: 'ProductReviewSummary';
@@ -15381,28 +18054,18 @@ export type ApiProductSeoInput = {
   seoTitle?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type ProductSortBy =
-  | 'MANUAL'
-  | 'NAME'
-  | 'NEWEST'
-  | 'PRICE';
+export type ProductSortBy = 'MANUAL' | 'NAME' | 'NEWEST' | 'PRICE';
 
 export type ApiProductSortInput = {
   by: ProductSortBy;
   direction?: InputMaybe<SortDirection>;
 };
 
-export type ProductStatus =
-  | 'DRAFT'
-  | 'PUBLISHED';
+export type ProductStatus = 'DRAFT' | 'PUBLISHED';
 
-export type ProductStatusAction =
-  | 'PUBLISH'
-  | 'UNPUBLISH';
+export type ProductStatusAction = 'PUBLISH' | 'UNPUBLISH';
 
-export type ProductTagOperationAction =
-  | 'ADD'
-  | 'REMOVE';
+export type ProductTagOperationAction = 'ADD' | 'REMOVE';
 
 /** Product tag assignment operation for unified product updates. */
 export type ApiProductTagOperationInput = {
@@ -15495,17 +18158,6 @@ export type ApiProductWhereInput = {
   vendorId?: InputMaybe<ApiIdFilter>;
 };
 
-export type ApiPurchasable = {
-  /** Unique identifier of the purchasable entity. */
-  id: Scalars['ID']['output'];
-};
-
-export type ApiPurchasableSnapshot = ApiPurchasable & {
-  __typename?: 'PurchasableSnapshot';
-  id: Scalars['ID']['output'];
-  purchasableSnapshot: Scalars['JSON']['output'];
-};
-
 export type ApiQuery = {
   __typename?: 'Query';
   /** Application realm management queries. */
@@ -15530,7 +18182,8 @@ export type ApiQuery = {
   notificationsQuery: ApiNotificationsQuery;
   /** Online Store content query namespace. */
   onlineStoreAppQuery: ApiOnlineStoreAppQuery;
-  orderQuery: ApiOrderQuery;
+  /** Entry point for all store-scoped Orders Admin reads. */
+  ordersQuery: ApiOrdersQuery;
   /** Organization queries namespace. */
   organizationQuery: ApiOrganizationQuery;
   /** Pricing Admin query namespace. */
@@ -15545,6 +18198,108 @@ export type ApiQuery = {
   /** Widget query namespace for dashboard widgets */
   widgetQuery: ApiWidgetQuery;
 };
+
+export type RecommendationPlacement = 'FREQUENTLY_BOUGHT_TOGETHER' | 'PRODUCT_RELATED';
+
+export type ApiRecommendationPlacementPolicy = ApiNode & {
+  __typename?: 'RecommendationPlacementPolicy';
+  createdAt: Scalars['DateTime']['output'];
+  enabled: Scalars['Boolean']['output'];
+  fallbackChain: Array<Scalars['String']['output']>;
+  id: Scalars['ID']['output'];
+  maximumResults: Scalars['Int']['output'];
+  minimumResults: Scalars['Int']['output'];
+  placement: RecommendationPlacement;
+  strategy: RecommendationStrategy;
+  updatedAt: Scalars['DateTime']['output'];
+  version: Scalars['Int']['output'];
+};
+
+export type ApiRecommendationPlacementPolicyDraftInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion?: InputMaybe<Scalars['Int']['input']>;
+  fallbackChain: Array<Scalars['String']['input']>;
+  maximumResults: Scalars['Int']['input'];
+  minimumResults: Scalars['Int']['input'];
+  strategy: RecommendationStrategy;
+};
+
+export type ApiRecommendationPlacementPolicyPayload = {
+  __typename?: 'RecommendationPlacementPolicyPayload';
+  policy?: Maybe<ApiRecommendationPlacementPolicy>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type ApiRecommendationPlacementPolicySetEnabledInput = {
+  enabled: Scalars['Boolean']['input'];
+  expectedVersion: Scalars['Int']['input'];
+  placement: RecommendationPlacement;
+};
+
+export type ApiRecommendationPlacementPolicyUpsertInput = {
+  expectedVersion?: InputMaybe<Scalars['Int']['input']>;
+  fallbackChain: Array<Scalars['String']['input']>;
+  maximumResults: Scalars['Int']['input'];
+  minimumResults: Scalars['Int']['input'];
+  placement: RecommendationPlacement;
+  strategy: RecommendationStrategy;
+};
+
+export type ApiRecommendationPreviewCandidate = {
+  __typename?: 'RecommendationPreviewCandidate';
+  product: ApiProduct;
+  rank: Scalars['Int']['output'];
+  score: Scalars['String']['output'];
+  source: ProductRecommendationSource;
+  sourceBreakdown: ApiRecommendationPreviewSourceBreakdown;
+};
+
+export type ApiRecommendationPreviewExcludedCandidate = {
+  __typename?: 'RecommendationPreviewExcludedCandidate';
+  product: ApiProduct;
+  reason: RecommendationPreviewExcludedReason;
+};
+
+export type RecommendationPreviewExcludedReason =
+  'EXCLUDED' | 'INSUFFICIENT_SUPPORT' | 'LIMIT_EXCEEDED' | 'STALE' | 'UNAVAILABLE' | 'UNPUBLISHED';
+
+export type ApiRecommendationPreviewResult = {
+  __typename?: 'RecommendationPreviewResult';
+  asOf: Scalars['DateTime']['output'];
+  candidates: Array<ApiRecommendationPreviewCandidate>;
+  excluded: Array<ApiRecommendationPreviewExcludedCandidate>;
+  modelVersion: Scalars['String']['output'];
+};
+
+export type ApiRecommendationPreviewSourceBreakdown = {
+  __typename?: 'RecommendationPreviewSourceBreakdown';
+  categoryPopularityScore?: Maybe<Scalars['String']['output']>;
+  fbtRunId?: Maybe<Scalars['ID']['output']>;
+  fbtSourceScore?: Maybe<Scalars['String']['output']>;
+  manualAction?: Maybe<ManualRecommendationAction>;
+  manualBoost?: Maybe<Scalars['String']['output']>;
+  manualPosition?: Maybe<Scalars['Int']['output']>;
+  storePopularityScore?: Maybe<Scalars['String']['output']>;
+};
+
+export type RecommendationReferenceStatus = 'STALE' | 'VALID';
+
+export type ApiRecommendationSnapshotPreviewInput = {
+  anchorProductId: Scalars['ID']['input'];
+  manualChanges: Array<ApiManualRecommendationDraftChangeInput>;
+  placement: RecommendationPlacement;
+  policy?: InputMaybe<ApiRecommendationPlacementPolicyDraftInput>;
+};
+
+export type ApiRecommendationSnapshotPreviewPayload = {
+  __typename?: 'RecommendationSnapshotPreviewPayload';
+  active?: Maybe<ApiRecommendationPreviewResult>;
+  draft?: Maybe<ApiRecommendationPreviewResult>;
+  userErrors: Array<ApiUserError>;
+};
+
+export type RecommendationStrategy =
+  'AUTOMATED_ONLY' | 'BLENDED' | 'CURATED_FIRST' | 'CURATED_ONLY';
 
 /** Resource definition for role editor UI. */
 export type ApiResourceDefinition = {
@@ -15581,55 +18336,55 @@ export type ResourceManagementMode =
   /** The resource is managed by a linked service owner. */
   | 'SERVICE';
 
-export type ApiReview = ApiNode & ApiReviewContent & {
-  __typename?: 'Review';
-  author: ApiReviewContentAuthor;
-  body: Scalars['String']['output'];
-  createdAt: Scalars['DateTime']['output'];
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
-  externalReferences: ApiReviewContentExternalReferenceConnection;
-  id: Scalars['ID']['output'];
-  idempotencyKey?: Maybe<Scalars['String']['output']>;
-  incentiveDisclosure?: Maybe<Scalars['String']['output']>;
-  isIncentivized: Scalars['Boolean']['output'];
-  isVerifiedPurchase: Scalars['Boolean']['output'];
-  kind: ReviewContentKind;
-  locale: LocaleCode;
-  media: Array<ApiReviewMedia>;
-  metrics: ApiReviewContentMetrics;
-  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
-  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
-  moderationCases: ApiReviewModerationCaseConnection;
-  moderationEvents: ApiReviewModerationEventConnection;
-  moderationNote?: Maybe<Scalars['String']['output']>;
-  moderationSignals: ApiReviewModerationSignalConnection;
-  /** Orders is not yet an admin federation entity, so evidence remains a global ID contract. */
-  orderId?: Maybe<Scalars['ID']['output']>;
-  orderLineId?: Maybe<Scalars['ID']['output']>;
-  product: ApiProduct;
-  publications: Array<ApiReviewContentPublication>;
-  publishedAt?: Maybe<Scalars['DateTime']['output']>;
-  rating: Scalars['Int']['output'];
-  ratings: Array<ApiReviewRating>;
-  redactedAt?: Maybe<Scalars['DateTime']['output']>;
-  replies: ApiReviewReplyConnection;
-  reports: ApiReviewContentReportConnection;
-  revision: Scalars['Int']['output'];
-  revisions: ApiReviewContentRevisionConnection;
-  sourceChannel: Scalars['String']['output'];
-  sourceMetadata: Scalars['JSON']['output'];
-  status: ReviewContentStatus;
-  title?: Maybe<Scalars['String']['output']>;
-  translations: Array<ApiReviewContentTranslation>;
-  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-  variant?: Maybe<ApiVariant>;
-  verificationMethod?: Maybe<Scalars['String']['output']>;
-  verificationStatus: ReviewVerificationStatus;
-  verifiedAt?: Maybe<Scalars['DateTime']['output']>;
-  votes: ApiReviewContentVoteConnection;
-};
-
+export type ApiReview = ApiNode &
+  ApiReviewContent & {
+    __typename?: 'Review';
+    author: ApiReviewContentAuthor;
+    body: Scalars['String']['output'];
+    createdAt: Scalars['DateTime']['output'];
+    deletedAt?: Maybe<Scalars['DateTime']['output']>;
+    externalReferences: ApiReviewContentExternalReferenceConnection;
+    id: Scalars['ID']['output'];
+    idempotencyKey?: Maybe<Scalars['String']['output']>;
+    incentiveDisclosure?: Maybe<Scalars['String']['output']>;
+    isIncentivized: Scalars['Boolean']['output'];
+    isVerifiedPurchase: Scalars['Boolean']['output'];
+    kind: ReviewContentKind;
+    locale: LocaleCode;
+    media: Array<ApiReviewMedia>;
+    metrics: ApiReviewContentMetrics;
+    moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+    moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+    moderationCases: ApiReviewModerationCaseConnection;
+    moderationEvents: ApiReviewModerationEventConnection;
+    moderationNote?: Maybe<Scalars['String']['output']>;
+    moderationSignals: ApiReviewModerationSignalConnection;
+    /** Orders is not yet an admin federation entity, so evidence remains a global ID contract. */
+    orderId?: Maybe<Scalars['ID']['output']>;
+    orderLineId?: Maybe<Scalars['ID']['output']>;
+    product: ApiProduct;
+    publications: Array<ApiReviewContentPublication>;
+    publishedAt?: Maybe<Scalars['DateTime']['output']>;
+    rating: Scalars['Int']['output'];
+    ratings: Array<ApiReviewRating>;
+    redactedAt?: Maybe<Scalars['DateTime']['output']>;
+    replies: ApiReviewReplyConnection;
+    reports: ApiReviewContentReportConnection;
+    revision: Scalars['Int']['output'];
+    revisions: ApiReviewContentRevisionConnection;
+    sourceChannel: Scalars['String']['output'];
+    sourceMetadata: Scalars['JSON']['output'];
+    status: ReviewContentStatus;
+    title?: Maybe<Scalars['String']['output']>;
+    translations: Array<ApiReviewContentTranslation>;
+    unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+    updatedAt: Scalars['DateTime']['output'];
+    variant?: Maybe<ApiVariant>;
+    verificationMethod?: Maybe<Scalars['String']['output']>;
+    verificationStatus: ReviewVerificationStatus;
+    verifiedAt?: Maybe<Scalars['DateTime']['output']>;
+    votes: ApiReviewContentVoteConnection;
+  };
 
 export type ApiReviewExternalReferencesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15638,14 +18393,12 @@ export type ApiReviewExternalReferencesArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiReviewModerationCasesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiReviewModerationEventsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15654,14 +18407,12 @@ export type ApiReviewModerationEventsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiReviewModerationSignalsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiReviewRepliesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15673,7 +18424,6 @@ export type ApiReviewRepliesArgs = {
   where?: InputMaybe<ApiReviewReplyWhereInput>;
 };
 
-
 export type ApiReviewReportsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -15681,14 +18431,12 @@ export type ApiReviewReportsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiReviewRevisionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiReviewVotesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15738,7 +18486,6 @@ export type ApiReviewContent = {
   votes: ApiReviewContentVoteConnection;
 };
 
-
 /** Shared contract implemented by every moderated Reviews content aggregate. */
 export type ApiReviewContentExternalReferencesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15746,7 +18493,6 @@ export type ApiReviewContentExternalReferencesArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 /** Shared contract implemented by every moderated Reviews content aggregate. */
 export type ApiReviewContentModerationCasesArgs = {
@@ -15756,7 +18502,6 @@ export type ApiReviewContentModerationCasesArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 /** Shared contract implemented by every moderated Reviews content aggregate. */
 export type ApiReviewContentModerationEventsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15764,7 +18509,6 @@ export type ApiReviewContentModerationEventsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 /** Shared contract implemented by every moderated Reviews content aggregate. */
 export type ApiReviewContentModerationSignalsArgs = {
@@ -15774,7 +18518,6 @@ export type ApiReviewContentModerationSignalsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 /** Shared contract implemented by every moderated Reviews content aggregate. */
 export type ApiReviewContentReportsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15783,7 +18526,6 @@ export type ApiReviewContentReportsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 /** Shared contract implemented by every moderated Reviews content aggregate. */
 export type ApiReviewContentRevisionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -15791,7 +18533,6 @@ export type ApiReviewContentRevisionsArgs = {
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 /** Shared contract implemented by every moderated Reviews content aggregate. */
 export type ApiReviewContentVotesArgs = {
@@ -15820,12 +18561,7 @@ export type ApiReviewContentAuthorCreateInput = {
 };
 
 export type ReviewContentAuthorType =
-  | 'CUSTOMER'
-  | 'EXTERNAL'
-  | 'GUEST'
-  | 'SELLER'
-  | 'STAFF'
-  | 'SYSTEM';
+  'CUSTOMER' | 'EXTERNAL' | 'GUEST' | 'SELLER' | 'STAFF' | 'SYSTEM';
 
 export type ApiReviewContentAuthorUpdateInput = {
   /** Pass null to remove the customer link when the resulting author type allows it. */
@@ -16028,11 +18764,7 @@ export type ApiReviewContentExternalReferenceWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
-export type ReviewContentKind =
-  | 'PRODUCT_QUESTION'
-  | 'QUESTION_ANSWER'
-  | 'REVIEW'
-  | 'REVIEW_REPLY';
+export type ReviewContentKind = 'PRODUCT_QUESTION' | 'QUESTION_ANSWER' | 'REVIEW' | 'REVIEW_REPLY';
 
 /** Transactionally maintained counters used by admin filtering and sorting. */
 export type ApiReviewContentMetrics = {
@@ -16210,11 +18942,7 @@ export type ApiReviewContentReportResolutionInput = {
   status: ReviewContentReportStatus;
 };
 
-export type ReviewContentReportStatus =
-  | 'ACTIONED'
-  | 'DISMISSED'
-  | 'OPEN'
-  | 'UNDER_REVIEW';
+export type ReviewContentReportStatus = 'ACTIONED' | 'DISMISSED' | 'OPEN' | 'UNDER_REVIEW';
 
 export type ApiReviewContentReportUpdateInput = {
   assignment?: InputMaybe<ApiReviewContentReportAssignmentInput>;
@@ -16296,10 +19024,7 @@ export type ApiReviewContentSourceUpdateInput = {
   metadata?: InputMaybe<Scalars['JSON']['input']>;
 };
 
-export type ReviewContentStatus =
-  | 'PENDING'
-  | 'PUBLISHED'
-  | 'REJECTED';
+export type ReviewContentStatus = 'PENDING' | 'PUBLISHED' | 'REJECTED';
 
 export type ApiReviewContentTextUpdateInput = {
   body?: InputMaybe<Scalars['String']['input']>;
@@ -16374,9 +19099,7 @@ export type ApiReviewContentVoteEdge = {
   node: ApiReviewContentVote;
 };
 
-export type ReviewContentVoteType =
-  | 'DISLIKE'
-  | 'LIKE';
+export type ReviewContentVoteType = 'DISLIKE' | 'LIKE';
 
 /** Filter conditions for ReviewContent */
 export type ApiReviewContentWhereInput = {
@@ -16457,10 +19180,7 @@ export type ApiReviewDeletePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ReviewDuplicatePolicy =
-  | 'ALLOW_MULTIPLE'
-  | 'ONE_PER_ORDER_LINE'
-  | 'ONE_PER_PRODUCT';
+export type ReviewDuplicatePolicy = 'ALLOW_MULTIPLE' | 'ONE_PER_ORDER_LINE' | 'ONE_PER_PRODUCT';
 
 export type ApiReviewEdge = {
   __typename?: 'ReviewEdge';
@@ -16468,16 +19188,9 @@ export type ApiReviewEdge = {
   node: ApiReview;
 };
 
-export type ReviewExternalSyncDirection =
-  | 'BIDIRECTIONAL'
-  | 'EXPORT'
-  | 'IMPORT';
+export type ReviewExternalSyncDirection = 'BIDIRECTIONAL' | 'EXPORT' | 'IMPORT';
 
-export type ReviewExternalSyncStatus =
-  | 'DISABLED'
-  | 'FAILED'
-  | 'PENDING'
-  | 'SYNCED';
+export type ReviewExternalSyncStatus = 'DISABLED' | 'FAILED' | 'PENDING' | 'SYNCED';
 
 export type ApiReviewIncentiveUpdateInput = {
   disclosure?: InputMaybe<Scalars['String']['input']>;
@@ -16610,11 +19323,7 @@ export type ApiReviewModerationCaseResolutionInput = {
   status: ReviewModerationCaseStatus;
 };
 
-export type ReviewModerationCaseStatus =
-  | 'CANCELLED'
-  | 'IN_REVIEW'
-  | 'OPEN'
-  | 'RESOLVED';
+export type ReviewModerationCaseStatus = 'CANCELLED' | 'IN_REVIEW' | 'OPEN' | 'RESOLVED';
 
 export type ApiReviewModerationCaseUpdateInput = {
   details?: InputMaybe<ApiReviewModerationCaseDetailsInput>;
@@ -16693,10 +19402,7 @@ export type ApiReviewModerationEventEdge = {
   node: ApiReviewModerationEvent;
 };
 
-export type ReviewModerationMode =
-  | 'AUTOMATED'
-  | 'POSTMODERATION'
-  | 'PREMODERATION';
+export type ReviewModerationMode = 'AUTOMATED' | 'POSTMODERATION' | 'PREMODERATION';
 
 /** Immutable automated moderation evidence; it is not the moderation decision. */
 export type ApiReviewModerationSignal = ApiNode & {
@@ -16725,16 +19431,9 @@ export type ApiReviewModerationSignalEdge = {
   node: ApiReviewModerationSignal;
 };
 
-export type ReviewModerationVerdict =
-  | 'BLOCK'
-  | 'PASS'
-  | 'REVIEW';
+export type ReviewModerationVerdict = 'BLOCK' | 'PASS' | 'REVIEW';
 
-export type ReviewNotificationChannel =
-  | 'EMAIL'
-  | 'IN_APP'
-  | 'PUSH'
-  | 'SMS';
+export type ReviewNotificationChannel = 'EMAIL' | 'IN_APP' | 'PUSH' | 'SMS';
 
 /** Ordering configuration for Review */
 export type ApiReviewOrderByInput = {
@@ -16792,11 +19491,7 @@ export type ReviewOrderField =
   | 'verificationStatus';
 
 export type ReviewPublicationStatus =
-  | 'DRAFT'
-  | 'FAILED'
-  | 'PUBLISHED'
-  | 'SCHEDULED'
-  | 'UNPUBLISHED';
+  'DRAFT' | 'FAILED' | 'PUBLISHED' | 'SCHEDULED' | 'UNPUBLISHED';
 
 export type ApiReviewRating = {
   __typename?: 'ReviewRating';
@@ -16945,9 +19640,7 @@ export type ReviewRatingCriterionOrderField =
 
 export type ApiReviewRatingCriterionTarget = ApiCategory | ApiProduct;
 
-export type ReviewRatingCriterionTargetType =
-  | 'CATEGORY'
-  | 'PRODUCT';
+export type ReviewRatingCriterionTargetType = 'CATEGORY' | 'PRODUCT';
 
 export type ApiReviewRatingCriterionTranslation = {
   __typename?: 'ReviewRatingCriterionTranslation';
@@ -17029,43 +19722,43 @@ export type ApiReviewRepliesUpdateInput = {
   update?: InputMaybe<Array<ApiReviewReplyUpdateOperationInput>>;
 };
 
-export type ApiReviewReply = ApiNode & ApiReviewContent & {
-  __typename?: 'ReviewReply';
-  author: ApiReviewContentAuthor;
-  body: Scalars['String']['output'];
-  createdAt: Scalars['DateTime']['output'];
-  deletedAt?: Maybe<Scalars['DateTime']['output']>;
-  externalReferences: ApiReviewContentExternalReferenceConnection;
-  id: Scalars['ID']['output'];
-  idempotencyKey?: Maybe<Scalars['String']['output']>;
-  isOfficial: Scalars['Boolean']['output'];
-  kind: ReviewContentKind;
-  locale: LocaleCode;
-  metrics: ApiReviewContentMetrics;
-  moderatedAt?: Maybe<Scalars['DateTime']['output']>;
-  moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
-  moderationCases: ApiReviewModerationCaseConnection;
-  moderationEvents: ApiReviewModerationEventConnection;
-  moderationNote?: Maybe<Scalars['String']['output']>;
-  moderationSignals: ApiReviewModerationSignalConnection;
-  publications: Array<ApiReviewContentPublication>;
-  publishedAt?: Maybe<Scalars['DateTime']['output']>;
-  redactedAt?: Maybe<Scalars['DateTime']['output']>;
-  reports: ApiReviewContentReportConnection;
-  review: ApiReview;
-  revision: Scalars['Int']['output'];
-  revisions: ApiReviewContentRevisionConnection;
-  sortIndex: Scalars['Int']['output'];
-  sourceChannel: Scalars['String']['output'];
-  sourceMetadata: Scalars['JSON']['output'];
-  status: ReviewContentStatus;
-  title?: Maybe<Scalars['String']['output']>;
-  translations: Array<ApiReviewContentTranslation>;
-  unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
-  updatedAt: Scalars['DateTime']['output'];
-  votes: ApiReviewContentVoteConnection;
-};
-
+export type ApiReviewReply = ApiNode &
+  ApiReviewContent & {
+    __typename?: 'ReviewReply';
+    author: ApiReviewContentAuthor;
+    body: Scalars['String']['output'];
+    createdAt: Scalars['DateTime']['output'];
+    deletedAt?: Maybe<Scalars['DateTime']['output']>;
+    externalReferences: ApiReviewContentExternalReferenceConnection;
+    id: Scalars['ID']['output'];
+    idempotencyKey?: Maybe<Scalars['String']['output']>;
+    isOfficial: Scalars['Boolean']['output'];
+    kind: ReviewContentKind;
+    locale: LocaleCode;
+    metrics: ApiReviewContentMetrics;
+    moderatedAt?: Maybe<Scalars['DateTime']['output']>;
+    moderatedByPrincipalId?: Maybe<Scalars['String']['output']>;
+    moderationCases: ApiReviewModerationCaseConnection;
+    moderationEvents: ApiReviewModerationEventConnection;
+    moderationNote?: Maybe<Scalars['String']['output']>;
+    moderationSignals: ApiReviewModerationSignalConnection;
+    publications: Array<ApiReviewContentPublication>;
+    publishedAt?: Maybe<Scalars['DateTime']['output']>;
+    redactedAt?: Maybe<Scalars['DateTime']['output']>;
+    reports: ApiReviewContentReportConnection;
+    review: ApiReview;
+    revision: Scalars['Int']['output'];
+    revisions: ApiReviewContentRevisionConnection;
+    sortIndex: Scalars['Int']['output'];
+    sourceChannel: Scalars['String']['output'];
+    sourceMetadata: Scalars['JSON']['output'];
+    status: ReviewContentStatus;
+    title?: Maybe<Scalars['String']['output']>;
+    translations: Array<ApiReviewContentTranslation>;
+    unpublishedAt?: Maybe<Scalars['DateTime']['output']>;
+    updatedAt: Scalars['DateTime']['output'];
+    votes: ApiReviewContentVoteConnection;
+  };
 
 export type ApiReviewReplyExternalReferencesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -17074,14 +19767,12 @@ export type ApiReviewReplyExternalReferencesArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiReviewReplyModerationCasesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiReviewReplyModerationEventsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -17090,14 +19781,12 @@ export type ApiReviewReplyModerationEventsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiReviewReplyModerationSignalsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiReviewReplyReportsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -17106,14 +19795,12 @@ export type ApiReviewReplyReportsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-
 export type ApiReviewReplyRevisionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
   first?: InputMaybe<Scalars['Int']['input']>;
   last?: InputMaybe<Scalars['Int']['input']>;
 };
-
 
 export type ApiReviewReplyVotesArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -17267,7 +19954,6 @@ export type ApiReviewRequest = ApiNode & {
   variant?: Maybe<ApiVariant>;
 };
 
-
 export type ApiReviewRequestEventsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
   before?: InputMaybe<Scalars['String']['input']>;
@@ -17409,20 +20095,9 @@ export type ApiReviewRequestScheduleUpdateInput = {
 };
 
 export type ReviewRequestStatus =
-  | 'CANCELLED'
-  | 'DELIVERED'
-  | 'EXPIRED'
-  | 'FAILED'
-  | 'OPENED'
-  | 'SCHEDULED'
-  | 'SENT'
-  | 'SUBMITTED';
+  'CANCELLED' | 'DELIVERED' | 'EXPIRED' | 'FAILED' | 'OPENED' | 'SCHEDULED' | 'SENT' | 'SUBMITTED';
 
-export type ReviewRequestTransitionAction =
-  | 'CANCEL'
-  | 'EXPIRE'
-  | 'RESCHEDULE'
-  | 'RETRY';
+export type ReviewRequestTransitionAction = 'CANCEL' | 'EXPIRE' | 'RESCHEDULE' | 'RETRY';
 
 export type ApiReviewRequestTransitionInput = {
   action: ReviewRequestTransitionAction;
@@ -17555,10 +20230,7 @@ export type ApiReviewSubjectUpdateInput = {
   variantId?: InputMaybe<Scalars['ID']['input']>;
 };
 
-export type ReviewTranslationSource =
-  | 'HUMAN'
-  | 'IMPORT'
-  | 'MACHINE';
+export type ReviewTranslationSource = 'HUMAN' | 'IMPORT' | 'MACHINE';
 
 /** Section-based aggregate update following Catalog productUpdate semantics. */
 export type ApiReviewUpdateInput = {
@@ -17581,10 +20253,7 @@ export type ApiReviewUpdatePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
-export type ReviewVerificationStatus =
-  | 'REVOKED'
-  | 'UNVERIFIED'
-  | 'VERIFIED';
+export type ReviewVerificationStatus = 'REVOKED' | 'UNVERIFIED' | 'VERIFIED';
 
 export type ApiReviewVerificationUpdateInput = {
   method?: InputMaybe<Scalars['String']['input']>;
@@ -17680,18 +20349,15 @@ export type ApiReviewsMutation = {
   storeConfigurationUpdate: ApiReviewStoreConfigurationUpdatePayload;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationContentExternalReferenceCreateArgs = {
   input: ApiReviewContentExternalReferenceCreateInput;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationContentExternalReferenceDeleteArgs = {
   input: ApiReviewContentExternalReferenceDeleteInput;
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationContentExternalReferenceUpdateArgs = {
@@ -17700,13 +20366,11 @@ export type ApiReviewsMutationContentExternalReferenceUpdateArgs = {
   operations?: InputMaybe<ApiReviewContentExternalReferenceUpdateInput>;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationContentRedactArgs = {
   contentId: Scalars['ID']['input'];
   expectedRevision: Scalars['Int']['input'];
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationContentReportUpdateArgs = {
@@ -17715,7 +20379,6 @@ export type ApiReviewsMutationContentReportUpdateArgs = {
   operations?: InputMaybe<ApiReviewContentReportUpdateInput>;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationContentRevisionRestoreArgs = {
   contentId: Scalars['ID']['input'];
@@ -17723,12 +20386,10 @@ export type ApiReviewsMutationContentRevisionRestoreArgs = {
   revision: Scalars['Int']['input'];
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationModerationCaseCreateArgs = {
   input: ApiReviewModerationCaseCreateInput;
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationModerationCaseUpdateArgs = {
@@ -17737,18 +20398,15 @@ export type ApiReviewsMutationModerationCaseUpdateArgs = {
   operations?: InputMaybe<ApiReviewModerationCaseUpdateInput>;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationProductQuestionCreateArgs = {
   input: ApiProductQuestionCreateInput;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationProductQuestionDeleteArgs = {
   input: ApiReviewContentDeleteInput;
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationProductQuestionSubscriptionUpdateArgs = {
@@ -17757,7 +20415,6 @@ export type ApiReviewsMutationProductQuestionSubscriptionUpdateArgs = {
   subscriptionId: Scalars['ID']['input'];
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationProductQuestionUpdateArgs = {
   expectedRevision: Scalars['Int']['input'];
@@ -17765,18 +20422,15 @@ export type ApiReviewsMutationProductQuestionUpdateArgs = {
   productQuestionId: Scalars['ID']['input'];
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationRatingCriterionCreateArgs = {
   input: ApiReviewRatingCriterionCreateInput;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationRatingCriterionDeleteArgs = {
   input: ApiReviewRatingCriterionDeleteInput;
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationRatingCriterionUpdateArgs = {
@@ -17785,24 +20439,20 @@ export type ApiReviewsMutationRatingCriterionUpdateArgs = {
   operations?: InputMaybe<ApiReviewRatingCriterionUpdateInput>;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationReviewCreateArgs = {
   input: ApiReviewCreateInput;
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationReviewDeleteArgs = {
   input: ApiReviewContentDeleteInput;
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationReviewRequestCreateArgs = {
   input: ApiReviewRequestCreateInput;
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationReviewRequestUpdateArgs = {
@@ -17811,14 +20461,12 @@ export type ApiReviewsMutationReviewRequestUpdateArgs = {
   reviewRequestId: Scalars['ID']['input'];
 };
 
-
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationReviewUpdateArgs = {
   expectedRevision: Scalars['Int']['input'];
   operations?: InputMaybe<ApiReviewUpdateInput>;
   reviewId: Scalars['ID']['input'];
 };
-
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ApiReviewsMutationStoreConfigurationUpdateArgs = {
@@ -17902,18 +20550,15 @@ export type ApiReviewsQuery = {
   storeConfiguration?: Maybe<ApiReviewStoreConfiguration>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryContentArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryContentExternalReferenceArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryContentExternalReferencesArgs = {
@@ -17925,12 +20570,10 @@ export type ApiReviewsQueryContentExternalReferencesArgs = {
   where?: InputMaybe<ApiReviewContentExternalReferenceWhereInput>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryContentReportArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryContentReportsArgs = {
@@ -17941,7 +20584,6 @@ export type ApiReviewsQueryContentReportsArgs = {
   orderBy?: InputMaybe<Array<ApiReviewContentReportOrderByInput>>;
   where?: InputMaybe<ApiReviewContentReportWhereInput>;
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryContentsArgs = {
@@ -17954,12 +20596,10 @@ export type ApiReviewsQueryContentsArgs = {
   where?: InputMaybe<ApiReviewContentWhereInput>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryModerationCaseArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryModerationCasesArgs = {
@@ -17971,30 +20611,25 @@ export type ApiReviewsQueryModerationCasesArgs = {
   where?: InputMaybe<ApiReviewModerationCaseWhereInput>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryNodeArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryNodesArgs = {
   ids: Array<Scalars['ID']['input']>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryProductQuestionArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryProductQuestionAnswerArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryProductQuestionAnswersArgs = {
@@ -18007,7 +20642,6 @@ export type ApiReviewsQueryProductQuestionAnswersArgs = {
   where?: InputMaybe<ApiProductQuestionAnswerWhereInput>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryProductQuestionsArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -18019,7 +20653,6 @@ export type ApiReviewsQueryProductQuestionsArgs = {
   where?: InputMaybe<ApiProductQuestionWhereInput>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryRatingCriteriaArgs = {
   after?: InputMaybe<Scalars['String']['input']>;
@@ -18030,18 +20663,15 @@ export type ApiReviewsQueryRatingCriteriaArgs = {
   where?: InputMaybe<ApiReviewRatingCriterionWhereInput>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryRatingCriterionArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryReviewArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryReviewRepliesArgs = {
@@ -18054,18 +20684,15 @@ export type ApiReviewsQueryReviewRepliesArgs = {
   where?: InputMaybe<ApiReviewReplyWhereInput>;
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryReviewReplyArgs = {
   id: Scalars['ID']['input'];
 };
 
-
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryReviewRequestArgs = {
   id: Scalars['ID']['input'];
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryReviewRequestsArgs = {
@@ -18076,7 +20703,6 @@ export type ApiReviewsQueryReviewRequestsArgs = {
   orderBy?: InputMaybe<Array<ApiReviewRequestOrderByInput>>;
   where?: InputMaybe<ApiReviewRequestWhereInput>;
 };
-
 
 /** Administrative reads for review, Q&A, moderation, and configuration data. */
 export type ApiReviewsQueryReviewsArgs = {
@@ -18208,18 +20834,15 @@ export type ApiRoleMutation = {
   roleUpdate: ApiRoleUpdatePayload;
 };
 
-
 /** Role mutations. */
 export type ApiRoleMutationRoleCreateArgs = {
   input: ApiRoleCreateInput;
 };
 
-
 /** Role mutations. */
 export type ApiRoleMutationRoleDeleteArgs = {
   input: ApiRoleDeleteInput;
 };
-
 
 /** Role mutations. */
 export type ApiRoleMutationRoleUpdateArgs = {
@@ -18281,9 +20904,7 @@ export type ApiSearchConfigurationDeleteInput = {
   id: Scalars['ID']['input'];
 };
 
-export type SearchExecutionMode =
-  | 'FUZZY'
-  | 'PRIMARY';
+export type SearchExecutionMode = 'FUZZY' | 'PRIMARY';
 
 export type ApiSearchExplain = {
   __typename?: 'SearchExplain';
@@ -18317,11 +20938,7 @@ export type ApiSearchExplainClause = {
 };
 
 export type SearchExplainClauseKind =
-  | 'FTS_PHRASE'
-  | 'FTS_TERMS'
-  | 'IDENTIFIER_EXACT'
-  | 'IDENTIFIER_PREFIX'
-  | 'SYNONYM';
+  'FTS_PHRASE' | 'FTS_TERMS' | 'IDENTIFIER_EXACT' | 'IDENTIFIER_PREFIX' | 'SYNONYM';
 
 export type ApiSearchExplainFieldWeight = {
   __typename?: 'SearchExplainFieldWeight';
@@ -18369,11 +20986,7 @@ export type ApiSearchExplainUnit = {
   typoAlternatives: Array<ApiSearchExplainTypoAlternative>;
 };
 
-export type SearchField =
-  | 'CATEGORY_NAME'
-  | 'PRODUCT_TITLE'
-  | 'VARIANT_TITLE'
-  | 'VENDOR_NAME';
+export type SearchField = 'CATEGORY_NAME' | 'PRODUCT_TITLE' | 'VARIANT_TITLE' | 'VENDOR_NAME';
 
 export type ApiSearchFieldConfiguration = {
   __typename?: 'SearchFieldConfiguration';
@@ -18387,17 +21000,9 @@ export type ApiSearchFieldConfigurationInput = {
 };
 
 export type SearchLexicalUnitKind =
-  | 'CODE'
-  | 'FOREIGN'
-  | 'MIXED_SCRIPT'
-  | 'NUMBER'
-  | 'STOPWORD'
-  | 'TEXT';
+  'CODE' | 'FOREIGN' | 'MIXED_SCRIPT' | 'NUMBER' | 'STOPWORD' | 'TEXT';
 
-export type SearchOutOfStockPolicy =
-  | 'HIDE'
-  | 'PLACE_LAST'
-  | 'SHOW';
+export type SearchOutOfStockPolicy = 'HIDE' | 'PLACE_LAST' | 'SHOW';
 
 export type ApiSearchProductBoost = {
   __typename?: 'SearchProductBoost';
@@ -18540,8 +21145,7 @@ export type ApiSearchSettingsOperationResult = {
   type: SearchSettingsOperationType;
 };
 
-export type SearchSettingsOperationType =
-  | 'SETTINGS_UPDATE';
+export type SearchSettingsOperationType = 'SETTINGS_UPDATE';
 
 export type ApiSearchSettingsOperationsInput = {
   /** Main search settings replacement. */
@@ -18760,6 +21364,239 @@ export type ApiSessionRevokePayload = {
   userErrors: Array<ApiGenericUserError>;
 };
 
+/** Physical shipment projection with pinned provider references, packages, tracking, and status events. */
+export type ApiShipment = ApiNode & {
+  __typename?: 'Shipment';
+  /** Timestamp for created, or null when it has not occurred. */
+  createdAt: Scalars['DateTime']['output'];
+  /** Timestamp for delivered, or null when it has not occurred. */
+  deliveredAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Timestamp for estimated delivery, or null when it has not occurred. */
+  estimatedDeliveryAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Projected value for events. */
+  events: Array<ApiShipmentEvent>;
+  /** Projected value for fulfillment. */
+  fulfillment: ApiFulfillment;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Fresh order projection returned after the command. */
+  order: ApiOrder;
+  /** Projected value for packages. */
+  packages: Array<ApiShipmentPackage>;
+  /** Stable provider code. */
+  providerCode?: Maybe<Scalars['String']['output']>;
+  /** Projected value for provider reference. */
+  providerReference?: Maybe<Scalars['String']['output']>;
+  /** Stable service code. */
+  serviceCode?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for shipped, or null when it has not occurred. */
+  shippedAt?: Maybe<Scalars['DateTime']['output']>;
+  /** Current lifecycle or derived projection status. */
+  status: ShipmentStatus;
+  /** Projected value for tracking. */
+  tracking: Array<ApiShipmentTracking>;
+  /** Timestamp for updated, or null when it has not occurred. */
+  updatedAt: Scalars['DateTime']['output'];
+  /** Current aggregate revision used for optimistic concurrency. */
+  version: Scalars['Int']['output'];
+};
+
+/** Validated input for shipment cancel. Tenant identifiers come only from trusted context. */
+export type ApiShipmentCancelInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Stable audited reason code. */
+  reasonCode: Scalars['String']['input'];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars['ID']['input'];
+};
+
+/** Validated input for shipment create. Tenant identifiers come only from trusted context. */
+export type ApiShipmentCreateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Relay global ID identifying the fulfillment. */
+  fulfillmentId: Scalars['ID']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Validated input value for packages. */
+  packages: Array<ApiShipmentPackageInput>;
+  /** Stable provider code. */
+  providerCode?: InputMaybe<Scalars['String']['input']>;
+  /** Stable service code. */
+  serviceCode?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Orders Admin representation of shipment event. */
+export type ApiShipmentEvent = ApiNode & {
+  __typename?: 'ShipmentEvent';
+  /** Timestamp for happened, or null when it has not occurred. */
+  happenedAt: Scalars['DateTime']['output'];
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for location. */
+  location?: Maybe<Scalars['String']['output']>;
+  /** Human-readable explanation safe for an authorized Admin user. */
+  message?: Maybe<Scalars['String']['output']>;
+  /** Timestamp for recorded, or null when it has not occurred. */
+  recordedAt: Scalars['DateTime']['output'];
+  /** Current lifecycle or derived projection status. */
+  status: ShipmentStatus;
+};
+
+/** Validated input for shipment mark delivered. Tenant identifiers come only from trusted context. */
+export type ApiShipmentMarkDeliveredInput = {
+  /** Timestamp for delivered, or null when it has not occurred. */
+  deliveredAt: Scalars['DateTime']['input'];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars['ID']['input'];
+};
+
+/** Validated input for shipment mark shipped. Tenant identifiers come only from trusted context. */
+export type ApiShipmentMarkShippedInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars['ID']['input'];
+  /** Timestamp for shipped, or null when it has not occurred. */
+  shippedAt: Scalars['DateTime']['input'];
+};
+
+/** Orders Admin representation of shipment package. */
+export type ApiShipmentPackage = ApiNode & {
+  __typename?: 'ShipmentPackage';
+  /** Projected value for declared value. */
+  declaredValue?: Maybe<ApiMoney>;
+  /** Projected value for dimensions. */
+  dimensions?: Maybe<ApiDimensions>;
+  /** Relay global ID of this resource. */
+  id: Scalars['ID']['output'];
+  /** Projected value for items. */
+  items: Array<ApiShipmentPackageItem>;
+  /** Projected value for weight. */
+  weight?: Maybe<ApiWeight>;
+};
+
+/** Validated input for shipment package. Tenant identifiers come only from trusted context. */
+export type ApiShipmentPackageInput = {
+  /** Validated input value for declared value. */
+  declaredValue?: InputMaybe<ApiMoneyInput>;
+  /** Validated input value for dimensions. */
+  dimensions?: InputMaybe<ApiOrderDimensionsInput>;
+  /** Validated input value for items. */
+  items: Array<ApiShipmentPackageItemInput>;
+  /** Validated input value for weight. */
+  weight?: InputMaybe<ApiOrderWeightInput>;
+};
+
+/** Orders Admin representation of shipment package item. */
+export type ApiShipmentPackageItem = {
+  __typename?: 'ShipmentPackageItem';
+  /** Projected value for order line. */
+  orderLine: ApiOrderLine;
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['output'];
+};
+
+/** Validated input for shipment package item. Tenant identifiers come only from trusted context. */
+export type ApiShipmentPackageItemInput = {
+  /** Relay global ID identifying the order line. */
+  orderLineId: Scalars['ID']['input'];
+  /** Quantity validated against domain conservation invariants. */
+  quantity: Scalars['Int']['input'];
+};
+
+/** Mutation result for shipment; expected failures are returned in userErrors. */
+export type ApiShipmentPayload = {
+  __typename?: 'ShipmentPayload';
+  /** Fresh order projection returned after the command. */
+  order?: Maybe<ApiOrder>;
+  /** Projected value for shipment. */
+  shipment?: Maybe<ApiShipment>;
+  /** Expected validation, permission, concurrency, and business-rule failures; empty on success. */
+  userErrors: Array<ApiOrderUserError>;
+};
+
+/** Validated input for shipment reconcile. Tenant identifiers come only from trusted context. */
+export type ApiShipmentReconcileInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars['ID']['input'];
+};
+
+/** Closed set of shipment status values used by Orders Admin API. */
+export type ShipmentStatus =
+  /** Cancelled value of shipment status. */
+  | 'CANCELLED'
+  /** Delayed value of shipment status. */
+  | 'DELAYED'
+  /** Delivered value of shipment status. */
+  | 'DELIVERED'
+  /** Delivery attempted value of shipment status. */
+  | 'DELIVERY_ATTEMPTED'
+  /** Draft value of shipment status. */
+  | 'DRAFT'
+  /** Exception value of shipment status. */
+  | 'EXCEPTION'
+  /** In transit value of shipment status. */
+  | 'IN_TRANSIT'
+  /** Label created value of shipment status. */
+  | 'LABEL_CREATED'
+  /** Out for delivery value of shipment status. */
+  | 'OUT_FOR_DELIVERY'
+  /** Picked up value of shipment status. */
+  | 'PICKED_UP'
+  /** Ready for pickup value of shipment status. */
+  | 'READY_FOR_PICKUP'
+  /** Returned to sender value of shipment status. */
+  | 'RETURNED_TO_SENDER';
+
+/** Orders Admin representation of shipment tracking. */
+export type ApiShipmentTracking = {
+  __typename?: 'ShipmentTracking';
+  /** Projected value for company. */
+  company?: Maybe<Scalars['String']['output']>;
+  /** Store-local order number serialized without precision loss. */
+  number: Scalars['String']['output'];
+  /** Projected value for url. */
+  url?: Maybe<Scalars['URL']['output']>;
+};
+
+/** Validated input for shipment tracking. Tenant identifiers come only from trusted context. */
+export type ApiShipmentTrackingInput = {
+  /** Validated input value for company. */
+  company?: InputMaybe<Scalars['String']['input']>;
+  /** Store-local order number serialized without precision loss. */
+  number: Scalars['String']['input'];
+  /** Validated input value for url. */
+  url?: InputMaybe<Scalars['URL']['input']>;
+};
+
+/** Validated input for shipment tracking update. Tenant identifiers come only from trusted context. */
+export type ApiShipmentTrackingUpdateInput = {
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars['Int']['input'];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars['String']['input'];
+  /** Relay global ID identifying the shipment. */
+  shipmentId: Scalars['ID']['input'];
+  /** Validated input value for tracking. */
+  tracking: Array<ApiShipmentTrackingInput>;
+};
+
 export type ApiSkuStatusMetric = {
   __typename?: 'SkuStatusMetric';
   averageDays?: Maybe<Scalars['Float']['output']>;
@@ -18774,21 +21611,17 @@ export type ApiSmtpAppMutation = {
   smtpConnectionUpdate: ApiSmtpConnectionPayload;
 };
 
-
 export type ApiSmtpAppMutationSmtpConnectionActivateArgs = {
   input: ApiSmtpConnectionActionInput;
 };
-
 
 export type ApiSmtpAppMutationSmtpConnectionCreateArgs = {
   input: ApiSmtpConnectionCreateInput;
 };
 
-
 export type ApiSmtpAppMutationSmtpConnectionDisconnectArgs = {
   input: ApiSmtpConnectionActionInput;
 };
-
 
 export type ApiSmtpAppMutationSmtpConnectionUpdateArgs = {
   input: ApiSmtpConnectionUpdateInput;
@@ -18800,7 +21633,6 @@ export type ApiSmtpAppQuery = {
   smtpConnections: Array<ApiSmtpConnection>;
   smtpProviderPresets: Array<ApiSmtpProviderPreset>;
 };
-
 
 export type ApiSmtpAppQuerySmtpConnectionArgs = {
   id: Scalars['ID']['input'];
@@ -18842,20 +21674,11 @@ export type ApiSmtpConnectionPayload = {
 };
 
 export type SmtpConnectionProvider =
-  | 'CUSTOM'
-  | 'GOOGLE_WORKSPACE'
-  | 'MAILCHIMP_TRANSACTIONAL'
-  | 'SENDGRID';
+  'CUSTOM' | 'GOOGLE_WORKSPACE' | 'MAILCHIMP_TRANSACTIONAL' | 'SENDGRID';
 
-export type SmtpConnectionSecurity =
-  | 'NONE'
-  | 'STARTTLS'
-  | 'TLS';
+export type SmtpConnectionSecurity = 'NONE' | 'STARTTLS' | 'TLS';
 
-export type SmtpConnectionStatus =
-  | 'ACTIVE'
-  | 'DISCONNECTED'
-  | 'INACTIVE';
+export type SmtpConnectionStatus = 'ACTIVE' | 'DISCONNECTED' | 'INACTIVE';
 
 export type ApiSmtpConnectionUpdateInput = {
   connectionId: Scalars['ID']['input'];
@@ -18883,9 +21706,7 @@ export type ApiSmtpProviderPreset = {
 };
 
 /** Sort direction */
-export type SortDirection =
-  | 'asc'
-  | 'desc';
+export type SortDirection = 'asc' | 'desc';
 
 export type ApiStaffNotificationRecipient = {
   __typename?: 'StaffNotificationRecipient';
@@ -19141,36 +21962,30 @@ export type ApiStoreMutation = {
   storeUpdate: ApiStoreUpdatePayload;
 };
 
-
 /** Mutations for store management */
 export type ApiStoreMutationLocaleCreateArgs = {
   input: ApiLocaleCreateInput;
 };
-
 
 /** Mutations for store management */
 export type ApiStoreMutationLocaleDeleteArgs = {
   input: ApiLocaleDeleteInput;
 };
 
-
 /** Mutations for store management */
 export type ApiStoreMutationLocaleSetDefaultArgs = {
   input: ApiLocaleSetDefaultInput;
 };
-
 
 /** Mutations for store management */
 export type ApiStoreMutationStoreCreateArgs = {
   input: ApiStoreCreateInput;
 };
 
-
 /** Mutations for store management */
 export type ApiStoreMutationStoreDeleteArgs = {
   input: ApiStoreDeleteInput;
 };
-
 
 /** Mutations for store management */
 export type ApiStoreMutationStoreUpdateArgs = {
@@ -19205,7 +22020,6 @@ export type ApiStoreQuery = {
   /** Get all stores accessible to the current user in the organization */
   stores: Array<ApiStore>;
 };
-
 
 /** Queries for store management */
 export type ApiStoreQueryStoresArgs = {
@@ -19308,9 +22122,7 @@ export type ApiStorefrontCredential = ApiNode & {
 };
 
 /** Whether a credential is safe for public clients or restricted to servers. */
-export type StorefrontCredentialKind =
-  | 'PRIVATE'
-  | 'PUBLIC';
+export type StorefrontCredentialKind = 'PRIVATE' | 'PUBLIC';
 
 /** Payload returned after revoking a private storefront credential. */
 export type ApiStorefrontCredentialPayload = {
@@ -19329,9 +22141,7 @@ export type ApiStorefrontCredentialRevokeInput = {
 };
 
 /** Lifecycle state of a storefront credential. */
-export type StorefrontCredentialStatus =
-  | 'ACTIVE'
-  | 'REVOKED';
+export type StorefrontCredentialStatus = 'ACTIVE' | 'REVOKED';
 
 /** Plaintext credentials returned only by the initial create mutation. */
 export type ApiStorefrontInitialCredentials = {
@@ -19381,11 +22191,20 @@ export type ApiStringFilter = {
   _startsWithi?: InputMaybe<Scalars['String']['input']>;
 };
 
+/** Comparison operators for string; omitted operators do not constrain results. */
+export type ApiStringFilterInput = {
+  /** Validated input value for contains. */
+  contains?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for eq. */
+  eq?: InputMaybe<Scalars['String']['input']>;
+  /** Validated input value for in. */
+  in?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Validated input value for starts with. */
+  startsWith?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** Type of visual swatch for option values. */
-export type SwatchType =
-  | 'COLOR'
-  | 'GRADIENT'
-  | 'IMAGE';
+export type SwatchType = 'COLOR' | 'GRADIENT' | 'IMAGE';
 
 /** A tag represents a simple label for organizing and filtering products. */
 export type ApiTag = ApiNode & {
@@ -19522,13 +22341,9 @@ export type ApiTagWhereInput = {
   storeId?: InputMaybe<ApiIdFilter>;
 };
 
-export type ThresholdMethod =
-  | 'REORDER_POINT'
-  | 'SAFETY_STOCK';
+export type ThresholdMethod = 'REORDER_POINT' | 'SAFETY_STOCK';
 
-export type UnitSystem =
-  | 'IMPERIAL'
-  | 'METRIC';
+export type UnitSystem = 'IMPERIAL' | 'METRIC';
 
 /** User type representing admin users (CMS/backoffice). */
 export type ApiUser = {
@@ -19585,21 +22400,17 @@ export type ApiUserMutation = {
   userUpdateProfile: ApiUserUpdateProfilePayload;
 };
 
-
 export type ApiUserMutationSessionRevokeArgs = {
   input: ApiSessionRevokeInput;
 };
-
 
 export type ApiUserMutationUserUpdateEmailArgs = {
   input: ApiUserUpdateEmailInput;
 };
 
-
 export type ApiUserMutationUserUpdatePasswordArgs = {
   input: ApiUserUpdatePasswordInput;
 };
-
 
 export type ApiUserMutationUserUpdateProfileArgs = {
   input: ApiUserUpdateProfileInput;
@@ -19618,7 +22429,6 @@ export type ApiUserQuery = {
   /** Get all active sessions for the current user. */
   mySessions: Array<ApiSession>;
 };
-
 
 export type ApiUserQueryAuthorizeArgs = {
   input: ApiAuthorizeInput;
@@ -19789,7 +22599,6 @@ export type ApiVariant = ApiNode & {
   /** Physical weight (stored in grams). */
   weight?: Maybe<ApiVariantWeight>;
 };
-
 
 /**
  * A variant represents a specific version of a product, such as a size or color.
@@ -19969,10 +22778,7 @@ export type ApiVariantMediaOpInput = {
 };
 
 /** Variant operation action in the unified product update. */
-export type VariantOperationAction =
-  | 'CREATE'
-  | 'DELETE'
-  | 'UPDATE';
+export type VariantOperationAction = 'CREATE' | 'DELETE' | 'UPDATE';
 
 /** Input for a single variant operation. */
 export type ApiVariantOperationInput = {
@@ -20282,7 +23088,6 @@ export type ApiWarehouse = ApiNode & {
   /** Total number of variants stocked in this warehouse. */
   variantsCount: Scalars['Int']['output'];
 };
-
 
 /** A warehouse represents a physical location where inventory is stored. */
 export type ApiWarehouseStockArgs = {
@@ -20658,10 +23463,13 @@ export type ApiWarehouseWhereInput = {
   updatedAt?: InputMaybe<ApiDateTimeFilter>;
 };
 
+/** Physical weight expressed in a supported measurement unit. */
 export type ApiWeight = {
   __typename?: 'Weight';
+  /** Unit used by value. */
   unit: WeightUnit;
-  weight: Scalars['Float']['output'];
+  /** Numeric weight in unit. */
+  value: Scalars['Float']['output'];
 };
 
 /** Input for setting weight (in grams). */
@@ -20695,18 +23503,15 @@ export type ApiWidgetQuery = {
   reviews: ApiProductReviewsWidget;
 };
 
-
 /** Widget query namespace for dashboard widgets. */
 export type ApiWidgetQueryInventoryArgs = {
   productId: Scalars['ID']['input'];
 };
 
-
 /** Widget query namespace for dashboard widgets. */
 export type ApiWidgetQueryPricingArgs = {
   input: ApiPricingWidgetInput;
 };
-
 
 /** Widget query namespace for dashboard widgets. */
 export type ApiWidgetQueryReviewsArgs = {

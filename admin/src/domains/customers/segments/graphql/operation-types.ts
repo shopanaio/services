@@ -53,7 +53,7 @@ export interface CustomerSegmentUpdateMutationData {
 
 export interface CustomerSegmentUpdateMutationVariables {
   segmentId: string;
-  expectedRevision: number;
+
   operations: ApiCustomerSegmentUpdateInput;
 }
 

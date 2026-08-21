@@ -12,7 +12,7 @@ import {
 
 interface UpdateDiscountInput {
   discountId: string;
-  expectedRevision: number;
+
   operations: ApiDiscountUpdateInput;
 }
 

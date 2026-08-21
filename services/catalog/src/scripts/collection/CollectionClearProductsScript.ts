@@ -52,10 +52,9 @@ export class CollectionClearProductsScript extends BaseScript<
       return { collection, userErrors: [] };
     }
 
-    const refreshed = await this.repository.collection.bumpRevision(
-      params.collectionId,
-      { listingChanged: false },
-    );
+    const refreshed = await this.repository.collection.bumpRevision(params.collectionId, {
+      listingChanged: false,
+    });
     if (!refreshed) {
       throw new Error("Collection disappeared while clearing products");
     }

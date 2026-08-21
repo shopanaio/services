@@ -280,7 +280,6 @@ export function mapCommittedCheckoutToApi(checkout: CheckoutCommittedSnapshot): 
     channelCode: draft.channelCode,
     currencyCode: draft.currencyCode as ApiCurrencyCode,
     localeCode: (draft.localeCode ?? "en") as ApiLocaleCode,
-    resultRevision: result.resultRevision,
     valid: result.validation.data.valid,
     status: checkout.lifecycle.status as ApiCheckoutLifecycleStatus,
     expiresAt: checkout.lifecycle.expiresAt,

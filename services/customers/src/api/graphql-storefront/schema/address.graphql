@@ -80,7 +80,7 @@ input CustomerAddressCreateInput {
   address: CustomerAddressInput!
   defaultShipping: Boolean = false
   defaultBilling: Boolean = false
-  expectedRevision: Int!
+
   idempotencyKey: String!
 }
 
@@ -89,13 +89,13 @@ input CustomerAddressUpdateInput {
   address: CustomerAddressInput!
   defaultShipping: Boolean
   defaultBilling: Boolean
-  expectedRevision: Int!
+
   idempotencyKey: String!
 }
 
 input CustomerAddressDeleteInput {
   addressId: ID!
-  expectedRevision: Int!
+
   idempotencyKey: String!
 }
 
@@ -111,7 +111,7 @@ input CustomerAddressDefaultSetInput {
   One or both defaults to assign or clear.
   """
   defaults: [CustomerAddressDefaultType!]!
-  expectedRevision: Int!
+
   idempotencyKey: String!
 }
 

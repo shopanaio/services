@@ -142,7 +142,7 @@ test.describe('Application Admin API - social provider management', () => {
             clientId: 'unknown-client',
             clientSecret: 'unknown-secret',
             scopes: ['openid'],
-            expectedRevision: 1,
+            
           },
         },
       },
@@ -164,7 +164,7 @@ test.describe('Application Admin API - social provider management', () => {
     const duplicate = await configureProvider(api, scope.applicationA, 'GOOGLE', {
       clientId: 'duplicate-client',
       clientSecret: duplicateSecret,
-      expectedRevision: revision,
+      
     });
 
     expect(duplicate.provider).toBeNull();
@@ -443,7 +443,7 @@ test.describe('Application Admin API - social provider management', () => {
             clientId: 'cross-owner-client',
             clientSecret: 'cross-owner-secret',
             scopes: ['openid'],
-            expectedRevision: 1,
+            
           },
         },
       },

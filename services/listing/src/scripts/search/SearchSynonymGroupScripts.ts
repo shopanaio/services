@@ -125,7 +125,7 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
     }
     const result = await this.repository.searchSynonym.update({
       groupId: params.groupId,
-      expectedVersion: params.expectedVersion,
+
       locale,
       name,
       enabled: params.enabled,
@@ -135,17 +135,6 @@ export class SearchSynonymGroupUpdateScript extends BaseScript<
       return {
         userErrors: [
           { message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" },
-        ],
-      };
-    }
-    if (result.status === "conflict") {
-      return {
-        userErrors: [
-          {
-            message: `Synonym group version conflict; current version is ${result.currentVersion}`,
-            field: ["input", "expectedVersion"],
-            code: "VERSION_CONFLICT",
-          },
         ],
       };
     }
@@ -180,23 +169,11 @@ export class SearchSynonymGroupDeleteScript extends BaseScript<
     }
     const result = await this.repository.searchSynonym.delete({
       groupId: params.groupId,
-      expectedVersion: params.expectedVersion,
     });
     if (result.status === "not_found") {
       return {
         userErrors: [
           { message: "Synonym group not found", field: ["input", "id"], code: "NOT_FOUND" },
-        ],
-      };
-    }
-    if (result.status === "conflict") {
-      return {
-        userErrors: [
-          {
-            message: `Synonym group version conflict; current version is ${result.currentVersion}`,
-            field: ["input", "expectedVersion"],
-            code: "VERSION_CONFLICT",
-          },
         ],
       };
     }

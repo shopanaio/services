@@ -192,7 +192,6 @@ export const searchSettings = listingSchema.table(
   "search_settings",
   {
     storeId: uuid("store_id").notNull(),
-    version: integer("version").notNull().default(1),
     enabledFields: jsonb("enabled_fields").notNull(),
     fieldWeights: jsonb("field_weights").notNull(),
     typoToleranceEnabled: boolean("typo_tolerance_enabled").notNull().default(false),
@@ -204,7 +203,6 @@ export const searchSettings = listingSchema.table(
   (table) => [
     unique("search_settings_store_unique").on(table.storeId),
     check("chk_search_settings_uuid_v7", uuidV7(table.storeId)),
-    check("chk_search_settings_version", sql`${table.version} > 0`),
     check(
       "chk_search_settings_enabled_fields",
       sql`jsonb_typeof(${table.enabledFields}) = 'array'`,
@@ -225,7 +223,6 @@ export const searchSynonymGroup = listingSchema.table(
     locale: localeCodeEnum("locale").notNull(),
     name: varchar("name", { length: 128 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
-    version: integer("version").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -250,7 +247,6 @@ export const searchSynonymGroup = listingSchema.table(
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.groupId)}`,
     ),
     check("chk_search_synonym_group_name", sql`${table.name} <> ''`),
-    check("chk_search_synonym_group_version", sql`${table.version} > 0`),
     index("search_synonym_group_enabled_locale_idx")
       .on(table.storeId, table.locale, table.groupId)
       .where(sql`${table.enabled} = true`),
@@ -343,7 +339,6 @@ export const searchProductBoost = listingSchema.table(
     locale: localeCodeEnum("locale").notNull(),
     name: varchar("name", { length: 128 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
-    version: integer("version").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -363,7 +358,6 @@ export const searchProductBoost = listingSchema.table(
       sql`${uuidV7(table.storeId)} AND ${uuidV7(table.boostId)}`,
     ),
     check("chk_search_product_boost_name", sql`${table.name} <> ''`),
-    check("chk_search_product_boost_version", sql`${table.version} > 0`),
     index("search_product_boost_enabled_locale_idx")
       .on(table.storeId, table.locale, table.boostId)
       .where(sql`${table.enabled} = true`),

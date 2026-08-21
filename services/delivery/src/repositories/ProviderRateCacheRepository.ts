@@ -51,7 +51,6 @@ export class ProviderRateCacheRepository extends BaseRepository implements Deliv
         id,
         storeId: input.storeId,
         checkoutId: input.checkoutId,
-        basedOnCheckoutVersion: input.basedOnCheckoutVersion,
         cacheKey: cacheKey(input),
         result: input.result,
         cachedAt: input.cachedAt,

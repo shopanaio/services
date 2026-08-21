@@ -17,7 +17,6 @@ export class AccountLifecycleService {
     status: "ACTIVE" | "SUSPENDED" | "CLOSED";
     reason?: string;
     occurredAt: string;
-    expectedRevision?: number;
   }): Promise<Account> {
     return this.repository.runInTransaction(async () => {
       const current = await this.repository.account.lockById(input.accountId);

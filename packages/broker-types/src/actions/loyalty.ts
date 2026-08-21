@@ -178,7 +178,6 @@ export type GetCustomerLoyaltyAccountResult =
 export interface LoyaltyCheckoutContext {
   executionId: string;
   checkoutId: string;
-  checkoutVersion: number;
   storeId: string;
   customerId: string | null;
   currencyCode: string;
@@ -216,7 +215,6 @@ export interface LoyaltyRedemptionQuote {
   payableAfterLoyalty: LoyaltyCheckoutMoney;
   availablePoints: string;
   expiresAt: string;
-  basedOnCheckoutVersion: number;
   basedOnPricingQuoteRevision: string;
   basedOnCustomerEligibilityRevision: string;
 }
@@ -292,7 +290,6 @@ export type ReserveCheckoutLoyaltyRedemptionResult =
 export interface CommitCheckoutLoyaltyRedemptionParams {
   storeId: string;
   checkoutId: string;
-  checkoutVersion: number;
   reservationId: string;
   quoteId: string;
   quoteRevision: string;

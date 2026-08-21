@@ -108,7 +108,7 @@ export class ConfigurationRepository extends BaseRepository {
   @Transactional()
   async updateStoreConfiguration(
     id: string,
-    expectedRevision: number,
+
     patch: StoreConfigurationPatch,
   ): Promise<OptimisticMutationResult<StoreConfiguration>> {
     const rows = await this.connection
@@ -118,13 +118,7 @@ export class ConfigurationRepository extends BaseRepository {
         revision: sql`${storeConfiguration.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(storeConfiguration.storeId, this.storeId),
-          eq(storeConfiguration.id, id),
-          eq(storeConfiguration.revision, expectedRevision),
-        ),
-      )
+      .where(and(eq(storeConfiguration.storeId, this.storeId), eq(storeConfiguration.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
 

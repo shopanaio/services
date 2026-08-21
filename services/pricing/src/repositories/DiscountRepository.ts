@@ -619,16 +619,11 @@ export class DiscountRepository extends BaseRepository {
     return reservations.length > 0 || redemptions.length > 0;
   }
 
-  async deleteDraft(id: string, expectedRevision: number): Promise<boolean> {
+  async deleteDraft(id: string): Promise<boolean> {
     const rows = await this.connection
       .delete(discount)
       .where(
-        and(
-          eq(discount.storeId, this.storeId),
-          eq(discount.id, id),
-          eq(discount.state, "DRAFT"),
-          eq(discount.revision, expectedRevision),
-        ),
+        and(eq(discount.storeId, this.storeId), eq(discount.id, id), eq(discount.state, "DRAFT")),
       )
       .returning({ id: discount.id });
     return rows.length > 0;

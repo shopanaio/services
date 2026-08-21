@@ -66,7 +66,7 @@ export interface ReviewUpdateMutationData {
 
 export interface ReviewUpdateMutationVariables {
   reviewId: string;
-  expectedRevision: number;
+
   operations: ApiReviewUpdateInput;
 }
 

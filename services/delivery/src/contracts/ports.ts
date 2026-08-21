@@ -394,8 +394,6 @@ export interface DeliveryOptionBindingsPort {
     input: Readonly<{
       storeId: string;
       checkoutId: string;
-      basedOnCheckoutVersion: number;
-      targetCheckoutVersion: number;
       preliminaryRevision: string;
       deliveryRevision: string;
       options: readonly DeliveryOptionBindingCandidate[];
@@ -417,7 +415,6 @@ export interface DeliveryOptionBindingsPort {
     input: Readonly<{
       storeId: string;
       checkoutId: string;
-      checkoutVersion: number;
       groupId: string;
       optionHandle: string;
       effectiveAt: string;
@@ -433,7 +430,6 @@ export interface DeliveryOptionBindingsPort {
       organizationId: string;
       storeId: string;
       checkoutId: string;
-      checkoutVersion: number;
       groupId: string;
       optionHandle: string;
       deliveryRevision: string;
@@ -453,7 +449,6 @@ export interface DeliveryOptionBindingsPort {
     input: Readonly<{
       storeId: string;
       checkoutId: string;
-      checkoutVersion: number;
       groupIds: readonly string[];
       releasedAt: string;
       reason: string;

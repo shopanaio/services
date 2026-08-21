@@ -133,7 +133,7 @@ export const PricingBlock = ({ product, productId, onProductRefresh }: IPricingB
 
       const result = await updateProduct({
         productId: product.id,
-        expectedRevision: product.revision,
+
         operations,
       });
 

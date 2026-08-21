@@ -371,7 +371,7 @@ export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
     const priced = await this.api.admin.mutation<Json>('inventory-api/ProductUpdate', {
       variables: {
         productId: product.id,
-        expectedRevision: product.revision,
+        
         operations: {
           variants: [{
             action: 'UPDATE',
@@ -392,7 +392,7 @@ export class LoyaltyStorefrontTestKit extends CustomersStorefrontTestKit {
       const updated = await this.api.admin.mutation<Json>('inventory-api/ProductUpdate', {
         variables: {
           productId: product.id,
-          expectedRevision: pricedPayload.product.revision,
+          
           operations: { status: 'PUBLISHED' },
         },
       });

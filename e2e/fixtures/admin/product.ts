@@ -60,7 +60,7 @@ export class ProductFixture {
 
   update = async (variables: {
     productId: string;
-    expectedRevision?: number;
+    
     operations?: ApiProductUpdateInput;
   }): Promise<ApiProduct> => {
     const { data } = await this.gql.mutation('inventory-api/ProductUpdate', {
@@ -158,7 +158,7 @@ export class ProductFixture {
     if (status === 'PUBLISHED' || price > 0) {
       return this.update({
         productId: product.id,
-        expectedRevision: product.revision,
+        
         operations: {
           ...(status === 'PUBLISHED' ? { status } : {}),
           ...(price > 0

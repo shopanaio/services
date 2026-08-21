@@ -72,9 +72,7 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
     );
   }
 
-  async headlessStorefrontDisconnect(args: {
-    input: { connectionId: string };
-  }) {
+  async headlessStorefrontDisconnect(args: { input: { connectionId: string } }) {
     return this.connectionPayload(async () =>
       this.$ctx.connections.disconnectConnection(
         this.scope,
@@ -106,9 +104,7 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
     );
   }
 
-  async storefrontCredentialRevoke(args: {
-    input: { credentialId: string };
-  }) {
+  async storefrontCredentialRevoke(args: { input: { credentialId: string } }) {
     return this.payload(
       async () => {
         const id = this.decodeId(args.input.credentialId, GlobalIdEntity.StorefrontCredential);

@@ -220,7 +220,7 @@ async function fetchProduct(api: Api, productId: string) {
 
 interface BulkUpdateProduct {
   productId: string;
-  expectedRevision?: number;
+  
   operations: Record<string, unknown>;
 }
 
@@ -1018,7 +1018,7 @@ test.describe('Product Bulk Edit API', () => {
       await api.admin.mutation('inventory-api/ProductUpdate', {
         variables: {
           productId: product2.productId,
-          expectedRevision: product2.revision,
+          
           operations: { title: 'Sneaky Update' },
         },
       });
@@ -1027,12 +1027,12 @@ test.describe('Product Bulk Edit API', () => {
       const { job } = await submitBulkUpdateAndWait(api, [
         {
           productId: product1.productId,
-          expectedRevision: product1.revision,
+          
           operations: { title: 'Bulk Update 1' },
         },
         {
           productId: product2.productId,
-          expectedRevision: product2.revision, // Old revision - should fail
+           // Old revision - should fail
           operations: { title: 'Bulk Update 2' },
         },
       ]);
@@ -1196,12 +1196,12 @@ test.describe('Product Bulk Edit API', () => {
       const { job } = await submitBulkUpdateAndWait(api, [
         {
           productId: product1.productId,
-          expectedRevision: product1.revision,
+          
           operations: { title: 'Revision OK Update 1' },
         },
         {
           productId: product2.productId,
-          expectedRevision: product2.revision,
+          
           operations: { title: 'Revision OK Update 2' },
         },
       ]);
@@ -1234,17 +1234,17 @@ test.describe('Product Bulk Edit API', () => {
       const { job } = await submitBulkUpdateAndWait(api, [
         {
           productId: product1.productId,
-          expectedRevision: product1.revision,
+          
           operations: { title: 'Should Succeed 1' },
         },
         {
           productId: product2.productId,
-          expectedRevision: 999, // Wrong revision
+           // Wrong revision
           operations: { title: 'Should Fail' },
         },
         {
           productId: product3.productId,
-          expectedRevision: product3.revision,
+          
           operations: { title: 'Should Succeed 3' },
         },
       ]);

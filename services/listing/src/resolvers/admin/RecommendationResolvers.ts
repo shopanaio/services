@@ -121,7 +121,7 @@ export class RecommendationQueryResolver extends ListingType<Record<string, neve
       manualChanges: Array<{
         create?: (Record<string, unknown> & { targetProductId: string }) | null;
         update?: (Record<string, unknown> & { id: string; targetProductId?: string | null }) | null;
-        delete?: { id: string; expectedVersion: number } | null;
+        delete?: { id: string } | null;
       }>;
     };
   }) {
@@ -162,7 +162,7 @@ export class RecommendationQueryResolver extends ListingType<Record<string, neve
           value: {
             ...values,
             id: decodeGlobalIdByType(id, GlobalIdEntity.ManualProductRecommendation),
-            expectedVersion: change.update.expectedVersion as number,
+
             ...(targetProductId === undefined
               ? {}
               : {
@@ -178,7 +178,6 @@ export class RecommendationQueryResolver extends ListingType<Record<string, neve
           kind: "delete",
           value: {
             id: decodeGlobalIdByType(change.delete.id, GlobalIdEntity.ManualProductRecommendation),
-            expectedVersion: change.delete.expectedVersion,
           },
         });
       }
@@ -237,7 +236,6 @@ export class RecommendationMutationResolver extends ListingType<Record<string, n
       minimumResults: number;
       maximumResults: number;
       fallbackChain: string[];
-      expectedVersion?: number | null;
     };
   }) {
     const result = await this.run<RecommendationPolicyResult>(
@@ -251,7 +249,7 @@ export class RecommendationMutationResolver extends ListingType<Record<string, n
   }
 
   async policySetEnabled(args: {
-    input: { placement: RecommendationPlacement; enabled: boolean; expectedVersion: number };
+    input: { placement: RecommendationPlacement; enabled: boolean };
   }) {
     const result = await this.run<RecommendationPolicyResult>(
       "recommendationPolicySetEnabled",
@@ -301,10 +299,9 @@ export class RecommendationMutationResolver extends ListingType<Record<string, n
     };
   }
 
-  async manualDelete(args: { input: { id: string; expectedVersion: number } }) {
+  async manualDelete(args: { input: { id: string } }) {
     const result = await this.run<ManualRecommendationResult>("manualRecommendationDelete", {
       id: decodeGlobalIdByType(args.input.id, GlobalIdEntity.ManualProductRecommendation),
-      expectedVersion: args.input.expectedVersion,
     });
     return {
       deletedId: result.deletedId

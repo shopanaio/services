@@ -52,7 +52,6 @@ export class PaymentLifecycleService {
     const binding = await this.dependencies.bindings.resolvePaymentSelection({
       storeId: params.storeId,
       checkoutId: params.checkoutId,
-      checkoutVersion: params.expectedCheckoutVersion,
       finalQuoteRevision: params.finalQuoteRevision,
       paymentMethodsRevision: params.paymentMethodsRevision,
       methodHandle: params.methodHandle,

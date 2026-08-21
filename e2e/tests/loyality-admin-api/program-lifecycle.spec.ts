@@ -15,11 +15,11 @@ test.describe('Loyalty Admin API program lifecycle', () => {
 
   test('updates mutable fields with optimistic concurrency and no partial stale write', async ({ api }) => {
     const program = await createProgram(api);
-    const updated = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id, expectedRevision: program.revision, name: 'Updated loyalty', metadata: { revision: 2 }, isDefault: true, idempotencyKey: idempotencyKey('program-update') } } });
+    const updated = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id,  name: 'Updated loyalty', metadata: { revision: 2 }, isDefault: true, idempotencyKey: idempotencyKey('program-update') } } });
     const payload = updated.data.loyaltyMutation.programUpdate;
     expectNoUserErrors(payload);
     expect(payload.program).toMatchObject({ name: 'Updated loyalty', metadata: { revision: 2 }, isDefault: true, revision: 2 });
-    const stale = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id, expectedRevision: program.revision, name: 'Must not persist', idempotencyKey: idempotencyKey('program-stale') } } });
+    const stale = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id,  name: 'Must not persist', idempotencyKey: idempotencyKey('program-stale') } } });
     expectUserError(stale.data.loyaltyMutation.programUpdate);
     const current = await api.admin.query<any>('loyality-admin-api/Program', { variables: { id: program.id } });
     expect(current.data.loyaltyQuery.program).toMatchObject({ name: 'Updated loyalty', revision: 2 });
@@ -49,13 +49,13 @@ test.describe('Loyalty Admin API program lifecycle', () => {
   test('transitions through active paused and archived and treats archived as terminal', async ({ api }) => {
     let program = await createProgram(api);
     for (const status of ['ACTIVE', 'PAUSED', 'ARCHIVED'] as const) {
-      const result = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id, expectedRevision: program.revision, status, idempotencyKey: idempotencyKey(`program-${status}`) } } });
+      const result = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id,  status, idempotencyKey: idempotencyKey(`program-${status}`) } } });
       expectNoUserErrors(result.data.loyaltyMutation.programUpdate);
       program = result.data.loyaltyMutation.programUpdate.program;
       expect(program.status).toBe(status);
     }
     expect(program.archivedAt).toEqual(expect.any(String));
-    const invalid = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id, expectedRevision: program.revision, status: 'ACTIVE', idempotencyKey: idempotencyKey('reactivate') } } });
+    const invalid = await api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', { variables: { input: { programId: program.id,  status: 'ACTIVE', idempotencyKey: idempotencyKey('reactivate') } } });
     expectUserError(invalid.data.loyaltyMutation.programUpdate);
   });
 

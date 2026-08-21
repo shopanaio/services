@@ -92,7 +92,7 @@ export type DiscountUpdateOperation =
 
 export interface DiscountUpdateWorkflowInput {
   discountId: string;
-  expectedRevision: number;
+
   operations: DiscountUpdateOperation[];
   context: PricingMutationWorkflowContext;
 }

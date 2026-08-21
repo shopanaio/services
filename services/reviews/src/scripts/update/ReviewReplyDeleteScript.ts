@@ -32,7 +32,7 @@ export class ReviewReplyDeleteScript extends BaseScript<
 
     const result = await this.repository.content.delete({
       id: input.replyId,
-      expectedRevision: input.expectedRevision,
+
       permanent: input.permanent ?? false,
     });
     if (result.status === "not_found") {

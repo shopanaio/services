@@ -847,7 +847,6 @@ export type CustomerAddressCreateInput = {
   address: CustomerAddressInput;
   defaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
   defaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
 };
 
@@ -864,7 +863,6 @@ export type CustomerAddressDefaultSetInput = {
   addressId?: InputMaybe<Scalars['ID']['input']>;
   /** One or both defaults to assign or clear. */
   defaults: Array<CustomerAddressDefaultType>;
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
 };
 
@@ -881,7 +879,6 @@ export enum CustomerAddressDefaultType {
 
 export type CustomerAddressDeleteInput = {
   addressId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
 };
 
@@ -921,7 +918,6 @@ export type CustomerAddressUpdateInput = {
   addressId: Scalars['ID']['input'];
   defaultBilling?: InputMaybe<Scalars['Boolean']['input']>;
   defaultShipping?: InputMaybe<Scalars['Boolean']['input']>;
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
 };
 
@@ -943,8 +939,6 @@ export enum CustomerAddressValidationStatus {
 export type CustomerComparisonCategoryClearInput = {
   /** Current Catalog category whose selected variants must be removed. */
   categoryId: Scalars['ID']['input'];
-  /** Revision observed on Customer.productComparisons. */
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
 };
 
@@ -963,8 +957,6 @@ export type CustomerComparisonMutationPayload = {
 
 /** Values used to add one concrete variant to product comparisons. */
 export type CustomerComparisonVariantAddInput = {
-  /** Revision observed on Customer.productComparisons. */
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
   /** Published Catalog variant to add in the current storefront context. */
   variantId: Scalars['ID']['input'];
@@ -972,8 +964,6 @@ export type CustomerComparisonVariantAddInput = {
 
 /** Values used to remove one concrete variant from product comparisons. */
 export type CustomerComparisonVariantRemoveInput = {
-  /** Revision observed on Customer.productComparisons. */
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
   /** Catalog variant to remove from the authenticated customer's selection. */
   variantId: Scalars['ID']['input'];
@@ -1101,7 +1091,6 @@ export enum CustomerMarketingConsentTargetState {
 
 export type CustomerMarketingConsentUpdateInput = {
   channel: CustomerMarketingConsentChannel;
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
   state: CustomerMarketingConsentTargetState;
 };
@@ -1183,7 +1172,6 @@ export type CustomerTaxIdentifierConnection = Connection & {
 
 export type CustomerTaxIdentifierCreateInput = {
   countryCode?: InputMaybe<CountryCode>;
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
   identifierType: Scalars['String']['input'];
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1198,7 +1186,6 @@ export type CustomerTaxIdentifierCreatePayload = {
 };
 
 export type CustomerTaxIdentifierDeleteInput = {
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
   taxIdentifierId: Scalars['ID']['input'];
 };
@@ -1225,7 +1212,6 @@ export enum CustomerTaxIdentifierStatus {
 
 export type CustomerTaxIdentifierUpdateInput = {
   countryCode?: InputMaybe<CountryCode>;
-  expectedRevision: Scalars['Int']['input'];
   idempotencyKey: Scalars['String']['input'];
   identifierType?: InputMaybe<Scalars['String']['input']>;
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1247,7 +1233,6 @@ export type CustomerTaxIdentifierUpdatePayload = {
 export type CustomerUpdateInput = {
   companyName?: InputMaybe<Scalars['String']['input']>;
   dateOfBirth?: InputMaybe<Scalars['Date']['input']>;
-  expectedRevision: Scalars['Int']['input'];
   firstName?: InputMaybe<Scalars['String']['input']>;
   gender?: InputMaybe<Scalars['String']['input']>;
   idempotencyKey: Scalars['String']['input'];

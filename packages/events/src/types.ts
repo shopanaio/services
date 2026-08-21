@@ -786,7 +786,6 @@ export interface CheckoutCustomerActivityRecordedEvent extends DomainEvent<
   {
     schemaVersion: 1;
     checkoutId: string;
-    checkoutVersion: number;
     storeId: string;
     customerId: string;
     occurredAt: string;
@@ -877,7 +876,6 @@ export interface LoyaltyPointsReservedEvent extends DomainEvent<
   LoyaltyPointsEventPayload & {
     reservationId: string;
     checkoutId: string;
-    checkoutVersion: number;
     discountAmountMinor: string;
     currencyCode: string;
     expiresAt: string;

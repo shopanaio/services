@@ -13,7 +13,6 @@ export interface CreateAppInstallationInput {
   readonly status: AppInstallationStatus;
   readonly targetVersion: string;
   readonly configuration: Readonly<Record<string, unknown>>;
-  readonly configurationVersion: number;
   readonly installedByUserId?: string;
 }
 
@@ -26,7 +25,6 @@ export type UpdateAppInstallationInput = {
       | "targetVersion"
       | "manifestHash"
       | "configuration"
-      | "configurationVersion"
       | "installedByUserId"
       | "healthStatus"
       | "lastErrorCode"
@@ -42,7 +40,6 @@ export type UpdateAppInstallationInput = {
     | "targetVersion"
     | "manifestHash"
     | "configuration"
-    | "configurationVersion"
     | "installedByUserId"
     | "healthStatus"
     | "lastErrorCode"
@@ -212,7 +209,6 @@ export class AppInstallationRepository extends BaseRepository {
         status: input.status,
         targetVersion: input.targetVersion,
         configuration: { ...input.configuration },
-        configurationVersion: input.configurationVersion,
         installedByUserId: input.installedByUserId ?? null,
       })
       .returning();
@@ -259,15 +255,9 @@ export class AppInstallationRepository extends BaseRepository {
       .update(appInstallations)
       .set({
         configuration: { ...input.configuration },
-        configurationVersion: sql`${appInstallations.configurationVersion} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(
-        and(
-          eq(appInstallations.storeId, this.storeId),
-          eq(appInstallations.id, input.id),
-        ),
-      )
+      .where(and(eq(appInstallations.storeId, this.storeId), eq(appInstallations.id, input.id)))
       .returning();
     return rows[0] ? mapInstallation(rows[0]) : null;
   }

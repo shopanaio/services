@@ -94,7 +94,7 @@ export class SearchProductBoostUpdateScript extends BaseScript<
     });
     const result = await this.repository.searchProductBoost.update({
       boostId: params.boostId,
-      expectedVersion: params.expectedVersion,
+
       locale,
       name,
       enabled: params.enabled,
@@ -105,17 +105,6 @@ export class SearchProductBoostUpdateScript extends BaseScript<
       return {
         userErrors: [
           { message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" },
-        ],
-      };
-    }
-    if (result.status === "conflict") {
-      return {
-        userErrors: [
-          {
-            message: `Product boost version conflict; current version is ${result.currentVersion}`,
-            field: ["input", "expectedVersion"],
-            code: "VERSION_CONFLICT",
-          },
         ],
       };
     }
@@ -150,23 +139,11 @@ export class SearchProductBoostDeleteScript extends BaseScript<
     }
     const result = await this.repository.searchProductBoost.delete({
       boostId: params.boostId,
-      expectedVersion: params.expectedVersion,
     });
     if (result.status === "not_found") {
       return {
         userErrors: [
           { message: "Product boost not found", field: ["input", "id"], code: "NOT_FOUND" },
-        ],
-      };
-    }
-    if (result.status === "conflict") {
-      return {
-        userErrors: [
-          {
-            message: `Product boost version conflict; current version is ${result.currentVersion}`,
-            field: ["input", "expectedVersion"],
-            code: "VERSION_CONFLICT",
-          },
         ],
       };
     }

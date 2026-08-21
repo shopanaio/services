@@ -22,18 +22,18 @@ lint и formatting check.
 
 ## 2. Сводная оценка
 
-| Область | Оценка | Статус |
-|---|---:|---|
-| Admin GraphQL API surface | 90% | Основные query/mutation присутствуют |
-| Storefront federation API | 85% | Типы и reference resolvers подключены |
-| Broker API | 85% | Основные межсервисные actions зарегистрированы |
-| Upload и metadata | 55% | Работает happy path, нет целостной транзакционной модели |
-| CDN delivery | 65% | Основной routing есть, один документированный provider сломан |
-| File lifecycle и GC | 50% | State machine существует, но нарушены race/event гарантии |
-| Multi-tenancy и authorization | 75% | GraphQL lookup в основном tenant-safe, broker trust слишком широк |
-| Безопасность | 45% | SSRF/MIME защита есть, private-file storage небезопасен |
-| Наблюдаемость и восстановление | 40% | Логи есть, но нет полноценного recovery для orphan/lost-event случаев |
-| Автоматическая верификация | 10% | В `services/media` не найдено тестов |
+| Область                        | Оценка | Статус                                                                |
+| ------------------------------ | -----: | --------------------------------------------------------------------- |
+| Admin GraphQL API surface      |    90% | Основные query/mutation присутствуют                                  |
+| Storefront federation API      |    85% | Типы и reference resolvers подключены                                 |
+| Broker API                     |    85% | Основные межсервисные actions зарегистрированы                        |
+| Upload и metadata              |    55% | Работает happy path, нет целостной транзакционной модели              |
+| CDN delivery                   |    65% | Основной routing есть, один документированный provider сломан         |
+| File lifecycle и GC            |    50% | State machine существует, но нарушены race/event гарантии             |
+| Multi-tenancy и authorization  |    75% | GraphQL lookup в основном tenant-safe, broker trust слишком широк     |
+| Безопасность                   |    45% | SSRF/MIME защита есть, private-file storage небезопасен               |
+| Наблюдаемость и восстановление |    40% | Логи есть, но нет полноценного recovery для orphan/lost-event случаев |
+| Автоматическая верификация     |    10% | В `services/media` не найдено тестов                                  |
 
 ## 3. Методика и ограничения аудита
 
@@ -68,31 +68,31 @@ Formatting check: passed
 
 ### 4.1 Admin GraphQL queries
 
-| Query | Реализация | Оценка |
-|---|---|---|
-| `mediaSettings` | Есть | Работает для store asset group |
-| `cdnDeliveryPreview` | Есть | Основной routing есть, наследует дефекты adapters |
-| `cdnAdapterCapabilities` | Есть | Возвращает зарегистрированные keys |
-| `node` / `nodes` | Есть | Поддерживает File, CDN configuration и routing rule |
-| `file` | Есть | Tenant-scoped через request DataLoader |
-| `files` | Есть | Relay pagination, state scope и limit 100 |
+| Query                    | Реализация | Оценка                                              |
+| ------------------------ | ---------- | --------------------------------------------------- |
+| `mediaSettings`          | Есть       | Работает для store asset group                      |
+| `cdnDeliveryPreview`     | Есть       | Основной routing есть, наследует дефекты adapters   |
+| `cdnAdapterCapabilities` | Есть       | Возвращает зарегистрированные keys                  |
+| `node` / `nodes`         | Есть       | Поддерживает File, CDN configuration и routing rule |
+| `file`                   | Есть       | Tenant-scoped через request DataLoader              |
+| `files`                  | Есть       | Relay pagination, state scope и limit 100           |
 
 ### 4.2 Admin GraphQL mutations
 
-| Группа | Mutation | Реализация | Основной риск |
-|---|---|---|---|
-| Bucket | `bucketCreate` | Частичная | Создаёт только DB metadata, не S3 bucket |
-| CDN | create/update/delete/setDefault/test | Есть | DTO/DB mismatch, Cloudinary path bug |
-| Routing | create/update/delete | Есть | Слабая типизация JSON overrides |
-| Upload | `fileUpload` | Частичная | Нет S3/DB atomicity и compensation |
-| Upload | `fileUploadFromUrl` | Частичная | Основная SSRF защита есть; остаются consistency risks |
-| External | `fileCreateExternal` | Частичная | URL/provider не валидируются полностью |
-| File | `fileUpdate` | Частичная | DTO/DB mismatch; нельзя обновить video metadata |
-| Delete | single/many | Частичная | Race condition и синхронный permanent delete |
-| Restore | single/many | Частичная | DB state и `deletedAt` меняются неатомарно |
-| Delete recovery | `fileClearError` | Есть | Работает только при согласованной deletion-state записи |
-| Avatar | `avatarUpload` | Частичная | Нет S3/DB compensation |
-| Prepared source | create/update/delete | Частичная | Основная tenant validation есть; лимиты DTO расходятся с DB |
+| Группа          | Mutation                             | Реализация | Основной риск                                               |
+| --------------- | ------------------------------------ | ---------- | ----------------------------------------------------------- |
+| Bucket          | `bucketCreate`                       | Частичная  | Создаёт только DB metadata, не S3 bucket                    |
+| CDN             | create/update/delete/setDefault/test | Есть       | DTO/DB mismatch, Cloudinary path bug                        |
+| Routing         | create/update/delete                 | Есть       | Слабая типизация JSON overrides                             |
+| Upload          | `fileUpload`                         | Частичная  | Нет S3/DB atomicity и compensation                          |
+| Upload          | `fileUploadFromUrl`                  | Частичная  | Основная SSRF защита есть; остаются consistency risks       |
+| External        | `fileCreateExternal`                 | Частичная  | URL/provider не валидируются полностью                      |
+| File            | `fileUpdate`                         | Частичная  | DTO/DB mismatch; нельзя обновить video metadata             |
+| Delete          | single/many                          | Частичная  | Race condition и синхронный permanent delete                |
+| Restore         | single/many                          | Частичная  | DB state и `deletedAt` меняются неатомарно                  |
+| Delete recovery | `fileClearError`                     | Есть       | Работает только при согласованной deletion-state записи     |
+| Avatar          | `avatarUpload`                       | Частичная  | Нет S3/DB compensation                                      |
+| Prepared source | create/update/delete                 | Частичная  | Основная tenant validation есть; лимиты DTO расходятся с DB |
 
 ### 4.3 Storefront GraphQL
 
@@ -107,8 +107,8 @@ Formatting check: passed
 - `Model3d`;
 - `Model3dSource`.
 
-Storefront file loading использует scoped DataLoader и отбрасывает soft-deleted файлы. Однако
-доступ к private generated files определяется только ownership и знанием File ID; отдельного
+Storefront file loading использует scoped DataLoader и отбрасывает soft-deleted файлы. Однако доступ
+к private generated files определяется только ownership и знанием File ID; отдельного
 publication/access-control состояния у storefront media нет.
 
 ### 4.4 Broker actions
@@ -194,9 +194,9 @@ Workflow валидирует `(state = DELETING, deleting_started_at = expected
 - `src/workflows/FileHardDeleteWorkflow.ts:116-138`;
 - `src/repositories/FileRepository.ts:379-389`.
 
-В completion plan был заявлен `hardDeleteIfDeleting`, но он не реализован. Между проверкой lock и
-DB delete GC может выполнить `resetStuckDeleting`. После reset пользователь может восстановить файл,
-но старый workflow всё равно удалит восстановленную row.
+В completion plan был заявлен `hardDeleteIfDeleting`, но он не реализован. Между проверкой lock и DB
+delete GC может выполнить `resetStuckDeleting`. После reset пользователь может восстановить файл, но
+старый workflow всё равно удалит восстановленную row.
 
 **Требуемое завершение:** финальный DB delete обязан быть conditional по state и конкретному
 `deleting_started_at`. Желательно также повторно валидировать lock после S3 step. Возвращаемый false
@@ -274,8 +274,8 @@ Happy path upload выполняет:
 - повтор upload с тем же idempotency key возвращает INTERNAL_ERROR из-за race на unique index.
 
 **Требуемое завершение:** DB writes должны выполняться одной транзакцией; для S3 нужен deterministic
-object key и compensation/reconciliation workflow. Idempotency должна обрабатывать concurrent
-unique conflict как возврат уже созданного результата.
+object key и compensation/reconciliation workflow. Idempotency должна обрабатывать concurrent unique
+conflict как возврат уже созданного результата.
 
 ### MEDIA-007 — Soft delete и restore меняют две модели неатомарно
 
@@ -303,18 +303,18 @@ lifecycle, но обновляются отдельными запросами:
 
 Примеры:
 
-| Поле | Zod/API limit | DB limit |
-|---|---:|---:|
-| `files.alt_text` | 1024 | 255 |
-| `files.original_name` | 1024 | 255 |
-| `buckets.bucket_name` | 255 | 63 |
-| `buckets.region` | 100 | 32 |
-| `buckets.status` | 50 | 16 |
-| `cdn_configurations.name` | 255 | 128 |
-| `cdn_configurations.provider` | 100 | 64 |
-| `cdn_configurations.signing_mode` | 100 | 32 |
-| `cdn_routing_rules.name` | 255 | 128 |
-| `media_sources.kind` | 64 | 32 |
+| Поле                              | Zod/API limit | DB limit |
+| --------------------------------- | ------------: | -------: |
+| `files.alt_text`                  |          1024 |      255 |
+| `files.original_name`             |          1024 |      255 |
+| `buckets.bucket_name`             |           255 |       63 |
+| `buckets.region`                  |           100 |       32 |
+| `buckets.status`                  |            50 |       16 |
+| `cdn_configurations.name`         |           255 |      128 |
+| `cdn_configurations.provider`     |           100 |       64 |
+| `cdn_configurations.signing_mode` |           100 |       32 |
+| `cdn_routing_rules.name`          |           255 |      128 |
+| `media_sources.kind`              |            64 |       32 |
 
 Основные ссылки:
 
@@ -423,8 +423,8 @@ YouTube/Vimeo — нормализатор host/external ID. Невалидны�
 ### MEDIA-014 — `thumbnailUrl` external media не становится storefront preview
 
 `fileCreateExternal` сохраняет `thumbnailUrl` только внутри `providerMeta`. Storefront
-`ExternalVideo.previewImage` использует исключительно `previewFileId`. В результате input принимается
-и сохраняется, но не выполняет ожидаемую функцию preview image.
+`ExternalVideo.previewImage` использует исключительно `previewFileId`. В результате input
+принимается и сохраняется, но не выполняет ожидаемую функцию preview image.
 
 **Требуемое завершение:** либо удалить поле из mutation contract, либо импортировать thumbnail как
 управляемый File и установить `previewFileId`, либо явно отразить external thumbnail в storefront
@@ -436,8 +436,8 @@ Admin API предоставляет `cdnAdapterCapabilities`, но create/updat
 `transformStrategy` и `signingMode`. Конфигурация успешно сохраняется, а runtime затем silently
 fallback-ит на origin URL.
 
-**Требуемое завершение:** при включённой configuration проверять registry keys либо требовать
-явного allow-unknown режима для externally registered adapters.
+**Требуемое завершение:** при включённой configuration проверять registry keys либо требовать явного
+allow-unknown режима для externally registered adapters.
 
 ### MEDIA-016 — JSON CDN configuration недостаточно валидирована
 

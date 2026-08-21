@@ -64,16 +64,12 @@ $$;
 CREATE TABLE "checkout"."checkout_current_snapshots" (
   "checkout_id" uuid PRIMARY KEY,
   "store_id" uuid NOT NULL,
-  "checkout_version" integer NOT NULL,
   "snapshot" jsonb NOT NULL,
   "created_at" timestamptz NOT NULL,
   "updated_at" timestamptz NOT NULL,
-  CONSTRAINT "checkout_current_snapshots_version_positive_check" CHECK ("checkout_version" > 0),
   CONSTRAINT "checkout_current_snapshots_checkout_owner_fk"
     FOREIGN KEY ("store_id", "checkout_id")
-    REFERENCES "checkout"."checkouts"("store_id", "id") ON DELETE CASCADE,
-  CONSTRAINT "checkout_current_snapshots_store_checkout_version_unique"
-    UNIQUE ("store_id", "checkout_id", "checkout_version")
+    REFERENCES "checkout"."checkouts"("store_id", "id") ON DELETE CASCADE
 );
 
 CREATE TABLE "checkout"."checkout_snapshot_quarantine" (
@@ -99,7 +95,6 @@ CREATE TABLE "checkout"."checkout_create_idempotency" (
   "lease_expires_at" timestamptz,
   "public_failure" jsonb,
   "committed_checkout_id" uuid,
-  "committed_checkout_version" integer,
   "created_at" timestamptz NOT NULL,
   "updated_at" timestamptz NOT NULL,
   CONSTRAINT "checkout_create_idempotency_identity_unique"
@@ -116,8 +111,8 @@ CREATE TABLE "checkout"."checkout_create_idempotency" (
     FOREIGN KEY ("store_id", "committed_checkout_id")
     REFERENCES "checkout"."checkouts"("store_id", "id") ON DELETE RESTRICT,
   CONSTRAINT "checkout_create_idempotency_commit_shape_check" CHECK (
-    ("status" = 'COMMITTED' AND "committed_checkout_id" IS NOT NULL AND "committed_checkout_version" = 1)
+    ("status" = 'COMMITTED' AND "committed_checkout_id" IS NOT NULL)
     OR
-    ("status" <> 'COMMITTED' AND "committed_checkout_id" IS NULL AND "committed_checkout_version" IS NULL)
+    ("status" <> 'COMMITTED' AND "committed_checkout_id" IS NULL)
   )
 );

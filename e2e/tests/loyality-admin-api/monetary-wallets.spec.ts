@@ -61,7 +61,7 @@ test.describe('Loyalty Admin API monetary wallets', () => {
     const fixture = await funded(api);
     let wallet = (await convert(api, fixture, { points: '100' })).data.loyaltyMutation.pointsConvertToMonetary.monetaryWallet;
     for (const status of ['SUSPENDED', 'ACTIVE', 'CLOSED'] as const) {
-      const result = await api.admin.mutation<any>('loyality-admin-api/MonetaryWalletStatusUpdate', { variables: { input: { walletId: wallet.id, expectedRevision: wallet.revision, status, reasonCode: `ADMIN_${status}`, idempotencyKey: idempotencyKey(`wallet-${status}`) } } });
+      const result = await api.admin.mutation<any>('loyality-admin-api/MonetaryWalletStatusUpdate', { variables: { input: { walletId: wallet.id,  status, reasonCode: `ADMIN_${status}`, idempotencyKey: idempotencyKey(`wallet-${status}`) } } });
       expectNoUserErrors(result.data.loyaltyMutation.monetaryWalletStatusUpdate);
       wallet = result.data.loyaltyMutation.monetaryWalletStatusUpdate.monetaryWallet;
       expect(wallet.status).toBe(status);

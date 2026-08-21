@@ -483,7 +483,7 @@ type PolicyUpsertInput = {
 };
 type PolicyEnabledInput = {
   context: RecommendationWorkflowContext;
-  params: { placement: RecommendationPlacement; enabled: boolean; expectedVersion: number };
+  params: { placement: RecommendationPlacement; enabled: boolean };
 };
 type ManualCreateInput = {
   context: RecommendationWorkflowContext;
@@ -495,7 +495,7 @@ type ManualUpdateInput = {
 };
 type ManualDeleteInput = {
   context: RecommendationWorkflowContext;
-  params: { id: string; expectedVersion: number };
+  params: { id: string };
 };
 
 abstract class RecommendationMutationWorkflowBase<

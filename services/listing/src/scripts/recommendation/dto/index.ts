@@ -15,7 +15,6 @@ export interface RecommendationPolicyUpsertParams {
   minimumResults: number;
   maximumResults: number;
   fallbackChain: string[];
-  expectedVersion?: number | null;
 }
 
 export interface RecommendationPolicyResult {
@@ -38,7 +37,7 @@ export interface ManualRecommendationCreateParams {
 
 export interface ManualRecommendationUpdateParams {
   id: string;
-  expectedVersion: number;
+
   targetProductId?: string;
   action?: ManualRecommendationAction;
   position?: number | null;

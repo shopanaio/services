@@ -56,7 +56,7 @@ export const TagsSection = ({
 
     const result = await updateProduct({
       productId,
-      expectedRevision: productRevision,
+
       operations: {
         tags: operations,
       },

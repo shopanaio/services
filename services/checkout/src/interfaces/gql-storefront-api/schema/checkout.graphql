@@ -90,11 +90,6 @@ type Checkout implements Node @key(fields: "id") {
   currencyCode: CurrencyCode!
 
   """
-  Revision of the last complete checkout pipeline result.
-  """
-  resultRevision: String!
-
-  """
   Whether the committed checkout is ready according to validation.
   """
   valid: Boolean!

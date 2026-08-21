@@ -23,14 +23,10 @@ export function mapInventoryVariantSelectionsToProductBulkUpdateInput(
   variants: InventoryVariantSelection[],
   warehouseId: string,
 ): ApiProductBulkUpdateInput {
-  const variantsByProduct = new Map<
-    string,
-    { expectedRevision: number; variants: ApiVariantOperationInput[] }
-  >();
+  const variantsByProduct = new Map<string, { variants: ApiVariantOperationInput[] }>();
 
   for (const variant of variants) {
     const productGroup = variantsByProduct.get(variant.productId) ?? {
-      expectedRevision: variant.productRevision,
       variants: [],
     };
     productGroup.variants.push({
@@ -48,7 +44,7 @@ export function mapInventoryVariantSelectionsToProductBulkUpdateInput(
   return {
     products: [...variantsByProduct.entries()].map(([productId, group]) => ({
       productId,
-      expectedRevision: group.expectedRevision,
+
       operations: {
         variants: group.variants,
       },
@@ -76,10 +72,7 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
   const rowsById = new Map(rows.map((row) => [row.id, row]));
   const rowErrors: Record<string, InventorySubmitError[]> = {};
   const submitErrors: InventorySubmitError[] = [];
-  const variantsByProduct = new Map<
-    string,
-    { expectedRevision: number; variants: ApiVariantOperationInput[] }
-  >();
+  const variantsByProduct = new Map<string, { variants: ApiVariantOperationInput[] }>();
 
   for (const [rowId, rowEdits] of Object.entries(edits)) {
     if (!hasPendingFieldEdits(rowEdits)) {
@@ -132,7 +125,6 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
     };
 
     const productGroup = variantsByProduct.get(row.productId) ?? {
-      expectedRevision: row.productRevision,
       variants: [],
     };
     productGroup.variants.push(variantInput);
@@ -171,7 +163,7 @@ export function mapInventoryVariantEditsToProductBulkUpdateInput(
     input: {
       products: [...variantsByProduct.entries()].map(([productId, variants]) => ({
         productId,
-        expectedRevision: variants.expectedRevision,
+
         operations: {
           variants: variants.variants,
         },

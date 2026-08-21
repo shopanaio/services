@@ -167,7 +167,7 @@ Customer-editable fields of an existing review.
 """
 input ReviewUpdateInput {
   reviewId: ID!
-  expectedRevision: Int!
+
   content: ReviewContentEditInput
   """
   New overall rating from 1 through 5.

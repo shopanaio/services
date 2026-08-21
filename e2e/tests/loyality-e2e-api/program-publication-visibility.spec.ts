@@ -71,7 +71,7 @@ test.describe('Loyalty Admin to Storefront program publication', () => {
       const result = await kit.api.admin.mutation<any>('loyality-admin-api/ProgramUpdate', {
         variables: { input: {
           programId: fixture.program.id,
-          expectedRevision: current.data.loyaltyQuery.program.revision,
+          
           status,
           idempotencyKey: idempotencyKey(`program-${status}`),
         } },

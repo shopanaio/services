@@ -1,7 +1,8 @@
 # Apps Service Readiness Audit
 
 **Дата аудита:** 2026-08-20  
-**Область:** `services/apps`, связанные контракты `packages/app-sdk`, `packages/broker-types`, bundled Apps и Apps Admin API e2e-спецификации  
+**Область:** `services/apps`, связанные контракты `packages/app-sdk`, `packages/broker-types`,
+bundled Apps и Apps Admin API e2e-спецификации  
 **Итоговая оценка:** около 60%  
 **Вердикт:** сервис не готов по критерию «весь заявленный API и бизнес-логика завершены»
 
@@ -19,7 +20,8 @@
 - сохранять durable и idempotent семантику операций;
 - иметь автоматизированные спецификации для критических позитивных и негативных сценариев.
 
-Сервис считается готовым только тогда, когда API не просто подключён к обработчикам, но и выполняет заявленные бизнес-инварианты во всех допустимых состояниях.
+Сервис считается готовым только тогда, когда API не просто подключён к обработчикам, но и выполняет
+заявленные бизнес-инварианты во всех допустимых состояниях.
 
 ## 2. Методика и ограничения
 
@@ -34,7 +36,9 @@
 - unit- и e2e-спецификации, относящиеся к Apps service;
 - архитектурная документация проекта.
 
-Тесты, `tsc`, dev server и browser не запускались в соответствии с правилами проекта. Build не запускался, поскольку новая версия кода не создавалась. Поэтому наличие тестов в репозитории не означает, что они проходят на текущем состоянии workspace.
+Тесты, `tsc`, dev server и browser не запускались в соответствии с правилами проекта. Build не
+запускался, поскольку новая версия кода не создавалась. Поэтому наличие тестов в репозитории не
+означает, что они проходят на текущем состоянии workspace.
 
 ## 3. Архитектурные источники истины
 
@@ -55,46 +59,48 @@
 4. Install, update и uninstall выполняются durable workflow.
 5. Suspend, resume и installation health выполняются быстрыми actions.
 6. `routingMode: broadcast` сохраняет несколько одновременно доступных маршрутов.
-7. Delivery carrier и shipment provider capabilities обязаны использовать store assignment и broadcast routing.
-8. Secrets остаются write-only, изолированы по installation и доступны App только в доверенном execution context.
+7. Delivery carrier и shipment provider capabilities обязаны использовать store assignment и
+   broadcast routing.
+8. Secrets остаются write-only, изолированы по installation и доступны App только в доверенном
+   execution context.
 9. Lifecycle operation должна быть idempotent и наблюдаема через durable state.
 
 ## 4. Инвентарь заявленного API
 
 ### 4.1 Admin GraphQL queries
 
-| Query | Назначение | Реализация | Статус |
-| --- | --- | --- | --- |
-| `appsQuery.appDefinition(code)` | Получение bundled App definition | `QueryResolver` → runtime registry | Реализовано |
-| `appsQuery.apps(...)` | Каталог Apps, filtering, ordering, Relay pagination | `AppConnectionResolver` → `AppRepository` | Реализовано с оговорками |
-| `appsQuery.appInstallation(id)` | Store-scoped installation lookup | DataLoader → installation repository | Реализовано |
-| `appsQuery.appLifecycleOperation(id)` | Store-scoped operation lookup | DataLoader → lifecycle repository | Реализовано |
+| Query                                 | Назначение                                          | Реализация                                | Статус                   |
+| ------------------------------------- | --------------------------------------------------- | ----------------------------------------- | ------------------------ |
+| `appsQuery.appDefinition(code)`       | Получение bundled App definition                    | `QueryResolver` → runtime registry        | Реализовано              |
+| `appsQuery.apps(...)`                 | Каталог Apps, filtering, ordering, Relay pagination | `AppConnectionResolver` → `AppRepository` | Реализовано с оговорками |
+| `appsQuery.appInstallation(id)`       | Store-scoped installation lookup                    | DataLoader → installation repository      | Реализовано              |
+| `appsQuery.appLifecycleOperation(id)` | Store-scoped operation lookup                       | DataLoader → lifecycle repository         | Реализовано              |
 
 ### 4.2 Admin GraphQL mutations
 
-| Mutation | Назначение | Реализация | Статус |
-| --- | --- | --- | --- |
-| `appInstall` | Установить bundled App | GraphQL → `apps.installApp` → lifecycle workflow | Частично готово |
-| `appUpdate` | Обновить App/config/scopes/secrets | GraphQL → `apps.updateApp` → lifecycle workflow | Частично готово |
-| `appConfigure` | CAS-замена configuration и scopes | Direct control-plane transaction | Частично готово |
-| `appSuspend` | Приостановить installation | GraphQL → lifecycle action/workflow | Реализовано с оговорками |
-| `appResume` | Возобновить installation | GraphQL → lifecycle action/workflow | Реализовано с оговорками |
-| `appUninstall` | Выполнить cleanup и удалить installation | GraphQL → lifecycle workflow | Не готово для provider cleanup |
+| Mutation       | Назначение                               | Реализация                                       | Статус                         |
+| -------------- | ---------------------------------------- | ------------------------------------------------ | ------------------------------ |
+| `appInstall`   | Установить bundled App                   | GraphQL → `apps.installApp` → lifecycle workflow | Частично готово                |
+| `appUpdate`    | Обновить App/config/scopes/secrets       | GraphQL → `apps.updateApp` → lifecycle workflow  | Частично готово                |
+| `appConfigure` | CAS-замена configuration и scopes        | Direct control-plane transaction                 | Частично готово                |
+| `appSuspend`   | Приостановить installation               | GraphQL → lifecycle action/workflow              | Реализовано с оговорками       |
+| `appResume`    | Возобновить installation                 | GraphQL → lifecycle action/workflow              | Реализовано с оговорками       |
+| `appUninstall` | Выполнить cleanup и удалить installation | GraphQL → lifecycle workflow                     | Не готово для provider cleanup |
 
 ### 4.3 Broker actions
 
-| Action | Статус |
-| --- | --- |
-| `apps.installApp` | Подключён |
-| `apps.updateApp` | Подключён |
-| `apps.suspendApp` | Подключён |
-| `apps.resumeApp` | Подключён |
-| `apps.uninstallApp` | Подключён, но cleanup secrets сломан |
-| `apps.executeCapability` | Подключён, есть routing/security gaps |
-| `apps.listCapabilityRoutes` | Подключён, зависит от некорректной routing policy |
-| `apps.listCommerceFunctionBindings` | Подключён |
-| `apps.assignCapability` | Подключён, resource-mode e2e отсутствует |
-| `apps.unassignCapability` | Подключён, resource-mode e2e отсутствует |
+| Action                              | Статус                                            |
+| ----------------------------------- | ------------------------------------------------- |
+| `apps.installApp`                   | Подключён                                         |
+| `apps.updateApp`                    | Подключён                                         |
+| `apps.suspendApp`                   | Подключён                                         |
+| `apps.resumeApp`                    | Подключён                                         |
+| `apps.uninstallApp`                 | Подключён, но cleanup secrets сломан              |
+| `apps.executeCapability`            | Подключён, есть routing/security gaps             |
+| `apps.listCapabilityRoutes`         | Подключён, зависит от некорректной routing policy |
+| `apps.listCommerceFunctionBindings` | Подключён                                         |
+| `apps.assignCapability`             | Подключён, resource-mode e2e отсутствует          |
+| `apps.unassignCapability`           | Подключён, resource-mode e2e отсутствует          |
 
 ### 4.4 GraphQL entity surfaces
 
@@ -109,18 +115,18 @@
 
 ## 5. Оценка готовности по подсистемам
 
-| Подсистема | Оценка | Комментарий |
-| --- | ---: | --- |
-| Admin GraphQL queries | 85% | Entry points и tenant-scoped reads реализованы |
-| GraphQL mutation wiring | 85% | Все операции подключены, но часть бизнес-инвариантов нарушена |
-| Lifecycle happy path | 70% | Install/update/suspend/resume/uninstall проходят через durable operation |
-| Persistence и store isolation | 75% | GraphQL reads хорошо изолированы, internal control-plane API менее строгий |
-| Configuration/scopes/secrets | 50% | Есть CAS и encryption, отсутствуют state guards и rollback |
-| Capability routing | 40% | Manifest routing mode игнорируется |
-| Permissions boundary | 40% | Fully-qualified permission расширяется до service-wide доступа |
-| Installation health | 40% | Поле и manifest contract существуют, execution отсутствует |
-| Runtime hosting и App GraphQL | 65% | Host реализован, один ключевой runtime ожидаемо FAILED в e2e |
-| Автоматизированные спецификации | 65% | Широкий happy-path набор, но критические negative paths отсутствуют |
+| Подсистема                      | Оценка | Комментарий                                                                |
+| ------------------------------- | -----: | -------------------------------------------------------------------------- |
+| Admin GraphQL queries           |    85% | Entry points и tenant-scoped reads реализованы                             |
+| GraphQL mutation wiring         |    85% | Все операции подключены, но часть бизнес-инвариантов нарушена              |
+| Lifecycle happy path            |    70% | Install/update/suspend/resume/uninstall проходят через durable operation   |
+| Persistence и store isolation   |    75% | GraphQL reads хорошо изолированы, internal control-plane API менее строгий |
+| Configuration/scopes/secrets    |    50% | Есть CAS и encryption, отсутствуют state guards и rollback                 |
+| Capability routing              |    40% | Manifest routing mode игнорируется                                         |
+| Permissions boundary            |    40% | Fully-qualified permission расширяется до service-wide доступа             |
+| Installation health             |    40% | Поле и manifest contract существуют, execution отсутствует                 |
+| Runtime hosting и App GraphQL   |    65% | Host реализован, один ключевой runtime ожидаемо FAILED в e2e               |
+| Автоматизированные спецификации |    65% | Широкий happy-path набор, но критические negative paths отсутствуют        |
 
 ## 6. Блокирующие findings
 
@@ -128,13 +134,17 @@
 
 **Ожидаемое поведение**
 
-Permission вида `project.getStoreById` должна разрешать только этот contract. Только permission `project` должна трактоваться как service scope.
+Permission вида `project.getStoreById` должна разрешать только этот contract. Только permission
+`project` должна трактоваться как service scope.
 
 **Фактическое поведение**
 
-`assertAppOutboundContractAllowed` выделяет имя target service, затем считает подходящим любое manifest permission, которое начинается с `project.` или `project:`. После этого проверяется лишь наличие такого permission в granted scopes.
+`assertAppOutboundContractAllowed` выделяет имя target service, затем считает подходящим любое
+manifest permission, которое начинается с `project.` или `project:`. После этого проверяется лишь
+наличие такого permission в granted scopes.
 
-Например, installation с единственным granted scope `project.getStoreById` проходит предварительную проверку для `project.deleteStore`, если downstream action не добавляет собственное ограничение.
+Например, installation с единственным granted scope `project.getStoreById` проходит предварительную
+проверку для `project.deleteStore`, если downstream action не добавляет собственное ограничение.
 
 **Влияние**
 
@@ -145,8 +155,10 @@ Permission вида `project.getStoreById` должна разрешать то�
 
 **Доказательства**
 
-- [`src/runtime/AppManifestContracts.ts`](../src/runtime/AppManifestContracts.ts), функция `assertAppOutboundContractAllowed`;
-- [`knowledge/vault/architecture/provider-app-manifest.ru.md`](../../../knowledge/vault/architecture/provider-app-manifest.ru.md), раздел `permissions`.
+- [`src/runtime/AppManifestContracts.ts`](../src/runtime/AppManifestContracts.ts), функция
+  `assertAppOutboundContractAllowed`;
+- [`knowledge/vault/architecture/provider-app-manifest.ru.md`](../../../knowledge/vault/architecture/provider-app-manifest.ru.md),
+  раздел `permissions`.
 
 **Требуемое завершение**
 
@@ -159,7 +171,8 @@ Permission вида `project.getStoreById` должна разрешать то�
 
 **Ожидаемое поведение**
 
-`routingMode: broadcast` позволяет нескольким installation одновременно публиковать один capability operation. Это обязательно для delivery provider capabilities и Commerce Functions.
+`routingMode: broadcast` позволяет нескольким installation одновременно публиковать один capability
+operation. Это обязательно для delivery provider capabilities и Commerce Functions.
 
 **Фактическое поведение**
 
@@ -181,8 +194,10 @@ Permission вида `project.getStoreById` должна разрешать то�
 **Доказательства**
 
 - [`src/repositories/capability/capability-route-policy.ts`](../src/repositories/capability/capability-route-policy.ts);
-- [`src/repositories/capability/AppCapabilityRepository.ts`](../src/repositories/capability/AppCapabilityRepository.ts), методы `sync` и `setEnabled`;
-- [`packages/broker-types/src/actions/delivery.ts`](../../../packages/broker-types/src/actions/delivery.ts), `DeliveryProviderAppManifestCapability`;
+- [`src/repositories/capability/AppCapabilityRepository.ts`](../src/repositories/capability/AppCapabilityRepository.ts),
+  методы `sync` и `setEnabled`;
+- [`packages/broker-types/src/actions/delivery.ts`](../../../packages/broker-types/src/actions/delivery.ts),
+  `DeliveryProviderAppManifestCapability`;
 - [`apps/test-fedex/app.manifest.ts`](../../../apps/test-fedex/app.manifest.ts).
 
 **Требуемое завершение**
@@ -197,7 +212,9 @@ Permission вида `project.getStoreById` должна разрешать то�
 
 **Ожидаемое поведение**
 
-Uninstall workflow должен иметь доверенный installation context и доступ к secrets до завершения provider cleanup. Secrets должны быть отозваны только после успешного cleanup либо по явно определённой failure policy.
+Uninstall workflow должен иметь доверенный installation context и доступ к secrets до завершения
+provider cleanup. Secrets должны быть отозваны только после успешного cleanup либо по явно
+определённой failure policy.
 
 **Фактическое поведение**
 
@@ -208,7 +225,8 @@ Uninstall workflow должен иметь доверенный installation con
 3. переводит installation в `UNINSTALLING`;
 4. только затем запускает App uninstall workflow.
 
-Даже если ciphertext ещё существует, `AppInstallationSecretStore.resolve` запрещает доступ для `UNINSTALLING`.
+Даже если ciphertext ещё существует, `AppInstallationSecretStore.resolve` запрещает доступ для
+`UNINSTALLING`.
 
 **Влияние**
 
@@ -220,13 +238,17 @@ Provider App не сможет:
 - отменить или очистить provider-side resources;
 - выполнить любой authenticated cleanup.
 
-При ошибке installation переходит в `UNINSTALL_FAILED`, но secrets уже отозваны, что также блокирует повторный cleanup.
+При ошибке installation переходит в `UNINSTALL_FAILED`, но secrets уже отозваны, что также блокирует
+повторный cleanup.
 
 **Доказательства**
 
-- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts), `beginExistingOperation`;
-- [`src/control-plane/AppInstallationSecretStore.ts`](../src/control-plane/AppInstallationSecretStore.ts), `resolve`;
-- [`src/control-plane/AppInstallationLifecycleWorkflow.ts`](../src/control-plane/AppInstallationLifecycleWorkflow.ts), ветка `UNINSTALL`.
+- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts),
+  `beginExistingOperation`;
+- [`src/control-plane/AppInstallationSecretStore.ts`](../src/control-plane/AppInstallationSecretStore.ts),
+  `resolve`;
+- [`src/control-plane/AppInstallationLifecycleWorkflow.ts`](../src/control-plane/AppInstallationLifecycleWorkflow.ts),
+  ветка `UNINSTALL`.
 
 **Требуемое завершение**
 
@@ -243,22 +265,26 @@ Provider App не сможет:
 Manifest contract различает:
 
 - process-level `ShopanaApp.health()`;
-- installation-level `lifecycle.healthAction`, использующий configuration/secrets конкретной installation.
+- installation-level `lifecycle.healthAction`, использующий configuration/secrets конкретной
+  installation.
 
-Service регистрирует `healthAction` как externally routable action, однако нигде его не вызывает. `AppInstallation.healthStatus` изменяется только следующим образом:
+Service регистрирует `healthAction` как externally routable action, однако нигде его не вызывает.
+`AppInstallation.healthStatus` изменяется только следующим образом:
 
 - `HEALTHY` после успешного install;
 - `UNHEALTHY` после lifecycle failure;
 - `UNKNOWN` после uninstall.
 
-Невозможно получить `DEGRADED` из фактической проверки provider connection. Нет refresh mutation, scheduled check или broker action, сохраняющего результат installation health.
+Невозможно получить `DEGRADED` из фактической проверки provider connection. Нет refresh mutation,
+scheduled check или broker action, сохраняющего результат installation health.
 
 **Доказательства**
 
 - [`src/runtime/AppManifestContracts.ts`](../src/runtime/AppManifestContracts.ts);
 - [`src/runtime/AppRuntimeRegistry.ts`](../src/runtime/AppRuntimeRegistry.ts);
 - [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts);
-- GraphQL field в [`src/api/graphql-admin/schema/app-installation.graphql`](../src/api/graphql-admin/schema/app-installation.graphql).
+- GraphQL field в
+  [`src/api/graphql-admin/schema/app-installation.graphql`](../src/api/graphql-admin/schema/app-installation.graphql).
 
 **Требуемое завершение**
 
@@ -277,15 +303,20 @@ Service регистрирует `healthAction` как externally routable actio
 - installation id;
 - expected configuration version.
 
-Статус installation не проверяется. Поэтому configuration и scopes можно изменить для `INSTALLING`, `UPDATING`, `UNINSTALLING` и даже `UNINSTALLED`.
+Статус installation не проверяется. Поэтому configuration и scopes можно изменить для `INSTALLING`,
+`UPDATING`, `UNINSTALLING` и даже `UNINSTALLED`.
 
-Особенно опасен `UNINSTALLED`: `scope.replace` способен повторно активировать исторические grants после uninstall.
+Особенно опасен `UNINSTALLED`: `scope.replace` способен повторно активировать исторические grants
+после uninstall.
 
 **Доказательства**
 
-- [`src/resolvers/admin/MutationResolver.ts`](../src/resolvers/admin/MutationResolver.ts), `appConfigure`;
-- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts), `configure`;
-- [`src/repositories/installation/AppInstallationRepository.ts`](../src/repositories/installation/AppInstallationRepository.ts), `updateConfigurationForStore`.
+- [`src/resolvers/admin/MutationResolver.ts`](../src/resolvers/admin/MutationResolver.ts),
+  `appConfigure`;
+- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts),
+  `configure`;
+- [`src/repositories/installation/AppInstallationRepository.ts`](../src/repositories/installation/AppInstallationRepository.ts),
+  `updateConfigurationForStore`.
 
 **Требуемое завершение**
 
@@ -303,7 +334,8 @@ Service регистрирует `healthAction` как externally routable actio
 - заменяет granted scopes;
 - сохраняет/вращает secrets.
 
-При падении workflow `failOperation` изменяет status и route state, но не восстанавливает прежние значения.
+При падении workflow `failOperation` изменяет status и route state, но не восстанавливает прежние
+значения.
 
 **Влияние**
 
@@ -314,8 +346,10 @@ Service регистрирует `healthAction` как externally routable actio
 
 **Доказательства**
 
-- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts), `beginExistingOperation` и `failOperation`;
-- [`src/control-plane/AppLifecycleService.ts`](../src/control-plane/AppLifecycleService.ts), `update` и `persistSecrets`.
+- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts),
+  `beginExistingOperation` и `failOperation`;
+- [`src/control-plane/AppLifecycleService.ts`](../src/control-plane/AppLifecycleService.ts),
+  `update` и `persistSecrets`.
 
 **Требуемое завершение**
 
@@ -335,7 +369,9 @@ Manifest permissions документированы как запрашивае�
 grantedScopes ?? manifest.permissions
 ```
 
-То есть отсутствие `grantedScopes` автоматически выдаёт все permissions. Статус `PENDING_CONSENT` никогда не является реальным persisted состоянием: новая installation создаётся сразу как `INSTALLING`.
+То есть отсутствие `grantedScopes` автоматически выдаёт все permissions. Статус `PENDING_CONSENT`
+никогда не является реальным persisted состоянием: новая installation создаётся сразу как
+`INSTALLING`.
 
 **Влияние**
 
@@ -346,8 +382,10 @@ grantedScopes ?? manifest.permissions
 
 **Доказательства**
 
-- [`src/control-plane/AppLifecycleService.ts`](../src/control-plane/AppLifecycleService.ts), `install`;
-- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts), `beginInstall`;
+- [`src/control-plane/AppLifecycleService.ts`](../src/control-plane/AppLifecycleService.ts),
+  `install`;
+- [`src/control-plane/AppInstallationStore.ts`](../src/control-plane/AppInstallationStore.ts),
+  `beginInstall`;
 - [`src/repositories/models/installations.ts`](../src/repositories/models/installations.ts).
 
 **Требуемое завершение**
@@ -362,14 +400,19 @@ grantedScopes ?? manifest.permissions
 
 ### APP-READY-008 — P2 — Manifest snapshot не привязан к lifecycle operation
 
-GraphQL описывает `AppManifestSnapshot` как immutable manifest, используемый lifecycle operation. Фактически snapshot хранится только с `installationId`, `version` и `manifestHash`. В lifecycle operation нет `manifestSnapshotId` или эквивалентной ссылки.
+GraphQL описывает `AppManifestSnapshot` как immutable manifest, используемый lifecycle operation.
+Фактически snapshot хранится только с `installationId`, `version` и `manifestHash`. В lifecycle
+operation нет `manifestSnapshotId` или эквивалентной ссылки.
 
-Workflow dispatch и completion читают текущий runtime manifest, а не сохранённый snapshot. При смене bundled App version между созданием и продолжением durable operation исполнение может использовать новый contract или завершиться version mismatch.
+Workflow dispatch и completion читают текущий runtime manifest, а не сохранённый snapshot. При смене
+bundled App version между созданием и продолжением durable operation исполнение может использовать
+новый contract или завершиться version mismatch.
 
 **Требуемое завершение**
 
 - связать operation с конкретным snapshot;
-- исполнять lifecycle по snapshot contract либо формально определить невозможность cross-version continuation;
+- исполнять lifecycle по snapshot contract либо формально определить невозможность cross-version
+  continuation;
 - добавить restart/deploy recovery specification.
 
 ### APP-READY-009 — P2 — Provider-specific manifest invariants не валидируются runtime’ом
@@ -382,7 +425,8 @@ Workflow dispatch и completion читают текущий runtime manifest, а
 - требуемый routing mode;
 - соответствие optional operations реально зарегистрированным provider capabilities.
 
-TypeScript types в `broker-types` не защищают от runtime manifest, импортированного из JS, неверной типизации или future App package.
+TypeScript types в `broker-types` не защищают от runtime manifest, импортированного из JS, неверной
+типизации или future App package.
 
 **Требуемое завершение**
 
@@ -392,7 +436,8 @@ TypeScript types в `broker-types` не защищают от runtime manifest, 
 
 ### APP-READY-010 — P2 — GraphQL capability definition не раскрывает routing mode
 
-`AppCapabilityDefinition` содержит `key`, `assignmentMode` и `operations`, но не содержит `routingMode`. Admin и observability clients не могут увидеть фактическую discovery cardinality.
+`AppCapabilityDefinition` содержит `key`, `assignmentMode` и `operations`, но не содержит
+`routingMode`. Admin и observability clients не могут увидеть фактическую discovery cardinality.
 
 ### APP-READY-011 — P2 — GraphQL user error classification основан на тексте исключения
 
@@ -406,14 +451,16 @@ TypeScript types в `broker-types` не защищают от runtime manifest, 
 
 ### APP-READY-012 — P2 — Catalog query выполняет database synchronization
 
-`AppRepository.getConnection` сначала выполняет `synchronizeCatalog`, поэтому read query имеет write side effects. Это усложняет:
+`AppRepository.getConnection` сначала выполняет `synchronizeCatalog`, поэтому read query имеет write
+side effects. Это усложняет:
 
 - read-only database access;
 - прогнозируемую latency;
 - error semantics query;
 - горизонтальное масштабирование и кэширование.
 
-Желательно синхронизировать bundled catalog на startup/deployment или отдельным control-plane process.
+Желательно синхронизировать bundled catalog на startup/deployment или отдельным control-plane
+process.
 
 ## 9. Что уже реализовано качественно
 
@@ -425,7 +472,8 @@ TypeScript types в `broker-types` не защищают от runtime manifest, 
 - repository methods с `storeId` conditions;
 - foreign installation/operation возвращается как `null`;
 - federation references используют store-scoped loaders;
-- Relay connection для lifecycle и snapshots сначала проверяет принадлежность installation текущему store.
+- Relay connection для lifecycle и snapshots сначала проверяет принадлежность installation текущему
+  store.
 
 ### 9.2 Durable lifecycle skeleton
 
@@ -456,7 +504,8 @@ TypeScript types в `broker-types` не защищают от runtime manifest, 
 
 ### 9.5 GraphQL contract completeness на уровне wiring
 
-Не обнаружено GraphQL operation, объявленной schema, но полностью отсутствующей в resolver/control-plane layer. Основной дефицит находится в бизнес-семантике, а не в наличии методов.
+Не обнаружено GraphQL operation, объявленной schema, но полностью отсутствующей в
+resolver/control-plane layer. Основной дефицит находится в бизнес-семантике, а не в наличии методов.
 
 ## 10. Состояние автоматизированных спецификаций
 
@@ -507,7 +556,9 @@ TypeScript types в `broker-types` не защищают от runtime manifest, 
 - durable lifecycle continuation после runtime version change;
 - resource assignment cross-store isolation.
 
-Последний сценарий прямо помечен `test.fixme` в [`e2e/tests/apps-admin-api/runtime-capabilities-observability.spec.ts`](../../../e2e/tests/apps-admin-api/runtime-capabilities-observability.spec.ts), поскольку единственный resource-mode App ожидаемо находится в состоянии `FAILED` в e2e.
+Последний сценарий прямо помечен `test.fixme` в
+[`e2e/tests/apps-admin-api/runtime-capabilities-observability.spec.ts`](../../../e2e/tests/apps-admin-api/runtime-capabilities-observability.spec.ts),
+поскольку единственный resource-mode App ожидаемо находится в состоянии `FAILED` в e2e.
 
 ## 11. Bundled Apps и интеграционная готовность
 
@@ -523,13 +574,15 @@ Apps service bundle содержит:
 
 В основной [`config.yml`](../../../config.yml) все они включены и помечены `required: true`.
 
-В e2e `shopana-online-store` помечена optional и спецификации ожидают её runtime status `FAILED`. В результате:
+В e2e `shopana-online-store` помечена optional и спецификации ожидают её runtime status `FAILED`. В
+результате:
 
 - resource assignment path не проверяется end-to-end;
 - штатная готовность единственной resource-mode App не доказана;
 - основная и e2e startup policy расходятся.
 
-До объявления Apps platform завершённой требуется READY fixture с `assignmentMode: resource`, даже если production Online Store ещё не готов.
+До объявления Apps platform завершённой требуется READY fixture с `assignmentMode: resource`, даже
+если production Online Store ещё не готов.
 
 ## 12. Рекомендуемый порядок завершения
 
@@ -592,8 +645,13 @@ Apps service можно считать завершённым только пр�
 
 ## 14. Финальный вывод
 
-Apps service имеет хорошо развитый каркас control-plane и почти полный API wiring. Он уже пригоден для демонстрации happy path, тестовых provider Apps и дальнейшей разработки платформы.
+Apps service имеет хорошо развитый каркас control-plane и почти полный API wiring. Он уже пригоден
+для демонстрации happy path, тестовых provider Apps и дальнейшей разработки платформы.
 
-Однако сервис пока нельзя считать завершённым или безопасным для полноценной provider ecosystem. Три P0 finding затрагивают permission boundary, broadcast routing и authenticated uninstall cleanup. Дополнительные P1 gaps делают installation health, consent и update failure semantics незавершёнными.
+Однако сервис пока нельзя считать завершённым или безопасным для полноценной provider ecosystem. Три
+P0 finding затрагивают permission boundary, broadcast routing и authenticated uninstall cleanup.
+Дополнительные P1 gaps делают installation health, consent и update failure semantics
+незавершёнными.
 
-До закрытия этих пунктов API формально существует, но не гарантирует заявленную бизнес-семантику во всех состояниях.
+До закрытия этих пунктов API формально существует, но не гарантирует заявленную бизнес-семантику во
+всех состояниях.

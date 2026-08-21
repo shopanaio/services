@@ -12,8 +12,6 @@ export class PlaceOrderDto {
   @IsString()
   @MinLength(1)
   @MaxLength(256)
-  expectedResultRevision!: string;
-
   @IsString()
   @MinLength(1)
   @MaxLength(200)

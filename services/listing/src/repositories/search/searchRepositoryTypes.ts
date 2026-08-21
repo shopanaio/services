@@ -80,10 +80,7 @@ export interface SearchIdentifierCandidate {
   priority: 2 | 3;
 }
 
-export type SearchOptimisticMutationResult<T> =
-  | { status: "applied"; value: T }
-  | { status: "not_found" }
-  | { status: "conflict"; currentVersion: number };
+export type SearchMutationResult<T> = { status: "applied"; value: T } | { status: "not_found" };
 
 export function assertNonEmpty(value: string, label: string): void {
   if (value.length === 0) {

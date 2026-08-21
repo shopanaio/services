@@ -1,5 +1,5 @@
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { SearchFieldRegistry } from "../../search/planner/SearchFieldRegistry.js";
 import { searchSettings, type NewSearchSettings, type SearchSettings } from "../models/index.js";
@@ -11,16 +11,13 @@ import {
 
 export type SearchSettingsUpdateInput = SearchSettingsValueInput;
 
-export interface SearchSettingsVersionAcquireInput {
+export interface SearchSettingsInitializeInput {
   storeId: string;
-  expectedVersion: number;
-  initialValues?: SearchSettingsValueInput;
+  values: SearchSettingsValueInput;
 }
 
-export type SearchSettingsVersionAcquireResult =
-  | { status: "applied"; version: number; initialized: boolean }
-  | { status: "not_found" }
-  | { status: "conflict"; currentVersion: number };
+export type SearchSettingsInitializeResult =
+  { status: "applied"; initialized: boolean } | { status: "not_found" };
 
 export type SearchSettingsValueUpdateResult =
   { status: "applied"; value: SearchSettings } | { status: "not_found" };
@@ -39,53 +36,12 @@ export class SearchSettingsRepository extends BaseRepository {
   }
 
   @Transactional()
-  async acquireVersion(
-    input: SearchSettingsVersionAcquireInput,
-  ): Promise<SearchSettingsVersionAcquireResult> {
-    this.assertVersionAcquireInput(input);
-
-    if (input.expectedVersion === 0) {
-      await this.connection.execute(sql`
-        SELECT pg_advisory_xact_lock(
-          hashtextextended(${`listing:search:settings:${input.storeId}`}, 0)
-        )
-      `);
-
-      const current = await this.findByStoreId(input.storeId);
-      if (current) {
-        return { status: "conflict", currentVersion: current.version };
-      }
-      if (!input.initialValues) {
-        throw new Error("initialValues are required for settings initialization");
-      }
-
-      const created = await this.createInitial(input, input.initialValues);
-      return { status: "applied", version: created.version, initialized: true };
-    }
-
-    const rows = await this.connection
-      .update(searchSettings)
-      .set({ version: sql`${searchSettings.version} + 1` })
-      .where(
-        and(
-          eq(searchSettings.storeId, input.storeId),
-          eq(searchSettings.version, input.expectedVersion),
-        ),
-      )
-      .returning({ version: searchSettings.version });
-    const acquired = rows[0];
-    if (acquired) {
-      return {
-        status: "applied",
-        version: acquired.version,
-        initialized: false,
-      };
-    }
-
+  async initialize(input: SearchSettingsInitializeInput): Promise<SearchSettingsInitializeResult> {
+    this.assertInitializeInput(input);
     const current = await this.findByStoreId(input.storeId);
-    return current
-      ? { status: "conflict", currentVersion: current.version }
-      : { status: "not_found" };
+    if (current) return { status: "applied", initialized: false };
+    await this.createInitial(input);
+    return { status: "applied", initialized: true };
   }
 
   @Transactional()
@@ -127,18 +83,14 @@ export class SearchSettingsRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  private async createInitial(
-    input: SearchSettingsVersionAcquireInput,
-    values: SearchSettingsValueInput,
-  ): Promise<SearchSettings> {
+  private async createInitial(input: SearchSettingsInitializeInput): Promise<SearchSettings> {
     const now = new Date().toISOString();
     const row: NewSearchSettings = {
       storeId: input.storeId,
-      version: 1,
-      enabledFields: [...values.enabledFields],
-      fieldWeights: { ...values.fieldWeights },
-      typoToleranceEnabled: values.typoToleranceEnabled,
-      outOfStockPolicy: values.outOfStockPolicy,
+      enabledFields: [...input.values.enabledFields],
+      fieldWeights: { ...input.values.fieldWeights },
+      typoToleranceEnabled: input.values.typoToleranceEnabled,
+      outOfStockPolicy: input.values.outOfStockPolicy,
       updatedAt: now,
     };
     const rows = await this.connection.insert(searchSettings).values(row).returning();
@@ -148,12 +100,9 @@ export class SearchSettingsRepository extends BaseRepository {
     return created;
   }
 
-  private assertVersionAcquireInput(input: SearchSettingsVersionAcquireInput): void {
+  private assertInitializeInput(input: SearchSettingsInitializeInput): void {
     assertNonEmpty(input.storeId, "storeId");
-    if (!Number.isInteger(input.expectedVersion) || input.expectedVersion < 0) {
-      throw new Error("expectedVersion must be a non-negative integer");
-    }
-    if (input.initialValues) this.assertValues(input.initialValues);
+    this.assertValues(input.values);
   }
 
   private assertValues(input: SearchSettingsValueInput): void {

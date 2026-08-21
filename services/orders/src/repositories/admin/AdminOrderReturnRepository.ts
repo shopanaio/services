@@ -34,10 +34,7 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     const policy = extractReturnPolicy(order.metadata);
     const gate = returnPolicyViolation({
       orderStatus: order.status,
-      returnWindowStartedAt: await this.returnWindowStartedAt(
-        request.context.storeId,
-        order.id,
-      ),
+      returnWindowStartedAt: await this.returnWindowStartedAt(request.context.storeId, order.id),
       now,
       returnPolicy: policy,
     });
@@ -331,7 +328,6 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     command: AdminOrderCommandName,
   ): Promise<MutableAdminOrderCommandResult> {
     const exchangeId = requiredUuid(request.input, "exchangeId");
-    const expectedVersion = requiredPositiveInt(request.input, "expectedVersion");
     const rows = await this.connection.execute<{
       order_id: string;
       version: number;
@@ -342,7 +338,6 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     `);
     const exchange = rows[0];
     if (!exchange) throw new Error("ORDER_EXCHANGE_NOT_FOUND");
-    if (exchange.version !== expectedVersion) throw new Error("ORDER_EXCHANGE_VERSION_CONFLICT");
     if (!["REQUESTED", "OPEN"].includes(exchange.status))
       throw new Error("ORDER_EXCHANGE_CANCEL_NOT_ALLOWED");
     const now = new Date().toISOString();
@@ -370,7 +365,6 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     command: AdminOrderCommandName,
   ): Promise<MutableAdminOrderCommandResult> {
     const exchangeId = requiredUuid(request.input, "exchangeId");
-    const expectedVersion = requiredPositiveInt(request.input, "expectedVersion");
     const rows = await this.connection.execute<{
       order_id: string;
       return_request_id: string;
@@ -426,7 +420,6 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     `);
     const exchange = rows[0];
     if (!exchange) throw new Error("ORDER_EXCHANGE_NOT_FOUND");
-    if (exchange.version !== expectedVersion) throw new Error("ORDER_EXCHANGE_VERSION_CONFLICT");
     if (!["REQUESTED", "OPEN"].includes(exchange.status)) {
       throw new Error("ORDER_EXCHANGE_COMPLETE_NOT_ALLOWED");
     }

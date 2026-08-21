@@ -1,8 +1,8 @@
-mutation CategoryAddProduct($productId: ID!, $categoryId: ID!, $expectedRevision: Int) {
+mutation CategoryAddProduct($productId: ID!, $categoryId: ID!) {
   catalogMutation {
     productUpdate(
       productId: $productId
-      expectedRevision: $expectedRevision
+      
       operations: { categories: [{ categoryId: $categoryId, action: ADD }] }
     ) {
       product {

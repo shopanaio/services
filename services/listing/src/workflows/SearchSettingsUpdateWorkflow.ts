@@ -20,9 +20,8 @@ import type {
   SearchSettingsWorkflowContext,
 } from "./dto/SearchSettingsUpdateWorkflowDto.js";
 
-type VersionAcquireResult =
-  | { version: number; initialized: boolean }
-  | { error: { message: string; field: string[]; code: string } };
+type SettingsInitializeResult =
+  { initialized: boolean } | { error: { message: string; field: string[]; code: string } };
 
 type SettingsValidationResult =
   | { values: SearchSettingsValueInput }
@@ -61,7 +60,7 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
       };
     }
 
-    const acquired = await this.stepAcquireVersion(input, validation.values);
+    const acquired = await this.stepInitializeSettings(input, validation.values);
     if ("error" in acquired) {
       return {
         settings: null,
@@ -74,7 +73,7 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
       const result = await this.stepUpdateSettings(input);
       if (result.userErrors.length > 0) {
         return {
-          settings: { version: acquired.version },
+          settings: null,
           operationResults: [
             {
               type: "settingsUpdate",
@@ -89,7 +88,7 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
 
     await this.stepInvalidateSettingsCache(input.context.storeId);
     return {
-      settings: { version: acquired.version },
+      settings: {},
       operationResults: [
         {
           type: "settingsUpdate",
@@ -113,37 +112,24 @@ export class SearchSettingsUpdateWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async stepAcquireVersion(
+  private async stepInitializeSettings(
     input: SearchSettingsUpdateWorkflowInput,
     values: SearchSettingsValueInput,
-  ): Promise<VersionAcquireResult> {
-    const result = await this.kernel.repository.searchSettings.acquireVersion({
+  ): Promise<SettingsInitializeResult> {
+    const result = await this.kernel.repository.searchSettings.initialize({
       storeId: input.context.storeId,
-      expectedVersion: input.expectedVersion,
-      initialValues: input.expectedVersion === 0 ? values : undefined,
+      values,
     });
     if (result.status === "not_found") {
       return {
         error: {
           message: "Search settings are not initialized",
-          field: ["expectedVersion"],
+          field: ["settings"],
           code: "SETTINGS_NOT_INITIALIZED",
         },
       };
     }
-    if (result.status === "conflict") {
-      return {
-        error: {
-          message:
-            input.expectedVersion === 0
-              ? "Search settings are already initialized"
-              : `Search settings version conflict; current version is ${result.currentVersion}`,
-          field: ["expectedVersion"],
-          code: "VERSION_CONFLICT",
-        },
-      };
-    }
-    return { version: result.version, initialized: result.initialized };
+    return { initialized: result.initialized };
   }
 
   @WorkflowStep()

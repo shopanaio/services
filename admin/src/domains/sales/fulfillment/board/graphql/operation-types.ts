@@ -180,25 +180,24 @@ export interface FulfillmentStageCreateInput {
 
 export interface FulfillmentStageUpdateInput {
   id: string;
-  expectedVersion: number;
+
   title?: string;
   handle?: string;
 }
 
 export interface FulfillmentStageDeleteInput {
   id: string;
-  expectedVersion: number;
 }
 
 export interface FulfillmentStagesReorderInput {
   clientMutationId: string;
-  stages: Array<{ id: string; expectedVersion: number; sortIndex: number }>;
+  stages: Array<{ id: string; sortIndex: number }>;
 }
 
 export interface FulfillmentTicketMoveInput {
   clientMutationId: string;
   ticketId: string;
-  expectedVersion: number;
+
   sourceStageId: string;
   targetStageId: string;
   afterTicketId: string | null;

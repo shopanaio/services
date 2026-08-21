@@ -355,12 +355,7 @@ export class CustomerSegmentRepository extends BaseRepository {
     definitionChanged = false,
     materializationChanged = definitionChanged,
   ): Promise<CustomerSegmentUpdateResult | null> {
-    const segment = await this.update(
-      id,
-      patch,
-      definitionChanged,
-      materializationChanged,
-    );
+    const segment = await this.update(id, patch, definitionChanged, materializationChanged);
     if (!segment) return null;
     if (!memberships) {
       return { segment, affectedCustomerIds: [] };

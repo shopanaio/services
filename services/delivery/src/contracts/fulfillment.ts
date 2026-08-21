@@ -38,7 +38,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       /** Null requests all remaining line items; a subset can split the order. */
       lineItems:
         | readonly [
@@ -56,7 +56,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       message: string | null;
       estimatedShippedAt: string | null;
       idempotencyKey: string;
@@ -67,7 +67,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       reason: Delivery.DeliveryFulfillmentOrderRejectionReason | null;
       lineItems: readonly Delivery.DeliveryIncomingRequestLineItemInput[] | null;
       message: string | null;
@@ -79,7 +79,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       message: string | null;
       idempotencyKey: string;
     }>,
@@ -89,7 +89,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       message: string | null;
       idempotencyKey: string;
     }>,
@@ -99,7 +99,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       message: string | null;
       idempotencyKey: string;
     }>,
@@ -109,7 +109,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       reason: Delivery.DeliveryFulfillmentOrderHoldSnapshot["reason"];
       reasonNotes: string | null;
       idempotencyKey: string;
@@ -120,7 +120,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       holdId: string;
       idempotencyKey: string;
     }>,
@@ -130,7 +130,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       /** Null moves the whole order; a subset splits the remaining allocation. */
       lineItems:
         | readonly [
@@ -147,11 +147,10 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrders: readonly [
-        Readonly<{ fulfillmentOrderId: string; expectedRevision: number }>,
-        Readonly<{ fulfillmentOrderId: string; expectedRevision: number }>,
+        Readonly<{ fulfillmentOrderId: string }>,
+        Readonly<{ fulfillmentOrderId: string }>,
         ...Readonly<{
           fulfillmentOrderId: string;
-          expectedRevision: number;
         }>[],
       ];
       idempotencyKey: string;
@@ -162,7 +161,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       message: string | null;
       idempotencyKey: string;
     }>,
@@ -172,7 +171,7 @@ export interface DeliveryFulfillmentOrderLifecyclePort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedRevision: number;
+
       message: string | null;
       idempotencyKey: string;
     }>,

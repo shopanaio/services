@@ -658,7 +658,7 @@ type OrderReturnRequestCreatePayload {
 
 input OrderReturnRequestCancelInput {
   returnRequestId: ID!
-  expectedRevision: Int!
+
   idempotencyKey: String!
 }
 

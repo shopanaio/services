@@ -84,8 +84,6 @@ export type ApiCheckout = ApiNode & {
   notifications: Array<ApiCheckoutNotification>;
   /** Payment aggregate for this checkout. */
   payment: ApiCheckoutPayment;
-  /** Revision of the last complete checkout pipeline result. */
-  resultRevision: Scalars["String"]["output"];
   /** Lifecycle state persisted by checkout, not inferred by the client. */
   status: ApiCheckoutLifecycleStatus;
   /** Tags that can be used to organize checkout lines. */
@@ -2089,8 +2087,6 @@ export enum ApiPlaceOrderCustomerActionType {
 export type ApiPlaceOrderInput = {
   /** Checkout identifier. */
   checkoutId: Scalars["ID"]["input"];
-  /** Pipeline revision returned by Checkout.resultRevision. */
-  expectedResultRevision: Scalars["String"]["input"];
   /**
    * Client-generated key identifying this payment/order attempt. Reuse the same
    * key with identical input when retrying after a timeout or connection failure.
@@ -2115,8 +2111,6 @@ export type ApiPlaceOrderPayload = {
   placementId: Maybe<Scalars["ID"]["output"]>;
   /** Persisted orchestration state used for recovery and reconciliation. */
   placementState: Maybe<ApiCheckoutPlacementState>;
-  /** Checkout.resultRevision captured by this placement. */
-  resultRevision: Maybe<Scalars["String"]["output"]>;
   status: Maybe<ApiPlaceOrderStatus>;
   /** Validation, stale-snapshot, and business errors produced before placement. */
   userErrors: Array<ApiCheckoutUserError>;
@@ -2651,7 +2645,6 @@ export type ApiCheckoutResolvers<
     ContextType
   >;
   payment: Resolver<ApiResolversTypes["CheckoutPayment"], ParentType, ContextType>;
-  resultRevision: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
   status: Resolver<ApiResolversTypes["CheckoutLifecycleStatus"], ParentType, ContextType>;
   tags: Resolver<Array<ApiResolversTypes["CheckoutTag"]>, ParentType, ContextType>;
   totalQuantity: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
@@ -3362,7 +3355,6 @@ export type ApiPlaceOrderPayloadResolvers<
     ParentType,
     ContextType
   >;
-  resultRevision: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
   status: Resolver<Maybe<ApiResolversTypes["PlaceOrderStatus"]>, ParentType, ContextType>;
   userErrors: Resolver<Array<ApiResolversTypes["CheckoutUserError"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

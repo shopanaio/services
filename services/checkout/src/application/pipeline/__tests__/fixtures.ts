@@ -10,7 +10,6 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
     deadlineAt: new Date(now + 60_000).toISOString(),
     requestedAt: new Date(now).toISOString(),
     checkoutId: "checkout-1",
-    expectedCheckoutVersion: 3,
     storeId: "store-1",
     currencyCode: "USD",
     localeCode: null,
@@ -39,7 +38,6 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
   const preliminary = {
     executionId: context.executionId,
     checkoutId: context.checkoutId,
-    basedOnCheckoutVersion: context.expectedCheckoutVersion,
     currencyCode: context.currencyCode,
     preliminaryQuoteId: "preliminary-1",
     revision: "preliminary-v1",
@@ -66,7 +64,6 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
   const delivery = {
     executionId: context.executionId,
     checkoutId: context.checkoutId,
-    basedOnCheckoutVersion: context.expectedCheckoutVersion,
     currencyCode: context.currencyCode,
     revision: "delivery-v1",
     basedOnPreliminaryRevision: preliminary.revision,
@@ -82,7 +79,6 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
   const finalQuote = {
     executionId: context.executionId,
     checkoutId: context.checkoutId,
-    basedOnCheckoutVersion: context.expectedCheckoutVersion,
     currencyCode: context.currencyCode,
     quoteId: "quote-1",
     revision: "final-v1",
@@ -108,7 +104,6 @@ export function validationRequestFixture(): ValidateCheckoutRequest {
   const payment = {
     executionId: context.executionId,
     checkoutId: context.checkoutId,
-    basedOnCheckoutVersion: context.expectedCheckoutVersion,
     currencyCode: context.currencyCode,
     revision: "payment-v1",
     discoveryRevision: "payment-discovery-v1",

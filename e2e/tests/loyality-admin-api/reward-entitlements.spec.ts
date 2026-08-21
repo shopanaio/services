@@ -36,17 +36,17 @@ test.describe('Loyalty Admin API reward entitlements', () => {
   test('revokes an issued entitlement once and records deterministic history', async ({ api }) => {
     const { account, definition } = await fixture(api);
     const issued = (await issue(api, account, definition)).data.loyaltyMutation.rewardEntitlementIssue.rewardEntitlement;
-    const revoked = await api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', { variables: { input: { entitlementId: issued.id, expectedRevision: issued.revision, reasonCode: 'ADMIN_REVOKED', idempotencyKey: idempotencyKey('entitlement-revoke') } } });
+    const revoked = await api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', { variables: { input: { entitlementId: issued.id,  reasonCode: 'ADMIN_REVOKED', idempotencyKey: idempotencyKey('entitlement-revoke') } } });
     expectNoUserErrors(revoked.data.loyaltyMutation.rewardEntitlementRevoke);
     expect(revoked.data.loyaltyMutation.rewardEntitlementRevoke.rewardEntitlement).toMatchObject({ status: 'REVOKED', revision: 2, events: [{ eventType: 'ISSUED' }, { eventType: 'REVOKED', previousStatus: 'ISSUED', status: 'REVOKED', reasonCode: 'ADMIN_REVOKED' }] });
-    const repeated = await api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', { variables: { input: { entitlementId: issued.id, expectedRevision: 2, reasonCode: 'AGAIN', idempotencyKey: idempotencyKey('revoke-again') } } });
+    const repeated = await api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRevoke', { variables: { input: { entitlementId: issued.id,  reasonCode: 'AGAIN', idempotencyKey: idempotencyKey('revoke-again') } } });
     expectUserError(repeated.data.loyaltyMutation.rewardEntitlementRevoke);
   });
 
   test('rejects release from issued and stale transitions without side effects', async ({ api }) => {
     const { account, definition } = await fixture(api);
     const issued = (await issue(api, account, definition)).data.loyaltyMutation.rewardEntitlementIssue.rewardEntitlement;
-    const release = await api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRelease', { variables: { input: { entitlementId: issued.id, expectedRevision: issued.revision, reasonCode: 'NOT_RESERVED', idempotencyKey: idempotencyKey('invalid-release') } } });
+    const release = await api.admin.mutation<any>('loyality-admin-api/RewardEntitlementRelease', { variables: { input: { entitlementId: issued.id,  reasonCode: 'NOT_RESERVED', idempotencyKey: idempotencyKey('invalid-release') } } });
     expectUserError(release.data.loyaltyMutation.rewardEntitlementRelease);
     expect(release.data.loyaltyMutation.rewardEntitlementRelease.rewardEntitlement).toBeNull();
   });

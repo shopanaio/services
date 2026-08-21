@@ -27,7 +27,6 @@ const fulfillmentLineItemInputSchema = z
 const committedDeliveryMethodBaseShape = {
   commitmentId: identifierSchema,
   committedAt: timestampSchema,
-  checkoutVersion: revisionSchema,
   deliveryRevision: identifierSchema,
   methodDefinitionId: identifierSchema,
   code: identifierSchema,

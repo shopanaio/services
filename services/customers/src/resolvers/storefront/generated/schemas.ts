@@ -48,7 +48,6 @@ export function CustomerAddressCreateInputSchema(): z.ZodObject<Properties<Custo
     address: z.lazy(() => CustomerAddressInputSchema()),
     defaultBilling: z.boolean().default(false).nullish(),
     defaultShipping: z.boolean().default(false).nullish(),
-    expectedRevision: z.number(),
     idempotencyKey: z.string()
   })
 }
@@ -57,7 +56,6 @@ export function CustomerAddressDefaultSetInputSchema(): z.ZodObject<Properties<C
   return z.object({
     addressId: z.string().nullish(),
     defaults: z.array(CustomerAddressDefaultTypeSchema),
-    expectedRevision: z.number(),
     idempotencyKey: z.string()
   })
 }
@@ -65,7 +63,6 @@ export function CustomerAddressDefaultSetInputSchema(): z.ZodObject<Properties<C
 export function CustomerAddressDeleteInputSchema(): z.ZodObject<Properties<CustomerAddressDeleteInput>> {
   return z.object({
     addressId: z.string(),
-    expectedRevision: z.number(),
     idempotencyKey: z.string()
   })
 }
@@ -95,7 +92,6 @@ export function CustomerAddressUpdateInputSchema(): z.ZodObject<Properties<Custo
     addressId: z.string(),
     defaultBilling: z.boolean().nullish(),
     defaultShipping: z.boolean().nullish(),
-    expectedRevision: z.number(),
     idempotencyKey: z.string()
   })
 }
@@ -103,14 +99,12 @@ export function CustomerAddressUpdateInputSchema(): z.ZodObject<Properties<Custo
 export function CustomerComparisonCategoryClearInputSchema(): z.ZodObject<Properties<CustomerComparisonCategoryClearInput>> {
   return z.object({
     categoryId: z.string(),
-    expectedRevision: z.number(),
     idempotencyKey: z.string()
   })
 }
 
 export function CustomerComparisonVariantAddInputSchema(): z.ZodObject<Properties<CustomerComparisonVariantAddInput>> {
   return z.object({
-    expectedRevision: z.number(),
     idempotencyKey: z.string(),
     variantId: z.string()
   })
@@ -118,7 +112,6 @@ export function CustomerComparisonVariantAddInputSchema(): z.ZodObject<Propertie
 
 export function CustomerComparisonVariantRemoveInputSchema(): z.ZodObject<Properties<CustomerComparisonVariantRemoveInput>> {
   return z.object({
-    expectedRevision: z.number(),
     idempotencyKey: z.string(),
     variantId: z.string()
   })
@@ -143,7 +136,6 @@ export function CustomerDataRequestCreateInputSchema(): z.ZodObject<Properties<C
 export function CustomerMarketingConsentUpdateInputSchema(): z.ZodObject<Properties<CustomerMarketingConsentUpdateInput>> {
   return z.object({
     channel: CustomerMarketingConsentChannelSchema,
-    expectedRevision: z.number(),
     idempotencyKey: z.string(),
     state: CustomerMarketingConsentTargetStateSchema
   })
@@ -152,7 +144,6 @@ export function CustomerMarketingConsentUpdateInputSchema(): z.ZodObject<Propert
 export function CustomerTaxIdentifierCreateInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifierCreateInput>> {
   return z.object({
     countryCode: CountryCodeSchema.nullish(),
-    expectedRevision: z.number(),
     idempotencyKey: z.string(),
     identifierType: z.string(),
     isPrimary: z.boolean().default(false).nullish(),
@@ -162,7 +153,6 @@ export function CustomerTaxIdentifierCreateInputSchema(): z.ZodObject<Properties
 
 export function CustomerTaxIdentifierDeleteInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifierDeleteInput>> {
   return z.object({
-    expectedRevision: z.number(),
     idempotencyKey: z.string(),
     taxIdentifierId: z.string()
   })
@@ -171,7 +161,6 @@ export function CustomerTaxIdentifierDeleteInputSchema(): z.ZodObject<Properties
 export function CustomerTaxIdentifierUpdateInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifierUpdateInput>> {
   return z.object({
     countryCode: CountryCodeSchema.nullish(),
-    expectedRevision: z.number(),
     idempotencyKey: z.string(),
     identifierType: z.string().nullish(),
     isPrimary: z.boolean().nullish(),
@@ -184,7 +173,6 @@ export function CustomerUpdateInputSchema(): z.ZodObject<Properties<CustomerUpda
   return z.object({
     companyName: z.string().nullish(),
     dateOfBirth: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
-    expectedRevision: z.number(),
     firstName: z.string().nullish(),
     gender: z.string().nullish(),
     idempotencyKey: z.string(),
