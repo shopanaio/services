@@ -4,6 +4,11 @@
 
 This document defines how Admin modules design GraphQL operations, request hooks, input mappers, and folder structure. The goal is to keep API integration predictable across modules while letting UI components consume generated GraphQL API types directly. Components should use API-shaped objects from `@/graphql/types` instead of API-output view models.
 
+Admin write schemas must follow [[patterns/admin-aggregate-mutations]]: one
+unified `operations` update per aggregate root, no client CAS inputs, no
+separate CRUD mutations for owned relations, and only explicitly justified
+semantic-command exceptions.
+
 ## Module Structure
 
 Each feature module that talks to GraphQL must use the same structure:
