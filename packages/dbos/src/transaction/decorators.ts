@@ -39,6 +39,8 @@ export function createTransactionalStep<TSelf = unknown, TDatabase = unknown>(
     descriptor.value = async function (...args: unknown[]) {
       const self = this as TSelf;
 
+      freezeTransactionalStepInputs(args);
+
       return runTransactionalStep(() => originalMethod.apply(this, args), {
         methodName,
         name: metadata.name,
@@ -50,6 +52,28 @@ export function createTransactionalStep<TSelf = unknown, TDatabase = unknown>(
 
     return descriptor;
   };
+}
+
+/**
+ * Transactional-step inputs are workflow inputs, not mutable accumulators.
+ * Freezing catches accidental mutation at the boundary during development and
+ * tests; production relies on the same immutable TypeScript contract.
+ */
+function freezeTransactionalStepInputs(args: readonly unknown[]): void {
+  if (process.env.NODE_ENV === "production") return;
+
+  const seen = new WeakSet<object>();
+  for (const arg of args) deepFreeze(arg, seen);
+}
+
+function deepFreeze(value: unknown, seen: WeakSet<object>): void {
+  if (value === null || typeof value !== "object" || seen.has(value)) return;
+  seen.add(value);
+
+  for (const key of Reflect.ownKeys(value)) {
+    deepFreeze(Reflect.get(value, key), seen);
+  }
+  Object.freeze(value);
 }
 
 class TransactionalStepDefinitionError extends TypeError {

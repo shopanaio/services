@@ -14,49 +14,45 @@ related:
 
 # Transactional Steps
 
-`createTransactionalStep()` creates a service-local `@TransactionalStep()`
-decorator — the durable database-write boundary for DBOS workflows. It
-atomically commits both service PostgreSQL writes and the DBOS result checkpoint
-stored in `dbos.transaction_completion`.
+`createTransactionalStep()` creates a service-local `@TransactionalStep()` decorator — the durable
+database-write boundary for DBOS workflows. It atomically commits both service PostgreSQL writes and
+the DBOS result checkpoint stored in `dbos.transaction_completion`.
 
 ## Contract
 
 - Call a transactional step directly from a DBOS workflow body.
-- Perform database work only. External APIs, brokers, S3, email and webhooks
-  belong in separate `@SideEffectStep()` calls.
-- Let errors escape the callback. Returning a failure value would commit the
-  transaction and checkpoint it as success.
-- Scripts called from a transactional step must rethrow unexpected database
-  errors rather than convert them to user-error results; otherwise an already
-  aborted PostgreSQL transaction could be committed as a partial operation.
+- Perform database work only. External APIs, brokers, S3, email and webhooks belong in separate
+  `@SideEffectStep()` calls.
+- Let errors escape the callback. Returning a failure value would commit the transaction and
+  checkpoint it as success.
+- Scripts called from a transactional step must rethrow unexpected database errors rather than
+  convert them to user-error results; otherwise an already aborted PostgreSQL transaction could be
+  committed as a partial operation.
+- A transactional step must return every value that the workflow needs after the commit (for
+  example, domain change hints). It must not mutate a caller-owned accumulator passed as an
+  argument: during recovery DBOS returns the checkpointed result without executing the step body.
+  Use `DurableStepResult<TResult, TChanges>` and rebuild workflow state only from returned step
+  results.
 - Do not wrap a transactional step in `DBOS.runStep()`.
-- There are intentionally no JavaScript timeout, application retry, read-only
-  or non-critical options.
-- PostgreSQL serialization failures are retried by
-  `@dbos-inc/postgres-datasource` before a checkpoint is committed.
+- There are intentionally no JavaScript timeout, application retry, read-only or non-critical
+  options.
+- PostgreSQL serialization failures are retried by `@dbos-inc/postgres-datasource` before a
+  checkpoint is committed.
 
 ## Wiring
 
-The datasource must be constructed before `DBOS.launch()`. A service creates a
-scoped Drizzle wrapper over the datasource's active `TransactionSql` and stores
-the bridge next to the aggregate repository's single `TransactionManager`.
+The datasource must be constructed before `DBOS.launch()`. A service creates a scoped Drizzle
+wrapper over the datasource's active `TransactionSql` and stores the bridge next to the aggregate
+repository's single `TransactionManager`.
 
 ```typescript
-const dataSource = new PostgresDataSource(
-  "catalog-db",
-  { ...connectionOptions, max: 2 },
-  "dbos",
-);
+const dataSource = new PostgresDataSource("catalog-db", { ...connectionOptions, max: 2 }, "dbos");
 
-const bridge = new PostgresDbosTransactionBridge(
-  dataSource,
-  createTransactionalDatabase,
-);
+const bridge = new PostgresDbosTransactionBridge(dataSource, createTransactionalDatabase);
 ```
 
-`DatabaseModule` exports immutable `DATABASE_CONNECTION_OPTIONS`; a datasource
-must choose its own bounded pool size rather than copy the shared pool budget.
-DBOS owns datasource pool shutdown.
+`DatabaseModule` exports immutable `DATABASE_CONNECTION_OPTIONS`; a datasource must choose its own
+bounded pool size rather than copy the shared pool budget. DBOS owns datasource pool shutdown.
 
 ## Usage
 
@@ -74,16 +70,14 @@ private async writeProduct(input: Input): Promise<Result> {
 }
 ```
 
-Nested scripts and repositories decorated with `@Transactional()` reuse the
-same externally owned DBOS transaction through
-`TransactionManager.runWithExistingTransaction()`.
+Nested scripts and repositories decorated with `@Transactional()` reuse the same externally owned
+DBOS transaction through `TransactionManager.runWithExistingTransaction()`.
 
 ## Database Contract
 
-The application database must be migrated before startup with
-`dbos.transaction_completion` matching DBOS SDK `4.23.6`. Runtime schema
-creation is not the deployment strategy.
+The application database must be migrated before startup with `dbos.transaction_completion` matching
+DBOS SDK `4.23.6`. Runtime schema creation is not the deployment strategy.
 
-Existing workflows and sagas are not automatically converted. Migration of a
-write step to `@TransactionalStep()` requires a separate review confirming that
-the callback contains no external side effects.
+Existing workflows and sagas are not automatically converted. Migration of a write step to
+`@TransactionalStep()` requires a separate review confirming that the callback contains no external
+side effects.

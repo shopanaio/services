@@ -62,6 +62,7 @@ export {
   type SagaStatus,
   type SagaResult,
   type StepResult,
+  type DurableStepResult,
   type SagaStepConfig,
   type SagaStepMetadata,
   type ExecutedStep,

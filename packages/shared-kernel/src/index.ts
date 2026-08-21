@@ -146,6 +146,7 @@ export {
   type TransactionManagerLike,
   type PostgresTransactionOptions,
   type TransactionSql,
+  type DurableStepResult,
   // Base class (broker-independent)
   BaseWorkflow,
   type WorkflowDescriptor,

@@ -206,6 +206,18 @@ export interface StepResult<T = unknown> {
   error?: OperationError;
 }
 
+/**
+ * Checkpointed output of a durable write step.
+ *
+ * A workflow must derive follow-up work only from this returned value. Do not
+ * mutate a caller-owned accumulator inside a step: DBOS returns a checkpointed
+ * result without executing the step body during recovery.
+ */
+export interface DurableStepResult<TResult, TChanges = never> {
+  readonly result: TResult;
+  readonly changes: TChanges | null;
+}
+
 /** Saga step configuration */
 export interface SagaStepConfig {
   /** Step name for logging/identification (default: method name) */

@@ -8,6 +8,7 @@ import {
   Policy,
   ServiceBroker,
   DBOS,
+  type DurableStepResult,
 } from "@shopana/shared-kernel";
 import type { ProductUpdatedReason } from "@shopana/events";
 import { and, eq, isNull } from "drizzle-orm";
@@ -29,7 +30,12 @@ import type {
   WorkflowContext,
   ProductUpdateOperation,
 } from "./dto/ProductUpdateWorkflowDto.js";
-import type { ProductChanges, VariantChanges } from "../scripts/types/ProductChanges.js";
+import type {
+  ProductChanges,
+  ProductCategoryFieldChanges,
+  ProductTagFieldChanges,
+  VariantChanges,
+} from "../scripts/types/ProductChanges.js";
 import type { UserError } from "../scripts/types/ScriptResult.js";
 
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
@@ -80,6 +86,12 @@ interface VariantBatchValidationResult {
   errorsByOperationIndex: Record<number, UserError[]>;
   userErrors: UserError[];
 }
+
+type ProductOperationStepResult = DurableStepResult<OperationResult, ProductChanges>;
+type BatchOptionsStepResult = DurableStepResult<
+  Array<{ operationIndex: number; variantId: string; applied: boolean; errors: UserError[] }>,
+  ProductChanges
+>;
 
 /**
  * ProductUpdateWorkflow for Catalog Service.
@@ -173,32 +185,37 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     for (let i = 0; i < input.operations.length; i++) {
       const op = input.operations[i];
       if (op.type === "productUpdate") {
-        const result = await this.stepProductUpdate(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepProductUpdate(op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else if (op.type === "productCategoryUpdate") {
-        const result = await this.stepProductCategoryUpdate(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepProductCategoryUpdate(op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else if (op.type === "productTagUpdate") {
-        const result = await this.stepProductTagUpdate(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepProductTagUpdate(op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else if (op.type === "productOptionsSync") {
-        const result = await this.stepProductOptionsSync(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepProductOptionsSync(op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else if (op.type === "productFeaturesSync") {
-        const result = await this.stepProductFeaturesSync(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepProductFeaturesSync(op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else if (isComponentOperation(op)) {
-        const result = await this.stepProductComponentOperation(op, scriptCtx);
-        if (result.applied) {
-          changes.component = { changed: true };
-        }
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepProductComponentOperation(op, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else if (op.type === "variantCreate") {
-        const result = await this.stepVariantCreate(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepVariantCreate(op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else if (op.type === "variantDelete") {
-        const result = await this.stepVariantDelete(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepVariantDelete(input.productId, op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       } else {
         // Collect option updates for batch processing
         if (op.params.options) {
@@ -212,19 +229,21 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           });
         }
         // Process other variant fields (options handled in batch below)
-        const result = await this.stepVariantUpdate(op.params, changes, scriptCtx);
-        results.push(prefixOperationResultErrors(result, op));
+        const step = await this.stepVariantUpdate(input.productId, op.params, scriptCtx);
+        mergeProductChanges(changes, step.changes);
+        results.push(prefixOperationResultErrors(step.result, op));
       }
     }
 
     // Process all option updates in a single batch (enables swapping)
     if (optionUpdates.length > 0) {
-      const batchResults = await this.stepBatchUpdateOptions(
+      const batchStep = await this.stepBatchUpdateOptions(
         input.productId,
         optionUpdates.map((u) => ({ operationIndex: u.index, options: u.options })),
-        changes,
         scriptCtx,
       );
+      mergeProductChanges(changes, batchStep.changes);
+      const batchResults = batchStep.result;
 
       // Merge batch results into corresponding operation results
       for (let i = 0; i < optionUpdates.length; i++) {
@@ -305,7 +324,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             ])
           )[0];
           const configured =
-            await this.kernel.repository.comparisonRead.productConfigurationProfileIds(op.params.id);
+            await this.kernel.repository.comparisonRead.productConfigurationProfileIds(
+              op.params.id,
+            );
           if (configured.some((profileId) => profileId !== effective?.profileId)) {
             errors.push({
               message: "Product comparison configuration does not match its effective profile",
@@ -434,9 +455,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     const inventoryItemRequiredVariantIds = variantOps.flatMap(({ op }) =>
       op.type === "variantUpdate" &&
-      (op.params.inventory ||
-        op.params.weight !== undefined ||
-        op.params.dimensions !== undefined)
+      (op.params.inventory || op.params.weight !== undefined || op.params.dimensions !== undefined)
         ? [op.params.variantId]
         : [],
     );
@@ -767,9 +786,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   @TransactionalStep()
   private async stepProductUpdate(
     params: ProductUpdateParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId: params.id };
     const errors: UserError[] = [];
     const { id, handle, title, vendorId, content, seo, status, media } = params;
 
@@ -856,19 +875,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    return {
-      type: "productUpdate",
-      applied: errors.length === 0,
-      errors,
-    };
+    return { result: { type: "productUpdate", applied: errors.length === 0, errors }, changes };
   }
 
   @TransactionalStep()
   private async stepProductCategoryUpdate(
     params: ProductCategoryUpdateParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId: params.productId };
     const errors: UserError[] = [];
     const { productId, categoryId } = params;
 
@@ -936,18 +951,17 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      type: "productCategoryUpdate",
-      applied: errors.length === 0,
-      errors,
+      result: { type: "productCategoryUpdate", applied: errors.length === 0, errors },
+      changes,
     };
   }
 
   @TransactionalStep()
   private async stepProductTagUpdate(
     params: ProductTagUpdateParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId: params.productId };
     const errors: UserError[] = [];
     const { productId, tagId } = params;
 
@@ -977,19 +991,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       };
     }
 
-    return {
-      type: "productTagUpdate",
-      applied: errors.length === 0,
-      errors,
-    };
+    return { result: { type: "productTagUpdate", applied: errors.length === 0, errors }, changes };
   }
 
   @TransactionalStep()
   private async stepProductOptionsSync(
     params: ProductOptionsSyncParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId: params.productId };
     const result = await this.kernel.runScript(OptionsSyncScript, params, ctx);
 
     if (result.userErrors.length === 0) {
@@ -1000,18 +1010,21 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      type: "productOptionsSync",
-      applied: result.userErrors.length === 0,
-      errors: result.userErrors,
+      result: {
+        type: "productOptionsSync",
+        applied: result.userErrors.length === 0,
+        errors: result.userErrors,
+      },
+      changes,
     };
   }
 
   @TransactionalStep()
   private async stepProductFeaturesSync(
     params: ProductFeaturesSyncParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId: params.productId };
     const result = await this.kernel.runScript(FeaturesSyncScript, params, ctx);
 
     if (result.userErrors.length === 0) {
@@ -1022,9 +1035,12 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      type: "productFeaturesSync",
-      applied: result.userErrors.length === 0,
-      errors: result.userErrors,
+      result: {
+        type: "productFeaturesSync",
+        applied: result.userErrors.length === 0,
+        errors: result.userErrors,
+      },
+      changes,
     };
   }
 
@@ -1032,7 +1048,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   private async stepProductComponentOperation(
     operation: ComponentWorkflowOperation,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
     const result = await this.kernel.runScript(ProductComponentOperationScript, operation, ctx);
 
     const operationResult: OperationResult = {
@@ -1041,7 +1057,12 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       entityId: result.entityId,
       errors: result.userErrors,
     };
-    return operationResult;
+    return {
+      result: operationResult,
+      changes: operationResult.applied
+        ? { productId: operation.params.productId, component: { changed: true } }
+        : { productId: operation.params.productId },
+    };
   }
 
   /**
@@ -1052,9 +1073,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   @TransactionalStep()
   private async stepVariantCreate(
     params: VariantCreateParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId: params.productId };
     const errors: UserError[] = [];
     const createResult = await this.kernel.runScript(
       VariantCreateScript,
@@ -1067,11 +1088,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     errors.push(...createResult.userErrors);
 
     if (!createResult.variant) {
-      return {
-        type: "variantCreate",
-        applied: false,
-        errors,
-      };
+      return { result: { type: "variantCreate", applied: false, errors }, changes };
     }
 
     const variantId = createResult.variant.id;
@@ -1192,19 +1209,18 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      type: "variantCreate",
-      applied: errors.length === 0,
-      entityId: variantId,
-      errors,
+      result: { type: "variantCreate", applied: errors.length === 0, entityId: variantId, errors },
+      changes,
     };
   }
 
   @TransactionalStep()
   private async stepVariantDelete(
+    productId: string,
     params: VariantDeleteParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId };
     const result = await this.kernel.runScript(
       VariantDeleteScript,
       {
@@ -1223,19 +1239,23 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      type: "variantDelete",
-      applied: result.userErrors.length === 0,
-      entityId: result.deletedVariantId ?? params.variantId,
-      errors: result.userErrors,
+      result: {
+        type: "variantDelete",
+        applied: result.userErrors.length === 0,
+        entityId: result.deletedVariantId ?? params.variantId,
+        errors: result.userErrors,
+      },
+      changes,
     };
   }
 
   @TransactionalStep()
   private async stepVariantUpdate(
+    productId: string,
     params: VariantUpdateParams,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<OperationResult> {
+  ): Promise<ProductOperationStepResult> {
+    const changes: ProductChanges = { productId };
     const errors: UserError[] = [];
     const { variantId, pricing, media } = params;
 
@@ -1334,11 +1354,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
 
-    return {
-      type: "variantUpdate",
-      applied: errors.length === 0,
-      errors,
-    };
+    return { result: { type: "variantUpdate", applied: errors.length === 0, errors }, changes };
   }
 
   /**
@@ -1349,11 +1365,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   private async stepBatchUpdateOptions(
     productId: string,
     updates: Array<{ operationIndex: number; options: VariantOptionsUpdate }>,
-    changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<
-    Array<{ operationIndex: number; variantId: string; applied: boolean; errors: UserError[] }>
-  > {
+  ): Promise<BatchOptionsStepResult> {
+    const changes: ProductChanges = { productId };
     const r = await this.kernel.runScript(
       VariantBatchUpdateOptionsScript,
       {
@@ -1365,12 +1379,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     if (r.userErrors.length > 0) {
       // Script-level error
-      return updates.map((update) => ({
-        operationIndex: update.operationIndex,
-        variantId: update.options.variantId,
-        applied: false,
-        errors: r.userErrors,
-      }));
+      return {
+        result: updates.map((update) => ({
+          operationIndex: update.operationIndex,
+          variantId: update.options.variantId,
+          applied: false,
+          errors: r.userErrors,
+        })),
+        changes,
+      };
     }
 
     const results = r.result ?? [];
@@ -1387,12 +1404,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    return results.map((result, index) => ({
-      operationIndex: updates[index]!.operationIndex,
-      variantId: result.variantId,
-      applied: result.applied,
-      errors: result.errors,
-    }));
+    return {
+      result: results.map((result, index) => ({
+        operationIndex: updates[index]!.operationIndex,
+        variantId: result.variantId,
+        applied: result.applied,
+        errors: result.errors,
+      })),
+      changes,
+    };
   }
 
   /**
@@ -1542,6 +1562,62 @@ function sortProductUpdatedReasons(
   ];
 
   return order.filter((reason) => reasons.has(reason));
+}
+
+/** Rebuild workflow-level change hints exclusively from checkpointed step output. */
+function mergeProductChanges(target: ProductChanges, source: ProductChanges | null): void {
+  if (!source) return;
+
+  if (source.product) {
+    target.product = {
+      ...target.product,
+      ...source.product,
+      categories: mergeCategoryChanges(target.product?.categories, source.product.categories),
+      tags: mergeTagChanges(target.product?.tags, source.product.tags),
+    };
+  }
+
+  if (source.component) target.component = source.component;
+
+  for (const [variantId, variantChanges] of Object.entries(source.variants ?? {})) {
+    target.variants = target.variants ?? {};
+    target.variants[variantId] = {
+      ...target.variants[variantId],
+      ...variantChanges,
+      physical: {
+        ...target.variants[variantId]?.physical,
+        ...variantChanges.physical,
+      },
+    };
+  }
+}
+
+function mergeCategoryChanges(
+  current: ProductCategoryFieldChanges | undefined,
+  next: ProductCategoryFieldChanges | undefined,
+): ProductCategoryFieldChanges | undefined {
+  if (!current) return next;
+  if (!next) return current;
+  return {
+    ...current,
+    ...next,
+    reason:
+      current.reason === "assignment" || next.reason === "assignment" ? "assignment" : next.reason,
+    categoryIds: [...new Set([...(current.categoryIds ?? []), ...(next.categoryIds ?? [])])],
+  };
+}
+
+function mergeTagChanges(
+  current: ProductTagFieldChanges | undefined,
+  next: ProductTagFieldChanges | undefined,
+): ProductTagFieldChanges | undefined {
+  if (!current) return next;
+  if (!next) return current;
+  return {
+    ...current,
+    ...next,
+    tagIds: [...new Set([...(current.tagIds ?? []), ...(next.tagIds ?? [])])],
+  };
 }
 
 function isVariantOperation(op: ProductUpdateOperation): op is VariantWorkflowOperation {
