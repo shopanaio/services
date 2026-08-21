@@ -96,15 +96,6 @@ export class AdminOrderOperationRepository extends AdminOrderCoreRepository {
       WHERE store_id = ${request.context.storeId} AND id = ${operationId}
         AND status IN ('PENDING', 'RUNNING')
     `);
-    if (succeeded && finalOrderVersion !== null) {
-      await this.connection.execute(sql`
-        UPDATE orders.idempotency_records
-        SET response = jsonb_set(response, '{orderVersion}', to_jsonb(${finalOrderVersion}::integer))
-        WHERE store_id = ${request.context.storeId} AND operation = ${`admin.${command}`}
-          AND idempotency_key = ${requiredString(request.input, "idempotencyKey")}
-          AND status = 'COMPLETED'
-      `);
-    }
     return finalOrderVersion;
   }
 
@@ -113,11 +104,11 @@ export class AdminOrderOperationRepository extends AdminOrderCoreRepository {
     request: AdminOrderCommandInput,
     orderId: string,
     now: string,
-  ): Promise<number> {
+  ): Promise<number | null> {
     const order = await this.lockOrderById(request.context.storeId, orderId);
     let changed = false;
     if (command === "orderCancel") {
-      if (order.status === "CANCELLED") return order.version;
+      if (order.status === "CANCELLED") return null;
       if (order.status === "DRAFT") throw new Error("DRAFT_ORDER_CANCEL_NOT_ALLOWED");
       await this.connection.execute(sql`
         INSERT INTO orders.order_cancellations (
@@ -151,7 +142,7 @@ export class AdminOrderOperationRepository extends AdminOrderCoreRepository {
       await this.connection.execute(sql`
         UPDATE orders.order_fulfillment_orders
         SET status = 'CANCELLED', closed_at = COALESCE(closed_at, ${now}),
-          version = version + 1, updated_at = ${now}
+          updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
           AND external_source IS NULL AND status <> 'CANCELLED'
       `);
@@ -166,7 +157,7 @@ export class AdminOrderOperationRepository extends AdminOrderCoreRepository {
         SET request_status = ${
           command === "fulfillmentOrderSubmit" ? "SUBMITTED" : "CANCELLATION_REQUESTED"
         }::orders.order_fulfillment_request_status,
-          version = version + 1, updated_at = ${now}
+          updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
           AND id = ${fulfillmentOrderId}
         RETURNING id
@@ -234,7 +225,7 @@ export class AdminOrderOperationRepository extends AdminOrderCoreRepository {
       await this.connection.execute(sql`
         UPDATE orders.order_return_requests
         SET status = ${requestComplete ? "RECEIVED" : "IN_TRANSIT"}::orders.order_return_request_status,
-          version = version + 1, resolved_at = CASE WHEN ${requestComplete} THEN ${now}::timestamptz ELSE NULL END,
+          resolved_at = CASE WHEN ${requestComplete} THEN ${now}::timestamptz ELSE NULL END,
           resolved_by_type = ${request.context.actor.type}, resolved_by_id = ${request.context.actor.id},
           updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND order_id = ${order.id} AND id = ${returnId}
@@ -283,16 +274,16 @@ export class AdminOrderOperationRepository extends AdminOrderCoreRepository {
           idempotencyKey: `${requiredString(request.input, "idempotencyKey")}:completed`,
         },
       };
-      const completed = await this.bumpAndAudit(
+      await this.bumpAndAudit(
         completionRequest,
         fresh,
         `${command}.completed` as AdminOrderCommandName,
         { operationCompleted: true },
         now,
       );
-      return completed.orderVersion!;
+      return null;
     }
-    return order.version;
+    return null;
   }
 
   async resolveOperationOrderId(

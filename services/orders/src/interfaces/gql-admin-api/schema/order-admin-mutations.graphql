@@ -1053,10 +1053,6 @@ type OrderUserError implements DisplayableError {
   Whether retrying after transient state changes may succeed.
   """
   retryable: Boolean!
-  """
-  Current server revision returned with a version conflict.
-  """
-  currentVersion: Int
 }
 
 """

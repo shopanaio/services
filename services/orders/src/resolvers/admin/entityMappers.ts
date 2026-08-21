@@ -17,7 +17,6 @@ export function mapLine(row: Row, currencyCode: string) {
   const cancelled = numberValue(row, "cancelledQuantity");
   return {
     id: encodeId(stringValue(row, "id"), GlobalIdEntity.OrderLine),
-    version: 1,
     parentLine: null,
     purchasableId: encodeOptionalTarget(
       nullableString(row, "purchasableId"),
@@ -167,7 +166,6 @@ export function mapFulfillmentOrder(row: Row, orderId: string) {
   const assignedLocation = rowValue(snapshot, "assignedLocation") ?? {};
   return {
     id: encodeId(stringValue(row, "id"), GlobalIdEntity.FulfillmentOrder),
-    version: numberValue(row, "version", 1),
     order: { id: orderId },
     deliveryGroup: {
       id: encodeId(stringValue(row, "deliveryGroupId"), GlobalIdEntity.OrderDeliveryGroup),

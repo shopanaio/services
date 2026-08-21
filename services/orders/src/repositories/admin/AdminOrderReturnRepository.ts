@@ -44,11 +44,11 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     const returnId = await this.generateUuidV7();
     await this.connection.execute(sql`
       INSERT INTO orders.order_return_requests (
-        id, store_id, order_id, status, version, customer_note, merchant_note,
+        id, store_id, order_id, status, customer_note, merchant_note,
         idempotency_key, requested_by_type, requested_by_id, metadata,
         requested_at, created_at, updated_at
       ) VALUES (
-        ${returnId}, ${request.context.storeId}, ${order.id}, 'REQUESTED', 1,
+        ${returnId}, ${request.context.storeId}, ${order.id}, 'REQUESTED',
         ${optionalString(request.input.customerNote)}, ${optionalString(request.input.staffNote)},
         ${requiredString(request.input, "idempotencyKey")}, ${request.context.actor.type},
         ${request.context.actor.id}, '{}'::jsonb, ${now}, ${now}, ${now}
@@ -173,7 +173,7 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     const now = new Date().toISOString();
     await this.connection.execute(sql`
       UPDATE orders.order_return_requests
-      SET status = ${status}::orders.order_return_request_status, version = version + 1,
+      SET status = ${status}::orders.order_return_request_status,
           merchant_note = COALESCE(${optionalString(request.input.staffNote)}, merchant_note),
           resolved_by_type = ${request.context.actor.type}, resolved_by_id = ${request.context.actor.id},
           resolved_at = CASE WHEN ${status !== "APPROVED"} THEN ${now}::timestamptz ELSE resolved_at END,
@@ -227,10 +227,10 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     const now = new Date().toISOString();
     await this.connection.execute(sql`
       INSERT INTO orders.order_return_requests (
-        id, store_id, order_id, status, version, merchant_note, idempotency_key,
+        id, store_id, order_id, status, merchant_note, idempotency_key,
         requested_by_type, requested_by_id, metadata, requested_at, created_at, updated_at
       ) VALUES (
-        ${returnId}, ${request.context.storeId}, ${order.id}, 'APPROVED', 1,
+        ${returnId}, ${request.context.storeId}, ${order.id}, 'APPROVED',
         ${optionalString(request.input.staffNote)}, ${requiredString(request.input, "idempotencyKey")},
         ${request.context.actor.type}, ${request.context.actor.id},
         ${JSON.stringify({ exchangeId })}::jsonb, ${now}, ${now}, ${now}
@@ -287,7 +287,7 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     });
     await this.connection.execute(sql`
       INSERT INTO orders.order_exchanges (
-        id, store_id, order_id, return_request_id, version, status, currency_code,
+        id, store_id, order_id, return_request_id, status, currency_code,
         inbound_amount, outbound_amount, balance_amount, idempotency_key,
         created_by_type, created_by_id, created_at, updated_at
       ) VALUES (
@@ -330,10 +330,9 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     const exchangeId = requiredUuid(request.input, "exchangeId");
     const rows = await this.connection.execute<{
       order_id: string;
-      version: number;
       status: string;
     }>(sql`
-      SELECT order_id, version, status FROM orders.order_exchanges
+      SELECT order_id, status FROM orders.order_exchanges
       WHERE store_id = ${request.context.storeId} AND id = ${exchangeId} FOR UPDATE
     `);
     const exchange = rows[0];
@@ -342,13 +341,13 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
       throw new Error("ORDER_EXCHANGE_CANCEL_NOT_ALLOWED");
     const now = new Date().toISOString();
     await this.connection.execute(sql`
-      UPDATE orders.order_exchanges SET status = 'CANCELLED', version = version + 1,
+      UPDATE orders.order_exchanges SET status = 'CANCELLED',
         cancelled_at = ${now}, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${exchangeId}
     `);
     await this.connection.execute(sql`
       UPDATE orders.order_return_requests request
-      SET status = 'CANCELLED', version = version + 1, resolved_by_type = ${request.context.actor.type},
+      SET status = 'CANCELLED', resolved_by_type = ${request.context.actor.type},
         resolved_by_id = ${request.context.actor.id}, resolved_at = ${now}, updated_at = ${now}
       FROM orders.order_exchanges exchange
       WHERE exchange.store_id = request.store_id AND exchange.return_request_id = request.id
@@ -368,13 +367,12 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     const rows = await this.connection.execute<{
       order_id: string;
       return_request_id: string;
-      version: number;
       status: string;
       return_status: string;
       inbound_complete: boolean;
       outbound_complete: boolean;
     }>(sql`
-      SELECT exchange.order_id, exchange.return_request_id, exchange.version, exchange.status,
+      SELECT exchange.order_id, exchange.return_request_id, exchange.status,
         return_request.status AS return_status,
         NOT EXISTS (
           SELECT 1
@@ -432,12 +430,12 @@ export class AdminOrderReturnRepository extends AdminOrderCoreRepository {
     const now = new Date().toISOString();
     await this.connection.execute(sql`
       UPDATE orders.order_exchanges
-      SET status = 'COMPLETED', completed_at = ${now}, version = version + 1, updated_at = ${now}
+      SET status = 'COMPLETED', completed_at = ${now}, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${exchangeId}
     `);
     await this.connection.execute(sql`
       UPDATE orders.order_return_requests request
-      SET status = 'COMPLETED', version = version + 1, resolved_by_type = ${request.context.actor.type},
+      SET status = 'COMPLETED', resolved_by_type = ${request.context.actor.type},
         resolved_by_id = ${request.context.actor.id}, resolved_at = ${now}, updated_at = ${now},
         merchant_note = COALESCE(${optionalString(request.input.staffNote)}, merchant_note)
       FROM orders.order_exchanges exchange

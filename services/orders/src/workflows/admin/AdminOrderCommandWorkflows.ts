@@ -98,7 +98,7 @@ export abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
         payload: {
           schemaVersion: 1,
           orderId: facts.orderId,
-          orderRevision: result.orderVersion ?? facts.version,
+          orderRevision: 1,
           storeId: facts.storeId,
           customerId: facts.customerId,
           currencyCode: facts.currencyCode,

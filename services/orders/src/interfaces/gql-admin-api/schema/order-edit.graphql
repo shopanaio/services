@@ -9,17 +9,9 @@ type OrderEditSession implements Node {
   """
   id: ID!
   """
-  Internal aggregate version.
-  """
-  version: Int!
-  """
   Fresh order projection returned after the command.
   """
   order: Order!
-  """
-  Projected value for base order version.
-  """
-  baseOrderVersion: Int!
   """
   Current lifecycle or derived projection status.
   """

@@ -4,8 +4,6 @@ CREATE TABLE "orders"."order_edit_sessions" (
   "id" uuid NOT NULL DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
-  "base_order_version" integer NOT NULL,
-  "version" integer NOT NULL DEFAULT 1,
   "status" "orders"."order_edit_status" NOT NULL DEFAULT 'ACTIVE',
   "currency_code" varchar(3) NOT NULL,
   "subtotal_amount" bigint NOT NULL,
@@ -26,7 +24,6 @@ CREATE TABLE "orders"."order_edit_sessions" (
   CONSTRAINT "order_edit_sessions_store_order_id_unique" UNIQUE ("store_id", "order_id", "id"),
   CONSTRAINT "order_edit_sessions_order_currency_fk" FOREIGN KEY ("store_id", "order_id", "currency_code")
     REFERENCES "orders"."orders" ("store_id", "id", "currency_code"),
-  CONSTRAINT "order_edit_sessions_versions_check" CHECK ("base_order_version" > 0 AND "version" > 0),
   CONSTRAINT "order_edit_sessions_total_check" CHECK (
     "total_amount" = "subtotal_amount" - "discount_amount" + "shipping_amount" + "tax_amount" + "duty_amount" + "adjustment_amount"
   ),

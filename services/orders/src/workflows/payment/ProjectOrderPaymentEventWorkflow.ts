@@ -88,7 +88,7 @@ export class ProjectOrderPaymentEventWorkflow extends BrokerWorkflows<
           refundId: refund.operationId,
           refundRevision: 1,
           orderId: facts.orderId,
-          orderRevision: facts.version,
+          orderRevision: 1,
           storeId: facts.storeId,
           customerId: facts.customerId,
           currencyCode: facts.currencyCode,

@@ -83,16 +83,8 @@ for (const table of forbiddenTables)
 for (const table of sqlTables) assert(modelTables.has(table), `Drizzle table is missing: ${table}`);
 for (const table of modelTables)
   assert(sqlTables.has(table), `Drizzle table has no SQL table: ${table}`);
-assert(
-  /"version" integer NOT NULL DEFAULT 1/.test(sqlSource),
-  "orders.version concurrency token is missing",
-);
 const ordersBody = sqlSource.match(/CREATE TABLE "orders"\."orders" \(([\s\S]*?)\n\);/)?.[1] ?? "";
-assert(!/"revision"/.test(ordersBody), "orders.revision must not exist");
-assert(
-  /order_events[\s\S]*"order_version" integer NOT NULL/.test(sqlSource),
-  "order_events.order_version is missing",
-);
+assert(!/"version"/.test(ordersBody), "orders.version must not exist");
 assert(
   /order_events[\s\S]*"global_position" bigint GENERATED ALWAYS AS IDENTITY/.test(sqlSource),
   "order_events.global_position is missing",

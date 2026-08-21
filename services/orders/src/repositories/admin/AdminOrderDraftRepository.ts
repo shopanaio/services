@@ -47,14 +47,14 @@ export class AdminOrderDraftRepository extends AdminOrderCoreRepository {
     const customerId = optionalUuid(input.customerId, "customerId");
     await this.connection.execute(sql`
       INSERT INTO orders.orders (
-        id, store_id, order_number, version, status, payment_status,
+        id, store_id, order_number, status, payment_status,
         fulfillment_status, delivery_status, return_status, risk_level,
         origin, customer_id, created_by_type, created_by_id, sales_channel,
         external_source, external_id, locale_code, currency_code,
         subtotal_amount, discount_amount, shipping_amount, tax_amount, duty_amount,
         adjustment_amount, total_amount, checkout_snapshot, metadata, created_at, updated_at
       ) VALUES (
-        ${orderId}, ${request.context.storeId}, ${orderNumber}, 1, 'DRAFT',
+        ${orderId}, ${request.context.storeId}, ${orderNumber}, 'DRAFT',
         ${totals.total === 0n ? "NOT_REQUIRED" : "PENDING"}, 'UNFULFILLED', 'NOT_SHIPPED',
         'NONE', 'NONE', 'ADMIN', ${customerId}, ${request.context.actor.type},
         ${request.context.actor.id}, NULL, ${optionalString(input.sourceCode)},
@@ -98,8 +98,8 @@ export class AdminOrderDraftRepository extends AdminOrderCoreRepository {
     if (typeof input.adminNote === "string" && input.adminNote.trim()) {
       await this.writeAdminNote(request, orderId, input.adminNote, now);
     }
-    await this.insertAudit(request, orderId, 1, "order.created", input, now);
-    return { orderId, orderVersion: 1, resourceId: orderId, operationId: null };
+    await this.insertAudit(request, orderId, "order.created", input, now);
+    return { orderId, orderVersion: null, resourceId: orderId, operationId: null };
   }
 
   public async updateDraftDetails(
@@ -153,7 +153,7 @@ export class AdminOrderDraftRepository extends AdminOrderCoreRepository {
     `);
     return {
       orderId: order.id,
-      orderVersion: order.version,
+      orderVersion: null,
       resourceId: order.id,
       operationId: null,
       deleted: true,

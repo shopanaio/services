@@ -22,7 +22,6 @@ export const orderFulfillmentOrders = ordersSchema.table("order_fulfillment_orde
   storeId: uuid("store_id").notNull(),
   orderId: uuid("order_id").notNull(),
   deliveryGroupId: uuid("delivery_group_id"),
-  revision: integer("version").notNull().default(1),
   status: text("status").notNull(),
   requestStatus: text("request_status").notNull(),
   assignedLocationId: uuid("assigned_location_id"),

@@ -21,14 +21,8 @@ export class OrderEditSessionResolver extends OrdersType<string, Row> {
   id() {
     return this.encodeId(this.$props, GlobalIdEntity.OrderEditSession);
   }
-  async version() {
-    return numberValue(await this.$data, "version", 1);
-  }
   async order() {
     return new OrderResolver(stringValue(await this.$data, "orderId"), this.$ctx);
-  }
-  async baseOrderVersion() {
-    return numberValue(await this.$data, "baseOrderVersion", 1);
   }
   async status() {
     return stringValue(await this.$data, "status");

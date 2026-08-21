@@ -12,7 +12,6 @@ CREATE TABLE "orders"."orders" (
   "id" uuid NOT NULL DEFAULT uuidv7(),
   "store_id" uuid NOT NULL,
   "order_number" bigint NOT NULL,
-  "version" integer NOT NULL DEFAULT 1,
   "status" "orders"."order_status" NOT NULL DEFAULT 'DRAFT',
   "payment_status" "orders"."order_payment_status" NOT NULL DEFAULT 'PENDING',
   "fulfillment_status" "orders"."order_fulfillment_status" NOT NULL DEFAULT 'UNFULFILLED',
@@ -50,7 +49,6 @@ CREATE TABLE "orders"."orders" (
   CONSTRAINT "orders_store_id_id_currency_unique"
     UNIQUE ("store_id", "id", "currency_code"),
   CONSTRAINT "orders_store_number_unique" UNIQUE ("store_id", "order_number"),
-  CONSTRAINT "orders_version_check" CHECK ("version" > 0),
   CONSTRAINT "orders_order_number_check" CHECK ("order_number" > 0),
   CONSTRAINT "orders_currency_code_check" CHECK ("currency_code" ~ '^[A-Z]{3}$'),
   CONSTRAINT "orders_checkout_snapshot_check" CHECK (

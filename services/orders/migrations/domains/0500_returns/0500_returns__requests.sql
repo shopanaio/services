@@ -5,7 +5,6 @@ CREATE TABLE "orders"."order_return_requests" (
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
   "status" "orders"."order_return_request_status" NOT NULL DEFAULT 'REQUESTED',
-  "version" integer NOT NULL DEFAULT 1,
   "customer_note" text,
   "merchant_note" text,
   "idempotency_key" text NOT NULL,
@@ -24,7 +23,6 @@ CREATE TABLE "orders"."order_return_requests" (
   CONSTRAINT "order_return_requests_order_fk"
     FOREIGN KEY ("store_id", "order_id")
     REFERENCES "orders"."orders" ("store_id", "id"),
-  CONSTRAINT "order_return_requests_version_check" CHECK ("version" > 0),
   CONSTRAINT "order_return_requests_requested_actor_check" CHECK (
     "requested_by_type" = 'SYSTEM' OR "requested_by_id" IS NOT NULL
   ),

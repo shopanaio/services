@@ -920,8 +920,6 @@ export type ApiFulfillment = ApiNode & {
   status: ApiFulfillmentStatus;
   /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Validated input for fulfillment cancel. Tenant identifiers come only from trusted context. */
@@ -1001,8 +999,6 @@ export type ApiFulfillmentOrder = ApiNode & {
   supportedActions: Array<Scalars["String"]["output"]>;
   /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Validated input for fulfillment order cancel request. Tenant identifiers come only from trusted context. */
@@ -1583,8 +1579,6 @@ export type ApiOrder = ApiNode & {
   totalQuantity: Scalars["Int"]["output"];
   /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Authoritative commercial order aggregate and current projections. Lifecycle changes require explicit commands; payment, fulfillment, delivery, return, and risk statuses derive from child facts. */
@@ -1845,6 +1839,7 @@ export type ApiOrderCheckoutPlacement = {
   /** Relay global ID identifying the checkout. */
   checkoutId: Scalars["ID"]["output"];
   /** Projected value for checkout version. */
+  checkoutVersion: Scalars["Int"]["output"];
   /** Timestamp for confirmed, or null when it has not occurred. */
   confirmedAt: Maybe<Scalars["DateTime"]["output"]>;
   /** Projected value for contract version. */
@@ -2277,8 +2272,6 @@ export type ApiOrderEditPayload = {
 /** Isolated and previewable staged edit for an OPEN order. */
 export type ApiOrderEditSession = ApiNode & {
   __typename?: "OrderEditSession";
-  /** Projected value for base order version. */
-  baseOrderVersion: Scalars["Int"]["output"];
   /** Projected value for calculated order. */
   calculatedOrder: ApiCalculatedOrder;
   /** Projected value for changes. */
@@ -2295,8 +2288,6 @@ export type ApiOrderEditSession = ApiNode & {
   order: ApiOrder;
   /** Current lifecycle or derived projection status. */
   status: Scalars["String"]["output"];
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Validated input for order edit shipping update. Tenant identifiers come only from trusted context. */
@@ -2326,8 +2317,6 @@ export type ApiOrderExchange = ApiNode & {
   status: ApiOrderExchangeStatus;
   /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Validated input for order exchange cancel. Tenant identifiers come only from trusted context. */
@@ -2573,8 +2562,6 @@ export type ApiOrderLine = ApiNode & {
   updatedAt: Scalars["DateTime"]["output"];
   /** Relay global ID identifying the variant. */
   variantId: Maybe<Scalars["ID"]["output"]>;
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
   /** Projected value for weight. */
   weight: Maybe<ApiWeight>;
 };
@@ -3070,8 +3057,6 @@ export type ApiOrderRefund = ApiNode & {
   status: ApiOrderRefundStatus;
   /** Projected value for transactions. */
   transactions: Array<ApiOrderPaymentTransaction>;
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Relay-style paginated connection of order refund resources. */
@@ -3192,8 +3177,6 @@ export type ApiOrderReturn = ApiNode & {
   status: ApiOrderReturnRequestStatus;
   /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Validated input for order return approve. Tenant identifiers come only from trusted context. */
@@ -3513,8 +3496,6 @@ export type ApiOrderUserError = ApiDisplayableError & {
   __typename?: "OrderUserError";
   /** Stable machine-readable code. */
   code: Scalars["String"]["output"];
-  /** Current server revision returned with a version conflict. */
-  currentVersion: Maybe<Scalars["Int"]["output"]>;
   /** Input path associated with the error, when applicable. */
   field: Maybe<Array<Scalars["String"]["output"]>>;
   /** Human-readable explanation safe for an authorized Admin user. */
@@ -4129,8 +4110,6 @@ export type ApiShipment = ApiNode & {
   tracking: Array<ApiShipmentTracking>;
   /** Timestamp for updated, or null when it has not occurred. */
   updatedAt: Scalars["DateTime"]["output"];
-  /** Internal aggregate version. */
-  version: Scalars["Int"]["output"];
 };
 
 /** Validated input for shipment cancel. Tenant identifiers come only from trusted context. */
@@ -4979,7 +4958,6 @@ export type ApiFulfillmentResolvers<
   shipments?: Resolver<Array<ApiResolversTypes["Shipment"]>, ParentType, ContextType>;
   status?: Resolver<ApiResolversTypes["FulfillmentStatus"], ParentType, ContextType>;
   updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5030,7 +5008,6 @@ export type ApiFulfillmentOrderResolvers<
   status?: Resolver<ApiResolversTypes["FulfillmentOrderStatus"], ParentType, ContextType>;
   supportedActions?: Resolver<Array<ApiResolversTypes["String"]>, ParentType, ContextType>;
   updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5234,7 +5211,6 @@ export type ApiOrderResolvers<
   taxLines?: Resolver<Array<ApiResolversTypes["OrderTaxLine"]>, ParentType, ContextType>;
   totalQuantity?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5329,6 +5305,7 @@ export type ApiOrderCheckoutPlacementResolvers<
     ApiResolversParentTypes["OrderCheckoutPlacement"],
 > = {
   checkoutId?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
+  checkoutVersion?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   confirmedAt?: Resolver<Maybe<ApiResolversTypes["DateTime"]>, ParentType, ContextType>;
   contractVersion?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   deliveryRevision?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
@@ -5502,7 +5479,6 @@ export type ApiOrderEditSessionResolvers<
   ParentType extends ApiResolversParentTypes["OrderEditSession"] =
     ApiResolversParentTypes["OrderEditSession"],
 > = {
-  baseOrderVersion?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   calculatedOrder?: Resolver<ApiResolversTypes["CalculatedOrder"], ParentType, ContextType>;
   changes?: Resolver<Array<ApiResolversTypes["OrderEditChange"]>, ParentType, ContextType>;
   createdAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
@@ -5511,7 +5487,6 @@ export type ApiOrderEditSessionResolvers<
   id?: Resolver<ApiResolversTypes["ID"], ParentType, ContextType>;
   order?: Resolver<ApiResolversTypes["Order"], ParentType, ContextType>;
   status?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5528,7 +5503,6 @@ export type ApiOrderExchangeResolvers<
   outboundLines?: Resolver<Array<ApiResolversTypes["OrderLine"]>, ParentType, ContextType>;
   status?: Resolver<ApiResolversTypes["OrderExchangeStatus"], ParentType, ContextType>;
   updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5619,7 +5593,6 @@ export type ApiOrderLineResolvers<
   unitCost?: Resolver<Maybe<ApiResolversTypes["Money"]>, ParentType, ContextType>;
   updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
   variantId?: Resolver<Maybe<ApiResolversTypes["ID"]>, ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   weight?: Resolver<Maybe<ApiResolversTypes["Weight"]>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
@@ -5811,7 +5784,6 @@ export type ApiOrderRefundResolvers<
     ParentType,
     ContextType
   >;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5866,7 +5838,6 @@ export type ApiOrderReturnResolvers<
   staffNote?: Resolver<Maybe<ApiResolversTypes["String"]>, ParentType, ContextType>;
   status?: Resolver<ApiResolversTypes["OrderReturnRequestStatus"], ParentType, ContextType>;
   updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 
@@ -5949,7 +5920,6 @@ export type ApiOrderUserErrorResolvers<
     ApiResolversParentTypes["OrderUserError"],
 > = {
   code?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
-  currentVersion?: Resolver<Maybe<ApiResolversTypes["Int"]>, ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ApiResolversTypes["String"]>>, ParentType, ContextType>;
   message?: Resolver<ApiResolversTypes["String"], ParentType, ContextType>;
   retryable?: Resolver<ApiResolversTypes["Boolean"], ParentType, ContextType>;
@@ -6387,7 +6357,6 @@ export type ApiShipmentResolvers<
   status?: Resolver<ApiResolversTypes["ShipmentStatus"], ParentType, ContextType>;
   tracking?: Resolver<Array<ApiResolversTypes["ShipmentTracking"]>, ParentType, ContextType>;
   updatedAt?: Resolver<ApiResolversTypes["DateTime"], ParentType, ContextType>;
-  version?: Resolver<ApiResolversTypes["Int"], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 };
 

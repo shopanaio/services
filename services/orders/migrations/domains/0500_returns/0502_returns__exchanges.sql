@@ -5,7 +5,6 @@ CREATE TABLE "orders"."order_exchanges" (
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
   "return_request_id" uuid NOT NULL,
-  "version" integer NOT NULL DEFAULT 1,
   "status" "orders"."order_exchange_status" NOT NULL DEFAULT 'REQUESTED',
   "currency_code" varchar(3) NOT NULL,
   "inbound_amount" bigint NOT NULL DEFAULT 0,
@@ -25,7 +24,6 @@ CREATE TABLE "orders"."order_exchanges" (
   CONSTRAINT "order_exchanges_order_currency_fk" FOREIGN KEY ("store_id", "order_id", "currency_code")
     REFERENCES "orders"."orders" ("store_id", "id", "currency_code"),
   CONSTRAINT "order_exchanges_idempotency_unique" UNIQUE ("store_id", "order_id", "idempotency_key"),
-  CONSTRAINT "order_exchanges_version_check" CHECK ("version" > 0),
   CONSTRAINT "order_exchanges_balance_check" CHECK ("balance_amount" = "outbound_amount" - "inbound_amount"),
   CONSTRAINT "order_exchanges_actor_check" CHECK ("created_by_type" = 'SYSTEM' OR "created_by_id" IS NOT NULL),
   CONSTRAINT "order_exchanges_terminal_check" CHECK (

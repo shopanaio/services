@@ -26,14 +26,14 @@ describe("Admin order business-logic contract", () => {
     ).toThrow("Tenant context is not accepted");
   });
 
-  test("rejects missing and stale-version-shaped command inputs before workflow start", () => {
+  test("does not require a version token and still validates identifiers", () => {
     expect(() =>
       parseAdminOrderPublicInput("orderArchive", {
         id,
 
         idempotencyKey: "archive-1",
       }),
-    ).toThrow("expectedVersion must be a positive integer");
+    ).not.toThrow();
     expect(() =>
       parseAdminOrderPublicInput("shipmentCancel", {
         shipmentId: "not-an-id",

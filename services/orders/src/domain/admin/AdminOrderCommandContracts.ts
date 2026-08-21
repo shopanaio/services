@@ -65,7 +65,7 @@ export type AdminOrderCommandName = (typeof adminOrderCommandNames)[number];
 
 /**
  * Audited order changes that are not Admin commands: a channel-app import
- * mutates the order too, and the revision log names the actual event instead
+ * mutates the order too, and the audit event names the actual event instead
  * of borrowing an unrelated command name.
  */
 export const adminOrderInternalEventNames = ["orderIntegrationImportApply"] as const;
@@ -133,14 +133,11 @@ type CommandRequirement = Readonly<{
   strings?: readonly string[];
 }>;
 
-const orderById = { ids: ["id"], positiveInts: ["expectedVersion"] } as const;
-const orderByOrderId = { ids: ["orderId"], positiveInts: ["expectedVersion"] } as const;
-const fulfillmentOrder = {
-  ids: ["fulfillmentOrderId"],
-  positiveInts: ["expectedVersion"],
-} as const;
-const shipment = { ids: ["shipmentId"], positiveInts: ["expectedVersion"] } as const;
-const returned = { ids: ["returnId"], positiveInts: ["expectedVersion"] } as const;
+const orderById = { ids: ["id"] } as const;
+const orderByOrderId = { ids: ["orderId"] } as const;
+const fulfillmentOrder = { ids: ["fulfillmentOrderId"] } as const;
+const shipment = { ids: ["shipmentId"] } as const;
+const returned = { ids: ["returnId"] } as const;
 
 const commandRequirements: Partial<Record<AdminOrderCommandName, CommandRequirement>> = {
   orderCreate: { arrays: ["lines"], objects: ["contact"] },
@@ -158,39 +155,33 @@ const commandRequirements: Partial<Record<AdminOrderCommandName, CommandRequirem
   orderCommentAdd: { ...orderById, strings: ["comment"] },
   orderCustomFieldsUpdate: orderById,
   orderLineAdd: { ...orderByOrderId, objects: ["line"] },
-  orderLineUpdate: { ids: ["orderId", "lineId"], positiveInts: ["expectedVersion"] },
-  orderLineDelete: { ids: ["orderId", "lineId"], positiveInts: ["expectedVersion"] },
+  orderLineUpdate: { ids: ["orderId", "lineId"] },
+  orderLineDelete: { ids: ["orderId", "lineId"] },
   orderEditBegin: orderByOrderId,
   orderEditLineAdd: {
     ids: ["editId"],
-    positiveInts: ["expectedEditVersion"],
     objects: ["line"],
   },
   orderEditLineUpdate: {
     ids: ["editId", "lineId"],
-    positiveInts: ["expectedEditVersion"],
   },
   orderEditLineRemove: {
     ids: ["editId", "lineId"],
-    positiveInts: ["expectedEditVersion"],
   },
   orderEditShippingUpdate: {
     ids: ["editId"],
-    positiveInts: ["expectedEditVersion"],
     objects: ["shipping"],
   },
   orderEditDiscountAdd: {
     ids: ["editId"],
-    positiveInts: ["expectedEditVersion"],
     objects: ["amount"],
     strings: ["title", "reasonCode"],
   },
   orderEditDiscountRemove: {
     ids: ["editId", "discountId"],
-    positiveInts: ["expectedEditVersion"],
   },
-  orderEditCommit: { ids: ["editId"], positiveInts: ["expectedEditVersion"] },
-  orderEditAbandon: { ids: ["editId"], positiveInts: ["expectedEditVersion"] },
+  orderEditCommit: { ids: ["editId"] },
+  orderEditAbandon: { ids: ["editId"] },
   orderManualPaymentRecord: {
     ...orderByOrderId,
     objects: ["amount"],
@@ -198,11 +189,9 @@ const commandRequirements: Partial<Record<AdminOrderCommandName, CommandRequirem
   },
   orderPaymentCapture: {
     ids: ["orderId", "transactionId"],
-    positiveInts: ["expectedVersion"],
   },
   orderPaymentVoid: {
     ids: ["orderId", "transactionId"],
-    positiveInts: ["expectedVersion"],
     strings: ["reason"],
   },
   orderPaymentRetry: orderByOrderId,
@@ -227,12 +216,10 @@ const commandRequirements: Partial<Record<AdminOrderCommandName, CommandRequirem
   fulfillmentCreate: { ...fulfillmentOrder, arrays: ["lines"] },
   fulfillmentCancel: {
     ids: ["fulfillmentId"],
-    positiveInts: ["expectedVersion"],
     strings: ["reasonCode"],
   },
   shipmentCreate: {
     ids: ["fulfillmentId"],
-    positiveInts: ["expectedVersion"],
     arrays: ["packages"],
   },
   shipmentTrackingUpdate: { ...shipment, arrays: ["tracking"] },
@@ -248,12 +235,10 @@ const commandRequirements: Partial<Record<AdminOrderCommandName, CommandRequirem
   orderExchangeCreate: { ...orderByOrderId, arrays: ["inboundLines", "outboundLines"] },
   orderExchangeCancel: {
     ids: ["exchangeId"],
-    positiveInts: ["expectedVersion"],
     strings: ["reasonCode"],
   },
   orderExchangeComplete: {
     ids: ["exchangeId"],
-    positiveInts: ["expectedVersion"],
   },
   orderIntegrationSyncRequest: { ...orderByOrderId, ids: ["orderId", "integrationLinkId"] },
   orderIntegrationSyncRetry: { ...orderByOrderId, ids: ["orderId", "operationId"] },

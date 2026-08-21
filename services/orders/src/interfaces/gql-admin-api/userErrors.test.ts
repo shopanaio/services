@@ -28,14 +28,10 @@ describe("Orders Admin GraphQL user errors", () => {
     });
   });
 
-  test("preserves safe version conflict metadata", () => {
-    const [error] = toOrderUserErrors(
-      new Error("ORDER_VERSION_CONFLICT currentVersion=12"),
-      "ORDER_UPDATE_FAILED",
-    );
+  test("does not expose optimistic-lock metadata", () => {
+    const [error] = toOrderUserErrors(new Error("stale client state"), "ORDER_UPDATE_FAILED");
     expect(error).toMatchObject({
-      code: "ORDER_VERSION_CONFLICT",
-      currentVersion: 12,
+      code: "ORDER_UPDATE_FAILED",
       retryable: false,
     });
   });

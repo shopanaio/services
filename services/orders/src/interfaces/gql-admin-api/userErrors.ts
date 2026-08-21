@@ -5,12 +5,10 @@ export type OrderUserError = Readonly<{
   message: string;
   code: string;
   retryable: boolean;
-  currentVersion: number | null;
 }>;
 
 const stableCodes = new Set([
   "ORDER_NOT_FOUND",
-  "ORDER_VERSION_CONFLICT",
   "ORDER_IDEMPOTENCY_CONFLICT",
   "ORDER_ACTION_NOT_AVAILABLE",
   "ORDER_STATUS_TRANSITION_INVALID",
@@ -29,13 +27,11 @@ const stableCodes = new Set([
   "ORDER_PLACEMENT_IDEMPOTENCY_CONFLICT",
   "ORDER_EDIT_ALREADY_ACTIVE",
   "ORDER_EDIT_EXPIRED",
-  "ORDER_EDIT_STALE",
   "ORDER_PAYMENT_ACTION_NOT_AVAILABLE",
   "ORDER_PAYMENT_PROVIDER_UNAVAILABLE",
   "ORDER_REFUND_AMOUNT_EXCEEDED",
   "ORDER_CUSTOMER_MISMATCH",
   "FULFILLMENT_ORDER_NOT_FOUND",
-  "FULFILLMENT_ORDER_VERSION_CONFLICT",
   "FULFILLMENT_QUANTITY_EXCEEDED",
   "FULFILLMENT_SERVICE_NOT_READY",
   "FULFILLMENT_CANCELLATION_PENDING",
@@ -77,21 +73,18 @@ export function toOrderUserErrors(error: unknown, fallbackCode: string): OrderUs
       message: issue.message,
       code: "ORDER_INPUT_INVALID",
       retryable: false,
-      currentVersion: null,
     }));
   }
   const structured = structuredErrors(error);
   if (structured.length > 0) return structured;
   const message = error instanceof Error ? error.message : fallbackCode;
   const code = normalizeCode(message, fallbackCode);
-  const currentVersion = /current(?:Version)?[=: ]+(\d+)/i.exec(message)?.[1];
   return [
     {
       field: null,
       message: safeMessage(code, message),
       code,
       retryable: /PROVIDER_UNAVAILABLE|TIMEOUT|TEMPORAR/.test(code),
-      currentVersion: currentVersion ? Number(currentVersion) : null,
     },
   ];
 }
@@ -101,7 +94,6 @@ function normalizeCode(message: string, fallback: string): string {
   if (!token) return fallback;
   if (token.includes("AUTHORIZ") || token === "UNAUTHENTICATED") return "PERMISSION_DENIED";
   if (stableCodes.has(token)) return token;
-  if (token.includes("VERSION") && token.includes("CONFLICT")) return "ORDER_VERSION_CONFLICT";
   if (token.includes("IDEMPOTENCY")) return "ORDER_IDEMPOTENCY_CONFLICT";
   return fallback;
 }
@@ -109,7 +101,6 @@ function normalizeCode(message: string, fallback: string): string {
 function safeMessage(code: string, original: string): string {
   if (code === "PERMISSION_DENIED") return "You do not have permission to perform this action.";
   if (code === "ORDER_NOT_FOUND") return "The order was not found.";
-  if (code === "ORDER_VERSION_CONFLICT") return "The order changed after it was loaded.";
   if (code === "ORDER_CUSTOMER_MISMATCH") return "The order belongs to another customer.";
   if (code === "ORDER_RETURN_WINDOW_NOT_STARTED")
     return "The return window starts after the goods are delivered.";
@@ -145,7 +136,6 @@ function structuredErrors(error: unknown): OrderUserError[] {
         message: safeMessage(code, String(item.message ?? code)),
         code,
         retryable: item.retryable === true,
-        currentVersion: typeof item.currentVersion === "number" ? item.currentVersion : null,
       },
     ];
   });

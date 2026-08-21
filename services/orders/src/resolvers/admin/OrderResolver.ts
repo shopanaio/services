@@ -44,9 +44,6 @@ export class OrderResolver extends OrdersType<string, Row> {
     return this.encodeId(this.$props, GlobalIdEntity.Order);
   }
 
-  async version() {
-    return numberValue(await this.$data, "version", 1);
-  }
   async number() {
     return stringValue(await this.$data, "orderNumber");
   }
@@ -441,7 +438,6 @@ export class OrderResolver extends OrdersType<string, Row> {
       const id = stringValue(item, "id");
       return {
         id: encodeId(id, GlobalIdEntity.Fulfillment),
-        version: 1,
         order: new OrderResolver(this.$props, this.$ctx),
         fulfillmentOrder: fulfillmentOrders.get(stringValue(item, "fulfillmentOrderId")),
         status: stringValue(item, "status"),
@@ -501,7 +497,6 @@ export class OrderResolver extends OrdersType<string, Row> {
       const id = stringValue(item, "id");
       return {
         id: encodeId(id, GlobalIdEntity.OrderReturn),
-        version: numberValue(item, "version", 1),
         order: new OrderResolver(this.$props, this.$ctx),
         status: stringValue(item, "status"),
         lines: returnLines
@@ -541,7 +536,6 @@ export class OrderResolver extends OrdersType<string, Row> {
       const id = stringValue(item, "id");
       return {
         id: encodeId(id, GlobalIdEntity.OrderExchange),
-        version: numberValue(item, "version", 1),
         order: new OrderResolver(this.$props, this.$ctx),
         status: stringValue(item, "status"),
         inboundLines: inbound
@@ -593,7 +587,6 @@ export class OrderResolver extends OrdersType<string, Row> {
       const id = stringValue(item, "id");
       return {
         id: encodeId(id, GlobalIdEntity.OrderRefund),
-        version: 1,
         order: new OrderResolver(this.$props, this.$ctx),
         status: stringValue(item, "status"),
         amount: money(value(item, "totalAmount"), stringValue(item, "currencyCode")),
@@ -741,11 +734,9 @@ export class OrderResolver extends OrdersType<string, Row> {
     const packageLines = rowsValue(row, "shipmentPackageLines");
     return {
       id: encodeId(shipmentId, GlobalIdEntity.Shipment),
-      version: 1,
       order: new OrderResolver(this.$props, this.$ctx),
       fulfillment: {
         id: encodeId(fulfillmentId, GlobalIdEntity.Fulfillment),
-        version: 1,
         order: new OrderResolver(this.$props, this.$ctx),
         fulfillmentOrder,
         status: stringValue(fulfillment, "status", "PENDING"),

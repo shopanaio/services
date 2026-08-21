@@ -27,10 +27,10 @@ export class AdminOrderFulfillmentRepository extends AdminOrderCoreRepository {
     const now = new Date().toISOString();
     await this.connection.execute(sql`
       INSERT INTO orders.order_fulfillment_orders (
-        id, store_id, order_id, delivery_group_id, version, status, request_status,
+        id, store_id, order_id, delivery_group_id, status, request_status,
         assigned_location_id, hold_reason, external_source, external_id, metadata,
         provider_snapshot, created_at, updated_at
-      ) SELECT ${newId}, store_id, order_id, delivery_group_id, 1, 'OPEN', 'UNSUBMITTED',
+      ) SELECT ${newId}, store_id, order_id, delivery_group_id, 'OPEN', 'UNSUBMITTED',
         assigned_location_id, NULL, external_source, external_id,
         jsonb_build_object('splitFrom', id), provider_snapshot, ${now}, ${now}
       FROM orders.order_fulfillment_orders
@@ -60,7 +60,7 @@ export class AdminOrderFulfillmentRepository extends AdminOrderCoreRepository {
         VALUES (${request.context.storeId}, ${fulfillment.orderId}, ${newId}, ${sourceLineId}, ${quantity})
       `);
     }
-    await this.bumpFulfillmentVersion(request.context.storeId, fulfillment.id, now);
+    await this.touchFulfillmentOrder(request.context.storeId, fulfillment.id, now);
     const order = await this.lockOrderById(request.context.storeId, fulfillment.orderId);
     const result = await this.bumpAndAudit(
       request,
@@ -84,7 +84,7 @@ export class AdminOrderFulfillmentRepository extends AdminOrderCoreRepository {
     const now = new Date().toISOString();
     await this.connection.execute(sql`
       UPDATE orders.order_fulfillment_orders
-      SET assigned_location_id = ${locationId}, version = version + 1,
+      SET assigned_location_id = ${locationId},
           metadata = jsonb_set(metadata, '{serviceCode}', ${JSON.stringify(optionalString(request.input.serviceCode))}::jsonb, true),
           updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${fulfillment.id}
@@ -117,7 +117,7 @@ export class AdminOrderFulfillmentRepository extends AdminOrderCoreRepository {
     `);
     await this.connection.execute(sql`
       UPDATE orders.order_fulfillment_orders
-      SET status = 'ON_HOLD', hold_reason = ${reasonCode}, version = version + 1, updated_at = ${now}
+      SET status = 'ON_HOLD', hold_reason = ${reasonCode}, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${fulfillment.id}
     `);
     const order = await this.lockOrderById(request.context.storeId, fulfillment.orderId);
@@ -149,7 +149,7 @@ export class AdminOrderFulfillmentRepository extends AdminOrderCoreRepository {
     await this.connection.execute(sql`
       UPDATE orders.order_fulfillment_orders
       SET status = ${active[0] ? "ON_HOLD" : "OPEN"}::orders.order_fulfillment_order_status,
-          hold_reason = ${active[0] ? fulfillment.holdReason : null}, version = version + 1, updated_at = ${now}
+          hold_reason = ${active[0] ? fulfillment.holdReason : null}, updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${fulfillment.id}
     `);
     const order = await this.lockOrderById(request.context.storeId, fulfillment.orderId);
@@ -241,7 +241,7 @@ export class AdminOrderFulfillmentRepository extends AdminOrderCoreRepository {
       UPDATE orders.order_fulfillment_orders
       SET status = ${(remaining[0]?.quantity ?? 0) === 0 ? "CLOSED" : "IN_PROGRESS"}::orders.order_fulfillment_order_status,
           closed_at = CASE WHEN ${(remaining[0]?.quantity ?? 0) === 0} THEN ${now}::timestamptz ELSE NULL END,
-          version = version + 1, updated_at = ${now}
+          updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${fulfillmentOrder.id}
     `);
     const order = await this.lockOrderById(request.context.storeId, fulfillmentOrder.orderId);

@@ -25,7 +25,6 @@ export const orders = ordersSchema.table(
       .default(sql`uuidv7()`),
     storeId: uuid("store_id").notNull(),
     orderNumber: money("order_number").notNull(),
-    version: integer("version").notNull().default(1),
     status: text("status").notNull().default("DRAFT"),
     paymentStatus: text("payment_status").notNull().default("PENDING"),
     fulfillmentStatus: text("fulfillment_status").notNull().default("UNFULFILLED"),

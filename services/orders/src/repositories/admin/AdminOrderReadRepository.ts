@@ -33,7 +33,6 @@ export type AdminOrderSort = `${
 export type AdminOrderListRow = Readonly<{
   id: string;
   orderNumber: string;
-  version: number;
   status: string;
   paymentStatus: string;
   fulfillmentStatus: string;
@@ -173,7 +172,7 @@ export class AdminOrderReadRepository extends BaseRepository {
         WHERE current_order.store_id = ${input.storeId}
           AND current_order.id = ${cursorId}::uuid
       )
-      SELECT id, order_number::text AS "orderNumber", version, status,
+      SELECT id, order_number::text AS "orderNumber", status,
         payment_status AS "paymentStatus", fulfillment_status AS "fulfillmentStatus",
         delivery_status AS "deliveryStatus", return_status AS "returnStatus",
         customer_id AS "customerId", currency_code AS "currencyCode",
@@ -257,7 +256,7 @@ export class AdminOrderReadRepository extends BaseRepository {
   async activity(storeId: string, orderId: string, afterSequence = 0, first = 100) {
     const limit = Math.min(Math.max(first, 1), 251);
     return this.connection.execute<Record<string, unknown>>(sql`
-      SELECT id, global_position AS sequence, order_id AS "orderId", order_version AS "orderVersion",
+      SELECT id, global_position AS sequence, order_id AS "orderId",
         activity_type AS "activityType", visibility, actor_type AS "actorType",
         actor_id AS "actorId", message, payload, happened_at::text AS "happenedAt",
         recorded_at::text AS "recordedAt"
@@ -284,7 +283,7 @@ export class AdminOrderReadRepository extends BaseRepository {
   ): Promise<Record<string, unknown> | null> {
     const rows = await this.connection.execute<Record<string, unknown>>(sql`
       SELECT id, global_position AS sequence, order_id AS "orderId",
-        order_version AS "orderVersion", activity_type AS "activityType", visibility,
+        activity_type AS "activityType", visibility,
         actor_type AS "actorType", actor_id AS "actorId", message, payload,
         happened_at::text AS "happenedAt", recorded_at::text AS "recordedAt"
       FROM orders.order_activity

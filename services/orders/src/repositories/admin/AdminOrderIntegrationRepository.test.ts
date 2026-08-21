@@ -17,7 +17,6 @@ class TestIntegrationRepository extends AdminOrderIntegrationRepository {
   protected override async lockOrderById(): Promise<OrderRow> {
     return {
       id: orderId,
-      version: 7,
       status: "OPEN",
       currency_code: "USD",
       total_amount: "1000",
@@ -39,7 +38,7 @@ class TestIntegrationRepository extends AdminOrderIntegrationRepository {
     this.auditCalls += 1;
     return {
       orderId: order.id,
-      orderVersion: order.version + 1,
+      orderVersion: null,
       resourceId: order.id,
       operationId: null,
     };
@@ -73,7 +72,7 @@ describe("AdminOrderIntegrationRepository", () => {
       repository.prepareOperation(request, "orderIntegrationSyncRequest", "workflow-1"),
     ).resolves.toMatchObject({
       orderId,
-      orderVersion: 8,
+      orderVersion: null,
       resourceId: integrationLinkId,
       operationId,
     });

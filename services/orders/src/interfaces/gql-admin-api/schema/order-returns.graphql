@@ -109,10 +109,6 @@ type OrderReturn implements Node {
   """
   id: ID!
   """
-  Internal aggregate version.
-  """
-  version: Int!
-  """
   Fresh order projection returned after the command.
   """
   order: Order!
@@ -205,10 +201,6 @@ type OrderExchange implements Node {
   """
   id: ID!
   """
-  Internal aggregate version.
-  """
-  version: Int!
-  """
   Fresh order projection returned after the command.
   """
   order: Order!
@@ -246,10 +238,6 @@ type OrderRefund implements Node {
   Relay global ID of this resource.
   """
   id: ID!
-  """
-  Internal aggregate version.
-  """
-  version: Int!
   """
   Fresh order projection returned after the command.
   """

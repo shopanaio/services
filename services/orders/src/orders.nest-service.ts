@@ -398,7 +398,7 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
         });
         return {
           orderId: result.orderId ?? input.orderId,
-          orderVersion: result.orderVersion ?? 0,
+          orderVersion: result.orderVersion,
           orderStatus: "CANCELLED",
           duplicate: result.duplicate,
         };
@@ -443,7 +443,7 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
         return {
           orderId: result.orderId ?? input.orderId,
           returnRequestId: result.resourceId ?? "",
-          orderVersion: result.orderVersion ?? 0,
+          orderVersion: result.orderVersion,
           duplicate: result.duplicate,
         };
       },

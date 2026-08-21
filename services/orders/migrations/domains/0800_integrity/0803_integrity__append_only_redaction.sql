@@ -56,8 +56,6 @@ BEGIN
    WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
   DELETE FROM "orders"."order_events"
    WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
-  DELETE FROM "orders"."order_revisions"
-   WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
   DELETE FROM "orders"."order_admin_notes"
    WHERE "store_id" = p_store_id AND "order_id" = p_order_id;
   DELETE FROM "orders"."order_tags"

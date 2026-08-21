@@ -15,7 +15,7 @@ export class AdminOrderBulkSelectionRepository extends BaseRepository {
   ): Promise<readonly AdminOrderBulkTarget[]> {
     const where = selection.predicate ? compileAdminOrderPredicate(selection.predicate) : null;
     return this.connection.execute<AdminOrderBulkTarget>(sql`
-      SELECT current_order.id, current_order.version,
+      SELECT current_order.id,
         COALESCE(array_agg(tag.tag ORDER BY tag.tag) FILTER (WHERE tag.tag IS NOT NULL), '{}') AS tags
       FROM orders.orders current_order
       LEFT JOIN orders.order_tags tag
@@ -24,7 +24,7 @@ export class AdminOrderBulkSelectionRepository extends BaseRepository {
         AND (${selection.ids}::uuid[] IS NULL OR current_order.id = ANY(${selection.ids}::uuid[]))
         AND NOT (current_order.id = ANY(${selection.excludedIds}::uuid[]))
         ${where ? sql`AND ${where}` : sql``}
-      GROUP BY current_order.id, current_order.version, current_order.created_at
+      GROUP BY current_order.id, current_order.created_at
       ORDER BY current_order.created_at, current_order.id
       LIMIT 1000
     `);

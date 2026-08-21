@@ -23,7 +23,6 @@ type PlacementRow = {
   snapshot_hash: string;
   status: "AWAITING_FINALIZATION" | "CONFIRMED" | "FAILED";
   order_status: "OPEN" | "CANCELLED";
-  order_version: number;
   order_number: string;
   placed_at: string;
 };
@@ -76,7 +75,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     const cost = input.snapshot.cost;
     await this.connection.execute(sql`
       INSERT INTO orders.orders (
-        id, store_id, order_number, version, status, payment_status,
+        id, store_id, order_number, status, payment_status,
         fulfillment_status, delivery_status, return_status, risk_level,
         origin, customer_id, created_by_type, created_by_id, sales_channel,
         checkout_id, external_source, external_id, locale_code, currency_code,
@@ -84,7 +83,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
         adjustment_amount, total_amount, checkout_snapshot, metadata, placed_at,
         created_at, updated_at
       ) VALUES (
-        ${input.requestedOrderId}, ${input.storeId}, ${orderNumber}, 1, 'OPEN',
+        ${input.requestedOrderId}, ${input.storeId}, ${orderNumber}, 'OPEN',
         ${BigInt(cost.total.amountMinor) === 0n ? "NOT_REQUIRED" : "PENDING"},
         ${input.snapshot.lines.some((line) => line.requiresShipping) ? "ON_HOLD" : "UNFULFILLED"},
         'NOT_SHIPPED', 'NONE', 'NONE', 'CHECKOUT', ${input.snapshot.customer.customerId},
@@ -300,17 +299,12 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
         ${JSON.stringify(input.commitments.delivery)}::jsonb, ${placedAt}
       )
     `);
-    await this.insertRevisionAndEvent(
-      input,
-      "order.placed",
-      "checkout_placement_created",
-      placedAt,
-    );
+    await this.insertEventAndHistory(input, "order.placed", "checkout_placement_created", placedAt);
 
     const result: CreateOrderFromCheckoutPlacementV1Result = {
       orderId: input.requestedOrderId,
       orderNumber: String(orderNumber),
-      orderVersion: 1,
+      orderVersion: null,
       orderStatus: "OPEN",
       placementStatus: "AWAITING_FINALIZATION",
       placedAt,
@@ -373,9 +367,9 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     `);
     await this.connection.execute(sql`
       UPDATE orders.orders
-      SET version = version + 1, status = 'CANCELLED', fulfillment_status = 'CANCELLED',
+      SET status = 'CANCELLED', fulfillment_status = 'CANCELLED',
           delivery_status = 'CANCELLED', cancelled_at = ${input.failedAt}
-      WHERE store_id = ${input.storeId} AND id = ${input.orderId} AND version = ${placement.order_version}
+      WHERE store_id = ${input.storeId} AND id = ${input.orderId}
     `);
     await this.connection.execute(sql`
       UPDATE orders.order_fulfillment_orders
@@ -395,7 +389,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
         })}::jsonb, ${input.failedAt}
       ) ON CONFLICT (store_id, order_id) DO NOTHING
     `);
-    await this.insertCurrentRevisionAndEvent(input, "order.placement_failed", input.failedAt, {
+    await this.insertCurrentEventAndHistory(input, "order.placement_failed", input.failedAt, {
       reasonCode: input.reasonCode,
       paymentSessionId: input.paymentSessionId,
       paymentOperationId: input.paymentOperationId,
@@ -409,7 +403,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     const orderCondition = input.orderId ? sql`AND o.id = ${input.orderId}` : sql``;
     const rows = await this.connection.execute<PlacementRow>(sql`
       SELECT p.organization_id, p.order_id, p.placement_id, p.checkout_id,
-             p.snapshot_hash, p.status, o.status AS order_status, o.version AS order_version,
+             p.snapshot_hash, p.status, o.status AS order_status,
              o.order_number::text AS order_number, o.placed_at::text AS placed_at
       FROM orders.order_checkout_placements p
       JOIN orders.orders o ON o.store_id = p.store_id AND o.id = p.order_id
@@ -425,7 +419,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
   private async findPlacement(storeId: string, placementId: string): Promise<PlacementRow | null> {
     const rows = await this.connection.execute<PlacementRow>(sql`
       SELECT p.organization_id, p.order_id, p.placement_id, p.checkout_id,
-             p.snapshot_hash, p.status, o.status AS order_status, o.version AS order_version,
+             p.snapshot_hash, p.status, o.status AS order_status,
              o.order_number::text AS order_number, o.placed_at::text AS placed_at
       FROM orders.order_checkout_placements p
       JOIN orders.orders o ON o.store_id = p.store_id AND o.id = p.order_id
@@ -443,7 +437,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
   }): Promise<PlacementRow> {
     const rows = await this.connection.execute<PlacementRow>(sql`
       SELECT p.organization_id, p.order_id, p.placement_id, p.checkout_id,
-             p.snapshot_hash, p.status, o.status AS order_status, o.version AS order_version,
+             p.snapshot_hash, p.status, o.status AS order_status,
              o.order_number::text AS order_number, o.placed_at::text AS placed_at
       FROM orders.order_checkout_placements p
       JOIN orders.orders o ON o.store_id = p.store_id AND o.id = p.order_id
@@ -475,7 +469,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     `);
   }
 
-  private async insertRevisionAndEvent(
+  private async insertEventAndHistory(
     input: CreateOrderFromCheckoutPlacementV1Params,
     eventType: string,
     reason: string,
@@ -483,23 +477,11 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
   ): Promise<void> {
     const cost = input.snapshot.cost;
     await this.connection.execute(sql`
-      INSERT INTO orders.order_revisions (
-        store_id, order_id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        snapshot, reason, created_by_type, created_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        ${JSON.stringify(input.snapshot)}::jsonb, ${reason}, 'SYSTEM', ${happenedAt}
-      FROM orders.orders WHERE store_id = ${input.storeId} AND id = ${input.requestedOrderId}
-    `);
-    await this.connection.execute(sql`
       INSERT INTO orders.order_events (
-        store_id, order_id, event_type, order_version, visibility, actor_type,
+        store_id, order_id, event_type, visibility, actor_type,
         correlation_id, idempotency_key, payload, happened_at
       ) VALUES (
-        ${input.storeId}, ${input.requestedOrderId}, ${eventType}, 1, 'INTERNAL', 'SYSTEM',
+        ${input.storeId}, ${input.requestedOrderId}, ${eventType}, 'INTERNAL', 'SYSTEM',
         ${input.correlationId}, ${input.idempotencyKey}, ${JSON.stringify({
           contractVersion: 1,
           placementId: input.placementId,
@@ -513,10 +495,10 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_status_history (
-        store_id, order_id, order_version, order_status, payment_status,
+        store_id, order_id, order_status, payment_status,
         fulfillment_status, delivery_status, return_status, reason_code,
         actor_type, metadata, happened_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
+      ) SELECT store_id, id, status, payment_status, fulfillment_status,
         delivery_status, return_status, ${reason}, 'SYSTEM',
         ${JSON.stringify({ placementId: input.placementId, snapshotHash: input.snapshotHash })}::jsonb,
         ${happenedAt}
@@ -524,10 +506,10 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_activity (
-        store_id, order_id, order_version, activity_type, visibility, actor_type,
+        store_id, order_id, activity_type, visibility, actor_type,
         payload, happened_at
       ) VALUES (
-        ${input.storeId}, ${input.requestedOrderId}, 1, ${eventType}, 'INTERNAL', 'SYSTEM',
+        ${input.storeId}, ${input.requestedOrderId}, ${eventType}, 'INTERNAL', 'SYSTEM',
         ${JSON.stringify({ placementId: input.placementId })}::jsonb, ${happenedAt}
       )
     `);
@@ -539,57 +521,44 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     happenedAt: string,
     payload: Record<string, unknown>,
   ): Promise<void> {
-    const updated = await this.connection.execute<{ version: number }>(sql`
-      UPDATE orders.orders SET version = version + 1
+    const updated = await this.connection.execute<{ id: string }>(sql`
+      UPDATE orders.orders SET updated_at = GREATEST(updated_at, ${happenedAt}::timestamptz)
       WHERE store_id = ${input.storeId} AND id = ${input.orderId}
-      RETURNING version
+      RETURNING id
     `);
-    if (!updated[0]) throw new Error("ORDER_VERSION_CONFLICT");
-    await this.insertCurrentRevisionAndEvent(input, eventType, happenedAt, payload);
+    if (!updated[0]) throw new Error("ORDER_NOT_FOUND");
+    await this.insertCurrentEventAndHistory(input, eventType, happenedAt, payload);
   }
 
-  private async insertCurrentRevisionAndEvent(
+  private async insertCurrentEventAndHistory(
     input: { storeId: string; orderId: string; correlationId: string; idempotencyKey: string },
     eventType: string,
     happenedAt: string,
     payload: Record<string, unknown>,
   ): Promise<void> {
     await this.connection.execute(sql`
-      INSERT INTO orders.order_revisions (
-        store_id, order_id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        snapshot, reason, created_by_type, created_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        jsonb_build_object('eventType', ${eventType}, 'payload', ${JSON.stringify(payload)}::jsonb),
-        ${eventType}, 'SYSTEM', ${happenedAt}
-      FROM orders.orders WHERE store_id = ${input.storeId} AND id = ${input.orderId}
-    `);
-    await this.connection.execute(sql`
       INSERT INTO orders.order_events (
-        store_id, order_id, event_type, order_version, visibility, actor_type,
+        store_id, order_id, event_type, visibility, actor_type,
         correlation_id, idempotency_key, payload, happened_at
-      ) SELECT store_id, id, ${eventType}, version, 'INTERNAL', 'SYSTEM',
+      ) SELECT store_id, id, ${eventType}, 'INTERNAL', 'SYSTEM',
         ${input.correlationId}, ${input.idempotencyKey}, ${JSON.stringify(payload)}::jsonb, ${happenedAt}
       FROM orders.orders WHERE store_id = ${input.storeId} AND id = ${input.orderId}
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_status_history (
-        store_id, order_id, order_version, order_status, payment_status,
+        store_id, order_id, order_status, payment_status,
         fulfillment_status, delivery_status, return_status, reason_code,
         actor_type, metadata, happened_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
+      ) SELECT store_id, id, status, payment_status, fulfillment_status,
         delivery_status, return_status, ${eventType}, 'SYSTEM',
         ${JSON.stringify(payload)}::jsonb, ${happenedAt}
       FROM orders.orders WHERE store_id = ${input.storeId} AND id = ${input.orderId}
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_activity (
-        store_id, order_id, order_version, activity_type, visibility, actor_type,
+        store_id, order_id, activity_type, visibility, actor_type,
         payload, happened_at
-      ) SELECT store_id, id, version, ${eventType}, 'INTERNAL', 'SYSTEM',
+      ) SELECT store_id, id, ${eventType}, 'INTERNAL', 'SYSTEM',
         ${JSON.stringify(payload)}::jsonb, ${happenedAt}
       FROM orders.orders WHERE store_id = ${input.storeId} AND id = ${input.orderId}
     `);
@@ -602,7 +571,7 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
     return {
       orderId: row.order_id,
       orderNumber: row.order_number,
-      orderVersion: row.order_version,
+      orderVersion: null,
       orderStatus: "OPEN",
       placementStatus: "AWAITING_FINALIZATION",
       placedAt: row.placed_at,
@@ -642,6 +611,6 @@ function toPlacementResult(row: PlacementRow): OrderCheckoutPlacementV1Result {
     snapshotHash: row.snapshot_hash,
     status: row.status,
     orderStatus: row.order_status,
-    orderVersion: row.order_version,
+    orderVersion: null,
   };
 }

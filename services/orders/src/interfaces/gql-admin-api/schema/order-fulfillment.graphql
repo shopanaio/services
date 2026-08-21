@@ -233,10 +233,6 @@ type FulfillmentOrder implements Node {
   """
   id: ID!
   """
-  Internal aggregate version.
-  """
-  version: Int!
-  """
   Fresh order projection returned after the command.
   """
   order: Order!
@@ -381,10 +377,6 @@ type Fulfillment implements Node {
   """
   id: ID!
   """
-  Internal aggregate version.
-  """
-  version: Int!
-  """
   Fresh order projection returned after the command.
   """
   order: Order!
@@ -444,10 +436,6 @@ type Shipment implements Node {
   Relay global ID of this resource.
   """
   id: ID!
-  """
-  Internal aggregate version.
-  """
-  version: Int!
   """
   Fresh order projection returned after the command.
   """

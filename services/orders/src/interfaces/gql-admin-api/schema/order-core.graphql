@@ -143,10 +143,6 @@ type Order implements Node @key(fields: "id") {
   """
   id: ID!
   """
-  Internal aggregate version.
-  """
-  version: Int!
-  """
   Store-local order number serialized without precision loss.
   """
   number: BigInt!
@@ -578,10 +574,6 @@ type OrderLine implements Node {
   Relay global ID of this resource.
   """
   id: ID!
-  """
-  Internal aggregate version.
-  """
-  version: Int!
   """
   Projected value for parent line.
   """

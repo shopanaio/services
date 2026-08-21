@@ -110,7 +110,6 @@ export type OrderNotificationFacts = Readonly<{
   orderId: string;
   storeId: string;
   orderNumber: string;
-  version: number;
   customerId: string | null;
   currencyCode: string;
   totalAmountMinor: string;
@@ -169,7 +168,6 @@ export class OrderRepository extends BaseRepository {
       orderId: string;
       storeId: string;
       orderNumber: string;
-      version: number;
       customerId: string | null;
       currencyCode: string;
       totalAmountMinor: string;
@@ -181,7 +179,7 @@ export class OrderRepository extends BaseRepository {
       lastName: string | null;
     }>(sql`
       SELECT current_order.id AS "orderId", current_order.store_id AS "storeId",
-        current_order.order_number::text AS "orderNumber", current_order.version,
+        current_order.order_number::text AS "orderNumber",
         current_order.customer_id AS "customerId", current_order.currency_code AS "currencyCode",
         current_order.total_amount::text AS "totalAmountMinor", current_order.locale_code AS "localeCode",
         current_order.created_at AS "createdAt", contact.email, contact.phone_e164 AS "phoneE164",
@@ -198,7 +196,6 @@ export class OrderRepository extends BaseRepository {
           orderId: row.orderId,
           storeId: row.storeId,
           orderNumber: row.orderNumber,
-          version: row.version,
           customerId: row.customerId,
           currencyCode: row.currencyCode,
           totalAmountMinor: row.totalAmountMinor,

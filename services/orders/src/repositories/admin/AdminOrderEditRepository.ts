@@ -11,7 +11,6 @@ import {
   moneyMinor,
   optionalPositiveInt,
   optionalString,
-  requiredPositiveInt,
   requiredString,
   requiredUuid,
 } from "./AdminOrderCommandValues.js";
@@ -38,11 +37,11 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
     const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1_000).toISOString();
     await this.connection.execute(sql`
       INSERT INTO orders.order_edit_sessions (
-        id, store_id, order_id, base_order_version, version, status, currency_code,
+        id, store_id, order_id, status, currency_code,
         subtotal_amount, discount_amount, shipping_amount, tax_amount, duty_amount,
         adjustment_amount, total_amount, created_by_type, created_by_id, expires_at,
         created_at, updated_at
-      ) SELECT ${editId}, store_id, id, version, 1, 'ACTIVE', currency_code,
+      ) SELECT ${editId}, store_id, id, 'ACTIVE', currency_code,
         subtotal_amount, discount_amount, shipping_amount, tax_amount, duty_amount,
         adjustment_amount, total_amount, ${request.context.actor.type}, ${request.context.actor.id},
         ${expiresAt}, ${now}, ${now}
@@ -52,7 +51,7 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
     await this.insertEventOnly(request, order, command, { editId }, now);
     return {
       orderId: order.id,
-      orderVersion: order.version,
+      orderVersion: null,
       resourceId: editId,
       operationId: null,
     };
@@ -63,7 +62,6 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
     command: AdminOrderCommandName,
   ): Promise<MutableAdminOrderCommandResult> {
     const edit = await this.lockEdit(request);
-    const nextEditVersion = edit.version + 1;
     const now = new Date().toISOString();
     const changeId = await this.generateUuidV7();
     await this.connection.execute(sql`
@@ -71,13 +69,13 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
         id, store_id, order_id, edit_session_id, sequence, change_type, payload, created_at
       ) VALUES (
         ${changeId}, ${request.context.storeId}, ${edit.orderId}, ${edit.id},
-        ${nextEditVersion - 1}, ${command},
+        (SELECT COALESCE(MAX(sequence), 0) + 1 FROM orders.order_edit_changes
+          WHERE store_id = ${request.context.storeId} AND edit_session_id = ${edit.id}), ${command},
         ${JSON.stringify({ ...request.input, changeId })}::jsonb, ${now}
       )
     `);
     await this.connection.execute(sql`
-      UPDATE orders.order_edit_sessions
-      SET version = ${nextEditVersion}, updated_at = ${now}
+      UPDATE orders.order_edit_sessions SET updated_at = ${now}
       WHERE store_id = ${request.context.storeId} AND id = ${edit.id}
     `);
     await this.refreshEditPreview(
@@ -90,7 +88,6 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
       request,
       {
         id: edit.orderId,
-        version: edit.orderVersion,
         status: "OPEN",
         currency_code: edit.currencyCode,
         total_amount: "0",
@@ -103,12 +100,12 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
         placed_at: null,
       },
       command,
-      { editId: edit.id, editVersion: nextEditVersion, changeId },
+      { editId: edit.id, changeId },
       now,
     );
     return {
       orderId: edit.orderId,
-      orderVersion: edit.orderVersion,
+      orderVersion: null,
       resourceId: edit.id,
       operationId: null,
     };
@@ -120,8 +117,6 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
     workflowId: string,
   ): Promise<MutableAdminOrderCommandResult> {
     const edit = await this.lockEdit(request);
-    const expectedOrderVersion = requiredPositiveInt(request.input, "expectedOrderVersion");
-    if (edit.orderVersion !== expectedOrderVersion) throw new Error("ORDER_VERSION_CONFLICT");
     const changes = await this.connection.execute<{
       change_type: string;
       payload: Record<string, unknown>;
@@ -284,7 +279,7 @@ export class AdminOrderEditRepository extends AdminOrderCoreRepository {
     await this.insertEventOnly(request, order, command, { editId: edit.id }, now);
     return {
       orderId: edit.orderId,
-      orderVersion: edit.orderVersion,
+      orderVersion: null,
       resourceId: edit.id,
       operationId: null,
     };

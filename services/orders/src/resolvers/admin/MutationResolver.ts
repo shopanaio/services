@@ -363,7 +363,6 @@ function OrderMutationBoundaries(): ClassDecorator {
             message: error.message,
             code: "ORDER_INPUT_INVALID",
             retryable: false,
-            currentVersion: null,
           })),
         );
       };

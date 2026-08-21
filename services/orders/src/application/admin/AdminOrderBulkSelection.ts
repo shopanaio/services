@@ -45,7 +45,6 @@ export type AdminOrderBulkSelection = Readonly<{
 
 export type AdminOrderBulkTarget = Readonly<{
   id: string;
-  version: number;
   tags: readonly string[];
 }>;
 

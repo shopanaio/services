@@ -88,7 +88,6 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         storeId: input.storeId,
         orderId: input.orderId,
         deliveryGroupId: source.groupId,
-        revision: snapshot.revision,
         status: snapshot.status,
         requestStatus: snapshot.requestStatus,
         payload,
@@ -271,7 +270,7 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       if (existing) {
         if (existing.requestHash !== requestHash)
           throw new Error("FULFILLMENT_SHIPMENT_UPDATE_CONFLICT");
-        return { status: "DUPLICATE", fulfillmentOrderRevision: row.revision };
+        return { status: "DUPLICATE", fulfillmentOrderRevision: row.payload.snapshot.revision };
       }
       const payload = row.payload;
       let lineItems = [...payload.snapshot.lineItems];
@@ -298,7 +297,7 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         )
           lineItems = allocate(lineItems, params.update.lineItems, 1);
       }
-      const nextRevision = row.revision + 1;
+      const nextRevision = row.payload.snapshot.revision + 1;
       const remaining = lineItems.reduce((sum, line) => sum + line.remainingQuantity, 0);
       const latestState = new Map(history.map(({ shipmentId, state }) => [shipmentId, state]));
       latestState.set(params.update.shipmentId, params.update.state);
@@ -336,7 +335,6 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       await this.connection
         .update(orderFulfillmentOrders)
         .set({
-          revision: nextRevision,
           status,
           payload: { ...payload, snapshot },
           updatedAt: params.update.occurredAt,
@@ -382,7 +380,7 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         updated_at = ${update.occurredAt}
       WHERE store_id = ${storeId} AND order_id = ${orderId} AND external_id = ${update.shipmentId}
     `);
-    const updated = await this.connection.execute<{ version: number }>(sql`
+    const updated = await this.connection.execute<{ id: string }>(sql`
       WITH fulfillment AS (
         SELECT count(*)::integer AS total,
           count(*) FILTER (WHERE status = 'CLOSED')::integer AS closed,
@@ -399,8 +397,7 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         WHERE store_id = ${storeId} AND order_id = ${orderId}
       )
       UPDATE orders.orders current_order
-      SET version = version + 1,
-        fulfillment_status = CASE
+      SET fulfillment_status = CASE
           WHEN fulfillment.total > 0 AND fulfillment.closed = fulfillment.total THEN 'FULFILLED'
           WHEN fulfillment.active > 0 OR fulfillment.closed > 0 THEN 'PARTIALLY_FULFILLED'
           ELSE current_order.fulfillment_status
@@ -416,10 +413,9 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
         updated_at = GREATEST(updated_at, ${update.occurredAt}::timestamptz)
       FROM fulfillment, shipment
       WHERE current_order.store_id = ${storeId} AND current_order.id = ${orderId}
-      RETURNING current_order.version
+      RETURNING current_order.id
     `);
-    const version = updated[0]?.version;
-    if (!version) throw new Error("ORDER_NOT_FOUND");
+    if (!updated[0]) throw new Error("ORDER_NOT_FOUND");
     const eventType = `delivery.shipment.${update.state.toLowerCase()}`;
     const idempotencyKey = `delivery:${update.shipmentId}:${update.shipmentRevision}`;
     const payload = JSON.stringify({
@@ -430,45 +426,31 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
       lineItems: update.lineItems,
     });
     await this.connection.execute(sql`
-      INSERT INTO orders.order_revisions (
-        store_id, order_id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        snapshot, reason, created_by_type, created_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        jsonb_build_object('eventType', ${eventType}, 'payload', ${payload}::jsonb),
-        ${eventType}, 'SYSTEM', ${update.occurredAt}
-      FROM orders.orders
-      WHERE store_id = ${storeId} AND id = ${orderId} AND version = ${version}
-    `);
-    await this.connection.execute(sql`
       INSERT INTO orders.order_events (
-        store_id, order_id, event_type, order_version, visibility, actor_type,
+        store_id, order_id, event_type, visibility, actor_type,
         idempotency_key, payload, happened_at
       ) VALUES (
-        ${storeId}, ${orderId}, ${eventType}, ${version}, 'INTERNAL', 'SYSTEM',
+        ${storeId}, ${orderId}, ${eventType}, 'INTERNAL', 'SYSTEM',
         ${idempotencyKey}, ${payload}::jsonb, ${update.occurredAt}
       )
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_status_history (
-        store_id, order_id, order_version, order_status, payment_status,
+        store_id, order_id, order_status, payment_status,
         fulfillment_status, delivery_status, return_status, reason_code,
         actor_type, metadata, happened_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
+      ) SELECT store_id, id, status, payment_status, fulfillment_status,
         delivery_status, return_status, ${eventType}, 'SYSTEM', ${payload}::jsonb,
         ${update.occurredAt}
       FROM orders.orders
-      WHERE store_id = ${storeId} AND id = ${orderId} AND version = ${version}
+      WHERE store_id = ${storeId} AND id = ${orderId}
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_activity (
-        store_id, order_id, order_version, activity_type, visibility, actor_type,
+        store_id, order_id, activity_type, visibility, actor_type,
         payload, happened_at
       ) VALUES (
-        ${storeId}, ${orderId}, ${version}, ${eventType}, 'INTERNAL', 'SYSTEM',
+        ${storeId}, ${orderId}, ${eventType}, 'INTERNAL', 'SYSTEM',
         ${payload}::jsonb, ${update.occurredAt}
       )
     `);

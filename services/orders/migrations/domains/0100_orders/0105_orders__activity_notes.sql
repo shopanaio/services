@@ -34,7 +34,6 @@ CREATE TABLE "orders"."order_activity" (
   "global_position" bigint GENERATED ALWAYS AS IDENTITY,
   "store_id" uuid NOT NULL,
   "order_id" uuid NOT NULL,
-  "order_version" integer NOT NULL,
   "activity_type" varchar(128) NOT NULL,
   "visibility" "orders"."order_event_visibility" NOT NULL DEFAULT 'INTERNAL',
   "actor_type" "orders"."order_actor_type" NOT NULL,
@@ -47,7 +46,6 @@ CREATE TABLE "orders"."order_activity" (
   CONSTRAINT "order_activity_global_position_unique" UNIQUE ("global_position"),
   CONSTRAINT "order_activity_order_fk" FOREIGN KEY ("store_id", "order_id")
     REFERENCES "orders"."orders" ("store_id", "id"),
-  CONSTRAINT "order_activity_version_check" CHECK ("order_version" > 0),
   CONSTRAINT "order_activity_type_check" CHECK (btrim("activity_type") <> ''),
   CONSTRAINT "order_activity_payload_check" CHECK (jsonb_typeof("payload") = 'object'),
   CONSTRAINT "order_activity_actor_check" CHECK ("actor_type" = 'SYSTEM' OR "actor_id" IS NOT NULL)

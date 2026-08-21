@@ -205,6 +205,8 @@ export interface CreateOrderFromCheckoutPlacementV1Params {
   storeId: string;
   placementId: string;
   checkoutId: string;
+  checkoutVersion: number;
+  resultRevision: string;
   finalQuote: { quoteId: string; revision: string };
   paymentMethodsRevision: string;
   deliveryRevision: string;
@@ -221,7 +223,7 @@ export interface CreateOrderFromCheckoutPlacementV1Params {
 export interface CreateOrderFromCheckoutPlacementV1Result {
   orderId: string;
   orderNumber: string;
-  orderVersion: number;
+  orderVersion: number | null;
   orderStatus: "OPEN";
   placementStatus: "AWAITING_FINALIZATION";
   placedAt: string;
@@ -277,7 +279,7 @@ export type OrderCheckoutPlacementV1Result = Readonly<{
   snapshotHash: string;
   status: "AWAITING_FINALIZATION" | "CONFIRMED" | "FAILED";
   orderStatus: "OPEN" | "CANCELLED";
-  orderVersion: number;
+  orderVersion: number | null;
 }>;
 
 export const OrderProviderActionNames = {
@@ -307,7 +309,7 @@ export interface CompleteOrderFulfillmentServiceOperationV1Params {
 export interface CompleteOrderFulfillmentServiceOperationV1Result {
   orderId: string;
   fulfillmentOrderId: string;
-  orderVersion: number;
+  orderVersion: number | null;
   duplicate: boolean;
 }
 
@@ -325,7 +327,7 @@ export interface ApplyOrderIntegrationEventV1Params {
 export interface ApplyOrderIntegrationEventV1Result {
   orderId: string;
   integrationLinkId: string;
-  orderVersion: number;
+  orderVersion: number | null;
   duplicate: boolean;
   reconciliationRequired: boolean;
 }
@@ -395,7 +397,7 @@ export interface ApplyOrderIntegrationImportV1Params {
 export interface ApplyOrderIntegrationImportV1Result {
   orderId: string;
   integrationLinkId: string;
-  orderVersion: number;
+  orderVersion: number | null;
   duplicate: boolean;
 }
 
@@ -560,8 +562,8 @@ export type VerifyReviewPurchaseResult =
  * Customer-scoped post-order actions. Orders verifies ownership
  * (order.customerId === customerId) under the same row lock as the mutation
  * and reuses the same domain logic as the admin commands, mirroring Shopify's
- * customer self-service model. `expectedVersion` is the revision the customer
- * observed: the command fails with a version conflict when the order moved on.
+ * customer self-service model. Commands rely on row locks, authorization and
+ * idempotency rather than a caller-supplied concurrency token.
  */
 export const OrderStorefrontActionNames = {
   cancel: "cancelOrderFromStorefront",
@@ -586,7 +588,7 @@ export interface CancelOrderFromStorefrontParams {
 
 export interface CancelOrderFromStorefrontResult {
   orderId: string;
-  orderVersion: number;
+  orderVersion: number | null;
   orderStatus: "CANCELLED";
   duplicate: boolean;
 }
@@ -610,6 +612,6 @@ export interface CreateOrderReturnRequestFromStorefrontParams {
 export interface CreateOrderReturnRequestFromStorefrontResult {
   orderId: string;
   returnRequestId: string;
-  orderVersion: number;
+  orderVersion: number | null;
   duplicate: boolean;
 }

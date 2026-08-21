@@ -197,11 +197,8 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
           (quantities.get(lineId) ?? 0) + requiredPositiveInt(item, "quantity"),
         );
       }
-      const rows = await this.connection.execute<{
-        fulfillmentOrderId: string;
-        version: number;
-      }>(sql`
-        SELECT fulfillment.fulfillment_order_id AS "fulfillmentOrderId", fulfillment_order.version
+      const rows = await this.connection.execute<{ fulfillmentOrderId: string }>(sql`
+        SELECT fulfillment.fulfillment_order_id AS "fulfillmentOrderId"
         FROM orders.order_fulfillments fulfillment
         JOIN orders.order_fulfillment_orders fulfillment_order
           ON fulfillment_order.store_id = fulfillment.store_id
@@ -516,7 +513,7 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
       return {
         orderId: order.id,
         fulfillmentOrderId: operation.fulfillmentOrderId,
-        orderVersion: order.version,
+        orderVersion: null,
         duplicate: true,
       };
     }
@@ -558,7 +555,7 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
           'installationId', ${context.installationId}, 'appCode', ${context.appCode},
           'appVersion', ${context.appVersion}, 'externalRevision', ${input.externalRevision}
         ),
-        version = version + 1, updated_at = ${input.occurredAt}
+        updated_at = ${input.occurredAt}
       WHERE store_id = ${context.storeId} AND id = ${operation.fulfillmentOrderId}
     `);
     const request: AdminOrderCommandInput = {
@@ -620,7 +617,7 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
       return {
         orderId: order.id,
         integrationLinkId: input.integrationLinkId,
-        orderVersion: order.version,
+        orderVersion: null,
         duplicate: true,
         reconciliationRequired: input.eventType !== "SYNC_ACKNOWLEDGED",
       };
@@ -734,7 +731,7 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
       return {
         orderId: order.id,
         integrationLinkId: input.integrationLinkId,
-        orderVersion: order.version,
+        orderVersion: null,
         duplicate: true,
       };
     }
@@ -1401,7 +1398,7 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
           appCode,
           routeRevision: optionalString(envelope.routeRevision),
         })}::jsonb,
-        version = version + 1, updated_at = ${now}
+        updated_at = ${now}
       WHERE store_id = ${storeId} AND id = ${fulfillmentOrderId}
     `);
   }
@@ -1493,7 +1490,6 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
         'schemaVersion', 1,
         'storeId', current_order.store_id,
         'orderId', current_order.id,
-        'orderVersion', current_order.version,
         'orderNumber', current_order.order_number::text,
         'status', current_order.status,
         'paymentStatus', current_order.payment_status,

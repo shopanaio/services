@@ -129,12 +129,11 @@ describe("Orders Admin GraphQL contract", () => {
     }
   });
 
-  test("requires idempotency and optimistic concurrency inputs", () => {
+  test("requires idempotency and does not expose optimistic concurrency inputs", () => {
     const namespace = schema.getType("OrdersMutation");
     expect(isObjectType(namespace)).toBe(true);
     if (!isObjectType(namespace)) return;
 
-    const concurrencyExempt = new Set(["orderCreate", "ordersBulkAction"]);
     for (const operation of Object.values(namespace.getFields())) {
       expect(operation.args.map((argument) => argument.name)).toEqual(["input"]);
       const input = getNamedType(operation.args[0].type);
@@ -142,10 +141,8 @@ describe("Orders Admin GraphQL contract", () => {
       if (!isInputObjectType(input)) continue;
 
       expect(String(input.getFields().idempotencyKey?.type)).toBe("String!");
-      if (concurrencyExempt.has(operation.name)) continue;
-
       const concurrencyFields = ["expectedVersion", "expectedEditVersion", "expectedOrderVersion"];
-      expect(concurrencyFields.some((name) => input.getFields()[name] !== undefined)).toBe(true);
+      expect(concurrencyFields.every((name) => input.getFields()[name] === undefined)).toBe(true);
     }
   });
 

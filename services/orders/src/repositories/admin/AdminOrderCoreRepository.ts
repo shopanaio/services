@@ -24,7 +24,6 @@ import { BaseRepository } from "../BaseRepository.js";
 
 export type OrderRow = Readonly<{
   id: string;
-  version: number;
   status: "DRAFT" | "OPEN" | "CLOSED" | "CANCELLED";
   currency_code: string;
   total_amount: string;
@@ -63,7 +62,7 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
 
   protected async lockOrderById(storeId: string, orderId: string): Promise<OrderRow> {
     const rows = await this.connection.execute<OrderRow>(sql`
-      SELECT id, version, status, currency_code, total_amount::text AS total_amount,
+      SELECT id, status, currency_code, total_amount::text AS total_amount,
         payment_status, fulfillment_status, delivery_status, return_status,
         customer_id, metadata, placed_at::text AS placed_at
       FROM orders.orders
@@ -77,23 +76,17 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
   protected async lockEdit(request: AdminOrderCommandInput): Promise<{
     id: string;
     orderId: string;
-    orderVersion: number;
-    version: number;
     currencyCode: string;
   }> {
     const editId = requiredUuid(request.input, "editId");
-    const expectedEditVersion = requiredPositiveInt(request.input, "expectedEditVersion");
     const rows = await this.connection.execute<{
       id: string;
       orderId: string;
-      orderVersion: number;
-      version: number;
       currencyCode: string;
       status: string;
       expiresAt: string;
     }>(sql`
-      SELECT edit.id, edit.order_id AS "orderId", current_order.version AS "orderVersion",
-        edit.version, edit.currency_code AS "currencyCode", edit.status,
+      SELECT edit.id, edit.order_id AS "orderId", edit.currency_code AS "currencyCode", edit.status,
         edit.expires_at::text AS "expiresAt"
       FROM orders.order_edit_sessions edit
       JOIN orders.orders current_order
@@ -105,14 +98,12 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
     if (!edit) throw new Error("ORDER_EDIT_NOT_FOUND");
     if (edit.status !== "ACTIVE") throw new Error("ORDER_EDIT_NOT_ACTIVE");
     if (Date.parse(edit.expiresAt) <= Date.now()) throw new Error("ORDER_EDIT_EXPIRED");
-    if (edit.version !== expectedEditVersion) throw new Error("ORDER_EDIT_VERSION_CONFLICT");
     return edit;
   }
 
   protected async lockFulfillmentOrder(request: AdminOrderCommandInput): Promise<{
     id: string;
     orderId: string;
-    version: number;
     status: string;
     holdReason: string | null;
   }> {
@@ -120,20 +111,16 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
     const rows = await this.connection.execute<{
       id: string;
       orderId: string;
-      version: number;
       status: string;
       holdReason: string | null;
     }>(sql`
-      SELECT id, order_id AS "orderId", version, status, hold_reason AS "holdReason"
+      SELECT id, order_id AS "orderId", status, hold_reason AS "holdReason"
       FROM orders.order_fulfillment_orders
       WHERE store_id = ${request.context.storeId} AND id = ${id}
       FOR UPDATE
     `);
     const fulfillment = rows[0];
     if (!fulfillment) throw new Error("FULFILLMENT_ORDER_NOT_FOUND");
-    if (fulfillment.version !== requiredPositiveInt(request.input, "expectedVersion")) {
-      throw new Error("FULFILLMENT_ORDER_VERSION_CONFLICT");
-    }
     return fulfillment;
   }
 
@@ -147,10 +134,8 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
       id: string;
       orderId: string;
       externalId: string | null;
-      orderVersion: number;
     }>(sql`
-      SELECT shipment.id, shipment.order_id AS "orderId", shipment.external_id AS "externalId",
-        current_order.version AS "orderVersion"
+      SELECT shipment.id, shipment.order_id AS "orderId", shipment.external_id AS "externalId"
       FROM orders.order_shipments shipment
       JOIN orders.orders current_order
         ON current_order.store_id = shipment.store_id AND current_order.id = shipment.order_id
@@ -159,35 +144,27 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
     `);
     const shipment = rows[0];
     if (!shipment) throw new Error("ORDER_SHIPMENT_NOT_FOUND");
-    if (shipment.orderVersion !== requiredPositiveInt(request.input, "expectedVersion")) {
-      throw new Error("ORDER_VERSION_CONFLICT");
-    }
     return shipment;
   }
 
   protected async lockReturn(request: AdminOrderCommandInput): Promise<{
     id: string;
     orderId: string;
-    version: number;
     status: string;
   }> {
     const id = requiredUuid(request.input, "returnId");
     const rows = await this.connection.execute<{
       id: string;
       orderId: string;
-      version: number;
       status: string;
     }>(sql`
-      SELECT id, order_id AS "orderId", version, status
+      SELECT id, order_id AS "orderId", status
       FROM orders.order_return_requests
       WHERE store_id = ${request.context.storeId} AND id = ${id}
       FOR UPDATE
     `);
     const returned = rows[0];
     if (!returned) throw new Error("ORDER_RETURN_NOT_FOUND");
-    if (returned.version !== requiredPositiveInt(request.input, "expectedVersion")) {
-      throw new Error("ORDER_RETURN_VERSION_CONFLICT");
-    }
     return returned;
   }
 
@@ -199,18 +176,17 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
     happenedAt: string,
     activityId?: string,
   ): Promise<MutableAdminOrderCommandResult> {
-    const updated = await this.connection.execute<{ version: number }>(sql`
+    const updated = await this.connection.execute<{ id: string }>(sql`
       UPDATE orders.orders
-      SET version = version + 1, updated_at = GREATEST(updated_at, ${happenedAt}::timestamptz)
-      WHERE store_id = ${request.context.storeId} AND id = ${order.id} AND version = ${order.version}
-      RETURNING version
+      SET updated_at = GREATEST(updated_at, ${happenedAt}::timestamptz)
+      WHERE store_id = ${request.context.storeId} AND id = ${order.id}
+      RETURNING id
     `);
-    const version = updated[0]?.version;
-    if (!version) throw new Error("ORDER_VERSION_CONFLICT");
-    await this.insertAudit(request, order.id, version, command, payload, happenedAt, activityId);
+    if (!updated[0]) throw new Error("ORDER_NOT_FOUND");
+    await this.insertAudit(request, order.id, command, payload, happenedAt, activityId);
     return {
       orderId: order.id,
-      orderVersion: version,
+      orderVersion: null,
       resourceId: order.id,
       operationId: null,
     };
@@ -219,7 +195,6 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
   protected async insertAudit(
     request: AdminOrderCommandInput,
     orderId: string,
-    version: number,
     eventType: string,
     payload: unknown,
     happenedAt: string,
@@ -227,46 +202,32 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
   ): Promise<void> {
     const safePayload = JSON.stringify(jsonObject(payload));
     await this.connection.execute(sql`
-      INSERT INTO orders.order_revisions (
-        store_id, order_id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        snapshot, reason, created_by_type, created_by_id, created_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
-        delivery_status, return_status, currency_code, subtotal_amount, discount_amount,
-        shipping_amount, tax_amount, duty_amount, adjustment_amount, total_amount,
-        jsonb_build_object('eventType', ${eventType}, 'payload', ${safePayload}::jsonb),
-        ${eventType}, ${request.context.actor.type}, ${request.context.actor.id}, ${happenedAt}
-      FROM orders.orders
-      WHERE store_id = ${request.context.storeId} AND id = ${orderId} AND version = ${version}
-    `);
-    await this.connection.execute(sql`
       INSERT INTO orders.order_events (
-        store_id, order_id, event_type, order_version, visibility, actor_type, actor_id,
+        store_id, order_id, event_type, visibility, actor_type, actor_id,
         correlation_id, idempotency_key, payload, happened_at
       ) VALUES (
-        ${request.context.storeId}, ${orderId}, ${eventType}, ${version}, 'INTERNAL',
+        ${request.context.storeId}, ${orderId}, ${eventType}, 'INTERNAL',
         ${request.context.actor.type}, ${request.context.actor.id}, ${request.context.correlationId},
         ${requiredString(request.input, "idempotencyKey")}, ${safePayload}::jsonb, ${happenedAt}
       )
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_status_history (
-        store_id, order_id, order_version, order_status, payment_status,
+        store_id, order_id, order_status, payment_status,
         fulfillment_status, delivery_status, return_status, reason_code,
         actor_type, actor_id, metadata, happened_at
-      ) SELECT store_id, id, version, status, payment_status, fulfillment_status,
+      ) SELECT store_id, id, status, payment_status, fulfillment_status,
         delivery_status, return_status, ${eventType}, ${request.context.actor.type},
         ${request.context.actor.id}, ${safePayload}::jsonb, ${happenedAt}
       FROM orders.orders
-      WHERE store_id = ${request.context.storeId} AND id = ${orderId} AND version = ${version}
+      WHERE store_id = ${request.context.storeId} AND id = ${orderId}
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_activity (
-        id, store_id, order_id, order_version, activity_type, visibility,
+        id, store_id, order_id, activity_type, visibility,
         actor_type, actor_id, message, payload, happened_at
       ) VALUES (
-        ${activityId ?? (await this.generateUuidV7())}, ${request.context.storeId}, ${orderId}, ${version}, ${eventType},
+        ${activityId ?? (await this.generateUuidV7())}, ${request.context.storeId}, ${orderId}, ${eventType},
         ${eventType === "orderCommentAdd" && request.input.visibility === "CUSTOMER" ? "CUSTOMER" : "INTERNAL"},
         ${request.context.actor.type}, ${request.context.actor.id},
         ${eventType === "orderCommentAdd" ? requiredString(request.input, "comment") : null},
@@ -285,20 +246,20 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
     const safePayload = JSON.stringify(jsonObject(payload));
     await this.connection.execute(sql`
       INSERT INTO orders.order_events (
-        store_id, order_id, event_type, order_version, visibility, actor_type, actor_id,
+        store_id, order_id, event_type, visibility, actor_type, actor_id,
         correlation_id, idempotency_key, payload, happened_at
       ) VALUES (
-        ${request.context.storeId}, ${order.id}, ${eventType}, ${order.version}, 'INTERNAL',
+        ${request.context.storeId}, ${order.id}, ${eventType}, 'INTERNAL',
         ${request.context.actor.type}, ${request.context.actor.id}, ${request.context.correlationId},
         ${requiredString(request.input, "idempotencyKey")}, ${safePayload}::jsonb, ${happenedAt}
       )
     `);
     await this.connection.execute(sql`
       INSERT INTO orders.order_activity (
-        store_id, order_id, order_version, activity_type, visibility, actor_type, actor_id,
+        store_id, order_id, activity_type, visibility, actor_type, actor_id,
         payload, happened_at
       ) VALUES (
-        ${request.context.storeId}, ${order.id}, ${order.version}, ${eventType}, 'INTERNAL',
+        ${request.context.storeId}, ${order.id}, ${eventType}, 'INTERNAL',
         ${request.context.actor.type}, ${request.context.actor.id}, ${safePayload}::jsonb, ${happenedAt}
       )
     `);
@@ -841,9 +802,9 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
     `);
   }
 
-  protected async bumpFulfillmentVersion(storeId: string, id: string, now: string): Promise<void> {
+  protected async touchFulfillmentOrder(storeId: string, id: string, now: string): Promise<void> {
     await this.connection.execute(sql`
-      UPDATE orders.order_fulfillment_orders SET version = version + 1, updated_at = ${now}
+      UPDATE orders.order_fulfillment_orders SET updated_at = ${now}
       WHERE store_id = ${storeId} AND id = ${id}
     `);
   }
