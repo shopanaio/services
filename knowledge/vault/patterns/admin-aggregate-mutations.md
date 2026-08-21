@@ -409,8 +409,7 @@ group. Внутренний порядок SQL может отличаться �
   не мутируют caller-owned arrays, objects или accumulator; change hints всегда возвращаются из
   durable step result;
 - prevalidation и apply не создают N+1 database calls: IDs собираются и читаются batch-запросами,
-  где это возможно. Размер массивов operations и вложенных batch inputs ограничивается на input
-  boundary; расчёты cardinality/combinations проверяют переполнение и safe-integer range;
+  где это возможно; расчёты cardinality/combinations проверяют переполнение и safe-integer range;
 - до первого write step проверены auth/tenant scope, ownership и aggregate-wide invariants;
 - contract явно определяет atomicity: partial apply допустим только для независимых operations;
   распределённые изменения с необходимой отменой реализуются durable saga с compensation;
