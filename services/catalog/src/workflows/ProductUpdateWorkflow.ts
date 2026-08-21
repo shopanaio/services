@@ -193,6 +193,11 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       };
     }
 
+    const aggregateScopeValidation = validateOperationAggregateScope(input);
+    if (!aggregateScopeValidation.valid) {
+      return { ...aggregateScopeValidation, productFound: true };
+    }
+
     const operationShapeValidation = validateVariantOptionOperationShapes(input.operations);
     if (!operationShapeValidation.valid) {
       return { ...operationShapeValidation, productFound: true };
@@ -260,7 +265,11 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       });
       optionUpdates.push({
         operationIndex: position,
-        options: { variantId: operation.params.variantId, links: operation.params.options.set },
+        options: {
+          operationIndex: position,
+          variantId: operation.params.variantId,
+          links: operation.params.options.set,
+        },
       });
     }
 
@@ -512,7 +521,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       };
     }
 
-    const allProductVariants = await this.read<Array<{ id: string }>>(
+    const allProductVariants = await this.read<Array<{ id: string; isDefault: boolean }>>(
       { type: "variants", productId: input.productId },
       context,
     );
@@ -622,6 +631,17 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
 
       const params = op.params;
       if (params.options) {
+        if (
+          op.type === "variantUpdate" &&
+          params.options.set.length === 0 &&
+          variantById.get(params.variantId)?.isDefault === false
+        ) {
+          addError(index, {
+            message: "Non-default variant must have at least one option value",
+            code: "INVALID_OPTIONS",
+            field: fieldPath(op, "options"),
+          });
+        }
         validateVariantOptions({
           op,
           index,
@@ -1546,16 +1566,18 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       }
     }
 
-    const resultByVariantId = new Map(results.map((result) => [result.variantId, result]));
-    if (resultByVariantId.size !== updates.length) {
-      throw new Error("Variant option batch returned duplicate or incomplete variant results");
+    const resultByOperationIndex = new Map(
+      results.map((result) => [result.operationIndex, result]),
+    );
+    if (resultByOperationIndex.size !== updates.length) {
+      throw new Error("Variant option batch returned duplicate or incomplete operation results");
     }
 
     return {
       result: updates.map((update) => {
-        const result = resultByVariantId.get(update.options.variantId);
+        const result = resultByOperationIndex.get(update.operationIndex);
         if (!result) {
-          throw new Error("Variant option batch omitted a requested variant");
+          throw new Error("Variant option batch omitted a requested operation");
         }
         return {
           operationIndex: update.operationIndex,
@@ -1782,6 +1804,56 @@ function isComponentOperation(op: ProductUpdateOperation): op is ComponentWorkfl
   return op.type.startsWith("productComponent");
 }
 
+/** Every operation in a product aggregate workflow must target its root. */
+function validateOperationAggregateScope(
+  input: ProductUpdateWorkflowInput,
+): VariantBatchValidationResult {
+  const errorsByOperationIndex: Record<number, UserError[]> = {};
+  const userErrors: UserError[] = [];
+
+  for (const [index, operation] of input.operations.entries()) {
+    const targetProductId = operationTargetProductId(operation);
+    if (targetProductId === undefined || targetProductId === input.productId) continue;
+
+    const error: UserError = {
+      message: "Operation does not belong to the requested product",
+      code: "AGGREGATE_SCOPE_MISMATCH",
+      field:
+        operation.type === "productUpdate"
+          ? productIdFieldPath(operation.meta?.fieldPrefix ?? [])
+          : fieldPath(operation, "productId"),
+    };
+    errorsByOperationIndex[index] = [error];
+    userErrors.push(error);
+  }
+
+  return { valid: userErrors.length === 0, errorsByOperationIndex, userErrors };
+}
+
+function operationTargetProductId(operation: ProductUpdateOperation): string | undefined {
+  switch (operation.type) {
+    case "productUpdate":
+      return operation.params.id;
+    case "productCategoryUpdate":
+    case "productTagUpdate":
+    case "productOptionsSync":
+    case "productFeaturesSync":
+    case "productComponentSettingsUpdate":
+    case "productComponentRemove":
+    case "productComponentConfigurationCreate":
+    case "productComponentConfigurationUpdate":
+    case "productComponentConfigurationDelete":
+    case "productComponentGroupsSync":
+    case "productComponentPricingTemplatesSync":
+    case "productComponentDependencyRulesSync":
+    case "variantCreate":
+      return operation.params.productId;
+    case "variantUpdate":
+    case "variantDelete":
+      return undefined;
+  }
+}
+
 function isVariantOptionsBatch(item: AggregateOperationPlanItem): boolean {
   return (item as ProductOperationPlanItem).batchVariantOptions === true;
 }
@@ -1821,6 +1893,30 @@ function validateVariantOptionOperationShapes(
   const optionUpdatePositions = operations.flatMap((operation, index) =>
     operation.type === "variantUpdate" && operation.params.options ? [index] : [],
   );
+  const optionUpdatePositionByVariantId = new Map<string, number>();
+  for (const position of optionUpdatePositions) {
+    const operation = operations[position]!;
+    if (operation.type !== "variantUpdate") continue;
+    const previousPosition = optionUpdatePositionByVariantId.get(operation.params.variantId);
+    if (previousPosition === undefined) {
+      optionUpdatePositionByVariantId.set(operation.params.variantId, position);
+      continue;
+    }
+
+    for (const duplicatePosition of [previousPosition, position]) {
+      const duplicateOperation = operations[duplicatePosition]!;
+      const error: UserError = {
+        message: "Variant option updates may target a variant only once per batch",
+        code: "DUPLICATE_VARIANT_OPTION_UPDATE",
+        field: fieldPath(duplicateOperation, "options"),
+      };
+      errorsByOperationIndex[duplicatePosition] = [
+        ...(errorsByOperationIndex[duplicatePosition] ?? []),
+        error,
+      ];
+      userErrors.push(error);
+    }
+  }
   if (
     optionUpdatePositions.length > 1 &&
     optionUpdatePositions.some(

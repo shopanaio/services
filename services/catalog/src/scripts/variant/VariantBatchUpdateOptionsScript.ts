@@ -12,6 +12,7 @@ export interface VariantOptionLink {
 }
 
 export interface VariantOptionsUpdate {
+  readonly operationIndex: number;
   readonly variantId: string;
   readonly links: VariantOptionLink[];
 }
@@ -22,6 +23,7 @@ export interface VariantBatchUpdateOptionsParams {
 }
 
 export interface VariantBatchUpdateResult {
+  readonly operationIndex: number;
   readonly variantId: string;
   readonly applied: boolean;
   readonly errors: UserError[];
@@ -66,6 +68,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
 
     const results: VariantBatchUpdateResult[] = [];
     const validUpdates: Array<{
+      operationIndex: number;
       variant: Variant;
       links: VariantOptionLink[];
       currentLinks: ProductOptionVariantLink[];
@@ -76,6 +79,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
       const variant = variantMap.get(update.variantId);
       if (!variant) {
         results.push({
+          operationIndex: update.operationIndex,
           variantId: update.variantId,
           applied: false,
           errors: [{ message: "Variant not found", code: "NOT_FOUND", field: ["variantId"] }],
@@ -85,6 +89,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
       }
       // Variant already filtered to productId, no need to check again
       validUpdates.push({
+        operationIndex: update.operationIndex,
         variant,
         links: update.links,
         currentLinks: [] as ProductOptionVariantLink[],
@@ -182,6 +187,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
 
       if (errors.length > 0) {
         results.push({
+          operationIndex: update.operationIndex,
           variantId: variant.id,
           applied: false,
           errors,
@@ -212,6 +218,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     for (const update of updatesToApply) {
       if (!updatesWithChanges.includes(update)) {
         results.push({
+          operationIndex: update.operationIndex,
           variantId: update.variant.id,
           applied: true,
           errors: [],
@@ -264,40 +271,9 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
     );
 
     if (duplicateHandles.length > 0) {
-      // Rollback: restore original links and handles
-      for (const update of updatesWithChanges) {
-        await this.repository.option.clearVariantLinks(update.variant.id);
-        for (const link of update.currentLinks) {
-          if (link.optionValueId) {
-            await this.repository.option.linkVariant(
-              update.variant.id,
-              link.optionId,
-              link.optionValueId,
-            );
-          }
-        }
-        await this.repository.variant.update(update.variant.id, {
-          handle: update.variant.handle,
-        });
-      }
-
-      // Mark all as failed
-      for (const update of updatesWithChanges) {
-        results.push({
-          variantId: update.variant.id,
-          applied: false,
-          errors: [
-            {
-              message: "Another variant with the same option combination already exists",
-              code: "DUPLICATE_OPTIONS",
-              field: ["links"],
-            },
-          ],
-          changes: null,
-        });
-      }
-
-      return successResult(results, null);
+      // Writes have already started. The enclosing DBOS transactional step
+      // must roll back domain changes and its checkpoint atomically.
+      throw new Error("Variant option batch produced duplicate handles after writes");
     }
 
     // 10. Apply final handles
@@ -306,34 +282,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
 
       // Non-default variants must have non-empty handle
       if (!update.variant.isDefault && newHandle === "") {
-        // Rollback this variant
-        await this.repository.option.clearVariantLinks(update.variant.id);
-        for (const link of update.currentLinks) {
-          if (link.optionValueId) {
-            await this.repository.option.linkVariant(
-              update.variant.id,
-              link.optionId,
-              link.optionValueId,
-            );
-          }
-        }
-        await this.repository.variant.update(update.variant.id, {
-          handle: update.variant.handle,
-        });
-
-        results.push({
-          variantId: update.variant.id,
-          applied: false,
-          errors: [
-            {
-              message: "Non-default variant must have at least one option value",
-              code: "INVALID_OPTIONS",
-              field: ["links"],
-            },
-          ],
-          changes: null,
-        });
-        continue;
+        throw new Error("Non-default variant produced an empty handle after option writes");
       }
 
       // Do not catch unique-constraint errors here. In a DBOS transaction,
@@ -343,6 +292,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
       await this.repository.variant.update(update.variant.id, { handle: newHandle });
 
       results.push({
+        operationIndex: update.operationIndex,
         variantId: update.variant.id,
         applied: true,
         errors: [],
