@@ -14,9 +14,10 @@ related:
 
 # Transactional Steps
 
-`@TransactionalStep()` is the durable database-write boundary for DBOS
-workflows. It atomically commits both service PostgreSQL writes and the DBOS
-result checkpoint stored in `dbos.transaction_completion`.
+`createTransactionalStep()` creates a service-local `@TransactionalStep()`
+decorator — the durable database-write boundary for DBOS workflows. It
+atomically commits both service PostgreSQL writes and the DBOS result checkpoint
+stored in `dbos.transaction_completion`.
 
 ## Contract
 
@@ -25,6 +26,9 @@ result checkpoint stored in `dbos.transaction_completion`.
   belong in separate `@SideEffectStep()` calls.
 - Let errors escape the callback. Returning a failure value would commit the
   transaction and checkpoint it as success.
+- Scripts called from a transactional step must rethrow unexpected database
+  errors rather than convert them to user-error results; otherwise an already
+  aborted PostgreSQL transaction could be committed as a partial operation.
 - Do not wrap a transactional step in `DBOS.runStep()`.
 - There are intentionally no JavaScript timeout, application retry, read-only
   or non-critical options.
@@ -57,12 +61,14 @@ DBOS owns datasource pool shutdown.
 ## Usage
 
 ```typescript
-@TransactionalStep({
+const TransactionalStep = createTransactionalStep({
   txManager: (self: ProductWorkflow) =>
     self.kernel.repository.txManager,
   bridge: (self: ProductWorkflow) =>
     self.kernel.repository.dbosTransactionBridge,
-})
+});
+
+@TransactionalStep()
 private async writeProduct(input: Input): Promise<Result> {
   return this.kernel.runScript(WriteProductScript, input);
 }
