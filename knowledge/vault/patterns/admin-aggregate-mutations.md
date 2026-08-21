@@ -11,6 +11,7 @@ tags:
 related:
   - patterns/no-cas
   - patterns/admin-graphql-layer
+  - packages/dbos/idempotency
   - packages/dbos/workflows
   - packages/dbos/transactional-steps
   - architecture/transactional-outbox
@@ -35,10 +36,10 @@ aggregate root, должны проходить через одну объеди
 запрещены.
 
 Удаление самого aggregate root не является update operation. Оно всегда выражается отдельной
-мутацией `<aggregate>Delete`, которая запускает отдельный durable `<Aggregate>DeleteWorkflow` и после
-успешного transactional commit публикует `<aggregate>Deleted`. Это правило действует и для soft
-delete, и для physical delete корня. Удаление owned entities внутри сохраняемого aggregate остаётся
-частью `<aggregate>Update` operations.
+мутацией `<aggregate>Delete`, которая запускает отдельный durable `<Aggregate>DeleteWorkflow` и
+после успешного transactional commit публикует `<aggregate>Deleted`. Это правило действует и для
+soft delete, и для physical delete корня. Удаление owned entities внутри сохраняемого aggregate
+остаётся частью `<aggregate>Update` operations.
 
 Эталон паттерна — `productUpdate` и `ProductUpdateWorkflow`: resolver преобразует GraphQL input в
 упорядоченные внутренние operations, запускает один durable workflow, workflow применяет operations
@@ -115,8 +116,8 @@ type ExampleDeletePayload {
 }
 ```
 
-Delete input может содержать только параметры самой delete-команды. В него нельзя переносить
-update operations или CRUD owned entities.
+Delete input может содержать только параметры самой delete-команды. В него нельзя переносить update
+operations или CRUD owned entities.
 
 Контракт должен соблюдать следующие правила:
 
@@ -144,12 +145,64 @@ Admin resolver не выполняет domain writes и не публикует 
    `broker.runWorkflow()`;
 6. преобразованием workflow result обратно в GraphQL payload.
 
-Workflow ID/idempotency context должен быть детерминированным для логического admin request. Один и
-тот же повторно доставленный request не должен запускать второй набор изменений.
+Root workflow каждой Admin aggregate mutation — `<aggregate>Create`, `<aggregate>Update` и
+`<aggregate>Delete` — обязан запускаться с `time-window` idempotency context. Один и тот же semantic
+request, повторно доставленный в пределах окна, не должен запускать второй набор изменений.
 
 Прямой вызов write script/repository из resolver запрещён. Публикация `<aggregate>Updated`,
 `<aggregate>Created` или `<aggregate>Deleted` из resolver также запрещена: между commit и emit
 возникнет недолговечный разрыв, который невозможно надёжно восстановить после падения процесса.
+
+### Time-window idempotency
+
+Admin aggregate mutation resolver обязан использовать новый DBOS context:
+
+```ts
+await broker.runWorkflow(
+  "example.exampleUpdate",
+  workflowInput,
+  {
+    source: "time-window",
+    organizationId: ctx.store.organizationId,
+    resourceId: aggregateId,
+    operation: "exampleUpdate",
+    content: workflowInput.operations,
+    requestTimestamp: ctx.requestTimestamp,
+    windowMs: 5_000,
+  },
+  { adminContext: ctx.adminContext },
+);
+```
+
+Контракт обязателен для `<aggregate>Create`, `<aggregate>Update` и `<aggregate>Delete`:
+
+- `requestTimestamp` назначается один раз на gateway/Fastify boundary и берётся из request-scoped
+  `ServiceContext`; resolver и workflow не вызывают `Date.now()` для idempotency;
+- `windowMs` для Admin aggregate mutations равен `5_000`;
+- `organizationId` обязателен для tenant isolation;
+- `resourceId` для update/delete равен decoded aggregate root ID; для create используется
+  детерминированная business identity команды, а если root ID создаётся внутри workflow — store ID
+  вместе с уникальным operation name;
+- `operation` является стабильным qualified semantic name команды без timestamp или request ID;
+- `content` содержит только нормализованный semantic input команды: mapped operations для update,
+  create input для create и параметры delete-команды для delete;
+- `requestId`, `requestTimestamp`, actor/user metadata, tracing headers и другие volatile transport
+  values запрещено включать в `content` или `contentHash`;
+- одинаковый semantic hash в пределах пяти секунд возвращает сохранённый результат завершённого
+  workflow либо присоединяется к уже выполняющемуся workflow; второй workflow не запускается;
+- после окончания окна тот же semantic request получает новую workflow identity и может быть
+  выполнен снова;
+- невалидные timestamp/window/content завершаются `INVALID_TIME_WINDOW_IDEMPOTENCY_CONTEXT`, а не
+  fallback-ом на случайный workflow ID.
+
+Разрешение соседних временных buckets и durable start сериализуются внутри `WorkflowRegistry` одним
+PostgreSQL advisory lock по semantic identity. Resolver не реализует собственные lookup, mutex,
+cache debounce или округление timestamp.
+
+`source: "content"`, content с вложенным `requestId`, resolver-generated UUID и явный
+`options.workflowId` запрещены для root workflow Admin aggregate mutation. Это правило не меняет
+idempotency дочерних workflow: child workflow/event publication по-прежнему используют
+`source: "workflow"` с parent `DBOS.workflowID`, стабильными `stepId` и `callId`.
 
 ## Durable workflow
 
@@ -267,9 +320,9 @@ group. Внутренний порядок SQL может отличаться �
 
 ### Критерии качества workflow
 
-- workflow имеет единственный broker-registered `@Workflow` entry point и детерминированный
-  idempotency context с tenant scope; повтор одного логического request не создаёт второй набор
-  изменений;
+- workflow имеет единственный broker-registered `@Workflow` entry point; root Admin aggregate
+  mutation запускает его только с `source: "time-window"`, tenant scope, transport-assigned
+  `requestTimestamp`, `windowMs: 5_000` и semantic content без volatile metadata;
 - body replay-safe: порядок, ветвления и аргументы steps зависят только от input и сохранённых step
   results; ID, время, random и другие nondeterministic values создаются только в durable step;
 - все значимые этапы имеют отдельную durable step boundary, а database writes выполняются только в
@@ -387,9 +440,9 @@ Infrastructure exception не маскируется под `userErrors`: он �
 ## Публикация aggregate event
 
 После фактического изменения aggregate update-workflow обязан публиковать доменное событие
-`<aggregate>Updated`; create-workflow после создания публикует `<aggregate>Created`, а delete-workflow
-после удаления публикует `<aggregate>Deleted`. Публикация выполняется после завершения всех
-соответствующих database transactions и отдельно от них.
+`<aggregate>Updated`; create-workflow после создания публикует `<aggregate>Created`, а
+delete-workflow после удаления публикует `<aggregate>Deleted`. Публикация выполняется после
+завершения всех соответствующих database transactions и отдельно от них.
 
 Предпочтительный путь соответствует `ProductUpdateWorkflow`:
 
@@ -448,8 +501,8 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 - отдельные CRUD mutations для owned entities aggregate;
 - отдельные `publish`, `unpublish`, `move`, `attach`, `detach`, `setMedia` mutations вместо
   operations;
-- удаление aggregate root через `<aggregate>Update` operation вместо отдельной
-  `<aggregate>Delete` mutation и durable workflow;
+- удаление aggregate root через `<aggregate>Update` operation вместо отдельной `<aggregate>Delete`
+  mutation и durable workflow;
 - resolver, последовательно вызывающий несколько write scripts или repositories;
 - `<aggregate>Create`, который пишет напрямую, не запускает durable workflow или не публикует
   `<aggregate>Created` после commit;
@@ -465,6 +518,11 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 - version/revision/timestamp/hash predicate, read-compare-write или affected-row conflict,
   используемые как CAS precondition;
 - custom outbox table, publish queue или polling worker;
+- `source: "content"`, request ID, resolver-generated UUID или explicit workflow ID как idempotency
+  identity root Admin aggregate mutation;
+- вычисление `requestTimestamp` внутри resolver/workflow или включение timestamp в semantic content
+  hash;
+- локальный cache/mutex/status lookup вместо атомарного time-window resolution в `WorkflowRegistry`;
 - альтернативный внутренний endpoint, обходящий aggregate workflow для той же операции.
 
 ## Review checklist
@@ -473,13 +531,14 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 
 1. Все writes сохраняемого aggregate доступны через одну `<aggregate>Update` с `operations`;
    удаление самого aggregate root доступно только через отдельную `<aggregate>Delete`.
-2. Owned entity CRUD и lifecycle changes, кроме удаления aggregate root, представлены operations,
-   а не отдельными mutations.
+2. Owned entity CRUD и lifecycle changes, кроме удаления aggregate root, представлены operations, а
+   не отдельными mutations.
 3. Resolver только декодирует/map-ит input и запускает durable workflow, включая lifecycle-команды
    `<aggregate>Create` и `<aggregate>Delete`.
-4. Каждый workflow зарегистрирован как `<service>.<aggregate>Update`,
-   `<service>.<aggregate>Create` или `<service>.<aggregate>Delete` и имеет детерминированную
-   idempotency identity.
+4. Каждый workflow зарегистрирован как `<service>.<aggregate>Update`, `<service>.<aggregate>Create`
+   или `<service>.<aggregate>Delete`; root resolver запускает его с `source: "time-window"`,
+   `organizationId`, semantic `resourceId`/`operation`/`content`, transport-assigned
+   `requestTimestamp` и `windowMs: 5_000`.
 5. Каждая database operation выполняется в `@TransactionalStep()`.
 6. Aggregate-wide инварианты проверены до несовместимых writes.
 7. `operationResults` сохраняют порядок input и точные GraphQL error paths.
@@ -487,7 +546,8 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
    `@ChildWorkflowStep()` и запускаются из workflow body; внутри transactional steps их нет.
 9. `<aggregate>Updated`, `<aggregate>Created` или `<aggregate>Deleted` публикуется durable после
    commit и только при фактическом изменении, создании или удалении.
-10. Повторный request или workflow replay не дублирует writes и события.
+10. Повторный semantic request в пределах пяти секунд получает тот же result/in-flight workflow;
+    workflow replay не дублирует writes и события, а volatile request metadata не входит в hash.
 11. Новый endpoint не создаёт второй write path к тому же aggregate.
 12. Любое исключение из unified mutation rule документировано как отдельное архитектурное решение.
 13. На write path нет CAS columns, predicates, tokens, stale-object conflicts или client retry
