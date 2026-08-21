@@ -13,12 +13,12 @@ export interface TransactionalStepMetadata<TSelf = unknown, TDatabase = unknown>
 }
 
 /**
- * Mark a workflow method as a DBOS datasource transaction.
+ * Create a service-local decorator for DBOS datasource transactions.
  *
  * Transactional steps intentionally do not expose JavaScript timeouts,
  * application retry policies, read-only mode or non-critical failure values.
  */
-export function TransactionalStep<TSelf = unknown, TDatabase = unknown>(
+export function createTransactionalStep<TSelf = unknown, TDatabase = unknown>(
   metadata: TransactionalStepMetadata<TSelf, TDatabase>,
 ): MethodDecorator {
   return function (

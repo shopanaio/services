@@ -1,7 +1,7 @@
 export { type DbosTransactionBridge } from "./DbosTransactionBridge.js";
 export { PostgresDbosTransactionBridge } from "./PostgresDbosTransactionBridge.js";
 export {
-  TransactionalStep,
+  createTransactionalStep,
   TRANSACTIONAL_STEP_METADATA_KEY,
   type TransactionalStepMetadata,
 } from "./decorators.js";

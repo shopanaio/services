@@ -120,7 +120,7 @@ export {
 // ============================================================================
 
 export {
-  TransactionalStep,
+  createTransactionalStep,
   TRANSACTIONAL_STEP_METADATA_KEY,
   TransactionalStepConfigurationError,
   PostgresDbosTransactionBridge,

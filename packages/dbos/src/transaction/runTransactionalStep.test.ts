@@ -4,7 +4,7 @@ import { DBOS } from "@dbos-inc/dbos-sdk";
 import type { PostgresTransactionOptions } from "@dbos-inc/postgres-datasource";
 import { getSignal } from "../step/StepExecutionContext.js";
 import type { DbosTransactionBridge } from "./DbosTransactionBridge.js";
-import { TRANSACTIONAL_STEP_METADATA_KEY, TransactionalStep } from "./decorators.js";
+import { createTransactionalStep, TRANSACTIONAL_STEP_METADATA_KEY } from "./decorators.js";
 import { TransactionalStepConfigurationError } from "./errors.js";
 import { runTransactionalStep, type TransactionManagerLike } from "./runTransactionalStep.js";
 
@@ -145,7 +145,7 @@ describe("@TransactionalStep", () => {
       readonly txManager = runtime.txManager;
       readonly bridge = runtime.bridge;
 
-      @TransactionalStep<Subject, ScopedDatabase>({
+      @createTransactionalStep<Subject, ScopedDatabase>({
         name: "catalogWrite",
         txManager: (self) => self.txManager,
         bridge: (self) => self.bridge,

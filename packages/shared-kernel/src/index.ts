@@ -125,7 +125,7 @@ export {
   WorkflowStep,
   SideEffectStep,
   ChildWorkflowStep,
-  TransactionalStep,
+  createTransactionalStep,
   WORKFLOW_METADATA_KEY,
   WORKFLOW_STEP_METADATA_KEY,
   SIDE_EFFECT_STEP_METADATA_KEY,
