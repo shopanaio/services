@@ -159,7 +159,7 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
       });
       if (inventoryLines.length > 0) {
         effects.push({
-          route: "inventory.restockOrderReturnInventory",
+          route: "catalog.restockOrderReturnInventory",
           params: {
             ...base,
             orderId: result.orderId,
@@ -308,7 +308,7 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
       }
       if (request.input.restock !== false) {
         effects.push({
-          route: "inventory.releaseCheckoutInventory",
+          route: "catalog.releaseCheckoutInventory",
           params: { ...base, idempotencyKey: `${key}:inventory`, orderId: result.orderId },
         });
       }

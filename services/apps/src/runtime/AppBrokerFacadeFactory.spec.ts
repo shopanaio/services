@@ -22,7 +22,7 @@ describe("AppBrokerFacadeFactory Commerce Function policy", () => {
       serviceName: "payments",
     });
     catalogBroker.register("readSnapshot", async () => ({ version: 1 }), { readOnly: true });
-    catalogBroker.register("updateItem", async () => ({
+    catalogBroker.register("updateInventoryItem", async () => ({
       updated: true,
     }));
     paymentsBroker.register("readInternalContract", async () => ({ secret: true }), {
@@ -50,9 +50,9 @@ describe("AppBrokerFacadeFactory Commerce Function policy", () => {
     await expect(
       contextRunner.run(context, () => facade.call("catalog.readSnapshot")),
     ).resolves.toEqual({ version: 1 });
-    expect(() => contextRunner.run(context, () => facade.call("catalog.updateItem"))).toThrow(
-      AppOutboundAuthorizationError,
-    );
+    expect(() =>
+      contextRunner.run(context, () => facade.call("catalog.updateInventoryItem")),
+    ).toThrow(AppOutboundAuthorizationError);
     expect(() =>
       contextRunner.run(context, () => facade.call("payments.readInternalContract")),
     ).toThrow(AppOutboundAuthorizationError);

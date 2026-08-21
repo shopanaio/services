@@ -35,7 +35,7 @@ export class PricingWidgetResolver extends CatalogType<PricingWidgetInput> {
   async currentCostPrice(): Promise<VariantCost | null> {
     try {
       const services = this.$ctx.kernel.getServices();
-      const cost = await services.broker.call<VariantCost | null>("inventory.getVariantCost", {
+      const cost = await services.broker.call<VariantCost | null>("catalog.getInventoryItemCost", {
         storeId: this.$ctx.store.id,
         variantId: this.$props.variantId,
         currency: this.$props.currency,

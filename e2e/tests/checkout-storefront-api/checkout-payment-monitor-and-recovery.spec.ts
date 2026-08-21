@@ -27,14 +27,14 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
 
     await kit.withActionOverrides(
       [
-        { action: 'inventory.confirmCheckoutInventory', mode: 'PASS' },
+        { action: 'catalog.confirmCheckoutInventory', mode: 'PASS' },
         { action: 'order.publishLoyaltyRewardEligible', mode: 'PASS' },
       ],
       async () => {
         await forceSessionState(kit, pending.paymentSessionId, 'CAPTURED');
         const result = await runMonitor(kit, pending.placementId);
         expect(result).toMatchObject({ status: 'PAID', placementState: 'PAYMENT_CREATED' });
-        expect(await kit.actionCalls('inventory.confirmCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('catalog.confirmCheckoutInventory')).toBe(1);
         expect(await kit.actionCalls('order.publishLoyaltyRewardEligible')).toBe(1);
       },
     );
@@ -50,7 +50,7 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
     const pending = await pendingPlacement(kit);
 
     await kit.withActionOverrides(
-      [{ action: 'inventory.releaseCheckoutInventory', mode: 'PASS' }],
+      [{ action: 'catalog.releaseCheckoutInventory', mode: 'PASS' }],
       async () => {
         await forceSessionState(kit, pending.paymentSessionId, 'FAILED', {
           category: 'PROVIDER',
@@ -64,7 +64,7 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
           status: 'PAYMENT_FAILED',
           paymentFailure: { code: 'TEST_PROVIDER_FAILED', retryable: false },
         });
-        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('catalog.releaseCheckoutInventory')).toBe(1);
       },
     );
 
@@ -89,14 +89,14 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
     await kit.withActionOverrides(
       [
         { action: 'payments.executeOperation', mode: 'PASS' },
-        { action: 'inventory.confirmCheckoutInventory', mode: 'PASS' },
+        { action: 'catalog.confirmCheckoutInventory', mode: 'PASS' },
         { action: 'order.publishLoyaltyRewardEligible', mode: 'PASS' },
       ],
       async () => {
         const result = await runMonitor(kit, pending.placementId);
         expect(result).toMatchObject({ status: 'PAID', placementState: 'PAYMENT_CREATED' });
         expect(await kit.actionCalls('payments.executeOperation')).toBe(1);
-        expect(await kit.actionCalls('inventory.confirmCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('catalog.confirmCheckoutInventory')).toBe(1);
         expect(await kit.actionCalls('order.publishLoyaltyRewardEligible')).toBe(1);
       },
     );
@@ -117,7 +117,7 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
       select payload from payments.payment_session where id = ${kit.rawId(pending.paymentSessionId)}
     `;
     await kit.withActionOverrides(
-      [{ action: 'inventory.releaseCheckoutInventory', mode: 'PASS' }],
+      [{ action: 'catalog.releaseCheckoutInventory', mode: 'PASS' }],
       async () => {
         await kit.sql`
           update payments.payment_session
@@ -135,11 +135,13 @@ test.describe('Storefront checkout asynchronous payment monitoring', () => {
           paymentFailure: { category: 'TIMEOUT', code: 'PAYMENT_PROVIDER_OPERATION_EXPIRED' },
         });
         expect(replay).toEqual(first);
-        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('catalog.releaseCheckoutInventory')).toBe(1);
       },
     );
 
-    expect(Date.parse(String(before!.payload.pendingExpiresAt))).toBeGreaterThan(Date.now() - 60_000);
+    expect(Date.parse(String(before!.payload.pendingExpiresAt))).toBeGreaterThan(
+      Date.now() - 60_000,
+    );
     const [after] = await kit.sql<{ state: string; payload: Record<string, unknown> }[]>`
       select state, payload from payments.payment_session where id = ${kit.rawId(pending.paymentSessionId)}
     `;

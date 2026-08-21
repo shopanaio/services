@@ -489,7 +489,7 @@ Additional portions:
 
 Перед применением `inventory` или `weight` гарантировать, что inventory item существует для created
 variant, вызвав тот же inventory broker boundary, который использует product create:
-`inventory.createItem`. Если предоставлен только `dimensions`, inventory item не требуется текущим
+`catalog.createInventoryItem`. Если предоставлен только `dimensions`, inventory item не требуется текущим
 dimensions script, потому что он пишет physical dimensions по `variantId`.
 
 Если variant row и option links созданы, но additional portion падает, вернуть:

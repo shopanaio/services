@@ -37,13 +37,13 @@ export interface GetVariantCostParams {
 }
 
 /**
- * Inventory broker actions registered with @Action decorator.
+ * Catalog-owned inventory broker actions registered with @Action decorator.
  * Each method decorated with @Action is automatically registered
  * as a broker action when the module initializes.
  */
 @Injectable()
 export class InventoryBrokerActions extends BrokerActions {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 
@@ -128,10 +128,12 @@ export class InventoryBrokerActions extends BrokerActions {
   }
 
   /**
-   * Action: createItem - creates an inventory item for a variant
+   * Action: createInventoryItem - creates an inventory item for a variant
    */
-  @Action("createItem")
-  async createItem(params: Inventory.CreateItemParams): Promise<Inventory.CreateItemResult> {
+  @Action("createInventoryItem")
+  async createInventoryItem(
+    params: Inventory.CreateItemParams,
+  ): Promise<Inventory.CreateItemResult> {
     return this.runWithStoreContext(params.storeId, async () => {
       const item = await this.kernel.repository.inventoryItem.upsertByVariantId(params.variantId, {
         trackInventory: params.trackInventory,
@@ -145,10 +147,10 @@ export class InventoryBrokerActions extends BrokerActions {
   }
 
   /**
-   * Action: deleteItemByVariantId - deletes an inventory item by variant ID (saga compensation)
+   * Action: deleteInventoryItemByVariantId - deletes an inventory item by variant ID (saga compensation)
    */
-  @Action("deleteItemByVariantId")
-  async deleteItemByVariantId(
+  @Action("deleteInventoryItemByVariantId")
+  async deleteInventoryItemByVariantId(
     params: Inventory.DeleteItemByVariantIdParams,
   ): Promise<Inventory.DeleteItemByVariantIdResult> {
     return this.runWithStoreContext(params.storeId, async () => {
@@ -161,10 +163,10 @@ export class InventoryBrokerActions extends BrokerActions {
   }
 
   /**
-   * Action: getVariantCost - retrieves current cost for a variant
+   * Action: getInventoryItemCost - retrieves current cost for a variant
    */
-  @Action("getVariantCost")
-  async getVariantCost(params: GetVariantCostParams): Promise<VariantCost | null> {
+  @Action("getInventoryItemCost")
+  async getInventoryItemCost(params: GetVariantCostParams): Promise<VariantCost | null> {
     return this.runWithStoreContext(params.storeId, async () => {
       const cost = await this.kernel.repository.cost.getCurrentCost({
         variantId: params.variantId,
@@ -186,10 +188,12 @@ export class InventoryBrokerActions extends BrokerActions {
   }
 
   /**
-   * Action: updateItem - updates inventory item (stock, SKU, weight, cost)
+   * Action: updateInventoryItem - updates inventory item (stock, SKU, weight, cost)
    */
-  @Action("updateItem")
-  async updateItem(params: Inventory.UpdateItemParams): Promise<Inventory.UpdateItemResult> {
+  @Action("updateInventoryItem")
+  async updateInventoryItem(
+    params: Inventory.UpdateItemParams,
+  ): Promise<Inventory.UpdateItemResult> {
     return this.runWithStoreContext(params.storeId, async () => {
       const result = await this.kernel.runScript(InventoryItemUpdateScript, {
         variantId: params.variantId,
@@ -217,10 +221,10 @@ export class InventoryBrokerActions extends BrokerActions {
   }
 
   /**
-   * Action: updateItemDimensions - updates inventory item dimensions
+   * Action: updateInventoryItemDimensions - updates inventory item dimensions
    */
-  @Action("updateItemDimensions")
-  async updateItemDimensions(
+  @Action("updateInventoryItemDimensions")
+  async updateInventoryItemDimensions(
     params: Inventory.UpdateItemDimensionsParams,
   ): Promise<Inventory.UpdateItemDimensionsResult> {
     return this.runWithStoreContext(params.storeId, async () => {

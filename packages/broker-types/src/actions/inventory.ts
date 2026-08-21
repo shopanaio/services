@@ -1,5 +1,5 @@
 /**
- * Inventory service broker action types
+ * Catalog-owned inventory broker action types
  */
 
 export const InventoryCheckoutActionNames = {
@@ -10,10 +10,10 @@ export const InventoryCheckoutActionNames = {
 } as const;
 
 export const InventoryCheckoutActions = {
-  reserve: `inventory.${InventoryCheckoutActionNames.reserve}`,
-  renew: `inventory.${InventoryCheckoutActionNames.renew}`,
-  confirm: `inventory.${InventoryCheckoutActionNames.confirm}`,
-  release: `inventory.${InventoryCheckoutActionNames.release}`,
+  reserve: `catalog.${InventoryCheckoutActionNames.reserve}`,
+  renew: `catalog.${InventoryCheckoutActionNames.renew}`,
+  confirm: `catalog.${InventoryCheckoutActionNames.confirm}`,
+  release: `catalog.${InventoryCheckoutActionNames.release}`,
 } as const;
 
 export const InventoryOrderActionNames = {
@@ -21,7 +21,7 @@ export const InventoryOrderActionNames = {
 } as const;
 
 export const InventoryOrderActions = {
-  restockReturn: `inventory.${InventoryOrderActionNames.restockReturn}`,
+  restockReturn: `catalog.${InventoryOrderActionNames.restockReturn}`,
 } as const;
 
 export interface ReserveCheckoutInventoryParams {

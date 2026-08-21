@@ -222,7 +222,7 @@ test.describe('Storefront checkout order placement and payment', () => {
 
   test('leaves the checkout READY when inventory reservation fails', async () => {
     const checkout = await readyWithoutPayment(kit);
-    const failed = await kit.withActionFault('inventory.reserveCheckoutInventory', () =>
+    const failed = await kit.withActionFault('catalog.reserveCheckoutInventory', () =>
       place(kit, checkout),
     );
     expect(failed.placementState).toBe('FAILED');
@@ -234,11 +234,11 @@ test.describe('Storefront checkout order placement and payment', () => {
     const failed = await kit.withActionOverrides(
       [
         { action: 'order.createOrderFromCheckoutPlacement', mode: 'THROW' },
-        { action: 'inventory.releaseCheckoutInventory', mode: 'PASS' },
+        { action: 'catalog.releaseCheckoutInventory', mode: 'PASS' },
       ],
       async () => {
         const result = await place(kit, checkout);
-        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('catalog.releaseCheckoutInventory')).toBe(1);
         return result;
       },
     );
@@ -255,7 +255,7 @@ test.describe('Storefront checkout order placement and payment', () => {
     await kit.withActionOverrides(
       [
         { action: 'order.createOrderFromCheckoutPlacement', mode: 'THROW' },
-        { action: 'inventory.releaseCheckoutInventory', mode: 'THROW' },
+        { action: 'catalog.releaseCheckoutInventory', mode: 'THROW' },
       ],
       () => place(kit, checkout),
     );

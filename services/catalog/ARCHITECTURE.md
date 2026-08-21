@@ -40,8 +40,8 @@ required.
 5. Each service publishes a **completion** or **failure** event:
 
    ```
-   inventory.product.updated
-   inventory.product.update.failed
+   catalog.product.updated
+   catalog.product.update.failed
    search.product.reindexed
    search.product.reindex.failed
    ...
@@ -136,12 +136,12 @@ new Worker("product-update", async (job) => {
   try {
     await updateInventoryForProduct(productId, changes);
 
-    publishStatusEvent("inventory.product.updated", {
+    publishStatusEvent("catalog.product.updated", {
       productId,
       timestamp: Date.now(),
     });
   } catch (err) {
-    publishStatusEvent("inventory.product.update.failed", {
+    publishStatusEvent("catalog.product.update.failed", {
       productId,
       error: err.message,
       timestamp: Date.now(),

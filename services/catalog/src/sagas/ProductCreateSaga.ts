@@ -165,7 +165,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
   ): Promise<void> {
     for (const variantId of variantIds) {
       await this.broker.call<Inventory.CreateItemResult, Inventory.CreateItemParams>(
-        "inventory.createItem",
+        "catalog.createInventoryItem",
         {
           storeId,
           variantId,
@@ -190,7 +190,7 @@ export class ProductCreateSaga extends BrokerSaga<ProductCreateParams, ProductCr
         await this.broker.call<
           Inventory.DeleteItemByVariantIdResult,
           Inventory.DeleteItemByVariantIdParams
-        >("inventory.deleteItemByVariantId", { storeId, variantId });
+        >("catalog.deleteInventoryItemByVariantId", { storeId, variantId });
         this.logger.log({ variantId }, "Compensated: deleted inventory item");
       } catch (error) {
         this.logger.warn({ variantId, error }, "Failed to compensate inventory item");

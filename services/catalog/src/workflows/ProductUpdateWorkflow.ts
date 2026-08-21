@@ -1026,7 +1026,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     if (params.inventory || params.weight !== undefined) {
       await this.broker.call<Inventory.CreateItemResult, Inventory.CreateItemParams>(
-        "inventory.createItem",
+        "catalog.createInventoryItem",
         {
           storeId: ctx.storeId,
           variantId,
@@ -1051,7 +1051,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
     if (params.inventory) {
       const r = await this.broker.call<Inventory.UpdateItemResult, Inventory.UpdateItemParams>(
-        "inventory.updateItem",
+        "catalog.updateInventoryItem",
         {
           storeId: ctx.storeId,
           variantId,
@@ -1102,7 +1102,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.broker.call<
         Inventory.UpdateItemDimensionsResult,
         Inventory.UpdateItemDimensionsParams
-      >("inventory.updateItemDimensions", {
+      >("catalog.updateInventoryItemDimensions", {
         storeId: ctx.storeId,
         variantId,
         width: params.dimensions.width,
@@ -1213,7 +1213,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     // Inventory operations are delegated to the Inventory Service via broker
     if (params.inventory) {
       const r = await this.broker.call<Inventory.UpdateItemResult, Inventory.UpdateItemParams>(
-        "inventory.updateItem",
+        "catalog.updateInventoryItem",
         {
           storeId: ctx.storeId,
           variantId,
@@ -1264,7 +1264,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       const r = await this.broker.call<
         Inventory.UpdateItemDimensionsResult,
         Inventory.UpdateItemDimensionsParams
-      >("inventory.updateItemDimensions", {
+      >("catalog.updateInventoryItemDimensions", {
         storeId: ctx.storeId,
         variantId,
         width: params.dimensions.width,

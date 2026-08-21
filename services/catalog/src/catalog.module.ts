@@ -15,10 +15,7 @@ import { workflows } from "./workflows/index.js";
  * Renamed from Inventory to Catalog.
  */
 @Module({
-  imports: [
-    BrokerModule.forFeature({ serviceName: "catalog" }),
-    BrokerModule.forFeature({ serviceName: "inventory" }),
-  ],
+  imports: [BrokerModule.forFeature({ serviceName: "catalog" })],
   providers: [
     CatalogBrokerActions,
     FacetCandidateBrokerActions,

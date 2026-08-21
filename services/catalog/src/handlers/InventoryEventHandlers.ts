@@ -3,14 +3,14 @@ import { EventHandler, EventHandlers, InjectBroker, ServiceBroker } from "@shopa
 import type { EventHandlerResponse } from "@shopana/events";
 
 /**
- * Event handlers for Inventory service.
+ * Event handlers for catalog-owned inventory events.
  *
- * Event handlers for inventory-side events that are not part of the
+ * Event handlers for catalog-owned inventory events that are not part of the
  * product/variant catalog lifecycle.
  */
 @Injectable()
 export class InventoryEventHandlers extends EventHandlers {
-  constructor(@InjectBroker("inventory") broker: ServiceBroker) {
+  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
     super(broker);
   }
 

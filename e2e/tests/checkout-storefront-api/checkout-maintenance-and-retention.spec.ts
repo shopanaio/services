@@ -105,7 +105,7 @@ test.describe('Storefront checkout maintenance and retention', () => {
     await kit.withActionOverrides(
       [
         { action: 'order.createOrderFromCheckoutPlacement', mode: 'THROW' },
-        { action: 'inventory.releaseCheckoutInventory', mode: 'THROW' },
+        { action: 'catalog.releaseCheckoutInventory', mode: 'THROW' },
       ],
       () => place(kit, checkout.id, checkout.resultRevision),
     );
@@ -118,14 +118,14 @@ test.describe('Storefront checkout maintenance and retention', () => {
     ]);
 
     await kit.withActionOverrides(
-      [{ action: 'inventory.releaseCheckoutInventory', mode: 'PASS' }],
+      [{ action: 'catalog.releaseCheckoutInventory', mode: 'PASS' }],
       async () => {
         const result = await maintain(kit);
         expect(result.compensationsResolved).toBeGreaterThanOrEqual(1);
-        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('catalog.releaseCheckoutInventory')).toBe(1);
 
         await maintain(kit);
-        expect(await kit.actionCalls('inventory.releaseCheckoutInventory')).toBe(1);
+        expect(await kit.actionCalls('catalog.releaseCheckoutInventory')).toBe(1);
       },
     );
     const [recovered] = await kit.sql<{ compensationFailures: unknown[] }[]>`
