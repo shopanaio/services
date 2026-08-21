@@ -7,8 +7,9 @@ This document defines how Admin modules design GraphQL operations, request hooks
 Admin write schemas must follow [[patterns/admin-aggregate-mutations]]: one
 unified `operations` update per aggregate root, a complete CAS/optimistic-locking ban from database
 schema and repositories through workflows, API contracts, hooks, and UI, no
-separate CRUD mutations for owned relations, and only explicitly justified
-semantic-command exceptions.
+separate CRUD mutations for owned relations, a separate `<aggregate>Delete` mutation and durable
+workflow for deleting the aggregate root, and only explicitly justified semantic-command
+exceptions.
 
 ## Module Structure
 

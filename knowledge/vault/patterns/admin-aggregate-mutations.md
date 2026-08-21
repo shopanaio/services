@@ -16,12 +16,12 @@ related:
   - architecture/transactional-outbox
 ---
 
-# Admin Aggregate Update Mutations
+# Admin Aggregate Mutations
 
 ## Решение
 
-Все изменения уже существующего aggregate root через Admin GraphQL API должны проходить через одну
-объединённую мутацию:
+Все изменения уже существующего aggregate root через Admin GraphQL API, кроме удаления самого
+aggregate root, должны проходить через одну объединённую мутацию:
 
 ```graphql
 <aggregate>Update(
@@ -34,6 +34,12 @@ related:
 Отдельные admin-мутации для изменения полей, статуса, порядка, связей или CRUD дочерних сущностей
 запрещены.
 
+Удаление самого aggregate root не является update operation. Оно всегда выражается отдельной
+мутацией `<aggregate>Delete`, которая запускает отдельный durable `<Aggregate>DeleteWorkflow` и после
+успешного transactional commit публикует `<aggregate>Deleted`. Это правило действует и для soft
+delete, и для physical delete корня. Удаление owned entities внутри сохраняемого aggregate остаётся
+частью `<aggregate>Update` operations.
+
 Эталон паттерна — `productUpdate` и `ProductUpdateWorkflow`: resolver преобразует GraphQL input в
 упорядоченные внутренние operations, запускает один durable workflow, workflow применяет operations
 отдельными durable steps, собирает `operationResults` и после успешных изменений публикует
@@ -44,22 +50,24 @@ related:
 Правило обязательно для всех Admin API bounded contexts и всех записей, принадлежащих aggregate:
 
 - patch полей aggregate root;
-- изменение lifecycle/status, publish/unpublish и soft delete;
+- изменение lifecycle/status и publish/unpublish, кроме удаления aggregate root;
 - добавление, изменение, удаление и переупорядочивание owned entities;
 - изменение assignment/link сущностей, которыми владеет aggregate;
 - пакетные изменения нескольких частей aggregate в одном запросе.
 
-После создания aggregate любой его write path должен быть выражен как operation в
-`<aggregate>Update`. Нельзя добавлять, например, `variantUpdate`, `categoryMove`, `productPublish`
-или `<child>Create` как отдельный публичный write path, если действие принадлежит aggregate и может
-быть представлено его update operation.
+После создания aggregate любой его write path, кроме удаления самого aggregate root, должен быть
+выражен как operation в `<aggregate>Update`. Нельзя добавлять, например, `variantUpdate`,
+`categoryMove`, `productPublish` или `<child>Create` как отдельный публичный write path, если
+действие принадлежит aggregate и может быть представлено его update operation.
 
 `<aggregate>Create` допускается только как bootstrap-команда, потому что aggregate root ещё не
 существует. Она также обязана запускать зарегистрированный durable workflow; после успешного
-transactional commit workflow публикует `<aggregate>Created`. Иное отдельное имя мутации допускается
-только для самостоятельной semantic command, которая не является изменением одного существующего
-aggregate. Такое исключение должно быть явно обосновано в архитектурном документе bounded context.
-Удобство UI или исторически существующий CRUD endpoint не являются обоснованием.
+transactional commit workflow публикует `<aggregate>Created`. `<aggregate>Delete` является второй
+обязательной lifecycle-командой и не моделируется полем или operation внутри `<aggregate>Update`.
+Иное отдельное имя мутации допускается только для самостоятельной semantic command, которая не
+является изменением одного существующего aggregate. Такое исключение должно быть явно обосновано в
+архитектурном документе bounded context. Удобство UI или исторически существующий CRUD endpoint не
+являются обоснованием.
 
 ## GraphQL-контракт
 
@@ -94,6 +102,22 @@ type ExampleUpdatePayload {
 }
 ```
 
+Удаление aggregate root имеет отдельный контракт и не использует `ExampleUpdateInput`:
+
+```graphql
+type Mutation {
+  exampleDelete(exampleId: ID!): ExampleDeletePayload!
+}
+
+type ExampleDeletePayload {
+  deletedExampleId: ID
+  userErrors: [GenericUserError!]!
+}
+```
+
+Delete input может содержать только параметры самой delete-команды. В него нельзя переносить
+update operations или CRUD owned entities.
+
 Контракт должен соблюдать следующие правила:
 
 1. Идентификатор aggregate root передаётся отдельно от `operations`.
@@ -116,22 +140,24 @@ Admin resolver не выполняет domain writes и не публикует 
 2. преобразованием GraphQL input в типизированный упорядоченный список внутренних operations;
 3. сохранением GraphQL field path в metadata каждой operation;
 4. созданием tenant/store/user context;
-5. запуском `<service>.<aggregate>Update` через `broker.runWorkflow()`;
+5. запуском `<service>.<aggregate>Update` или `<service>.<aggregate>Delete` через
+   `broker.runWorkflow()`;
 6. преобразованием workflow result обратно в GraphQL payload.
 
 Workflow ID/idempotency context должен быть детерминированным для логического admin request. Один и
 тот же повторно доставленный request не должен запускать второй набор изменений.
 
-Прямой вызов write script/repository из resolver запрещён. Публикация `<aggregate>Updated` из
-resolver также запрещена: между commit и emit возникнет недолговечный разрыв, который невозможно
-надёжно восстановить после падения процесса.
+Прямой вызов write script/repository из resolver запрещён. Публикация `<aggregate>Updated`,
+`<aggregate>Created` или `<aggregate>Deleted` из resolver также запрещена: между commit и emit
+возникнет недолговечный разрыв, который невозможно надёжно восстановить после падения процесса.
 
 ## Durable workflow
 
 Каждая `<aggregate>Update` реализуется как зарегистрированный DBOS `@Workflow` и запускается через
-service broker. Workflow является единственным orchestration write path для aggregate. Отдельная
-bootstrap-мутация `<aggregate>Create>` следует тем же правилам durable execution, transactional
-steps и публикации события `<aggregate>Created`.
+service broker. Update-workflow является единственным orchestration write path для изменений
+сохраняемого aggregate. Отдельные lifecycle-мутации `<aggregate>Create` и `<aggregate>Delete`
+следуют тем же правилам durable execution и transactional steps и публикуют соответственно
+`<aggregate>Created` и `<aggregate>Deleted`.
 
 Типовой порядок выполнения:
 
@@ -146,6 +172,22 @@ Admin resolver
        -> durable <aggregate>Updated publication
   -> aggregate + operationResults + userErrors
 ```
+
+Удаление имеет независимый durable path:
+
+```text
+Admin resolver
+  -> decode and validate delete command
+  -> <service>.<aggregate>Delete durable workflow
+       -> durable pre-validation
+       -> transactional aggregate delete step
+       -> durable <aggregate>Deleted publication
+  -> deleted aggregate ID + userErrors
+```
+
+`<Aggregate>DeleteWorkflow` не наследует `AggregateUpdateWorkflow` и не подменяет delete вызовом
+update-workflow. Delete-workflow обязан соблюдать те же требования к replay safety, tenant scope,
+transactional boundaries, idempotency и durable event publication.
 
 Workflow body должен быть replay-safe. Генерация ID, времени, случайных значений и любые другие
 недетерминированные действия выполняются внутри durable step, чтобы replay получил сохранённый
@@ -345,8 +387,9 @@ Infrastructure exception не маскируется под `userErrors`: он �
 ## Публикация aggregate event
 
 После фактического изменения aggregate update-workflow обязан публиковать доменное событие
-`<aggregate>Updated`; create-workflow после создания публикует `<aggregate>Created`. Публикация
-выполняется после завершения всех соответствующих database transactions и отдельно от них.
+`<aggregate>Updated`; create-workflow после создания публикует `<aggregate>Created`, а delete-workflow
+после удаления публикует `<aggregate>Deleted`. Публикация выполняется после завершения всех
+соответствующих database transactions и отдельно от них.
 
 Предпочтительный путь соответствует `ProductUpdateWorkflow`:
 
@@ -405,9 +448,13 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 - отдельные CRUD mutations для owned entities aggregate;
 - отдельные `publish`, `unpublish`, `move`, `attach`, `detach`, `setMedia` mutations вместо
   operations;
+- удаление aggregate root через `<aggregate>Update` operation вместо отдельной
+  `<aggregate>Delete` mutation и durable workflow;
 - resolver, последовательно вызывающий несколько write scripts или repositories;
 - `<aggregate>Create`, который пишет напрямую, не запускает durable workflow или не публикует
   `<aggregate>Created` после commit;
+- `<aggregate>Delete`, который пишет напрямую, не запускает durable workflow или не публикует
+  `<aggregate>Deleted` после commit;
 - DB write в обычном `@WorkflowStep()`;
 - `broker.runWorkflow()` или `broker.runSaga()` внутри `@WorkflowStep()`, `@SideEffectStep()` или
   `@TransactionalStep()`;
@@ -424,19 +471,22 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 
 Перед добавлением или изменением Admin mutation необходимо проверить:
 
-1. Все writes существующего aggregate доступны через одну `<aggregate>Update` с `operations`.
-2. Owned entity CRUD и lifecycle changes представлены operations, а не отдельными mutations.
-3. Resolver только декодирует/map-ит input и запускает durable workflow, включая bootstrap
-   `<aggregate>Create>`.
-4. Каждый workflow зарегистрирован как `<service>.<aggregate>Update` или
-   `<service>.<aggregate>Create` и имеет детерминированную idempotency identity.
+1. Все writes сохраняемого aggregate доступны через одну `<aggregate>Update` с `operations`;
+   удаление самого aggregate root доступно только через отдельную `<aggregate>Delete`.
+2. Owned entity CRUD и lifecycle changes, кроме удаления aggregate root, представлены operations,
+   а не отдельными mutations.
+3. Resolver только декодирует/map-ит input и запускает durable workflow, включая lifecycle-команды
+   `<aggregate>Create` и `<aggregate>Delete`.
+4. Каждый workflow зарегистрирован как `<service>.<aggregate>Update`,
+   `<service>.<aggregate>Create` или `<service>.<aggregate>Delete` и имеет детерминированную
+   idempotency identity.
 5. Каждая database operation выполняется в `@TransactionalStep()`.
 6. Aggregate-wide инварианты проверены до несовместимых writes.
 7. `operationResults` сохраняют порядок input и точные GraphQL error paths.
 8. Direct external calls находятся в `@SideEffectStep()`, а child workflows/sagas помечены
    `@ChildWorkflowStep()` и запускаются из workflow body; внутри transactional steps их нет.
-9. `<aggregate>Updated` или `<aggregate>Created` публикуется durable после commit и только при
-   фактическом изменении или создании.
+9. `<aggregate>Updated`, `<aggregate>Created` или `<aggregate>Deleted` публикуется durable после
+   commit и только при фактическом изменении, создании или удалении.
 10. Повторный request или workflow replay не дублирует writes и события.
 11. Новый endpoint не создаёт второй write path к тому же aggregate.
 12. Любое исключение из unified mutation rule документировано как отдельное архитектурное решение.
