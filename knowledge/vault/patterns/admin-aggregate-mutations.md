@@ -392,6 +392,25 @@ group. Внутренний порядок SQL может отличаться �
 - retry policy применяется только к transient errors и ограничена backoff/attempts; business,
   validation и timeout errors не retry-ятся как transient; критичные ошибки delivery нельзя
   логировать и проглатывать;
+- concrete workflow отвечает только за orchestration: планирование operations, вызов durable steps,
+  сбор checkpointed change hints и запуск post-commit delivery. Сложная domain validation,
+  расчёты и преобразования выносятся в типизированные scripts/services; workflow не становится
+  service locator-ом или monolithic обработчиком всех правил aggregate;
+- зависимости workflow (kernel, repository bridge, scripts/services) передаются явно через DI.
+  `getInstance()`, mutable global singleton и скрытое получение runtime dependency внутри workflow
+  запрещены;
+- dispatch internal operations должен быть исчерпывающим (`switch` по discriminated union с
+  `assertNever`). Нельзя определять тип operation через `startsWith`, string matching или
+  отправлять неизвестный type в default handler другой operation;
+- read boundary типобезопасен: тип query однозначно определяет тип результата. Запрещено
+  приводить `unknown` к произвольному generic `T` на границе `runScript`; для этого используется
+  discriminated query/result map либо отдельные типизированные read scripts;
+- input workflow, execution plan и checkpointed results immutable (`readonly`). Workflow и scripts
+  не мутируют caller-owned arrays, objects или accumulator; change hints всегда возвращаются из
+  durable step result;
+- prevalidation и apply не создают N+1 database calls: IDs собираются и читаются batch-запросами,
+  где это возможно. Размер массивов operations и вложенных batch inputs ограничивается на input
+  boundary; расчёты cardinality/combinations проверяют переполнение и safe-integer range;
 - до первого write step проверены auth/tenant scope, ownership и aggregate-wide invariants;
 - contract явно определяет atomicity: partial apply допустим только для независимых operations;
   распределённые изменения с необходимой отменой реализуются durable saga с compensation;
@@ -610,6 +629,12 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
     protocol.
 15. Новый workflow с operations наследует `AggregateUpdateWorkflow`; plan покрывает каждую input
     position ровно один раз, а batch outcomes сопоставлены по position, не по порядку ответа script.
+16. Workflow не содержит domain-реализацию всех operations: его зависимости внедрены через DI,
+    dispatch исчерпывающий, а сложные validation/calculation вынесены в типизированные scripts или
+    services.
+17. Workflow input и results immutable; read scripts типобезопасны, без cast `unknown as T`.
+18. Для batch input заданы ограничения размера; prevalidation не содержит N+1 reads и проверяет
+    переполнение вычислений combinations/cardinality.
 
 ## Связанные документы
 
