@@ -65,7 +65,6 @@ input ReviewRequestCreateInput {
   channel: ReviewNotificationChannel!
   locale: LocaleCode!
   sourceChannel: String = "ADMIN"
-  idempotencyKey: String!
   scheduledAt: DateTime!
   expiresAt: DateTime
 }

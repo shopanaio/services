@@ -1,128 +1,5 @@
-import { z } from "zod";
-import {
-  ApiBigIntFilterInput,
-  ApiCountryCode,
-  ApiCountryCodeFilterInput,
-  ApiCurrencyCode,
-  ApiCurrencyCodeFilterInput,
-  ApiDateTimeFilterInput,
-  ApiDecimalFilterInput,
-  ApiDimensionUnit,
-  ApiFulfillmentCancelInput,
-  ApiFulfillmentCreateInput,
-  ApiFulfillmentOrderCancelRequestInput,
-  ApiFulfillmentOrderHoldInput,
-  ApiFulfillmentOrderLineQuantityInput,
-  ApiFulfillmentOrderMoveInput,
-  ApiFulfillmentOrderReleaseHoldInput,
-  ApiFulfillmentOrderSplitInput,
-  ApiFulfillmentOrderStatus,
-  ApiFulfillmentOrderSubmitInput,
-  ApiFulfillmentRequestStatus,
-  ApiFulfillmentStatus,
-  ApiIdFilterInput,
-  ApiLocaleCode,
-  ApiMoneyInput,
-  ApiOrderAction,
-  ApiOrderActorType,
-  ApiOrderAddressInput,
-  ApiOrderAdminNoteUpdateInput,
-  ApiOrderArchiveInput,
-  ApiOrderBulkSelectionInput,
-  ApiOrderCancelInput,
-  ApiOrderCloseInput,
-  ApiOrderCommentAddInput,
-  ApiOrderCompleteDraftInput,
-  ApiOrderContactInput,
-  ApiOrderCreateInput,
-  ApiOrderCustomFieldsUpdateInput,
-  ApiOrderCustomerSetInput,
-  ApiOrderDeleteInput,
-  ApiOrderDeliveryInput,
-  ApiOrderDeliveryStatus,
-  ApiOrderDeliveryStatusFilterInput,
-  ApiOrderDimensionsInput,
-  ApiOrderEditAbandonInput,
-  ApiOrderEditBeginInput,
-  ApiOrderEditCommitInput,
-  ApiOrderEditDiscountAddInput,
-  ApiOrderEditDiscountRemoveInput,
-  ApiOrderEditLineAddInput,
-  ApiOrderEditLineRemoveInput,
-  ApiOrderEditLineUpdateInput,
-  ApiOrderEditShippingUpdateInput,
-  ApiOrderExchangeCancelInput,
-  ApiOrderExchangeCompleteInput,
-  ApiOrderExchangeCreateInput,
-  ApiOrderExchangeStatus,
-  ApiOrderFulfillmentStatus,
-  ApiOrderFulfillmentStatusFilterInput,
-  ApiOrderIntegrationKind,
-  ApiOrderIntegrationLinkDetachInput,
-  ApiOrderIntegrationSyncRequestInput,
-  ApiOrderIntegrationSyncRetryInput,
-  ApiOrderIntegrationSyncStatus,
-  ApiOrderLineAddInput,
-  ApiOrderLineCreateInput,
-  ApiOrderLineDeleteInput,
-  ApiOrderLineUpdateInput,
-  ApiOrderManualPaymentRecordInput,
-  ApiOrderOperationKind,
-  ApiOrderOperationStatus,
-  ApiOrderOrderByInput,
-  ApiOrderOrigin,
-  ApiOrderPaymentCaptureInput,
-  ApiOrderPaymentRetryInput,
-  ApiOrderPaymentStatus,
-  ApiOrderPaymentStatusFilterInput,
-  ApiOrderPaymentStatusOverrideInput,
-  ApiOrderPaymentTransactionKind,
-  ApiOrderPaymentTransactionStatus,
-  ApiOrderPaymentVoidInput,
-  ApiOrderPlacementStatus,
-  ApiOrderPlacementStatusFilterInput,
-  ApiOrderRefundCreateInput,
-  ApiOrderRefundLineInput,
-  ApiOrderRefundStatus,
-  ApiOrderRefundTransactionAllocationInput,
-  ApiOrderReopenInput,
-  ApiOrderReturnApproveInput,
-  ApiOrderReturnCancelInput,
-  ApiOrderReturnCreateInput,
-  ApiOrderReturnLineInput,
-  ApiOrderReturnReceiveInput,
-  ApiOrderReturnReceiveLineInput,
-  ApiOrderReturnRefundInput,
-  ApiOrderReturnRejectInput,
-  ApiOrderReturnRequestStatus,
-  ApiOrderReturnStatus,
-  ApiOrderReturnStatusFilterInput,
-  ApiOrderRiskLevel,
-  ApiOrderSortDirection,
-  ApiOrderSortField,
-  ApiOrderStatus,
-  ApiOrderStatusFilterInput,
-  ApiOrderSyncDirection,
-  ApiOrderTagsUpdateInput,
-  ApiOrderUnarchiveInput,
-  ApiOrderUpdateInput,
-  ApiOrderWeightInput,
-  ApiOrderWhereInput,
-  ApiOrdersBulkActionInput,
-  ApiOrdersBulkActionKind,
-  ApiShipmentCancelInput,
-  ApiShipmentCreateInput,
-  ApiShipmentMarkDeliveredInput,
-  ApiShipmentMarkShippedInput,
-  ApiShipmentPackageInput,
-  ApiShipmentPackageItemInput,
-  ApiShipmentReconcileInput,
-  ApiShipmentStatus,
-  ApiShipmentTrackingInput,
-  ApiShipmentTrackingUpdateInput,
-  ApiStringFilterInput,
-  ApiWeightUnit,
-} from "./types.js";
+import { z } from 'zod'
+import { ApiBigIntFilterInput, ApiCountryCode, ApiCountryCodeFilterInput, ApiCurrencyCode, ApiCurrencyCodeFilterInput, ApiDateTimeFilterInput, ApiDecimalFilterInput, ApiDimensionUnit, ApiFulfillmentCancelInput, ApiFulfillmentCreateInput, ApiFulfillmentOrderCancelRequestInput, ApiFulfillmentOrderHoldInput, ApiFulfillmentOrderLineQuantityInput, ApiFulfillmentOrderMoveInput, ApiFulfillmentOrderReleaseHoldInput, ApiFulfillmentOrderSplitInput, ApiFulfillmentOrderStatus, ApiFulfillmentOrderSubmitInput, ApiFulfillmentRequestStatus, ApiFulfillmentStatus, ApiIdFilterInput, ApiLocaleCode, ApiMoneyInput, ApiOrderAction, ApiOrderActorType, ApiOrderAddressInput, ApiOrderAdminNoteUpdateInput, ApiOrderArchiveInput, ApiOrderBulkSelectionInput, ApiOrderCancelInput, ApiOrderCloseInput, ApiOrderCommentAddInput, ApiOrderCompleteDraftInput, ApiOrderContactInput, ApiOrderCreateInput, ApiOrderCustomFieldsUpdateInput, ApiOrderCustomerSetInput, ApiOrderDeleteInput, ApiOrderDeliveryInput, ApiOrderDeliveryStatus, ApiOrderDeliveryStatusFilterInput, ApiOrderDimensionsInput, ApiOrderEditAbandonInput, ApiOrderEditBeginInput, ApiOrderEditCommitInput, ApiOrderEditDiscountAddInput, ApiOrderEditDiscountRemoveInput, ApiOrderEditLineAddInput, ApiOrderEditLineRemoveInput, ApiOrderEditLineUpdateInput, ApiOrderEditShippingUpdateInput, ApiOrderExchangeCancelInput, ApiOrderExchangeCompleteInput, ApiOrderExchangeCreateInput, ApiOrderExchangeStatus, ApiOrderFulfillmentStatus, ApiOrderFulfillmentStatusFilterInput, ApiOrderIntegrationKind, ApiOrderIntegrationLinkDetachInput, ApiOrderIntegrationSyncRequestInput, ApiOrderIntegrationSyncRetryInput, ApiOrderIntegrationSyncStatus, ApiOrderLineAddInput, ApiOrderLineCreateInput, ApiOrderLineDeleteInput, ApiOrderLineUpdateInput, ApiOrderManualPaymentRecordInput, ApiOrderOperationKind, ApiOrderOperationStatus, ApiOrderOrderByInput, ApiOrderOrigin, ApiOrderPaymentCaptureInput, ApiOrderPaymentRetryInput, ApiOrderPaymentStatus, ApiOrderPaymentStatusFilterInput, ApiOrderPaymentStatusOverrideInput, ApiOrderPaymentTransactionKind, ApiOrderPaymentTransactionStatus, ApiOrderPaymentVoidInput, ApiOrderPlacementStatus, ApiOrderPlacementStatusFilterInput, ApiOrderRefundCreateInput, ApiOrderRefundLineInput, ApiOrderRefundStatus, ApiOrderRefundTransactionAllocationInput, ApiOrderReopenInput, ApiOrderReturnApproveInput, ApiOrderReturnCancelInput, ApiOrderReturnCreateInput, ApiOrderReturnLineInput, ApiOrderReturnReceiveInput, ApiOrderReturnReceiveLineInput, ApiOrderReturnRefundInput, ApiOrderReturnRejectInput, ApiOrderReturnRequestStatus, ApiOrderReturnStatus, ApiOrderReturnStatusFilterInput, ApiOrderRiskLevel, ApiOrderSortDirection, ApiOrderSortField, ApiOrderStatus, ApiOrderStatusFilterInput, ApiOrderSyncDirection, ApiOrderTagsUpdateInput, ApiOrderUnarchiveInput, ApiOrderUpdateInput, ApiOrderWeightInput, ApiOrderWhereInput, ApiOrdersBulkActionInput, ApiOrdersBulkActionKind, ApiShipmentCancelInput, ApiShipmentCreateInput, ApiShipmentMarkDeliveredInput, ApiShipmentMarkShippedInput, ApiShipmentPackageInput, ApiShipmentPackageItemInput, ApiShipmentReconcileInput, ApiShipmentStatus, ApiShipmentTrackingInput, ApiShipmentTrackingUpdateInput, ApiStringFilterInput, ApiWeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -130,8 +7,7 @@ type Properties<T> = Required<{
 
 type definedNonNullAny = {};
 
-export const isDefinedNonNullAny = (v: any): v is definedNonNullAny =>
-  v !== undefined && v !== null;
+export const isDefinedNonNullAny = (v: any): v is definedNonNullAny => v !== undefined && v !== null;
 
 export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny(v));
 
@@ -173,9 +49,7 @@ export const ApiOrderPaymentStatusSchema = z.nativeEnum(ApiOrderPaymentStatus);
 
 export const ApiOrderPaymentTransactionKindSchema = z.nativeEnum(ApiOrderPaymentTransactionKind);
 
-export const ApiOrderPaymentTransactionStatusSchema = z.nativeEnum(
-  ApiOrderPaymentTransactionStatus,
-);
+export const ApiOrderPaymentTransactionStatusSchema = z.nativeEnum(ApiOrderPaymentTransactionStatus);
 
 export const ApiOrderPlacementStatusSchema = z.nativeEnum(ApiOrderPlacementStatus);
 
@@ -207,26 +81,22 @@ export function ApiBigIntFilterInputSchema(): z.ZodObject<Properties<ApiBigIntFi
     gt: z.string().nullish(),
     gte: z.string().nullish(),
     lt: z.string().nullish(),
-    lte: z.string().nullish(),
-  });
+    lte: z.string().nullish()
+  })
 }
 
-export function ApiCountryCodeFilterInputSchema(): z.ZodObject<
-  Properties<ApiCountryCodeFilterInput>
-> {
+export function ApiCountryCodeFilterInputSchema(): z.ZodObject<Properties<ApiCountryCodeFilterInput>> {
   return z.object({
     eq: ApiCountryCodeSchema.nullish(),
-    in: z.array(ApiCountryCodeSchema).nullish(),
-  });
+    in: z.array(ApiCountryCodeSchema).nullish()
+  })
 }
 
-export function ApiCurrencyCodeFilterInputSchema(): z.ZodObject<
-  Properties<ApiCurrencyCodeFilterInput>
-> {
+export function ApiCurrencyCodeFilterInputSchema(): z.ZodObject<Properties<ApiCurrencyCodeFilterInput>> {
   return z.object({
     eq: ApiCurrencyCodeSchema.nullish(),
-    in: z.array(ApiCurrencyCodeSchema).nullish(),
-  });
+    in: z.array(ApiCurrencyCodeSchema).nullish()
+  })
 }
 
 export function ApiDateTimeFilterInputSchema(): z.ZodObject<Properties<ApiDateTimeFilterInput>> {
@@ -235,8 +105,8 @@ export function ApiDateTimeFilterInputSchema(): z.ZodObject<Properties<ApiDateTi
     gt: z.string().datetime({ offset: true }).nullish(),
     gte: z.string().datetime({ offset: true }).nullish(),
     lt: z.string().datetime({ offset: true }).nullish(),
-    lte: z.string().datetime({ offset: true }).nullish(),
-  });
+    lte: z.string().datetime({ offset: true }).nullish()
+  })
 }
 
 export function ApiDecimalFilterInputSchema(): z.ZodObject<Properties<ApiDecimalFilterInput>> {
@@ -245,124 +115,90 @@ export function ApiDecimalFilterInputSchema(): z.ZodObject<Properties<ApiDecimal
     gt: z.string().nullish(),
     gte: z.string().nullish(),
     lt: z.string().nullish(),
-    lte: z.string().nullish(),
-  });
+    lte: z.string().nullish()
+  })
 }
 
-export function ApiFulfillmentCancelInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentCancelInput>
-> {
+export function ApiFulfillmentCancelInputSchema(): z.ZodObject<Properties<ApiFulfillmentCancelInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentId: z.string(),
-    idempotencyKey: z.string(),
     reasonCode: z.string(),
-    restock: z.boolean().default(true).nullish(),
-  });
+    restock: z.boolean().default(true).nullish()
+  })
 }
 
-export function ApiFulfillmentCreateInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentCreateInput>
-> {
+export function ApiFulfillmentCreateInputSchema(): z.ZodObject<Properties<ApiFulfillmentCreateInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentOrderId: z.string(),
-    idempotencyKey: z.string(),
     lines: z.array(z.lazy(() => ApiFulfillmentOrderLineQuantityInputSchema())),
-    notifyCustomer: z.boolean().default(false).nullish(),
-  });
+    notifyCustomer: z.boolean().default(false).nullish()
+  })
 }
 
-export function ApiFulfillmentOrderCancelRequestInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentOrderCancelRequestInput>
-> {
+export function ApiFulfillmentOrderCancelRequestInputSchema(): z.ZodObject<Properties<ApiFulfillmentOrderCancelRequestInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentOrderId: z.string(),
-    idempotencyKey: z.string(),
     note: z.string().nullish(),
-    reasonCode: z.string(),
-  });
+    reasonCode: z.string()
+  })
 }
 
-export function ApiFulfillmentOrderHoldInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentOrderHoldInput>
-> {
+export function ApiFulfillmentOrderHoldInputSchema(): z.ZodObject<Properties<ApiFulfillmentOrderHoldInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentOrderId: z.string(),
-    idempotencyKey: z.string(),
     note: z.string().nullish(),
-    reasonCode: z.string(),
-  });
+    reasonCode: z.string()
+  })
 }
 
-export function ApiFulfillmentOrderLineQuantityInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentOrderLineQuantityInput>
-> {
+export function ApiFulfillmentOrderLineQuantityInputSchema(): z.ZodObject<Properties<ApiFulfillmentOrderLineQuantityInput>> {
   return z.object({
     fulfillmentOrderLineId: z.string(),
-    quantity: z.number(),
-  });
+    quantity: z.number()
+  })
 }
 
-export function ApiFulfillmentOrderMoveInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentOrderMoveInput>
-> {
+export function ApiFulfillmentOrderMoveInputSchema(): z.ZodObject<Properties<ApiFulfillmentOrderMoveInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentOrderId: z.string(),
-    idempotencyKey: z.string(),
     locationId: z.string(),
-    serviceCode: z.string().nullish(),
-  });
+    serviceCode: z.string().nullish()
+  })
 }
 
-export function ApiFulfillmentOrderReleaseHoldInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentOrderReleaseHoldInput>
-> {
+export function ApiFulfillmentOrderReleaseHoldInputSchema(): z.ZodObject<Properties<ApiFulfillmentOrderReleaseHoldInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentOrderId: z.string(),
-    holdId: z.string(),
-    idempotencyKey: z.string(),
-  });
+    holdId: z.string()
+  })
 }
 
-export function ApiFulfillmentOrderSplitInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentOrderSplitInput>
-> {
+export function ApiFulfillmentOrderSplitInputSchema(): z.ZodObject<Properties<ApiFulfillmentOrderSplitInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentOrderId: z.string(),
-    idempotencyKey: z.string(),
-    lines: z.array(z.lazy(() => ApiFulfillmentOrderLineQuantityInputSchema())),
-  });
+    lines: z.array(z.lazy(() => ApiFulfillmentOrderLineQuantityInputSchema()))
+  })
 }
 
-export function ApiFulfillmentOrderSubmitInputSchema(): z.ZodObject<
-  Properties<ApiFulfillmentOrderSubmitInput>
-> {
+export function ApiFulfillmentOrderSubmitInputSchema(): z.ZodObject<Properties<ApiFulfillmentOrderSubmitInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    fulfillmentOrderId: z.string(),
-    idempotencyKey: z.string(),
-  });
+    fulfillmentOrderId: z.string()
+  })
 }
 
 export function ApiIdFilterInputSchema(): z.ZodObject<Properties<ApiIdFilterInput>> {
   return z.object({
     eq: z.string().nullish(),
     in: z.array(z.string()).nullish(),
-    notIn: z.array(z.string()).nullish(),
-  });
+    notIn: z.array(z.string()).nullish()
+  })
 }
 
 export function ApiMoneyInputSchema(): z.ZodObject<Properties<ApiMoneyInput>> {
   return z.object({
     amount: z.string(),
-    currencyCode: ApiCurrencyCodeSchema,
-  });
+    currencyCode: ApiCurrencyCodeSchema
+  })
 }
 
 export function ApiOrderAddressInputSchema(): z.ZodObject<Properties<ApiOrderAddressInput>> {
@@ -379,80 +215,62 @@ export function ApiOrderAddressInputSchema(): z.ZodObject<Properties<ApiOrderAdd
     middleName: z.string().nullish(),
     phone: z.string().nullish(),
     postalCode: z.string().nullish(),
-    provinceCode: z.string().nullish(),
-  });
+    provinceCode: z.string().nullish()
+  })
 }
 
-export function ApiOrderAdminNoteUpdateInputSchema(): z.ZodObject<
-  Properties<ApiOrderAdminNoteUpdateInput>
-> {
+export function ApiOrderAdminNoteUpdateInputSchema(): z.ZodObject<Properties<ApiOrderAdminNoteUpdateInput>> {
   return z.object({
     adminNote: z.string().nullish(),
-    expectedVersion: z.number(),
-    id: z.string(),
-    idempotencyKey: z.string(),
-  });
+    id: z.string()
+  })
 }
 
 export function ApiOrderArchiveInputSchema(): z.ZodObject<Properties<ApiOrderArchiveInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    id: z.string(),
-    idempotencyKey: z.string(),
-  });
+    id: z.string()
+  })
 }
 
-export function ApiOrderBulkSelectionInputSchema(): z.ZodObject<
-  Properties<ApiOrderBulkSelectionInput>
-> {
+export function ApiOrderBulkSelectionInputSchema(): z.ZodObject<Properties<ApiOrderBulkSelectionInput>> {
   return z.object({
     excludedIds: z.array(z.string()).nullish(),
     ids: z.array(z.string()).nullish(),
-    where: z.lazy(() => ApiOrderWhereInputSchema().nullish()),
-  });
+    where: z.lazy(() => ApiOrderWhereInputSchema().nullish())
+  })
 }
 
 export function ApiOrderCancelInputSchema(): z.ZodObject<Properties<ApiOrderCancelInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string(),
-    idempotencyKey: z.string(),
     notifyCustomer: z.boolean().default(false).nullish(),
     reasonCode: z.string(),
     refundMode: z.string().default("ORIGINAL_PAYMENT_METHODS").nullish(),
     restock: z.boolean().default(true).nullish(),
-    staffNote: z.string().nullish(),
-  });
+    staffNote: z.string().nullish()
+  })
 }
 
 export function ApiOrderCloseInputSchema(): z.ZodObject<Properties<ApiOrderCloseInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string(),
-    idempotencyKey: z.string(),
-    reason: z.string().nullish(),
-  });
+    reason: z.string().nullish()
+  })
 }
 
 export function ApiOrderCommentAddInputSchema(): z.ZodObject<Properties<ApiOrderCommentAddInput>> {
   return z.object({
     comment: z.string(),
-    expectedVersion: z.number(),
     id: z.string(),
-    idempotencyKey: z.string(),
-    visibility: z.string().default("STAFF").nullish(),
-  });
+    visibility: z.string().default("STAFF").nullish()
+  })
 }
 
-export function ApiOrderCompleteDraftInputSchema(): z.ZodObject<
-  Properties<ApiOrderCompleteDraftInput>
-> {
+export function ApiOrderCompleteDraftInputSchema(): z.ZodObject<Properties<ApiOrderCompleteDraftInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string(),
-    idempotencyKey: z.string(),
-    notifyCustomer: z.boolean().default(false).nullish(),
-  });
+    notifyCustomer: z.boolean().default(false).nullish()
+  })
 }
 
 export function ApiOrderContactInputSchema(): z.ZodObject<Properties<ApiOrderContactInput>> {
@@ -463,75 +281,61 @@ export function ApiOrderContactInputSchema(): z.ZodObject<Properties<ApiOrderCon
     lastName: z.string().nullish(),
     middleName: z.string().nullish(),
     note: z.string().nullish(),
-    phone: z.string().nullish(),
-  });
+    phone: z.string().nullish()
+  })
 }
 
 export function ApiOrderCreateInputSchema(): z.ZodObject<Properties<ApiOrderCreateInput>> {
   return z.object({
     adminNote: z.string().nullish(),
     billingAddress: z.lazy(() => ApiOrderAddressInputSchema().nullish()),
-    clientMutationId: z.string().nullish(),
     contact: z.lazy(() => ApiOrderContactInputSchema()),
     customFields: z.unknown().nullish(),
     customerId: z.string().nullish(),
     customerNote: z.string().nullish(),
     externalId: z.string().nullish(),
-    idempotencyKey: z.string(),
     lines: z.array(z.lazy(() => ApiOrderLineCreateInputSchema())),
     localeCode: ApiLocaleCodeSchema.nullish(),
     paymentMethodCode: z.string().nullish(),
     shipping: z.lazy(() => ApiOrderDeliveryInputSchema().nullish()),
     sourceCode: z.string().nullish(),
-    tags: z.array(z.string()).nullish(),
-  });
+    tags: z.array(z.string()).nullish()
+  })
 }
 
-export function ApiOrderCustomFieldsUpdateInputSchema(): z.ZodObject<
-  Properties<ApiOrderCustomFieldsUpdateInput>
-> {
+export function ApiOrderCustomFieldsUpdateInputSchema(): z.ZodObject<Properties<ApiOrderCustomFieldsUpdateInput>> {
   return z.object({
     customFields: z.unknown(),
-    expectedVersion: z.number(),
-    id: z.string(),
-    idempotencyKey: z.string(),
-  });
+    id: z.string()
+  })
 }
 
-export function ApiOrderCustomerSetInputSchema(): z.ZodObject<
-  Properties<ApiOrderCustomerSetInput>
-> {
+export function ApiOrderCustomerSetInputSchema(): z.ZodObject<Properties<ApiOrderCustomerSetInput>> {
   return z.object({
     customerId: z.string().nullish(),
-    expectedVersion: z.number(),
-    id: z.string(),
-    idempotencyKey: z.string(),
-  });
+    id: z.string()
+  })
 }
 
 export function ApiOrderDeleteInputSchema(): z.ZodObject<Properties<ApiOrderDeleteInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    id: z.string(),
-    idempotencyKey: z.string(),
-  });
+    id: z.string()
+  })
 }
 
 export function ApiOrderDeliveryInputSchema(): z.ZodObject<Properties<ApiOrderDeliveryInput>> {
   return z.object({
     address: z.lazy(() => ApiOrderAddressInputSchema().nullish()),
     methodCode: z.string().nullish(),
-    recipient: z.lazy(() => ApiOrderContactInputSchema().nullish()),
-  });
+    recipient: z.lazy(() => ApiOrderContactInputSchema().nullish())
+  })
 }
 
-export function ApiOrderDeliveryStatusFilterInputSchema(): z.ZodObject<
-  Properties<ApiOrderDeliveryStatusFilterInput>
-> {
+export function ApiOrderDeliveryStatusFilterInputSchema(): z.ZodObject<Properties<ApiOrderDeliveryStatusFilterInput>> {
   return z.object({
     eq: ApiOrderDeliveryStatusSchema.nullish(),
-    in: z.array(ApiOrderDeliveryStatusSchema).nullish(),
-  });
+    in: z.array(ApiOrderDeliveryStatusSchema).nullish()
+  })
 }
 
 export function ApiOrderDimensionsInputSchema(): z.ZodObject<Properties<ApiOrderDimensionsInput>> {
@@ -539,197 +343,136 @@ export function ApiOrderDimensionsInputSchema(): z.ZodObject<Properties<ApiOrder
     height: z.number(),
     length: z.number(),
     unit: ApiDimensionUnitSchema,
-    width: z.number(),
-  });
+    width: z.number()
+  })
 }
 
-export function ApiOrderEditAbandonInputSchema(): z.ZodObject<
-  Properties<ApiOrderEditAbandonInput>
-> {
+export function ApiOrderEditAbandonInputSchema(): z.ZodObject<Properties<ApiOrderEditAbandonInput>> {
   return z.object({
-    editId: z.string(),
-    expectedEditVersion: z.number(),
-    idempotencyKey: z.string(),
-  });
+    editId: z.string()
+  })
 }
 
 export function ApiOrderEditBeginInputSchema(): z.ZodObject<Properties<ApiOrderEditBeginInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
-    orderId: z.string(),
-  });
+    orderId: z.string()
+  })
 }
 
 export function ApiOrderEditCommitInputSchema(): z.ZodObject<Properties<ApiOrderEditCommitInput>> {
   return z.object({
     editId: z.string(),
-    expectedEditVersion: z.number(),
-    expectedOrderVersion: z.number(),
-    idempotencyKey: z.string(),
     notifyCustomer: z.boolean().default(false).nullish(),
-    staffNote: z.string().nullish(),
-  });
+    staffNote: z.string().nullish()
+  })
 }
 
-export function ApiOrderEditDiscountAddInputSchema(): z.ZodObject<
-  Properties<ApiOrderEditDiscountAddInput>
-> {
+export function ApiOrderEditDiscountAddInputSchema(): z.ZodObject<Properties<ApiOrderEditDiscountAddInput>> {
   return z.object({
     amount: z.lazy(() => ApiMoneyInputSchema()),
     editId: z.string(),
-    expectedEditVersion: z.number(),
-    idempotencyKey: z.string(),
     reasonCode: z.string(),
-    title: z.string(),
-  });
+    title: z.string()
+  })
 }
 
-export function ApiOrderEditDiscountRemoveInputSchema(): z.ZodObject<
-  Properties<ApiOrderEditDiscountRemoveInput>
-> {
+export function ApiOrderEditDiscountRemoveInputSchema(): z.ZodObject<Properties<ApiOrderEditDiscountRemoveInput>> {
   return z.object({
     discountId: z.string(),
-    editId: z.string(),
-    expectedEditVersion: z.number(),
-    idempotencyKey: z.string(),
-  });
+    editId: z.string()
+  })
 }
 
-export function ApiOrderEditLineAddInputSchema(): z.ZodObject<
-  Properties<ApiOrderEditLineAddInput>
-> {
+export function ApiOrderEditLineAddInputSchema(): z.ZodObject<Properties<ApiOrderEditLineAddInput>> {
   return z.object({
     editId: z.string(),
-    expectedEditVersion: z.number(),
-    idempotencyKey: z.string(),
-    line: z.lazy(() => ApiOrderLineCreateInputSchema()),
-  });
+    line: z.lazy(() => ApiOrderLineCreateInputSchema())
+  })
 }
 
-export function ApiOrderEditLineRemoveInputSchema(): z.ZodObject<
-  Properties<ApiOrderEditLineRemoveInput>
-> {
+export function ApiOrderEditLineRemoveInputSchema(): z.ZodObject<Properties<ApiOrderEditLineRemoveInput>> {
   return z.object({
     editId: z.string(),
-    expectedEditVersion: z.number(),
-    idempotencyKey: z.string(),
-    lineId: z.string(),
-  });
+    lineId: z.string()
+  })
 }
 
-export function ApiOrderEditLineUpdateInputSchema(): z.ZodObject<
-  Properties<ApiOrderEditLineUpdateInput>
-> {
+export function ApiOrderEditLineUpdateInputSchema(): z.ZodObject<Properties<ApiOrderEditLineUpdateInput>> {
   return z.object({
     editId: z.string(),
-    expectedEditVersion: z.number(),
-    idempotencyKey: z.string(),
     lineId: z.string(),
     quantity: z.number().nullish(),
-    unitPrice: z.lazy(() => ApiMoneyInputSchema().nullish()),
-  });
+    unitPrice: z.lazy(() => ApiMoneyInputSchema().nullish())
+  })
 }
 
-export function ApiOrderEditShippingUpdateInputSchema(): z.ZodObject<
-  Properties<ApiOrderEditShippingUpdateInput>
-> {
+export function ApiOrderEditShippingUpdateInputSchema(): z.ZodObject<Properties<ApiOrderEditShippingUpdateInput>> {
   return z.object({
     editId: z.string(),
-    expectedEditVersion: z.number(),
-    idempotencyKey: z.string(),
-    shipping: z.lazy(() => ApiOrderDeliveryInputSchema()),
-  });
+    shipping: z.lazy(() => ApiOrderDeliveryInputSchema())
+  })
 }
 
-export function ApiOrderExchangeCancelInputSchema(): z.ZodObject<
-  Properties<ApiOrderExchangeCancelInput>
-> {
+export function ApiOrderExchangeCancelInputSchema(): z.ZodObject<Properties<ApiOrderExchangeCancelInput>> {
   return z.object({
     exchangeId: z.string(),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
-    reasonCode: z.string(),
-  });
+    reasonCode: z.string()
+  })
 }
 
-export function ApiOrderExchangeCompleteInputSchema(): z.ZodObject<
-  Properties<ApiOrderExchangeCompleteInput>
-> {
+export function ApiOrderExchangeCompleteInputSchema(): z.ZodObject<Properties<ApiOrderExchangeCompleteInput>> {
   return z.object({
     exchangeId: z.string(),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     notifyCustomer: z.boolean().default(false).nullish(),
-    staffNote: z.string().nullish(),
-  });
+    staffNote: z.string().nullish()
+  })
 }
 
-export function ApiOrderExchangeCreateInputSchema(): z.ZodObject<
-  Properties<ApiOrderExchangeCreateInput>
-> {
+export function ApiOrderExchangeCreateInputSchema(): z.ZodObject<Properties<ApiOrderExchangeCreateInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     inboundLines: z.array(z.lazy(() => ApiOrderReturnLineInputSchema())),
     notifyCustomer: z.boolean().default(false).nullish(),
     orderId: z.string(),
     outboundLines: z.array(z.lazy(() => ApiOrderLineCreateInputSchema())),
-    staffNote: z.string().nullish(),
-  });
+    staffNote: z.string().nullish()
+  })
 }
 
-export function ApiOrderFulfillmentStatusFilterInputSchema(): z.ZodObject<
-  Properties<ApiOrderFulfillmentStatusFilterInput>
-> {
+export function ApiOrderFulfillmentStatusFilterInputSchema(): z.ZodObject<Properties<ApiOrderFulfillmentStatusFilterInput>> {
   return z.object({
     eq: ApiOrderFulfillmentStatusSchema.nullish(),
-    in: z.array(ApiOrderFulfillmentStatusSchema).nullish(),
-  });
+    in: z.array(ApiOrderFulfillmentStatusSchema).nullish()
+  })
 }
 
-export function ApiOrderIntegrationLinkDetachInputSchema(): z.ZodObject<
-  Properties<ApiOrderIntegrationLinkDetachInput>
-> {
+export function ApiOrderIntegrationLinkDetachInputSchema(): z.ZodObject<Properties<ApiOrderIntegrationLinkDetachInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     integrationLinkId: z.string(),
     orderId: z.string(),
-    reason: z.string(),
-  });
+    reason: z.string()
+  })
 }
 
-export function ApiOrderIntegrationSyncRequestInputSchema(): z.ZodObject<
-  Properties<ApiOrderIntegrationSyncRequestInput>
-> {
+export function ApiOrderIntegrationSyncRequestInputSchema(): z.ZodObject<Properties<ApiOrderIntegrationSyncRequestInput>> {
   return z.object({
-    expectedVersion: z.number(),
     force: z.boolean().default(false).nullish(),
-    idempotencyKey: z.string(),
     integrationLinkId: z.string(),
-    orderId: z.string(),
-  });
+    orderId: z.string()
+  })
 }
 
-export function ApiOrderIntegrationSyncRetryInputSchema(): z.ZodObject<
-  Properties<ApiOrderIntegrationSyncRetryInput>
-> {
+export function ApiOrderIntegrationSyncRetryInputSchema(): z.ZodObject<Properties<ApiOrderIntegrationSyncRetryInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     operationId: z.string(),
-    orderId: z.string(),
-  });
+    orderId: z.string()
+  })
 }
 
 export function ApiOrderLineAddInputSchema(): z.ZodObject<Properties<ApiOrderLineAddInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     line: z.lazy(() => ApiOrderLineCreateInputSchema()),
-    orderId: z.string(),
-  });
+    orderId: z.string()
+  })
 }
 
 export function ApiOrderLineCreateInputSchema(): z.ZodObject<Properties<ApiOrderLineCreateInput>> {
@@ -744,201 +487,151 @@ export function ApiOrderLineCreateInputSchema(): z.ZodObject<Properties<ApiOrder
     unitCompareAtPrice: z.lazy(() => ApiMoneyInputSchema().nullish()),
     unitCost: z.lazy(() => ApiMoneyInputSchema().nullish()),
     unitPrice: z.lazy(() => ApiMoneyInputSchema()),
-    weight: z.lazy(() => ApiOrderWeightInputSchema().nullish()),
-  });
+    weight: z.lazy(() => ApiOrderWeightInputSchema().nullish())
+  })
 }
 
 export function ApiOrderLineDeleteInputSchema(): z.ZodObject<Properties<ApiOrderLineDeleteInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     lineId: z.string(),
-    orderId: z.string(),
-  });
+    orderId: z.string()
+  })
 }
 
 export function ApiOrderLineUpdateInputSchema(): z.ZodObject<Properties<ApiOrderLineUpdateInput>> {
   return z.object({
     customFields: z.unknown().nullish(),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     lineId: z.string(),
     orderId: z.string(),
     quantity: z.number().nullish(),
     unitCost: z.lazy(() => ApiMoneyInputSchema().nullish()),
-    weight: z.lazy(() => ApiOrderWeightInputSchema().nullish()),
-  });
+    weight: z.lazy(() => ApiOrderWeightInputSchema().nullish())
+  })
 }
 
-export function ApiOrderManualPaymentRecordInputSchema(): z.ZodObject<
-  Properties<ApiOrderManualPaymentRecordInput>
-> {
+export function ApiOrderManualPaymentRecordInputSchema(): z.ZodObject<Properties<ApiOrderManualPaymentRecordInput>> {
   return z.object({
     amount: z.lazy(() => ApiMoneyInputSchema()),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     methodCode: z.string(),
     note: z.string().nullish(),
     orderId: z.string(),
     paidAt: z.string().datetime({ offset: true }),
-    reference: z.string().nullish(),
-  });
+    reference: z.string().nullish()
+  })
 }
 
 export function ApiOrderOrderByInputSchema(): z.ZodObject<Properties<ApiOrderOrderByInput>> {
   return z.object({
     direction: ApiOrderSortDirectionSchema,
-    field: ApiOrderSortFieldSchema,
-  });
+    field: ApiOrderSortFieldSchema
+  })
 }
 
-export function ApiOrderPaymentCaptureInputSchema(): z.ZodObject<
-  Properties<ApiOrderPaymentCaptureInput>
-> {
+export function ApiOrderPaymentCaptureInputSchema(): z.ZodObject<Properties<ApiOrderPaymentCaptureInput>> {
   return z.object({
     amount: z.lazy(() => ApiMoneyInputSchema().nullish()),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     orderId: z.string(),
-    transactionId: z.string(),
-  });
+    transactionId: z.string()
+  })
 }
 
-export function ApiOrderPaymentRetryInputSchema(): z.ZodObject<
-  Properties<ApiOrderPaymentRetryInput>
-> {
+export function ApiOrderPaymentRetryInputSchema(): z.ZodObject<Properties<ApiOrderPaymentRetryInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     orderId: z.string(),
     paymentMethodCode: z.string().nullish(),
-    returnUrl: z.string().url().nullish(),
-  });
+    returnUrl: z.string().url().nullish()
+  })
 }
 
-export function ApiOrderPaymentStatusFilterInputSchema(): z.ZodObject<
-  Properties<ApiOrderPaymentStatusFilterInput>
-> {
+export function ApiOrderPaymentStatusFilterInputSchema(): z.ZodObject<Properties<ApiOrderPaymentStatusFilterInput>> {
   return z.object({
     eq: ApiOrderPaymentStatusSchema.nullish(),
-    in: z.array(ApiOrderPaymentStatusSchema).nullish(),
-  });
+    in: z.array(ApiOrderPaymentStatusSchema).nullish()
+  })
 }
 
-export function ApiOrderPaymentStatusOverrideInputSchema(): z.ZodObject<
-  Properties<ApiOrderPaymentStatusOverrideInput>
-> {
+export function ApiOrderPaymentStatusOverrideInputSchema(): z.ZodObject<Properties<ApiOrderPaymentStatusOverrideInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     note: z.string(),
     orderId: z.string(),
     reasonCode: z.string(),
-    status: ApiOrderPaymentStatusSchema,
-  });
+    status: ApiOrderPaymentStatusSchema
+  })
 }
 
-export function ApiOrderPaymentVoidInputSchema(): z.ZodObject<
-  Properties<ApiOrderPaymentVoidInput>
-> {
+export function ApiOrderPaymentVoidInputSchema(): z.ZodObject<Properties<ApiOrderPaymentVoidInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     orderId: z.string(),
     reason: z.string(),
-    transactionId: z.string(),
-  });
+    transactionId: z.string()
+  })
 }
 
-export function ApiOrderPlacementStatusFilterInputSchema(): z.ZodObject<
-  Properties<ApiOrderPlacementStatusFilterInput>
-> {
+export function ApiOrderPlacementStatusFilterInputSchema(): z.ZodObject<Properties<ApiOrderPlacementStatusFilterInput>> {
   return z.object({
     eq: ApiOrderPlacementStatusSchema.nullish(),
-    in: z.array(ApiOrderPlacementStatusSchema).nullish(),
-  });
+    in: z.array(ApiOrderPlacementStatusSchema).nullish()
+  })
 }
 
-export function ApiOrderRefundCreateInputSchema(): z.ZodObject<
-  Properties<ApiOrderRefundCreateInput>
-> {
+export function ApiOrderRefundCreateInputSchema(): z.ZodObject<Properties<ApiOrderRefundCreateInput>> {
   return z.object({
     amount: z.lazy(() => ApiMoneyInputSchema()),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     lines: z.array(z.lazy(() => ApiOrderRefundLineInputSchema())).nullish(),
     note: z.string().nullish(),
     notifyCustomer: z.boolean().default(false).nullish(),
     orderId: z.string(),
     reasonCode: z.string(),
-    transactionAllocations: z
-      .array(z.lazy(() => ApiOrderRefundTransactionAllocationInputSchema()))
-      .nullish(),
-  });
+    transactionAllocations: z.array(z.lazy(() => ApiOrderRefundTransactionAllocationInputSchema())).nullish()
+  })
 }
 
 export function ApiOrderRefundLineInputSchema(): z.ZodObject<Properties<ApiOrderRefundLineInput>> {
   return z.object({
     amount: z.lazy(() => ApiMoneyInputSchema()),
     orderLineId: z.string(),
-    quantity: z.number(),
-  });
+    quantity: z.number()
+  })
 }
 
-export function ApiOrderRefundTransactionAllocationInputSchema(): z.ZodObject<
-  Properties<ApiOrderRefundTransactionAllocationInput>
-> {
+export function ApiOrderRefundTransactionAllocationInputSchema(): z.ZodObject<Properties<ApiOrderRefundTransactionAllocationInput>> {
   return z.object({
     amount: z.lazy(() => ApiMoneyInputSchema()),
-    transactionId: z.string(),
-  });
+    transactionId: z.string()
+  })
 }
 
 export function ApiOrderReopenInputSchema(): z.ZodObject<Properties<ApiOrderReopenInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string(),
-    idempotencyKey: z.string(),
-    reason: z.string(),
-  });
+    reason: z.string()
+  })
 }
 
-export function ApiOrderReturnApproveInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnApproveInput>
-> {
+export function ApiOrderReturnApproveInputSchema(): z.ZodObject<Properties<ApiOrderReturnApproveInput>> {
   return z.object({
     createReturnShipment: z.boolean().default(false).nullish(),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     locationId: z.string(),
     returnId: z.string(),
-    staffNote: z.string().nullish(),
-  });
+    staffNote: z.string().nullish()
+  })
 }
 
-export function ApiOrderReturnCancelInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnCancelInput>
-> {
+export function ApiOrderReturnCancelInputSchema(): z.ZodObject<Properties<ApiOrderReturnCancelInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     reasonCode: z.string(),
-    returnId: z.string(),
-  });
+    returnId: z.string()
+  })
 }
 
-export function ApiOrderReturnCreateInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnCreateInput>
-> {
+export function ApiOrderReturnCreateInputSchema(): z.ZodObject<Properties<ApiOrderReturnCreateInput>> {
   return z.object({
     customerNote: z.string().nullish(),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     lines: z.array(z.lazy(() => ApiOrderReturnLineInputSchema())),
     notifyCustomer: z.boolean().default(false).nullish(),
     orderId: z.string(),
-    staffNote: z.string().nullish(),
-  });
+    staffNote: z.string().nullish()
+  })
 }
 
 export function ApiOrderReturnLineInputSchema(): z.ZodObject<Properties<ApiOrderReturnLineInput>> {
@@ -946,89 +639,69 @@ export function ApiOrderReturnLineInputSchema(): z.ZodObject<Properties<ApiOrder
     note: z.string().nullish(),
     orderLineId: z.string(),
     quantity: z.number(),
-    reasonCode: z.string(),
-  });
+    reasonCode: z.string()
+  })
 }
 
-export function ApiOrderReturnReceiveInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnReceiveInput>
-> {
+export function ApiOrderReturnReceiveInputSchema(): z.ZodObject<Properties<ApiOrderReturnReceiveInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     lines: z.array(z.lazy(() => ApiOrderReturnReceiveLineInputSchema())),
     locationId: z.string(),
     refund: z.lazy(() => ApiOrderReturnRefundInputSchema().nullish()),
-    returnId: z.string(),
-  });
+    returnId: z.string()
+  })
 }
 
-export function ApiOrderReturnReceiveLineInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnReceiveLineInput>
-> {
+export function ApiOrderReturnReceiveLineInputSchema(): z.ZodObject<Properties<ApiOrderReturnReceiveLineInput>> {
   return z.object({
     damagedQuantity: z.number(),
     orderLineId: z.string(),
     receivedQuantity: z.number(),
-    restockableQuantity: z.number(),
-  });
+    restockableQuantity: z.number()
+  })
 }
 
-export function ApiOrderReturnRefundInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnRefundInput>
-> {
+export function ApiOrderReturnRefundInputSchema(): z.ZodObject<Properties<ApiOrderReturnRefundInput>> {
   return z.object({
     amount: z.lazy(() => ApiMoneyInputSchema()),
     notifyCustomer: z.boolean().default(false).nullish(),
-    reasonCode: z.string(),
-  });
+    reasonCode: z.string()
+  })
 }
 
-export function ApiOrderReturnRejectInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnRejectInput>
-> {
+export function ApiOrderReturnRejectInputSchema(): z.ZodObject<Properties<ApiOrderReturnRejectInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     reasonCode: z.string(),
     returnId: z.string(),
-    staffNote: z.string().nullish(),
-  });
+    staffNote: z.string().nullish()
+  })
 }
 
-export function ApiOrderReturnStatusFilterInputSchema(): z.ZodObject<
-  Properties<ApiOrderReturnStatusFilterInput>
-> {
+export function ApiOrderReturnStatusFilterInputSchema(): z.ZodObject<Properties<ApiOrderReturnStatusFilterInput>> {
   return z.object({
     eq: ApiOrderReturnStatusSchema.nullish(),
-    in: z.array(ApiOrderReturnStatusSchema).nullish(),
-  });
+    in: z.array(ApiOrderReturnStatusSchema).nullish()
+  })
 }
 
-export function ApiOrderStatusFilterInputSchema(): z.ZodObject<
-  Properties<ApiOrderStatusFilterInput>
-> {
+export function ApiOrderStatusFilterInputSchema(): z.ZodObject<Properties<ApiOrderStatusFilterInput>> {
   return z.object({
     eq: ApiOrderStatusSchema.nullish(),
-    in: z.array(ApiOrderStatusSchema).nullish(),
-  });
+    in: z.array(ApiOrderStatusSchema).nullish()
+  })
 }
 
 export function ApiOrderTagsUpdateInputSchema(): z.ZodObject<Properties<ApiOrderTagsUpdateInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string(),
-    idempotencyKey: z.string(),
-    tags: z.array(z.string()),
-  });
+    tags: z.array(z.string())
+  })
 }
 
 export function ApiOrderUnarchiveInputSchema(): z.ZodObject<Properties<ApiOrderUnarchiveInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    id: z.string(),
-    idempotencyKey: z.string(),
-  });
+    id: z.string()
+  })
 }
 
 export function ApiOrderUpdateInputSchema(): z.ZodObject<Properties<ApiOrderUpdateInput>> {
@@ -1036,19 +709,17 @@ export function ApiOrderUpdateInputSchema(): z.ZodObject<Properties<ApiOrderUpda
     billingAddress: z.lazy(() => ApiOrderAddressInputSchema().nullish()),
     contact: z.lazy(() => ApiOrderContactInputSchema().nullish()),
     customerNote: z.string().nullish(),
-    expectedVersion: z.number(),
     id: z.string(),
-    idempotencyKey: z.string(),
     localeCode: ApiLocaleCodeSchema.nullish(),
-    shipping: z.lazy(() => ApiOrderDeliveryInputSchema().nullish()),
-  });
+    shipping: z.lazy(() => ApiOrderDeliveryInputSchema().nullish())
+  })
 }
 
 export function ApiOrderWeightInputSchema(): z.ZodObject<Properties<ApiOrderWeightInput>> {
   return z.object({
     unit: ApiWeightUnitSchema,
-    value: z.number(),
-  });
+    value: z.number()
+  })
 }
 
 export function ApiOrderWhereInputSchema(): z.ZodObject<Properties<ApiOrderWhereInput>> {
@@ -1080,64 +751,49 @@ export function ApiOrderWhereInputSchema(): z.ZodObject<Properties<ApiOrderWhere
     tag: z.lazy(() => ApiStringFilterInputSchema().nullish()),
     totalAmount: z.lazy(() => ApiDecimalFilterInputSchema().nullish()),
     trackingNumber: z.lazy(() => ApiStringFilterInputSchema().nullish()),
-    updatedAt: z.lazy(() => ApiDateTimeFilterInputSchema().nullish()),
-  });
+    updatedAt: z.lazy(() => ApiDateTimeFilterInputSchema().nullish())
+  })
 }
 
-export function ApiOrdersBulkActionInputSchema(): z.ZodObject<
-  Properties<ApiOrdersBulkActionInput>
-> {
+export function ApiOrdersBulkActionInputSchema(): z.ZodObject<Properties<ApiOrdersBulkActionInput>> {
   return z.object({
     action: ApiOrdersBulkActionKindSchema,
-    idempotencyKey: z.string(),
     integrationLinkId: z.string().nullish(),
     reasonCode: z.string().nullish(),
     selection: z.lazy(() => ApiOrderBulkSelectionInputSchema()),
-    tags: z.array(z.string()).nullish(),
-  });
+    tags: z.array(z.string()).nullish()
+  })
 }
 
 export function ApiShipmentCancelInputSchema(): z.ZodObject<Properties<ApiShipmentCancelInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     reasonCode: z.string(),
-    shipmentId: z.string(),
-  });
+    shipmentId: z.string()
+  })
 }
 
 export function ApiShipmentCreateInputSchema(): z.ZodObject<Properties<ApiShipmentCreateInput>> {
   return z.object({
-    expectedVersion: z.number(),
     fulfillmentId: z.string(),
-    idempotencyKey: z.string(),
     notifyCustomer: z.boolean().default(false).nullish(),
     packages: z.array(z.lazy(() => ApiShipmentPackageInputSchema())),
     providerCode: z.string().nullish(),
-    serviceCode: z.string().nullish(),
-  });
+    serviceCode: z.string().nullish()
+  })
 }
 
-export function ApiShipmentMarkDeliveredInputSchema(): z.ZodObject<
-  Properties<ApiShipmentMarkDeliveredInput>
-> {
+export function ApiShipmentMarkDeliveredInputSchema(): z.ZodObject<Properties<ApiShipmentMarkDeliveredInput>> {
   return z.object({
     deliveredAt: z.string().datetime({ offset: true }),
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
-    shipmentId: z.string(),
-  });
+    shipmentId: z.string()
+  })
 }
 
-export function ApiShipmentMarkShippedInputSchema(): z.ZodObject<
-  Properties<ApiShipmentMarkShippedInput>
-> {
+export function ApiShipmentMarkShippedInputSchema(): z.ZodObject<Properties<ApiShipmentMarkShippedInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     shipmentId: z.string(),
-    shippedAt: z.string().datetime({ offset: true }),
-  });
+    shippedAt: z.string().datetime({ offset: true })
+  })
 }
 
 export function ApiShipmentPackageInputSchema(): z.ZodObject<Properties<ApiShipmentPackageInput>> {
@@ -1145,48 +801,36 @@ export function ApiShipmentPackageInputSchema(): z.ZodObject<Properties<ApiShipm
     declaredValue: z.lazy(() => ApiMoneyInputSchema().nullish()),
     dimensions: z.lazy(() => ApiOrderDimensionsInputSchema().nullish()),
     items: z.array(z.lazy(() => ApiShipmentPackageItemInputSchema())),
-    weight: z.lazy(() => ApiOrderWeightInputSchema().nullish()),
-  });
+    weight: z.lazy(() => ApiOrderWeightInputSchema().nullish())
+  })
 }
 
-export function ApiShipmentPackageItemInputSchema(): z.ZodObject<
-  Properties<ApiShipmentPackageItemInput>
-> {
+export function ApiShipmentPackageItemInputSchema(): z.ZodObject<Properties<ApiShipmentPackageItemInput>> {
   return z.object({
     orderLineId: z.string(),
-    quantity: z.number(),
-  });
+    quantity: z.number()
+  })
 }
 
-export function ApiShipmentReconcileInputSchema(): z.ZodObject<
-  Properties<ApiShipmentReconcileInput>
-> {
+export function ApiShipmentReconcileInputSchema(): z.ZodObject<Properties<ApiShipmentReconcileInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
-    shipmentId: z.string(),
-  });
+    shipmentId: z.string()
+  })
 }
 
-export function ApiShipmentTrackingInputSchema(): z.ZodObject<
-  Properties<ApiShipmentTrackingInput>
-> {
+export function ApiShipmentTrackingInputSchema(): z.ZodObject<Properties<ApiShipmentTrackingInput>> {
   return z.object({
     company: z.string().nullish(),
     number: z.string(),
-    url: z.string().url().nullish(),
-  });
+    url: z.string().url().nullish()
+  })
 }
 
-export function ApiShipmentTrackingUpdateInputSchema(): z.ZodObject<
-  Properties<ApiShipmentTrackingUpdateInput>
-> {
+export function ApiShipmentTrackingUpdateInputSchema(): z.ZodObject<Properties<ApiShipmentTrackingUpdateInput>> {
   return z.object({
-    expectedVersion: z.number(),
-    idempotencyKey: z.string(),
     shipmentId: z.string(),
-    tracking: z.array(z.lazy(() => ApiShipmentTrackingInputSchema())),
-  });
+    tracking: z.array(z.lazy(() => ApiShipmentTrackingInputSchema()))
+  })
 }
 
 export function ApiStringFilterInputSchema(): z.ZodObject<Properties<ApiStringFilterInput>> {
@@ -1194,6 +838,6 @@ export function ApiStringFilterInputSchema(): z.ZodObject<Properties<ApiStringFi
     contains: z.string().nullish(),
     eq: z.string().nullish(),
     in: z.array(z.string()).nullish(),
-    startsWith: z.string().nullish(),
-  });
+    startsWith: z.string().nullish()
+  })
 }

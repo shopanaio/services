@@ -259,6 +259,8 @@ input ReviewReplyWhereInput {
   updatedAt: DateTimeFilter
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
+  """Filter by redactedAt"""
+  redactedAt: StringFilter
   """Filter by likeCount"""
   likeCount: StringFilter
   """Filter by reviewId"""
@@ -287,6 +289,8 @@ enum ReviewReplyOrderField {
   updatedAt
   """Sort by deletedAt"""
   deletedAt
+  """Sort by redactedAt"""
+  redactedAt
   """Sort by likeCount"""
   likeCount
   """Sort by reviewId"""
@@ -347,6 +351,8 @@ input ProductQuestionWhereInput {
   publishedAt: DateTimeFilter
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
+  """Filter by redactedAt"""
+  redactedAt: StringFilter
   """Filter by answerCount"""
   answerCount: IntFilter
   """Filter by officialAnswerCount"""
@@ -389,6 +395,8 @@ enum ProductQuestionOrderField {
   publishedAt
   """Sort by deletedAt"""
   deletedAt
+  """Sort by redactedAt"""
+  redactedAt
   """Sort by answerCount"""
   answerCount
   """Sort by officialAnswerCount"""
@@ -439,6 +447,8 @@ input ProductQuestionAnswerWhereInput {
   updatedAt: DateTimeFilter
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
+  """Filter by redactedAt"""
+  redactedAt: StringFilter
   """Filter by likeCount"""
   likeCount: StringFilter
   """Filter by questionId"""
@@ -469,6 +479,8 @@ enum ProductQuestionAnswerOrderField {
   updatedAt
   """Sort by deletedAt"""
   deletedAt
+  """Sort by redactedAt"""
+  redactedAt
   """Sort by likeCount"""
   likeCount
   """Sort by questionId"""

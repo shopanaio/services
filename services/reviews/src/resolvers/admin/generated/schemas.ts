@@ -163,7 +163,6 @@ export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
 
 export function ProductQuestionAnswerCreateOperationInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerCreateOperationInput>> {
   return z.object({
-    clientMutationId: z.string().nullish(),
     content: z.lazy(() => ReviewContentCreateInputSchema()),
     isAccepted: z.boolean().nullish(),
     isOfficial: z.boolean().nullish(),
@@ -174,7 +173,6 @@ export function ProductQuestionAnswerCreateOperationInputSchema(): z.ZodObject<P
 export function ProductQuestionAnswerDeleteOperationInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerDeleteOperationInput>> {
   return z.object({
     answerId: z.string(),
-    expectedRevision: z.number(),
     permanent: z.boolean().default(false).nullish()
   })
 }
@@ -204,7 +202,6 @@ export function ProductQuestionAnswerUpdateInputSchema(): z.ZodObject<Properties
 export function ProductQuestionAnswerUpdateOperationInputSchema(): z.ZodObject<Properties<ProductQuestionAnswerUpdateOperationInput>> {
   return z.object({
     answerId: z.string(),
-    expectedRevision: z.number(),
     operations: z.lazy(() => ProductQuestionAnswerUpdateInputSchema())
   })
 }
@@ -225,6 +222,7 @@ export function ProductQuestionAnswerWhereInputSchema(): z.ZodObject<Properties<
     likeCount: z.lazy(() => StringFilterSchema().nullish()),
     locale: z.lazy(() => StringFilterSchema().nullish()),
     questionId: z.lazy(() => IdFilterSchema().nullish()),
+    redactedAt: z.lazy(() => StringFilterSchema().nullish()),
     revision: z.lazy(() => IntFilterSchema().nullish()),
     sortIndex: z.lazy(() => IntFilterSchema().nullish()),
     status: z.lazy(() => StringFilterSchema().nullish()),
@@ -298,6 +296,7 @@ export function ProductQuestionWhereInputSchema(): z.ZodObject<Properties<Produc
     officialAnswerCount: z.lazy(() => IntFilterSchema().nullish()),
     productId: z.lazy(() => IdFilterSchema().nullish()),
     publishedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
+    redactedAt: z.lazy(() => StringFilterSchema().nullish()),
     reportCount: z.lazy(() => IntFilterSchema().nullish()),
     revision: z.lazy(() => IntFilterSchema().nullish()),
     sourceChannel: z.lazy(() => StringFilterSchema().nullish()),
@@ -348,7 +347,6 @@ export function ReviewContentCreateInputSchema(): z.ZodObject<Properties<ReviewC
 
 export function ReviewContentDeleteInputSchema(): z.ZodObject<Properties<ReviewContentDeleteInput>> {
   return z.object({
-    expectedRevision: z.number(),
     id: z.string(),
     permanent: z.boolean().default(false).nullish()
   })
@@ -368,7 +366,6 @@ export function ReviewContentExternalReferenceCreateInputSchema(): z.ZodObject<P
 
 export function ReviewContentExternalReferenceDeleteInputSchema(): z.ZodObject<Properties<ReviewContentExternalReferenceDeleteInput>> {
   return z.object({
-    expectedUpdatedAt: z.string(),
     id: z.string(),
     permanent: z.boolean().default(false).nullish()
   })
@@ -497,7 +494,6 @@ export function ReviewContentReportWhereInputSchema(): z.ZodObject<Properties<Re
 export function ReviewContentSourceCreateInputSchema(): z.ZodObject<Properties<ReviewContentSourceCreateInput>> {
   return z.object({
     channel: z.string().default("ADMIN").nullish(),
-    idempotencyKey: z.string().nullish(),
     metadata: z.record(z.unknown()).nullish()
   })
 }
@@ -505,7 +501,6 @@ export function ReviewContentSourceCreateInputSchema(): z.ZodObject<Properties<R
 export function ReviewContentSourceUpdateInputSchema(): z.ZodObject<Properties<ReviewContentSourceUpdateInput>> {
   return z.object({
     channel: z.string().nullish(),
-    idempotencyKey: z.string().nullish(),
     metadata: z.record(z.unknown()).nullish()
   })
 }
@@ -712,7 +707,6 @@ export function ReviewRatingCriterionDefinitionInputSchema(): z.ZodObject<Proper
 
 export function ReviewRatingCriterionDeleteInputSchema(): z.ZodObject<Properties<ReviewRatingCriterionDeleteInput>> {
   return z.object({
-    expectedUpdatedAt: z.string(),
     id: z.string(),
     permanent: z.boolean().default(false).nullish()
   })
@@ -785,7 +779,6 @@ export function ReviewRepliesUpdateInputSchema(): z.ZodObject<Properties<ReviewR
 
 export function ReviewReplyCreateOperationInputSchema(): z.ZodObject<Properties<ReviewReplyCreateOperationInput>> {
   return z.object({
-    clientMutationId: z.string().nullish(),
     content: z.lazy(() => ReviewContentCreateInputSchema()),
     isOfficial: z.boolean().default(true).nullish(),
     sortIndex: z.number().nullish()
@@ -794,7 +787,6 @@ export function ReviewReplyCreateOperationInputSchema(): z.ZodObject<Properties<
 
 export function ReviewReplyDeleteOperationInputSchema(): z.ZodObject<Properties<ReviewReplyDeleteOperationInput>> {
   return z.object({
-    expectedRevision: z.number(),
     permanent: z.boolean().default(false).nullish(),
     replyId: z.string()
   })
@@ -823,7 +815,6 @@ export function ReviewReplyUpdateInputSchema(): z.ZodObject<Properties<ReviewRep
 
 export function ReviewReplyUpdateOperationInputSchema(): z.ZodObject<Properties<ReviewReplyUpdateOperationInput>> {
   return z.object({
-    expectedRevision: z.number(),
     operations: z.lazy(() => ReviewReplyUpdateInputSchema()),
     replyId: z.string()
   })
@@ -843,6 +834,7 @@ export function ReviewReplyWhereInputSchema(): z.ZodObject<Properties<ReviewRepl
     isOfficial: z.lazy(() => BooleanFilterSchema().nullish()),
     likeCount: z.lazy(() => StringFilterSchema().nullish()),
     locale: z.lazy(() => StringFilterSchema().nullish()),
+    redactedAt: z.lazy(() => StringFilterSchema().nullish()),
     reviewId: z.lazy(() => IdFilterSchema().nullish()),
     revision: z.lazy(() => IntFilterSchema().nullish()),
     sortIndex: z.lazy(() => IntFilterSchema().nullish()),
@@ -856,7 +848,6 @@ export function ReviewRequestCreateInputSchema(): z.ZodObject<Properties<ReviewR
     channel: ReviewNotificationChannelSchema,
     customerId: z.string(),
     expiresAt: z.string().nullish(),
-    idempotencyKey: z.string(),
     locale: LocaleCodeSchema,
     orderId: z.string(),
     orderLineId: z.string(),

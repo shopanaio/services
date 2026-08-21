@@ -680,7 +680,6 @@ export type NotificationChannelSetting = {
 export type NotificationChannelSettingInput = {
   channel: NotificationChannel;
   enabled: Scalars['Boolean']['input'];
-  expectedVersion: Scalars['Int']['input'];
   key: Scalars['String']['input'];
   replyTo?: InputMaybe<Scalars['String']['input']>;
   senderEmail?: InputMaybe<Scalars['String']['input']>;
@@ -703,7 +702,6 @@ export type NotificationDefinition = {
 
 export type NotificationDefinitionSetEnabledInput = {
   enabled: Scalars['Boolean']['input'];
-  expectedVersion: Scalars['Int']['input'];
   key: Scalars['String']['input'];
 };
 
@@ -778,7 +776,6 @@ export type NotificationSmsMetrics = {
 export type NotificationTemplateUpdateInput = {
   bodyTemplate: Scalars['String']['input'];
   channel: NotificationChannel;
-  expectedVersion: Scalars['Int']['input'];
   key: Scalars['String']['input'];
   locale: Scalars['String']['input'];
   plainTextTemplate?: InputMaybe<Scalars['String']['input']>;
@@ -805,7 +802,6 @@ export type NotificationTestMessageInput = {
   customerId?: InputMaybe<Scalars['ID']['input']>;
   data: Scalars['JSON']['input'];
   email?: InputMaybe<Scalars['String']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   key: Scalars['String']['input'];
   locale?: InputMaybe<Scalars['String']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -894,7 +890,6 @@ export type NotificationWebhookSubscription = {
 export type NotificationWebhookUpdateInput = {
   apiVersion?: InputMaybe<Scalars['String']['input']>;
   eventType?: InputMaybe<Scalars['String']['input']>;
-  expectedVersion: Scalars['Int']['input'];
   format?: InputMaybe<NotificationWebhookFormat>;
   id: Scalars['ID']['input'];
   status?: InputMaybe<NotificationWebhookStatus>;

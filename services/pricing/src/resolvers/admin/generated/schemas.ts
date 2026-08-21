@@ -172,7 +172,6 @@ export function DiscountClassFilterSchema(): z.ZodObject<Properties<DiscountClas
 
 export function DiscountCodeCreateOperationInputSchema(): z.ZodObject<Properties<DiscountCodeCreateOperationInput>> {
   return z.object({
-    clientMutationId: z.string().nullish(),
     code: z.string(),
     metadata: z.record(z.unknown()).nullish(),
     usageLimit: z.string().nullish()
@@ -181,8 +180,7 @@ export function DiscountCodeCreateOperationInputSchema(): z.ZodObject<Properties
 
 export function DiscountCodeDeleteOperationInputSchema(): z.ZodObject<Properties<DiscountCodeDeleteOperationInput>> {
   return z.object({
-    codeId: z.string(),
-    expectedUpdatedAt: z.string()
+    codeId: z.string()
   })
 }
 
@@ -206,7 +204,6 @@ export function DiscountCodeUpdateOperationInputSchema(): z.ZodObject<Properties
   return z.object({
     code: z.string().nullish(),
     codeId: z.string(),
-    expectedUpdatedAt: z.string(),
     metadata: z.record(z.unknown()).nullish(),
     status: DiscountCodeStatusSchema.nullish(),
     usageLimit: z.string().nullish()
@@ -244,7 +241,7 @@ export function DiscountCodesUpdateInputSchema(): z.ZodObject<Properties<Discoun
 export function DiscountCreateInputSchema(): z.ZodObject<Properties<DiscountCreateInput>> {
   return z.object({
     buyerContext: z.lazy(() => DiscountBuyerContextInputSchema().nullish()),
-    calculationStrategy: DiscountCalculationStrategySchema.default(DiscountCalculationStrategy.Native).nullish(),
+    calculationStrategy: DiscountCalculationStrategySchema.default("NATIVE").nullish(),
     channels: z.array(z.lazy(() => DiscountChannelInputSchema())).nullish(),
     codes: z.array(z.lazy(() => DiscountCodeCreateOperationInputSchema())).nullish(),
     combinesWith: z.array(DiscountClassSchema).nullish(),
@@ -288,7 +285,6 @@ export function DiscountDefinitionUpdateInputSchema(): z.ZodObject<Properties<Di
 
 export function DiscountDeleteInputSchema(): z.ZodObject<Properties<DiscountDeleteInput>> {
   return z.object({
-    expectedRevision: z.number(),
     id: z.string()
   })
 }
@@ -316,7 +312,6 @@ export function DiscountExternalReferenceCreateInputSchema(): z.ZodObject<Proper
 
 export function DiscountExternalReferenceDeleteInputSchema(): z.ZodObject<Properties<DiscountExternalReferenceDeleteInput>> {
   return z.object({
-    expectedUpdatedAt: z.string(),
     id: z.string(),
     permanent: z.boolean().default(false).nullish()
   })
@@ -405,12 +400,12 @@ export function DiscountFunctionBindingInputSchema(): z.ZodObject<Properties<Dis
     activationSequence: z.string(),
     configurationRevision: z.string(),
     configurationSnapshot: z.record(z.unknown()),
-    failureMode: DiscountFunctionFailureModeSchema.default(DiscountFunctionFailureMode.Optional).nullish(),
+    failureMode: DiscountFunctionFailureModeSchema.default("OPTIONAL").nullish(),
     functionKey: z.string(),
     installationId: z.string(),
     precedence: z.number().default(0).nullish(),
     routeRevision: z.string(),
-    status: DiscountFunctionBindingStatusSchema.default(DiscountFunctionBindingStatus.Active).nullish()
+    status: DiscountFunctionBindingStatusSchema.default("ACTIVE").nullish()
   })
 }
 

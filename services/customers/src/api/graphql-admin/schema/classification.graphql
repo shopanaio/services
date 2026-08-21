@@ -396,7 +396,6 @@ input CustomerSegmentMembershipRelationsUpdateInput {
 
 input CustomerSegmentDeleteInput {
   id: ID!
-  expectedRevision: Int
 }
 
 """

@@ -148,7 +148,6 @@ input ReviewRatingCriterionUpdateInput {
 
 input ReviewRatingCriterionDeleteInput {
   id: ID!
-  expectedUpdatedAt: DateTime!
   permanent: Boolean = false
 }
 

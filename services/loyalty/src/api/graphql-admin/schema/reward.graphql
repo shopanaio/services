@@ -30,7 +30,6 @@ type LoyaltyRewardEntitlementEvent implements Node @key(fields: "id") {
   eventType: LoyaltyRewardEntitlementEventType!
   previousStatus: LoyaltyRewardEntitlementStatus
   status: LoyaltyRewardEntitlementStatus!
-  idempotencyKey: String!
   actorType: LoyaltyActorType!
   actorId: ID
   reasonCode: String!
@@ -61,15 +60,12 @@ input LoyaltyRewardEntitlementIssueInput {
   quantity: BigInt = "1"
   externalReference: String
   occurredAt: DateTime
-  idempotencyKey: String!
 }
 
 input LoyaltyRewardEntitlementTransitionInput {
   entitlementId: ID!
-  expectedRevision: Int!
   reasonCode: String!
   occurredAt: DateTime
-  idempotencyKey: String!
 }
 
 input LoyaltyTierRewardBenefitCreateInput {
@@ -77,12 +73,10 @@ input LoyaltyTierRewardBenefitCreateInput {
   rewardDefinitionId: ID!
   grantPolicySchemaVersion: Int = 1
   grantPolicy: JSON! = { type: "ON_QUALIFICATION" }
-  idempotencyKey: String!
 }
 
 input LoyaltyTierRewardBenefitDeleteInput {
   tierRewardBenefitId: ID!
-  idempotencyKey: String!
 }
 
 type LoyaltyRewardEntitlementPayload {
@@ -101,15 +95,12 @@ input LoyaltyTierEvaluateInput {
   effectiveAt: DateTime
   forceRequalification: Boolean = false
   reasonCode: String!
-  idempotencyKey: String!
 }
 
 input LoyaltyTierMembershipRevokeInput {
   membershipId: ID!
-  expectedRevision: Int!
   effectiveAt: DateTime
   reasonCode: String!
-  idempotencyKey: String!
 }
 
 type LoyaltyTierEvaluatePayload {

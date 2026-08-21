@@ -79,7 +79,7 @@ type Store @key(fields: "id") {
   """
   updatedAt: DateTime!
   """
-  Optimistic locking revision incremented by each unified update
+  Internal store revision
   """
   revision: Int!
   """

@@ -129,11 +129,6 @@ input AppInstallInput {
   configuration: JSON
   grantedScopes: [String!]
   secrets: [AppSecretInput!]
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -144,11 +139,6 @@ input AppUpdateInput {
   configuration: JSON
 
   """
-  Required when configuration is changed.
-  """
-  expectedConfigurationVersion: Int
-
-  """
   Replaces the granted scopes when provided.
   """
   grantedScopes: [String!]
@@ -157,11 +147,6 @@ input AppUpdateInput {
   Sets or rotates the named secrets without returning their values.
   """
   secrets: [AppSecretInput!]
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -169,7 +154,6 @@ Input for changing installation configuration without a lifecycle update.
 """
 input AppConfigureInput {
   installationId: ID!
-  expectedConfigurationVersion: Int!
   configuration: JSON!
 
   """
@@ -183,11 +167,6 @@ Input for a lifecycle action on an existing installation.
 """
 input AppInstallationActionInput {
   installationId: ID!
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """

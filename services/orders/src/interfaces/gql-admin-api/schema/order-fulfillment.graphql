@@ -233,7 +233,7 @@ type FulfillmentOrder implements Node {
   """
   id: ID!
   """
-  Current aggregate revision used for optimistic concurrency.
+  Internal aggregate version.
   """
   version: Int!
   """
@@ -381,7 +381,7 @@ type Fulfillment implements Node {
   """
   id: ID!
   """
-  Current aggregate revision used for optimistic concurrency.
+  Internal aggregate version.
   """
   version: Int!
   """
@@ -445,7 +445,7 @@ type Shipment implements Node {
   """
   id: ID!
   """
-  Current aggregate revision used for optimistic concurrency.
+  Internal aggregate version.
   """
   version: Int!
   """
@@ -645,14 +645,6 @@ input FulfillmentOrderSplitInput {
   """
   fulfillmentOrderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Validated input value for lines.
   """
   lines: [FulfillmentOrderLineQuantityInput!]!
@@ -666,14 +658,6 @@ input FulfillmentOrderMoveInput {
   Relay global ID identifying the fulfillment order.
   """
   fulfillmentOrderId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Relay global ID identifying the location.
   """
@@ -692,14 +676,6 @@ input FulfillmentOrderHoldInput {
   Relay global ID identifying the fulfillment order.
   """
   fulfillmentOrderId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Stable audited reason code.
   """
@@ -722,14 +698,6 @@ input FulfillmentOrderReleaseHoldInput {
   Relay global ID identifying the hold.
   """
   holdId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
 }
 
 """
@@ -740,14 +708,6 @@ input FulfillmentOrderSubmitInput {
   Relay global ID identifying the fulfillment order.
   """
   fulfillmentOrderId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
 }
 
 """
@@ -758,14 +718,6 @@ input FulfillmentOrderCancelRequestInput {
   Relay global ID identifying the fulfillment order.
   """
   fulfillmentOrderId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Stable audited reason code.
   """
@@ -785,14 +737,6 @@ input FulfillmentCreateInput {
   """
   fulfillmentOrderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Validated input value for lines.
   """
   lines: [FulfillmentOrderLineQuantityInput!]!
@@ -811,14 +755,6 @@ input FulfillmentCancelInput {
   """
   fulfillmentId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Stable audited reason code.
   """
   reasonCode: String!
@@ -836,14 +772,6 @@ input ShipmentCreateInput {
   Relay global ID identifying the fulfillment.
   """
   fulfillmentId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Stable provider code.
   """
@@ -907,14 +835,6 @@ input ShipmentTrackingUpdateInput {
   """
   shipmentId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Validated input value for tracking.
   """
   tracking: [ShipmentTrackingInput!]!
@@ -947,14 +867,6 @@ input ShipmentMarkShippedInput {
   """
   shipmentId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Timestamp for shipped, or null when it has not occurred.
   """
   shippedAt: DateTime!
@@ -968,14 +880,6 @@ input ShipmentMarkDeliveredInput {
   Relay global ID identifying the shipment.
   """
   shipmentId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Timestamp for delivered, or null when it has not occurred.
   """
@@ -991,14 +895,6 @@ input ShipmentCancelInput {
   """
   shipmentId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Stable audited reason code.
   """
   reasonCode: String!
@@ -1012,14 +908,6 @@ input ShipmentReconcileInput {
   Relay global ID identifying the shipment.
   """
   shipmentId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
 }
 
 """

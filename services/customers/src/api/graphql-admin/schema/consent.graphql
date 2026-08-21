@@ -76,7 +76,6 @@ type CustomerConsentEvent implements Node {
   actorType: String!
   actorId: String
   requestId: String
-  idempotencyKey: String
   evidence: JSON!
   occurredAt: DateTime!
 }

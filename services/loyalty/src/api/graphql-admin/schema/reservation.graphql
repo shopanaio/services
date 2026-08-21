@@ -10,7 +10,6 @@ type LoyaltyReservation implements Node @key(fields: "id") {
   points: BigInt!
   discount: LoyaltyMoney!
   status: LoyaltyReservationStatus!
-  idempotencyKey: String!
   requestHash: String!
   expiresAt: DateTime!
   orderId: ID
@@ -33,7 +32,6 @@ type LoyaltyReservationEvent implements Node @key(fields: "id") {
   status: LoyaltyReservationStatus!
   transaction: LoyaltyTransaction!
   eventId: String
-  idempotencyKey: String!
   reasonCode: String!
   actorType: LoyaltyActorType!
   actorId: ID
@@ -67,9 +65,7 @@ input LoyaltyReservationWhereInput {
 
 input LoyaltyReservationReleaseInput {
   reservationId: ID!
-  expectedRevision: Int!
   reasonCode: String!
-  idempotencyKey: String!
 }
 
 type LoyaltyReservationReleasePayload {

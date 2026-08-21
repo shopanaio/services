@@ -85,7 +85,6 @@ input OnlineStorePageUpdateInput {
 
 input OnlineStorePageDeleteInput {
   id: ID!
-  expectedRevision: Int
 }
 
 type OnlineStorePageConnection {

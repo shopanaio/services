@@ -109,7 +109,7 @@ type OrderReturn implements Node {
   """
   id: ID!
   """
-  Current aggregate revision used for optimistic concurrency.
+  Internal aggregate version.
   """
   version: Int!
   """
@@ -205,7 +205,7 @@ type OrderExchange implements Node {
   """
   id: ID!
   """
-  Current aggregate revision used for optimistic concurrency.
+  Internal aggregate version.
   """
   version: Int!
   """
@@ -247,7 +247,7 @@ type OrderRefund implements Node {
   """
   id: ID!
   """
-  Current aggregate revision used for optimistic concurrency.
+  Internal aggregate version.
   """
   version: Int!
   """
@@ -437,14 +437,6 @@ input OrderRefundCreateInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Exact decimal amount serialized as a string.
   """
   amount: MoneyInput!
@@ -533,14 +525,6 @@ input OrderReturnCreateInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Validated input value for lines.
   """
   lines: [OrderReturnLineInput!]!
@@ -567,14 +551,6 @@ input OrderReturnApproveInput {
   """
   returnId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Relay global ID identifying the location.
   """
   locationId: ID!
@@ -597,14 +573,6 @@ input OrderReturnRejectInput {
   """
   returnId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Stable audited reason code.
   """
   reasonCode: String!
@@ -623,14 +591,6 @@ input OrderReturnCancelInput {
   """
   returnId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Stable audited reason code.
   """
   reasonCode: String!
@@ -644,14 +604,6 @@ input OrderReturnReceiveInput {
   Relay global ID identifying the return.
   """
   returnId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Relay global ID identifying the location.
   """
@@ -715,14 +667,6 @@ input OrderExchangeCreateInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Validated input value for inbound lines.
   """
   inboundLines: [OrderReturnLineInput!]!
@@ -749,14 +693,6 @@ input OrderExchangeCancelInput {
   """
   exchangeId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Stable audited reason code.
   """
   reasonCode: String!
@@ -770,14 +706,6 @@ input OrderExchangeCompleteInput {
   Relay global ID identifying the exchange.
   """
   exchangeId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Whether completion should enqueue a customer notification.
   """

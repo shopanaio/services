@@ -108,7 +108,6 @@ type NotificationDefinitionSetting {
 input NotificationDefinitionSetEnabledInput {
   key: String!
   enabled: Boolean!
-  expectedVersion: Int!
 }
 
 type NotificationDefinitionSetEnabledPayload {
@@ -120,7 +119,6 @@ input NotificationChannelSettingInput {
   key: String!
   channel: NotificationChannel!
   enabled: Boolean!
-  expectedVersion: Int!
   senderName: String
   senderEmail: String
   replyTo: String
@@ -149,7 +147,6 @@ input NotificationTemplateUpdateInput {
   subjectTemplate: String
   bodyTemplate: String!
   plainTextTemplate: String
-  expectedVersion: Int!
 }
 
 type NotificationTemplateUpdatePayload {
@@ -256,7 +253,6 @@ input NotificationTestMessageInput {
   name: String
   locale: String
   data: JSON!
-  idempotencyKey: String!
 }
 
 input NotificationWebhookCreateInput {
@@ -295,7 +291,6 @@ input NotificationWebhookUpdateInput {
   url: String
   apiVersion: String
   status: NotificationWebhookStatus
-  expectedVersion: Int!
 }
 
 input NotificationWebhookDeleteInput {

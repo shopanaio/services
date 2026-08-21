@@ -175,7 +175,6 @@ Administrative commands. Storefront submission and engagement commands live else
 type ReviewsMutation {
   storeConfigurationUpdate(
     configurationId: ID!
-    expectedRevision: Int!
     operations: ReviewStoreConfigurationUpdateInput
   ): ReviewStoreConfigurationUpdatePayload!
 
@@ -184,7 +183,6 @@ type ReviewsMutation {
   ): ReviewRatingCriterionCreatePayload!
   ratingCriterionUpdate(
     criterionId: ID!
-    expectedUpdatedAt: DateTime!
     operations: ReviewRatingCriterionUpdateInput
   ): ReviewRatingCriterionUpdatePayload!
   ratingCriterionDelete(
@@ -192,51 +190,38 @@ type ReviewsMutation {
   ): ReviewRatingCriterionDeletePayload!
 
   reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
-  reviewUpdate(
-    reviewId: ID!
-    expectedRevision: Int!
-    operations: ReviewUpdateInput
-  ): ReviewUpdatePayload!
+  reviewUpdate(reviewId: ID!, operations: ReviewUpdateInput): ReviewUpdatePayload!
   reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
 
   productQuestionCreate(input: ProductQuestionCreateInput!): ProductQuestionCreatePayload!
   productQuestionUpdate(
     productQuestionId: ID!
-    expectedRevision: Int!
     operations: ProductQuestionUpdateInput
   ): ProductQuestionUpdatePayload!
   productQuestionDelete(input: ReviewContentDeleteInput!): ProductQuestionDeletePayload!
 
   productQuestionSubscriptionUpdate(
     subscriptionId: ID!
-    expectedUpdatedAt: DateTime!
     operations: ProductQuestionSubscriptionUpdateInput
   ): ProductQuestionSubscriptionUpdatePayload!
 
-  contentRedact(contentId: ID!, expectedRevision: Int!): ReviewContentUpdatePayload!
-  contentRevisionRestore(
-    contentId: ID!
-    revision: Int!
-    expectedRevision: Int!
-  ): ReviewContentUpdatePayload!
+  contentRedact(contentId: ID!): ReviewContentUpdatePayload!
+  contentRevisionRestore(contentId: ID!, revision: Int!): ReviewContentUpdatePayload!
 
   reviewRequestCreate(input: ReviewRequestCreateInput!): ReviewRequestCreatePayload!
   reviewRequestUpdate(
     reviewRequestId: ID!
-    expectedUpdatedAt: DateTime!
     operations: ReviewRequestUpdateInput
   ): ReviewRequestUpdatePayload!
 
   contentReportUpdate(
     contentReportId: ID!
-    expectedUpdatedAt: DateTime!
     operations: ReviewContentReportUpdateInput
   ): ReviewContentReportUpdatePayload!
 
   moderationCaseCreate(input: ReviewModerationCaseCreateInput!): ReviewModerationCaseCreatePayload!
   moderationCaseUpdate(
     moderationCaseId: ID!
-    expectedUpdatedAt: DateTime!
     operations: ReviewModerationCaseUpdateInput
   ): ReviewModerationCaseUpdatePayload!
 
@@ -245,7 +230,6 @@ type ReviewsMutation {
   ): ReviewContentExternalReferenceCreatePayload!
   contentExternalReferenceUpdate(
     externalReferenceId: ID!
-    expectedUpdatedAt: DateTime!
     operations: ReviewContentExternalReferenceUpdateInput
   ): ReviewContentExternalReferenceUpdatePayload!
   contentExternalReferenceDelete(

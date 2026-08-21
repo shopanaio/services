@@ -642,11 +642,6 @@ input ProductComponentOperationInput {
   configurationId: ID
 
   """
-  Per-request correlation key. Required for CONFIGURATION_CREATE.
-  """
-  clientMutationId: String
-
-  """
   Updated configurator display style. Used by SETTINGS_UPDATE.
   """
   displayStyle: ProductComponentDisplayStyle

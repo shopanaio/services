@@ -388,8 +388,6 @@ export type FileCreateExternalInput = {
   externalId: Scalars['String']['input'];
   /** Image height in pixels. */
   height?: InputMaybe<Scalars['Int']['input']>;
-  /** Idempotency key for deduplication. */
-  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   /** Title/name of the media. */
   originalName?: InputMaybe<Scalars['String']['input']>;
   /** Provider type. */
@@ -595,8 +593,6 @@ export type FileUpdatePayload = {
 export type FileUploadFromUrlInput = {
   /** Alt text for accessibility. */
   altText?: InputMaybe<Scalars['String']['input']>;
-  /** Idempotency key for deduplication. */
-  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   /** URL to fetch the file from. */
   sourceUrl: Scalars['String']['input'];
 };
@@ -610,8 +606,6 @@ export type FileUploadMultipartInput = {
   altText?: InputMaybe<Scalars['String']['input']>;
   /** The file to upload. */
   file: Scalars['Upload']['input'];
-  /** Idempotency key for deduplication. */
-  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Payload for file upload. */

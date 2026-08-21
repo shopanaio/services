@@ -98,22 +98,18 @@ input LoyaltyAccountWhereInput {
 
 input LoyaltyAccountStatusUpdateInput {
   accountId: ID!
-  expectedRevision: Int!
   status: LoyaltyAccountStatus!
   reason: String!
-  idempotencyKey: String!
 }
 
 input LoyaltyPointsAdjustInput {
   accountId: ID!
-  expectedBalanceRevision: Int!
   direction: LoyaltyPointsAdjustmentDirection!
   points: BigInt!
   reasonCode: String!
   description: String!
   expiresAt: DateTime
   metadata: JSON
-  idempotencyKey: String!
 }
 
 type LoyaltyAccountStatusUpdatePayload {

@@ -1,5 +1,5 @@
 # Auto-generated GraphQL types. Do not edit manually.
-# Generated at: 2026-08-19T10:15:28.871Z
+# Generated at: 2026-08-21T12:38:32.588Z
 
 """Filter operators for String fields"""
 input StringFilter {

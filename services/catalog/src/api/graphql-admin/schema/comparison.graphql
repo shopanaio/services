@@ -160,7 +160,6 @@ input ComparisonProfileCreateInput {
 }
 input ComparisonProfileUpdateInput {
   id: ID!
-  expectedRevision: Int!
   handle: String!
   enabled: Boolean!
   name: String!
@@ -226,7 +225,6 @@ input CategoryComparisonProfileSetInput {
 
 input ProductComparisonConfigurationSyncInput {
   productId: ID!
-  expectedProductRevision: Int!
   profileId: ID!
   mappings: [ProductComparisonFieldMappingInput!]!
 }

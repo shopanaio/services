@@ -351,14 +351,6 @@ input OrderManualPaymentRecordInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Exact decimal amount serialized as a string.
   """
   amount: MoneyInput!
@@ -389,14 +381,6 @@ input OrderPaymentCaptureInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Relay global ID identifying the transaction.
   """
   transactionId: ID!
@@ -414,14 +398,6 @@ input OrderPaymentVoidInput {
   Relay global ID identifying the order.
   """
   orderId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Relay global ID identifying the transaction.
   """
@@ -441,14 +417,6 @@ input OrderPaymentRetryInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Stable payment method code.
   """
   paymentMethodCode: String
@@ -466,14 +434,6 @@ input OrderPaymentStatusOverrideInput {
   Relay global ID identifying the order.
   """
   orderId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Current lifecycle or derived projection status.
   """

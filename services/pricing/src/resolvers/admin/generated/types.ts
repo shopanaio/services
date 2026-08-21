@@ -659,8 +659,6 @@ export type DiscountCodeConnection = {
 };
 
 export type DiscountCodeCreateOperationInput = {
-  /** Client-provided correlation key returned in the operation result. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   code: Scalars['String']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
@@ -668,7 +666,6 @@ export type DiscountCodeCreateOperationInput = {
 
 export type DiscountCodeDeleteOperationInput = {
   codeId: Scalars['ID']['input'];
-  expectedUpdatedAt: Scalars['DateTime']['input'];
 };
 
 export type DiscountCodeEdge = {
@@ -711,7 +708,6 @@ export type DiscountCodeStatusFilter = {
 export type DiscountCodeUpdateOperationInput = {
   code?: InputMaybe<Scalars['String']['input']>;
   codeId: Scalars['ID']['input'];
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   status?: InputMaybe<DiscountCodeStatus>;
   usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
@@ -802,7 +798,6 @@ export type DiscountDefinitionUpdateInput = {
 };
 
 export type DiscountDeleteInput = {
-  expectedRevision: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -898,7 +893,6 @@ export type DiscountExternalReferenceCreatePayload = {
 };
 
 export type DiscountExternalReferenceDeleteInput = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   id: Scalars['ID']['input'];
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -1177,7 +1171,6 @@ export type DiscountRedemption = Node & {
   discountClass: DiscountClass;
   discountCode: Maybe<DiscountCode>;
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   metadata: Scalars['JSON']['output'];
   orderId: Scalars['ID']['output'];
   reservation: Maybe<DiscountUsageReservation>;
@@ -1396,7 +1389,6 @@ export type DiscountUsageReservation = Node & {
   discountCode: Maybe<DiscountCode>;
   expiresAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   metadata: Scalars['JSON']['output'];
   status: DiscountReservationStatus;
   updatedAt: Scalars['DateTime']['output'];
@@ -1856,7 +1848,7 @@ export type PricingMutation = {
   discountExternalReferenceCreate: DiscountExternalReferenceCreatePayload;
   discountExternalReferenceDelete: DiscountExternalReferenceDeletePayload;
   discountExternalReferenceUpdate: DiscountExternalReferenceUpdatePayload;
-  /** Unified discount configuration update with optimistic locking. */
+  /** Unified discount configuration update. */
   discountUpdate: DiscountUpdatePayload;
 };
 
@@ -1887,7 +1879,6 @@ export type PricingMutationDiscountExternalReferenceDeleteArgs = {
 
 /** Store-scoped pricing commands. */
 export type PricingMutationDiscountExternalReferenceUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   externalReferenceId: Scalars['ID']['input'];
   operations: DiscountExternalReferenceUpdateInput;
 };
@@ -1896,7 +1887,6 @@ export type PricingMutationDiscountExternalReferenceUpdateArgs = {
 /** Store-scoped pricing commands. */
 export type PricingMutationDiscountUpdateArgs = {
   discountId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   operations: DiscountUpdateInput;
 };
 
@@ -2737,7 +2727,6 @@ export type DiscountRedemptionResolvers<ContextType = ServiceContext, ParentType
   discountClass?: Resolver<ResolversTypes['DiscountClass'], ParentType, ContextType>;
   discountCode?: Resolver<Maybe<ResolversTypes['DiscountCode']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   orderId?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   reservation?: Resolver<Maybe<ResolversTypes['DiscountUsageReservation']>, ParentType, ContextType>;
@@ -2814,7 +2803,6 @@ export type DiscountUsageReservationResolvers<ContextType = ServiceContext, Pare
   discountCode?: Resolver<Maybe<ResolversTypes['DiscountCode']>, ParentType, ContextType>;
   expiresAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['DiscountReservationStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -2880,8 +2868,8 @@ export type PricingMutationResolvers<ContextType = ServiceContext, ParentType ex
   discountDelete?: Resolver<ResolversTypes['DiscountDeletePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountDeleteArgs, 'input'>>;
   discountExternalReferenceCreate?: Resolver<ResolversTypes['DiscountExternalReferenceCreatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountExternalReferenceCreateArgs, 'input'>>;
   discountExternalReferenceDelete?: Resolver<ResolversTypes['DiscountExternalReferenceDeletePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountExternalReferenceDeleteArgs, 'input'>>;
-  discountExternalReferenceUpdate?: Resolver<ResolversTypes['DiscountExternalReferenceUpdatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountExternalReferenceUpdateArgs, 'expectedUpdatedAt' | 'externalReferenceId' | 'operations'>>;
-  discountUpdate?: Resolver<ResolversTypes['DiscountUpdatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountUpdateArgs, 'discountId' | 'expectedRevision' | 'operations'>>;
+  discountExternalReferenceUpdate?: Resolver<ResolversTypes['DiscountExternalReferenceUpdatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountExternalReferenceUpdateArgs, 'externalReferenceId' | 'operations'>>;
+  discountUpdate?: Resolver<ResolversTypes['DiscountUpdatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountUpdateArgs, 'discountId' | 'operations'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

@@ -70,7 +70,6 @@ input ApplicationAuthProviderConfigureInput {
   clientId: String!
   clientSecret: String!
   scopes: [String!]!
-  expectedRevision: Int!
 }
 
 """
@@ -82,7 +81,6 @@ input ApplicationAuthProviderUpdateInput {
   provider: ApplicationAuthProviderName!
   enabled: Boolean
   scopes: [String!]
-  expectedRevision: Int!
 }
 
 """
@@ -94,7 +92,6 @@ input ApplicationAuthProviderCredentialsRotateInput {
   provider: ApplicationAuthProviderName!
   clientId: String!
   clientSecret: String!
-  expectedRevision: Int!
 }
 
 """
@@ -104,7 +101,6 @@ input ApplicationAuthProviderCredentialsDeleteInput {
   organizationId: ID!
   applicationId: ID!
   provider: ApplicationAuthProviderName!
-  expectedRevision: Int!
 }
 
 """
@@ -114,7 +110,6 @@ input ApplicationAuthProviderValidateInput {
   organizationId: ID!
   applicationId: ID!
   provider: ApplicationAuthProviderName!
-  expectedRevision: Int!
 }
 
 # ============================================================================

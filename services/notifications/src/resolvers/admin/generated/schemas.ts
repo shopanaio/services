@@ -37,7 +37,6 @@ export function NotificationChannelSettingInputSchema(): z.ZodObject<Properties<
   return z.object({
     channel: NotificationChannelSchema,
     enabled: z.boolean(),
-    expectedVersion: z.number(),
     key: z.string(),
     replyTo: z.string().nullish(),
     senderEmail: z.string().nullish(),
@@ -48,7 +47,6 @@ export function NotificationChannelSettingInputSchema(): z.ZodObject<Properties<
 export function NotificationDefinitionSetEnabledInputSchema(): z.ZodObject<Properties<NotificationDefinitionSetEnabledInput>> {
   return z.object({
     enabled: z.boolean(),
-    expectedVersion: z.number(),
     key: z.string()
   })
 }
@@ -69,7 +67,6 @@ export function NotificationTemplateUpdateInputSchema(): z.ZodObject<Properties<
   return z.object({
     bodyTemplate: z.string(),
     channel: NotificationChannelSchema,
-    expectedVersion: z.number(),
     key: z.string(),
     locale: z.string(),
     plainTextTemplate: z.string().nullish(),
@@ -83,7 +80,6 @@ export function NotificationTestMessageInputSchema(): z.ZodObject<Properties<Not
     customerId: z.string().nullish(),
     data: z.record(z.unknown()),
     email: z.string().nullish(),
-    idempotencyKey: z.string(),
     key: z.string(),
     locale: z.string().nullish(),
     name: z.string().nullish(),
@@ -112,7 +108,6 @@ export function NotificationWebhookUpdateInputSchema(): z.ZodObject<Properties<N
   return z.object({
     apiVersion: z.string().nullish(),
     eventType: z.string().nullish(),
-    expectedVersion: z.number(),
     format: NotificationWebhookFormatSchema.nullish(),
     id: z.string(),
     status: NotificationWebhookStatusSchema.nullish(),

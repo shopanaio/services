@@ -82,11 +82,7 @@ Admin mutations scoped to the active Online Store App installation.
 """
 type OnlineStoreAppMutation {
   pageCreate(input: OnlineStorePageCreateInput!): OnlineStorePageCreatePayload!
-  pageUpdate(
-    pageId: ID!
-    expectedRevision: Int
-    operations: OnlineStorePageUpdateInput!
-  ): OnlineStorePageUpdatePayload!
+  pageUpdate(pageId: ID!, operations: OnlineStorePageUpdateInput!): OnlineStorePageUpdatePayload!
   pageDelete(input: OnlineStorePageDeleteInput!): OnlineStorePageDeletePayload!
   navigationMenuCreate(
     input: OnlineStoreNavigationMenuCreateInput!

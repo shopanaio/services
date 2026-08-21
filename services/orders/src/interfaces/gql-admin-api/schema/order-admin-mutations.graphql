@@ -405,7 +405,7 @@ type OrdersMutation {
     input: FulfillmentOrderHoldInput!
   ): FulfillmentOrderPayload!
   """
-  Release one fulfillment hold after optimistic concurrency validation.
+  Release one fulfillment hold.
   """
   fulfillmentOrderReleaseHold(
     """
@@ -924,10 +924,6 @@ type OrderOperation implements Node {
   """
   resourceId: ID
   """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Projected value for progress.
   """
   progress: Int
@@ -1006,10 +1002,6 @@ input OrdersBulkActionInput {
   """
   action: OrdersBulkActionKind!
   """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Stable audited reason code.
   """
   reasonCode: String
@@ -1079,10 +1071,6 @@ type OrderPayload {
   Expected validation, permission, concurrency, and business-rule failures; empty on success.
   """
   userErrors: [OrderUserError!]!
-  """
-  Optional client correlation value echoed by supported payloads.
-  """
-  clientMutationId: String
 }
 
 """

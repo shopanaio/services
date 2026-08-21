@@ -76,7 +76,6 @@ export type AppCapabilityOperation = {
 /** Input for changing installation configuration without a lifecycle update. */
 export type AppConfigureInput = {
   configuration: Scalars['JSON']['input'];
-  expectedConfigurationVersion: Scalars['Int']['input'];
   /** Replaces the granted scopes when provided. */
   grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
   installationId: Scalars['ID']['input'];
@@ -152,8 +151,6 @@ export type AppIcon = {
 /** Input for installing a bundled App in the current store. */
 export type AppInstallInput = {
   appCode: Scalars['String']['input'];
-  /** A unique client-generated ID, reused only when retrying this request. */
-  clientMutationId: Scalars['String']['input'];
   configuration?: InputMaybe<Scalars['JSON']['input']>;
   grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
   secrets?: InputMaybe<Array<AppSecretInput>>;
@@ -204,8 +201,6 @@ export type AppInstallationManifestSnapshotsArgs = {
 
 /** Input for a lifecycle action on an existing installation. */
 export type AppInstallationActionInput = {
-  /** A unique client-generated ID, reused only when retrying this request. */
-  clientMutationId: Scalars['String']['input'];
   installationId: Scalars['ID']['input'];
 };
 
@@ -416,11 +411,7 @@ export type AppSecretInput = {
 
 /** Input for updating an App installation. */
 export type AppUpdateInput = {
-  /** A unique client-generated ID, reused only when retrying this request. */
-  clientMutationId: Scalars['String']['input'];
   configuration?: InputMaybe<Scalars['JSON']['input']>;
-  /** Required when configuration is changed. */
-  expectedConfigurationVersion?: InputMaybe<Scalars['Int']['input']>;
   /** Replaces the granted scopes when provided. */
   grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
   installationId: Scalars['ID']['input'];

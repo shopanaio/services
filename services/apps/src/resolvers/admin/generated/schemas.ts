@@ -50,7 +50,6 @@ export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 export function AppConfigureInputSchema(): z.ZodObject<Properties<AppConfigureInput>> {
   return z.object({
     configuration: z.record(z.unknown()),
-    expectedConfigurationVersion: z.number(),
     grantedScopes: z.array(z.string()).nullish(),
     installationId: z.string()
   })
@@ -59,7 +58,6 @@ export function AppConfigureInputSchema(): z.ZodObject<Properties<AppConfigureIn
 export function AppInstallInputSchema(): z.ZodObject<Properties<AppInstallInput>> {
   return z.object({
     appCode: z.string(),
-    clientMutationId: z.string(),
     configuration: z.record(z.unknown()).nullish(),
     grantedScopes: z.array(z.string()).nullish(),
     secrets: z.array(z.lazy(() => AppSecretInputSchema())).nullish()
@@ -68,7 +66,6 @@ export function AppInstallInputSchema(): z.ZodObject<Properties<AppInstallInput>
 
 export function AppInstallationActionInputSchema(): z.ZodObject<Properties<AppInstallationActionInput>> {
   return z.object({
-    clientMutationId: z.string(),
     installationId: z.string()
   })
 }
@@ -89,9 +86,7 @@ export function AppSecretInputSchema(): z.ZodObject<Properties<AppSecretInput>> 
 
 export function AppUpdateInputSchema(): z.ZodObject<Properties<AppUpdateInput>> {
   return z.object({
-    clientMutationId: z.string(),
     configuration: z.record(z.unknown()).nullish(),
-    expectedConfigurationVersion: z.number().nullish(),
     grantedScopes: z.array(z.string()).nullish(),
     installationId: z.string(),
     secrets: z.array(z.lazy(() => AppSecretInputSchema())).nullish()

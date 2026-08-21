@@ -186,22 +186,18 @@ input LoyaltyProgramCreateInput {
   defaultCurrencyCode: CurrencyCode!
   isDefault: Boolean = false
   metadata: JSON
-  idempotencyKey: String!
 }
 
 input LoyaltyProgramUpdateInput {
   programId: ID!
-  expectedRevision: Int!
   name: String
   status: LoyaltyProgramStatus
   isDefault: Boolean
   metadata: JSON
-  idempotencyKey: String!
 }
 
 input LoyaltyProgramVersionCreateInput {
   programId: ID!
-  expectedProgramRevision: Int!
   effectiveFrom: DateTime
   effectiveTo: DateTime
   earningEnabled: Boolean = true
@@ -226,7 +222,6 @@ input LoyaltyProgramVersionCreateInput {
   rewardDefinitions: [LoyaltyRewardDefinitionInput!]! = []
   tierPolicy: LoyaltyTierPolicyInput
   tiers: [LoyaltyTierInput!]
-  idempotencyKey: String!
 }
 
 input LoyaltyTierInput {
@@ -331,10 +326,8 @@ input LoyaltyEarningModifierInput {
 
 input LoyaltyProgramVersionPublishInput {
   programVersionId: ID!
-  expectedRevision: Int!
   effectiveFrom: DateTime!
   effectiveTo: DateTime
-  idempotencyKey: String!
 }
 
 type LoyaltyProgramCreatePayload {
@@ -359,7 +352,6 @@ type LoyaltyProgramVersionPublishPayload {
 
 input LoyaltyProgramVersionUpdateInput {
   programVersionId: ID!
-  expectedRevision: Int!
   effectiveFrom: DateTime
   effectiveTo: DateTime
   clearEffectiveTo: Boolean = false
@@ -382,13 +374,10 @@ input LoyaltyProgramVersionUpdateInput {
   debtPolicy: LoyaltyDebtPolicy
   restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy
   rules: LoyaltyProgramRulesInput
-  idempotencyKey: String!
 }
 
 input LoyaltyProgramVersionDeleteInput {
   programVersionId: ID!
-  expectedRevision: Int!
-  idempotencyKey: String!
 }
 
 type LoyaltyProgramVersionUpdatePayload {
@@ -417,7 +406,6 @@ input LoyaltyEarningRuleCreateInput {
   limitSchemaVersion: Int = 1
   limits: JSON! = {}
   stopProcessing: Boolean = false
-  idempotencyKey: String!
 }
 
 input LoyaltyEarningRuleUpdateInput {
@@ -435,12 +423,10 @@ input LoyaltyEarningRuleUpdateInput {
   limitSchemaVersion: Int
   limits: JSON
   stopProcessing: Boolean
-  idempotencyKey: String!
 }
 
 input LoyaltyEarningRuleDeleteInput {
   earningRuleId: ID!
-  idempotencyKey: String!
 }
 
 type LoyaltyEarningRulePayload {
@@ -460,7 +446,6 @@ input LoyaltyRewardDefinitionCreateInput {
   endsAt: DateTime
   issuanceLimit: BigInt
   perAccountLimit: BigInt
-  idempotencyKey: String!
 }
 
 input LoyaltyRewardDefinitionUpdateInput {
@@ -479,12 +464,10 @@ input LoyaltyRewardDefinitionUpdateInput {
   clearIssuanceLimit: Boolean = false
   perAccountLimit: BigInt
   clearPerAccountLimit: Boolean = false
-  idempotencyKey: String!
 }
 
 input LoyaltyRewardDefinitionDeleteInput {
   rewardDefinitionId: ID!
-  idempotencyKey: String!
 }
 
 type LoyaltyRewardDefinitionPayload {
@@ -503,12 +486,10 @@ input LoyaltyTierPolicyUpsertInput {
   downgradePolicy: LoyaltyTierDowngradePolicy = IMMEDIATE
   requalificationPolicy: LoyaltyTierRequalificationPolicy = AUTOMATIC
   metricSchemaVersion: Int = 1
-  idempotencyKey: String!
 }
 
 input LoyaltyTierPolicyDeleteInput {
   programVersionId: ID!
-  idempotencyKey: String!
 }
 
 type LoyaltyTierPolicyPayload {
@@ -524,7 +505,6 @@ input LoyaltyTierCreateInput {
   qualificationSchemaVersion: Int = 1
   qualification: JSON!
   maintenance: JSON
-  idempotencyKey: String!
 }
 
 input LoyaltyTierUpdateInput {
@@ -535,12 +515,10 @@ input LoyaltyTierUpdateInput {
   qualification: JSON
   maintenance: JSON
   clearMaintenance: Boolean = false
-  idempotencyKey: String!
 }
 
 input LoyaltyTierDeleteInput {
   tierId: ID!
-  idempotencyKey: String!
 }
 
 type LoyaltyTierPayload {

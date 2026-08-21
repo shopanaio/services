@@ -135,8 +135,7 @@ export function CustomerAccountStatusFilterSchema(): z.ZodObject<Properties<Cust
 
 export function CustomerAccountsSettingsUpdateInputSchema(): z.ZodObject<Properties<CustomerAccountsSettingsUpdateInput>> {
   return z.object({
-    enabledMethods: z.array(CustomerAuthenticationMethodSchema),
-    expectedRevision: z.number()
+    enabledMethods: z.array(CustomerAuthenticationMethodSchema)
   })
 }
 
@@ -399,7 +398,6 @@ export function CustomerDataRequestWhereInputSchema(): z.ZodObject<Properties<Cu
 
 export function CustomerDeleteInputSchema(): z.ZodObject<Properties<CustomerDeleteInput>> {
   return z.object({
-    expectedRevision: z.number().nullish(),
     id: z.string()
   })
 }
@@ -667,7 +665,6 @@ export function CustomerSegmentDefinitionUpdateInputSchema(): z.ZodObject<Proper
 
 export function CustomerSegmentDeleteInputSchema(): z.ZodObject<Properties<CustomerSegmentDeleteInput>> {
   return z.object({
-    expectedRevision: z.number().nullish(),
     id: z.string()
   })
 }

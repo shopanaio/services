@@ -62,7 +62,6 @@ input DiscountExternalReferenceUpdateInput {
 
 input DiscountExternalReferenceDeleteInput {
   id: ID!
-  expectedUpdatedAt: DateTime!
   permanent: Boolean = false
 }
 

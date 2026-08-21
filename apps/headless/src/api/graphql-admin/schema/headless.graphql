@@ -114,7 +114,7 @@ type StorefrontAccessPolicy {
   permissions: [String!]!
 
   """
-  Optimistic concurrency revision.
+  Internal configuration revision.
   """
   revision: Int!
 
@@ -189,11 +189,6 @@ Input for creating a private credential for an existing storefront.
 input StorefrontPrivateCredentialCreateInput {
   connectionId: ID!
   label: String!
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -206,11 +201,6 @@ input HeadlessStorefrontCreateInput {
   Initial Storefront API permissions. Uses App defaults when omitted.
   """
   permissions: [String!]
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -218,11 +208,6 @@ Input for a lifecycle action on an existing Headless storefront.
 """
 input HeadlessStorefrontActionInput {
   connectionId: ID!
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -231,11 +216,6 @@ Input for changing a Headless storefront display name.
 input HeadlessStorefrontUpdateInput {
   connectionId: ID!
   displayName: String!
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -243,11 +223,6 @@ Input for revoking an existing private storefront credential.
 """
 input StorefrontCredentialRevokeInput {
   credentialId: ID!
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -256,12 +231,6 @@ Input for replacing the complete Storefront permission grant set.
 input StorefrontAccessPolicyUpdateInput {
   connectionId: ID!
   permissions: [String!]!
-  expectedRevision: Int!
-
-  """
-  A unique client-generated ID, reused only when retrying this request.
-  """
-  clientMutationId: String!
 }
 
 """
@@ -414,7 +383,7 @@ type HeadlessAppMutation {
   storefrontCredentialRevoke(input: StorefrontCredentialRevokeInput!): StorefrontCredentialPayload!
 
   """
-  Replace the complete permission grant set using optimistic concurrency.
+  Replace the complete permission grant set.
   """
   storefrontAccessPolicyUpdate(
     input: StorefrontAccessPolicyUpdateInput!

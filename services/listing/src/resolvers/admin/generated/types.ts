@@ -1339,7 +1339,6 @@ export type ListingSearchMutationProductBoostUpdateArgs = {
 
 
 export type ListingSearchMutationSettingsUpdateArgs = {
-  expectedVersion: Scalars['Int']['input'];
   operations: SearchSettingsOperationsInput;
 };
 
@@ -1743,7 +1742,6 @@ export type ManualProductRecommendationCreateInput = {
 };
 
 export type ManualProductRecommendationDeleteInput = {
-  expectedVersion: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -1770,7 +1768,6 @@ export type ManualProductRecommendationUpdateInput = {
   boost?: InputMaybe<Scalars['String']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   endsAt?: InputMaybe<Scalars['DateTime']['input']>;
-  expectedVersion: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
   position?: InputMaybe<Scalars['Int']['input']>;
   startsAt?: InputMaybe<Scalars['DateTime']['input']>;
@@ -1800,7 +1797,6 @@ export type ManualRecommendationDraftCreateInput = {
 };
 
 export type ManualRecommendationDraftDeleteInput = {
-  expectedVersion: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -1809,7 +1805,6 @@ export type ManualRecommendationDraftUpdateInput = {
   boost?: InputMaybe<Scalars['String']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   endsAt?: InputMaybe<Scalars['DateTime']['input']>;
-  expectedVersion: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
   position?: InputMaybe<Scalars['Int']['input']>;
   startsAt?: InputMaybe<Scalars['DateTime']['input']>;
@@ -1898,7 +1893,6 @@ export type RecommendationPlacementPolicy = Node & {
 
 export type RecommendationPlacementPolicyDraftInput = {
   enabled: Scalars['Boolean']['input'];
-  expectedVersion?: InputMaybe<Scalars['Int']['input']>;
   fallbackChain: Array<Scalars['String']['input']>;
   maximumResults: Scalars['Int']['input'];
   minimumResults: Scalars['Int']['input'];
@@ -1913,12 +1907,10 @@ export type RecommendationPlacementPolicyPayload = {
 
 export type RecommendationPlacementPolicySetEnabledInput = {
   enabled: Scalars['Boolean']['input'];
-  expectedVersion: Scalars['Int']['input'];
   placement: RecommendationPlacement;
 };
 
 export type RecommendationPlacementPolicyUpsertInput = {
-  expectedVersion?: InputMaybe<Scalars['Int']['input']>;
   fallbackChain: Array<Scalars['String']['input']>;
   maximumResults: Scalars['Int']['input'];
   minimumResults: Scalars['Int']['input'];
@@ -1996,7 +1988,6 @@ export enum RecommendationStrategy {
 }
 
 export type SearchConfigurationDeleteInput = {
-  expectedVersion: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -2147,7 +2138,6 @@ export type SearchProductBoostConnection = {
 };
 
 export type SearchProductBoostCreateInput = {
-  clientMutationId: Scalars['String']['input'];
   enabled: Scalars['Boolean']['input'];
   locale: LocaleCode;
   name: Scalars['String']['input'];
@@ -2205,7 +2195,6 @@ export type SearchProductBoostPhrase = {
 
 export type SearchProductBoostUpdateInput = {
   enabled: Scalars['Boolean']['input'];
-  expectedVersion: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
   locale: LocaleCode;
   name: Scalars['String']['input'];
@@ -2260,7 +2249,6 @@ export type SearchSettings = {
 export type SearchSettingsOperationResult = {
   __typename?: 'SearchSettingsOperationResult';
   applied: Scalars['Boolean']['output'];
-  clientMutationId: Maybe<Scalars['String']['output']>;
   entityId: Maybe<Scalars['ID']['output']>;
   errors: Array<GenericUserError>;
   type: SearchSettingsOperationType;
@@ -2309,7 +2297,6 @@ export type SearchSynonymGroupConnection = {
 };
 
 export type SearchSynonymGroupCreateInput = {
-  clientMutationId: Scalars['String']['input'];
   enabled: Scalars['Boolean']['input'];
   locale: LocaleCode;
   name: Scalars['String']['input'];
@@ -2358,7 +2345,6 @@ export type SearchSynonymGroupPayload = {
 
 export type SearchSynonymGroupUpdateInput = {
   enabled: Scalars['Boolean']['input'];
-  expectedVersion: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
   locale: LocaleCode;
   name: Scalars['String']['input'];
@@ -3177,7 +3163,7 @@ export type ListingSearchMutationResolvers<ContextType = ServiceContext, ParentT
   productBoostCreate?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostCreateArgs, 'input'>>;
   productBoostDelete?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostDeleteArgs, 'input'>>;
   productBoostUpdate?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostUpdateArgs, 'input'>>;
-  settingsUpdate?: Resolver<ResolversTypes['SearchSettingsUpdatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSettingsUpdateArgs, 'expectedVersion' | 'operations'>>;
+  settingsUpdate?: Resolver<ResolversTypes['SearchSettingsUpdatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSettingsUpdateArgs, 'operations'>>;
   synonymGroupCreate?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupCreateArgs, 'input'>>;
   synonymGroupDelete?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupDeleteArgs, 'input'>>;
   synonymGroupUpdate?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupUpdateArgs, 'input'>>;
@@ -3449,7 +3435,6 @@ export type SearchSettingsResolvers<ContextType = ServiceContext, ParentType ext
 
 export type SearchSettingsOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSettingsOperationResult'] = ResolversParentTypes['SearchSettingsOperationResult']> = ResolversObject<{
   applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  clientMutationId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   type?: Resolver<ResolversTypes['SearchSettingsOperationType'], ParentType, ContextType>;

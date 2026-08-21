@@ -99,13 +99,9 @@ type PricingMutation {
   discountCreate(input: DiscountCreateInput!): DiscountCreatePayload!
 
   """
-  Unified discount configuration update with optimistic locking.
+  Unified discount configuration update.
   """
-  discountUpdate(
-    discountId: ID!
-    expectedRevision: Int!
-    operations: DiscountUpdateInput!
-  ): DiscountUpdatePayload!
+  discountUpdate(discountId: ID!, operations: DiscountUpdateInput!): DiscountUpdatePayload!
 
   """
   Permanently delete an unused draft. Active, historical, or redeemed discounts
@@ -118,7 +114,6 @@ type PricingMutation {
   ): DiscountExternalReferenceCreatePayload!
   discountExternalReferenceUpdate(
     externalReferenceId: ID!
-    expectedUpdatedAt: DateTime!
     operations: DiscountExternalReferenceUpdateInput!
   ): DiscountExternalReferenceUpdatePayload!
   discountExternalReferenceDelete(

@@ -818,7 +818,6 @@ export type ProductQuestion = Node & ReviewContent & {
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   externalReferences: ReviewContentExternalReferenceConnection;
   id: Scalars['ID']['output'];
-  idempotencyKey: Maybe<Scalars['String']['output']>;
   kind: ReviewContentKind;
   locale: LocaleCode;
   metrics: ReviewContentMetrics;
@@ -930,7 +929,6 @@ export type ProductQuestionAnswer = Node & ReviewContent & {
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   externalReferences: ReviewContentExternalReferenceConnection;
   id: Scalars['ID']['output'];
-  idempotencyKey: Maybe<Scalars['String']['output']>;
   isAccepted: Scalars['Boolean']['output'];
   isOfficial: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
@@ -1024,8 +1022,6 @@ export type ProductQuestionAnswerConnection = {
 };
 
 export type ProductQuestionAnswerCreateOperationInput = {
-  /** Client-provided correlation key returned in the operation result. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   content: ReviewContentCreateInput;
   isAccepted?: InputMaybe<Scalars['Boolean']['input']>;
   isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1034,7 +1030,6 @@ export type ProductQuestionAnswerCreateOperationInput = {
 
 export type ProductQuestionAnswerDeleteOperationInput = {
   answerId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   /** Hard deletion is reserved for explicit privacy or retention workflows. */
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -1073,6 +1068,8 @@ export enum ProductQuestionAnswerOrderField {
   Locale = 'locale',
   /** Sort by questionId */
   QuestionId = 'questionId',
+  /** Sort by redactedAt */
+  RedactedAt = 'redactedAt',
   /** Sort by revision */
   Revision = 'revision',
   /** Sort by sortIndex */
@@ -1102,7 +1099,6 @@ export type ProductQuestionAnswerUpdateInput = {
 
 export type ProductQuestionAnswerUpdateOperationInput = {
   answerId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   operations: ProductQuestionAnswerUpdateInput;
 };
 
@@ -1136,6 +1132,8 @@ export type ProductQuestionAnswerWhereInput = {
   locale?: InputMaybe<StringFilter>;
   /** Filter by questionId */
   questionId?: InputMaybe<IdFilter>;
+  /** Filter by redactedAt */
+  redactedAt?: InputMaybe<StringFilter>;
   /** Filter by revision */
   revision?: InputMaybe<IntFilter>;
   /** Filter by sortIndex */
@@ -1219,6 +1217,8 @@ export enum ProductQuestionOrderField {
   ProductId = 'productId',
   /** Sort by publishedAt */
   PublishedAt = 'publishedAt',
+  /** Sort by redactedAt */
+  RedactedAt = 'redactedAt',
   /** Sort by reportCount */
   ReportCount = 'reportCount',
   /** Sort by revision */
@@ -1350,6 +1350,8 @@ export type ProductQuestionWhereInput = {
   productId?: InputMaybe<IdFilter>;
   /** Filter by publishedAt */
   publishedAt?: InputMaybe<DateTimeFilter>;
+  /** Filter by redactedAt */
+  redactedAt?: InputMaybe<StringFilter>;
   /** Filter by reportCount */
   reportCount?: InputMaybe<IntFilter>;
   /** Filter by revision */
@@ -1414,7 +1416,6 @@ export type Review = Node & ReviewContent & {
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   externalReferences: ReviewContentExternalReferenceConnection;
   id: Scalars['ID']['output'];
-  idempotencyKey: Maybe<Scalars['String']['output']>;
   incentiveDisclosure: Maybe<Scalars['String']['output']>;
   isIncentivized: Scalars['Boolean']['output'];
   isVerifiedPurchase: Scalars['Boolean']['output'];
@@ -1537,7 +1538,6 @@ export type ReviewContent = {
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   externalReferences: ReviewContentExternalReferenceConnection;
   id: Scalars['ID']['output'];
-  idempotencyKey: Maybe<Scalars['String']['output']>;
   kind: ReviewContentKind;
   locale: LocaleCode;
   metrics: ReviewContentMetrics;
@@ -1689,7 +1689,6 @@ export type ReviewContentCreateInput = {
 };
 
 export type ReviewContentDeleteInput = {
-  expectedRevision: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
   /** Hard deletion is reserved for explicit privacy or retention workflows. */
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1745,7 +1744,6 @@ export type ReviewContentExternalReferenceCreatePayload = {
 };
 
 export type ReviewContentExternalReferenceDeleteInput = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   id: Scalars['ID']['input'];
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -2118,13 +2116,11 @@ export type ReviewContentRevisionEdge = {
 
 export type ReviewContentSourceCreateInput = {
   channel?: InputMaybe<Scalars['String']['input']>;
-  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
 };
 
 export type ReviewContentSourceUpdateInput = {
   channel?: InputMaybe<Scalars['String']['input']>;
-  idempotencyKey?: InputMaybe<Scalars['String']['input']>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
 };
 
@@ -2738,7 +2734,6 @@ export type ReviewRatingCriterionDefinitionInput = {
 };
 
 export type ReviewRatingCriterionDeleteInput = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   id: Scalars['ID']['input'];
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -2884,7 +2879,6 @@ export type ReviewReply = Node & ReviewContent & {
   deletedAt: Maybe<Scalars['DateTime']['output']>;
   externalReferences: ReviewContentExternalReferenceConnection;
   id: Scalars['ID']['output'];
-  idempotencyKey: Maybe<Scalars['String']['output']>;
   isOfficial: Scalars['Boolean']['output'];
   kind: ReviewContentKind;
   locale: LocaleCode;
@@ -2977,15 +2971,12 @@ export type ReviewReplyConnection = {
 };
 
 export type ReviewReplyCreateOperationInput = {
-  /** Client-provided correlation key returned in the operation result. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   content: ReviewContentCreateInput;
   isOfficial?: InputMaybe<Scalars['Boolean']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
 export type ReviewReplyDeleteOperationInput = {
-  expectedRevision: Scalars['Int']['input'];
   /** Hard deletion is reserved for explicit privacy or retention workflows. */
   permanent?: InputMaybe<Scalars['Boolean']['input']>;
   replyId: Scalars['ID']['input'];
@@ -3021,6 +3012,8 @@ export enum ReviewReplyOrderField {
   LikeCount = 'likeCount',
   /** Sort by locale */
   Locale = 'locale',
+  /** Sort by redactedAt */
+  RedactedAt = 'redactedAt',
   /** Sort by reviewId */
   ReviewId = 'reviewId',
   /** Sort by revision */
@@ -3045,7 +3038,6 @@ export type ReviewReplyUpdateInput = {
 };
 
 export type ReviewReplyUpdateOperationInput = {
-  expectedRevision: Scalars['Int']['input'];
   operations: ReviewReplyUpdateInput;
   replyId: Scalars['ID']['input'];
 };
@@ -3076,6 +3068,8 @@ export type ReviewReplyWhereInput = {
   likeCount?: InputMaybe<StringFilter>;
   /** Filter by locale */
   locale?: InputMaybe<StringFilter>;
+  /** Filter by redactedAt */
+  redactedAt?: InputMaybe<StringFilter>;
   /** Filter by reviewId */
   reviewId?: InputMaybe<IdFilter>;
   /** Filter by revision */
@@ -3134,7 +3128,6 @@ export type ReviewRequestCreateInput = {
   channel: ReviewNotificationChannel;
   customerId: Scalars['ID']['input'];
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   locale: LocaleCode;
   orderId: Scalars['ID']['input'];
   orderLineId: Scalars['ID']['input'];
@@ -3549,7 +3542,6 @@ export type ReviewsMutationContentExternalReferenceDeleteArgs = {
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationContentExternalReferenceUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   externalReferenceId: Scalars['ID']['input'];
   operations?: InputMaybe<ReviewContentExternalReferenceUpdateInput>;
 };
@@ -3558,14 +3550,12 @@ export type ReviewsMutationContentExternalReferenceUpdateArgs = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationContentRedactArgs = {
   contentId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
 };
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationContentReportUpdateArgs = {
   contentReportId: Scalars['ID']['input'];
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   operations?: InputMaybe<ReviewContentReportUpdateInput>;
 };
 
@@ -3573,7 +3563,6 @@ export type ReviewsMutationContentReportUpdateArgs = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationContentRevisionRestoreArgs = {
   contentId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   revision: Scalars['Int']['input'];
 };
 
@@ -3586,7 +3575,6 @@ export type ReviewsMutationModerationCaseCreateArgs = {
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationModerationCaseUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   moderationCaseId: Scalars['ID']['input'];
   operations?: InputMaybe<ReviewModerationCaseUpdateInput>;
 };
@@ -3606,7 +3594,6 @@ export type ReviewsMutationProductQuestionDeleteArgs = {
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationProductQuestionSubscriptionUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   operations?: InputMaybe<ProductQuestionSubscriptionUpdateInput>;
   subscriptionId: Scalars['ID']['input'];
 };
@@ -3614,7 +3601,6 @@ export type ReviewsMutationProductQuestionSubscriptionUpdateArgs = {
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationProductQuestionUpdateArgs = {
-  expectedRevision: Scalars['Int']['input'];
   operations?: InputMaybe<ProductQuestionUpdateInput>;
   productQuestionId: Scalars['ID']['input'];
 };
@@ -3635,7 +3621,6 @@ export type ReviewsMutationRatingCriterionDeleteArgs = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationRatingCriterionUpdateArgs = {
   criterionId: Scalars['ID']['input'];
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   operations?: InputMaybe<ReviewRatingCriterionUpdateInput>;
 };
 
@@ -3660,7 +3645,6 @@ export type ReviewsMutationReviewRequestCreateArgs = {
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationReviewRequestUpdateArgs = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   operations?: InputMaybe<ReviewRequestUpdateInput>;
   reviewRequestId: Scalars['ID']['input'];
 };
@@ -3668,7 +3652,6 @@ export type ReviewsMutationReviewRequestUpdateArgs = {
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationReviewUpdateArgs = {
-  expectedRevision: Scalars['Int']['input'];
   operations?: InputMaybe<ReviewUpdateInput>;
   reviewId: Scalars['ID']['input'];
 };
@@ -3677,7 +3660,6 @@ export type ReviewsMutationReviewUpdateArgs = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationStoreConfigurationUpdateArgs = {
   configurationId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   operations?: InputMaybe<ReviewStoreConfigurationUpdateInput>;
 };
 
@@ -3685,7 +3667,6 @@ export type ReviewsMutationStoreConfigurationUpdateArgs = {
 export type ReviewsOperationResult = {
   __typename?: 'ReviewsOperationResult';
   applied: Scalars['Boolean']['output'];
-  clientMutationId: Maybe<Scalars['String']['output']>;
   entityId: Maybe<Scalars['ID']['output']>;
   errors: Array<GenericUserError>;
   type: ReviewsOperationType;
@@ -4621,7 +4602,6 @@ export type ProductQuestionResolvers<ContextType = ServiceContext, ParentType ex
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   externalReferences?: Resolver<ResolversTypes['ReviewContentExternalReferenceConnection'], ParentType, ContextType, Partial<ProductQuestionExternalReferencesArgs>>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
   locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
@@ -4659,7 +4639,6 @@ export type ProductQuestionAnswerResolvers<ContextType = ServiceContext, ParentT
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   externalReferences?: Resolver<ResolversTypes['ReviewContentExternalReferenceConnection'], ParentType, ContextType, Partial<ProductQuestionAnswerExternalReferencesArgs>>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   isAccepted?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isOfficial?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
@@ -4825,7 +4804,6 @@ export type ReviewResolvers<ContextType = ServiceContext, ParentType extends Res
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   externalReferences?: Resolver<ResolversTypes['ReviewContentExternalReferenceConnection'], ParentType, ContextType, Partial<ReviewExternalReferencesArgs>>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   incentiveDisclosure?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   isIncentivized?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isVerifiedPurchase?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
@@ -4881,7 +4859,6 @@ export type ReviewContentResolvers<ContextType = ServiceContext, ParentType exte
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   externalReferences?: Resolver<ResolversTypes['ReviewContentExternalReferenceConnection'], ParentType, ContextType, Partial<ReviewContentExternalReferencesArgs>>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
   locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
@@ -5361,7 +5338,6 @@ export type ReviewReplyResolvers<ContextType = ServiceContext, ParentType extend
   deletedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   externalReferences?: Resolver<ResolversTypes['ReviewContentExternalReferenceConnection'], ParentType, ContextType, Partial<ReviewReplyExternalReferencesArgs>>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   isOfficial?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['ReviewContentKind'], ParentType, ContextType>;
   locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
@@ -5527,31 +5503,30 @@ export type ReviewUpdatePayloadResolvers<ContextType = ServiceContext, ParentTyp
 export type ReviewsMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewsMutation'] = ResolversParentTypes['ReviewsMutation']> = ResolversObject<{
   contentExternalReferenceCreate?: Resolver<ResolversTypes['ReviewContentExternalReferenceCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentExternalReferenceCreateArgs, 'input'>>;
   contentExternalReferenceDelete?: Resolver<ResolversTypes['ReviewContentExternalReferenceDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentExternalReferenceDeleteArgs, 'input'>>;
-  contentExternalReferenceUpdate?: Resolver<ResolversTypes['ReviewContentExternalReferenceUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentExternalReferenceUpdateArgs, 'expectedUpdatedAt' | 'externalReferenceId'>>;
-  contentRedact?: Resolver<ResolversTypes['ReviewContentUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentRedactArgs, 'contentId' | 'expectedRevision'>>;
-  contentReportUpdate?: Resolver<ResolversTypes['ReviewContentReportUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentReportUpdateArgs, 'contentReportId' | 'expectedUpdatedAt'>>;
-  contentRevisionRestore?: Resolver<ResolversTypes['ReviewContentUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentRevisionRestoreArgs, 'contentId' | 'expectedRevision' | 'revision'>>;
+  contentExternalReferenceUpdate?: Resolver<ResolversTypes['ReviewContentExternalReferenceUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentExternalReferenceUpdateArgs, 'externalReferenceId'>>;
+  contentRedact?: Resolver<ResolversTypes['ReviewContentUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentRedactArgs, 'contentId'>>;
+  contentReportUpdate?: Resolver<ResolversTypes['ReviewContentReportUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentReportUpdateArgs, 'contentReportId'>>;
+  contentRevisionRestore?: Resolver<ResolversTypes['ReviewContentUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentRevisionRestoreArgs, 'contentId' | 'revision'>>;
   moderationCaseCreate?: Resolver<ResolversTypes['ReviewModerationCaseCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationModerationCaseCreateArgs, 'input'>>;
-  moderationCaseUpdate?: Resolver<ResolversTypes['ReviewModerationCaseUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationModerationCaseUpdateArgs, 'expectedUpdatedAt' | 'moderationCaseId'>>;
+  moderationCaseUpdate?: Resolver<ResolversTypes['ReviewModerationCaseUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationModerationCaseUpdateArgs, 'moderationCaseId'>>;
   productQuestionCreate?: Resolver<ResolversTypes['ProductQuestionCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionCreateArgs, 'input'>>;
   productQuestionDelete?: Resolver<ResolversTypes['ProductQuestionDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionDeleteArgs, 'input'>>;
-  productQuestionSubscriptionUpdate?: Resolver<ResolversTypes['ProductQuestionSubscriptionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionSubscriptionUpdateArgs, 'expectedUpdatedAt' | 'subscriptionId'>>;
-  productQuestionUpdate?: Resolver<ResolversTypes['ProductQuestionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionUpdateArgs, 'expectedRevision' | 'productQuestionId'>>;
+  productQuestionSubscriptionUpdate?: Resolver<ResolversTypes['ProductQuestionSubscriptionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionSubscriptionUpdateArgs, 'subscriptionId'>>;
+  productQuestionUpdate?: Resolver<ResolversTypes['ProductQuestionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionUpdateArgs, 'productQuestionId'>>;
   ratingCriterionCreate?: Resolver<ResolversTypes['ReviewRatingCriterionCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionCreateArgs, 'input'>>;
   ratingCriterionDelete?: Resolver<ResolversTypes['ReviewRatingCriterionDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionDeleteArgs, 'input'>>;
-  ratingCriterionUpdate?: Resolver<ResolversTypes['ReviewRatingCriterionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionUpdateArgs, 'criterionId' | 'expectedUpdatedAt'>>;
+  ratingCriterionUpdate?: Resolver<ResolversTypes['ReviewRatingCriterionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionUpdateArgs, 'criterionId'>>;
   reviewCreate?: Resolver<ResolversTypes['ReviewCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewCreateArgs, 'input'>>;
   reviewDelete?: Resolver<ResolversTypes['ReviewDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewDeleteArgs, 'input'>>;
   reviewRequestCreate?: Resolver<ResolversTypes['ReviewRequestCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewRequestCreateArgs, 'input'>>;
-  reviewRequestUpdate?: Resolver<ResolversTypes['ReviewRequestUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewRequestUpdateArgs, 'expectedUpdatedAt' | 'reviewRequestId'>>;
-  reviewUpdate?: Resolver<ResolversTypes['ReviewUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewUpdateArgs, 'expectedRevision' | 'reviewId'>>;
-  storeConfigurationUpdate?: Resolver<ResolversTypes['ReviewStoreConfigurationUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationStoreConfigurationUpdateArgs, 'configurationId' | 'expectedRevision'>>;
+  reviewRequestUpdate?: Resolver<ResolversTypes['ReviewRequestUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewRequestUpdateArgs, 'reviewRequestId'>>;
+  reviewUpdate?: Resolver<ResolversTypes['ReviewUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewUpdateArgs, 'reviewId'>>;
+  storeConfigurationUpdate?: Resolver<ResolversTypes['ReviewStoreConfigurationUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationStoreConfigurationUpdateArgs, 'configurationId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ReviewsOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewsOperationResult'] = ResolversParentTypes['ReviewsOperationResult']> = ResolversObject<{
   applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  clientMutationId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   type?: Resolver<ResolversTypes['ReviewsOperationType'], ParentType, ContextType>;

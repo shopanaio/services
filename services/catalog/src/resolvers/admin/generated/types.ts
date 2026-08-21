@@ -163,7 +163,7 @@ export type CatalogMutation = {
   categoryMove: CategoryMovePayload;
   /** Rebalance category tree positions */
   categoryRebalance: CategoryRebalancePayload;
-  /** Unified category update with optimistic locking. */
+  /** Unified category update. */
   categoryUpdate: CategoryUpdatePayload;
   /** Add products to a MANUAL collection. */
   collectionAddProducts: CollectionAddProductsPayload;
@@ -176,7 +176,7 @@ export type CatalogMutation = {
    * through collectionUpdateRules using the returned revision.
    */
   collectionCreate: CollectionCreatePayload;
-  /** Soft-delete a collection using optimistic locking. */
+  /** Soft-delete a collection. */
   collectionDelete: CollectionDeletePayload;
   /** Reorder one product within a MANUAL collection. */
   collectionMoveProduct: CollectionMoveProductPayload;
@@ -203,10 +203,7 @@ export type CatalogMutation = {
   comparisonProfileCreate: ComparisonProfilePayload;
   comparisonProfileDelete: ComparisonProfileDeletePayload;
   comparisonProfileUpdate: ComparisonProfilePayload;
-  /**
-   * Start async bulk update.
-   * Requires X-Idempotency-Key header.
-   */
+  /** Start async bulk update. */
   productBulkUpdate: ProductBulkUpdatePayload;
   productComparisonConfigurationSync: ProductComparisonConfigurationPayload;
   /** Create a new product */
@@ -217,7 +214,7 @@ export type CatalogMutation = {
   productOptionCategoryDelete: ProductOptionCategoryDeletePayload;
   productOptionCategoryUpdate: ProductOptionCategoryUpdatePayload;
   /**
-   * Unified product update with optimistic locking.
+   * Unified product update.
    * Supports product, component, and variant updates in a single request.
    */
   productUpdate: ProductUpdatePayload;
@@ -259,7 +256,6 @@ export type CatalogMutationCategoryRebalanceArgs = {
 
 export type CatalogMutationCategoryUpdateArgs = {
   categoryId: Scalars['ID']['input'];
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   operations?: InputMaybe<CategoryUpdateInput>;
 };
 
@@ -365,7 +361,6 @@ export type CatalogMutationProductOptionCategoryUpdateArgs = {
 
 
 export type CatalogMutationProductUpdateArgs = {
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   operations?: InputMaybe<ProductUpdateInput>;
   productId: Scalars['ID']['input'];
 };
@@ -643,7 +638,7 @@ export type Category = Node & {
   productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Optimistic locking revision number. Incremented on each update. */
+  /** Internal aggregate revision number. */
   revision: Scalars['Int']['output'];
   /** SEO metadata. */
   seo: Maybe<Seo>;
@@ -979,10 +974,7 @@ export type Collection = Node & {
   name: Scalars['String']['output'];
   /** Publication timestamp, or null while the collection is a draft. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  /**
-   * Optimistic-lock revision. Pass the latest value as `expectedRevision` to every
-   * mutation that changes an existing collection.
-   */
+  /** Internal aggregate revision. */
   revision: Scalars['Int']['output'];
   /**
    * Complete ordered rule set for a RULE collection. The list is empty for MANUAL
@@ -1003,9 +995,7 @@ export type Collection = Node & {
 
 /** Adds products to a MANUAL collection. Duplicate memberships are ignored. */
 export type CollectionAddProductsInput = {
-  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   productIds: Array<Scalars['ID']['input']>;
 };
 
@@ -1052,9 +1042,7 @@ export type CollectionCategoryRuleInput = {
 
 /** Removes every product from a MANUAL collection. */
 export type CollectionClearProductsInput = {
-  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
 };
 
 export type CollectionClearProductsPayload = {
@@ -1084,14 +1072,12 @@ export type CollectionConnection = {
  * Creates a draft or published collection.
  *
  * RULE collections must first be created as drafts because rule persistence uses
- * the revision-protected `collectionUpdateRules` mutation. After rules are saved,
- * publish the collection with `collectionUpdate` and its latest revision.
+ * the `collectionUpdateRules` mutation. After rules are saved, publish the
+ * collection with `collectionUpdate`.
  */
 export type CollectionCreateInput = {
   activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
-  /** Caller-generated idempotency key. Reuse only when retrying the same input. */
-  clientMutationId: Scalars['String']['input'];
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<RichTextInput>;
@@ -1149,8 +1135,6 @@ export type CollectionCreatedAtRangeRuleInput = {
 };
 
 export type CollectionDeleteInput = {
-  clientMutationId: Scalars['String']['input'];
-  expectedRevision: Scalars['Int']['input'];
   id: Scalars['ID']['input'];
 };
 
@@ -1223,9 +1207,7 @@ export type CollectionMediaItem = {
 export type CollectionMoveProductInput = {
   afterProductId?: InputMaybe<Scalars['ID']['input']>;
   beforeProductId?: InputMaybe<Scalars['ID']['input']>;
-  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   productId: Scalars['ID']['input'];
 };
 
@@ -1294,9 +1276,7 @@ export type CollectionPriceRangeRuleInput = {
 
 /** Repairs rank spacing in a MANUAL collection without changing visible order. */
 export type CollectionRebalanceInput = {
-  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
 };
 
 export type CollectionRebalancePayload = {
@@ -1307,9 +1287,7 @@ export type CollectionRebalancePayload = {
 
 /** Removes products from a MANUAL collection. */
 export type CollectionRemoveProductsInput = {
-  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   productIds: Array<Scalars['ID']['input']>;
 };
 
@@ -1467,12 +1445,10 @@ export enum CollectionType {
 export type CollectionUpdateInput = {
   activeFrom?: InputMaybe<Scalars['DateTime']['input']>;
   activeTo?: InputMaybe<Scalars['DateTime']['input']>;
-  clientMutationId: Scalars['String']['input'];
   defaultSort?: InputMaybe<ProductSortBy>;
   defaultSortDirection?: InputMaybe<SortDirection>;
   description?: InputMaybe<RichTextInput>;
   excerpt?: InputMaybe<RichTextInput>;
-  expectedRevision: Scalars['Int']['input'];
   handle?: InputMaybe<Scalars['String']['input']>;
   id: Scalars['ID']['input'];
   media?: InputMaybe<Array<CollectionMediaInput>>;
@@ -1497,9 +1473,7 @@ export type CollectionUpdatePayload = {
  * empty rule list.
  */
 export type CollectionUpdateRulesInput = {
-  clientMutationId: Scalars['String']['input'];
   collectionId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   rules: Array<CollectionRuleInput>;
 };
 
@@ -1685,7 +1659,6 @@ export type ComparisonProfilePayload = {
 
 export type ComparisonProfileUpdateInput = {
   enabled: Scalars['Boolean']['input'];
-  expectedRevision: Scalars['Int']['input'];
   groups: Array<ComparisonGroupInput>;
   handle: Scalars['String']['input'];
   id: Scalars['ID']['input'];
@@ -2842,8 +2815,6 @@ export type OperationResult = {
   __typename?: 'OperationResult';
   /** Whether the operation was applied successfully. */
   applied: Scalars['Boolean']['output'];
-  /** Per-request client correlation key for create operations. */
-  clientMutationId: Maybe<Scalars['String']['output']>;
   /** Entity affected by this operation. */
   entityId: Maybe<Scalars['ID']['output']>;
   /** Errors that occurred during this operation. */
@@ -2966,7 +2937,7 @@ export type Product = Node & {
   productComponent: Maybe<ProductComponent>;
   /** The date and time when the product was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Optimistic locking revision number. Incremented on each update. */
+  /** Internal aggregate revision number. */
   revision: Scalars['Int']['output'];
   /** SEO and Open Graph metadata. */
   seo: Maybe<ProductSeo>;
@@ -3004,8 +2975,6 @@ export type ProductBulkUpdateInput = {
 
 /** A single product's update within a bulk request. */
 export type ProductBulkUpdateItem = {
-  /** Expected revision for optimistic locking. If provided, fails if product was modified. */
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   /** Product-level operations. */
   operations?: InputMaybe<ProductUpdateInput>;
   /** The product ID to update. */
@@ -3128,7 +3097,6 @@ export type ProductComparisonConfigurationPayload = {
 };
 
 export type ProductComparisonConfigurationSyncInput = {
-  expectedProductRevision: Scalars['Int']['input'];
   mappings: Array<ProductComparisonFieldMappingInput>;
   productId: Scalars['ID']['input'];
   profileId: Scalars['ID']['input'];
@@ -3659,8 +3627,6 @@ export enum ProductComponentOperationAction {
 export type ProductComponentOperationInput = {
   /** The operation to apply. */
   action: ProductComponentOperationAction;
-  /** Per-request correlation key. Required for CONFIGURATION_CREATE. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   /**
    * Existing configuration ID.
    * Required for configuration update/delete and all configuration sync actions.
@@ -5123,8 +5089,6 @@ export enum VariantOperationAction {
 export type VariantOperationInput = {
   /** The operation to apply. */
   action: VariantOperationAction;
-  /** Per-request client correlation key for create operations. */
-  clientMutationId?: InputMaybe<Scalars['String']['input']>;
   /** Variant dimensions. */
   dimensions?: InputMaybe<VariantDimensionsOpInput>;
   /** Variant inventory item data (stock, SKU, cost). */
@@ -7336,7 +7300,6 @@ export type NodeResolvers<ContextType = ServiceContext, ParentType extends Resol
 
 export type OperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['OperationResult'] = ResolversParentTypes['OperationResult']> = ResolversObject<{
   applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  clientMutationId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   type?: Resolver<ResolversTypes['OperationType'], ParentType, ContextType>;

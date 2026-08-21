@@ -2,7 +2,6 @@ input LoyaltyMaintenanceRunInput {
   effectiveAt: DateTime!
   limit: Int = 100
   rebuildBalances: Boolean = false
-  idempotencyKey: String!
 }
 
 type LoyaltyMaintenanceResult {
@@ -26,7 +25,6 @@ type LoyaltyMaintenanceRunPayload {
 
 input LoyaltyAccountBalanceRebuildInput {
   accountId: ID!
-  idempotencyKey: String!
 }
 
 type LoyaltyAccountBalanceRebuildPayload {
@@ -37,5 +35,4 @@ type LoyaltyAccountBalanceRebuildPayload {
 
 input LoyaltyMonetaryWalletBalanceRebuildInput {
   walletId: ID!
-  idempotencyKey: String!
 }

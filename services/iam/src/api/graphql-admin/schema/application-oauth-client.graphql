@@ -156,7 +156,6 @@ input ApplicationOAuthClientUpdateInput {
   redirectUris: [String!]
   postLogoutRedirectUris: [String!]
   enableEndSession: Boolean
-  expectedRevision: Int!
 }
 
 """
@@ -167,7 +166,6 @@ input ApplicationOAuthClientEnabledSetInput {
   applicationId: ID!
   clientId: String!
   enabled: Boolean!
-  expectedRevision: Int!
 }
 
 """
@@ -178,7 +176,6 @@ input ApplicationOAuthClientSkipConsentSetInput {
   applicationId: ID!
   clientId: String!
   skipConsent: Boolean!
-  expectedRevision: Int!
 }
 
 """
@@ -188,7 +185,6 @@ input ApplicationOAuthClientSecretRotateInput {
   organizationId: ID!
   applicationId: ID!
   clientId: String!
-  expectedRevision: Int!
 }
 
 """
@@ -198,7 +194,6 @@ input ApplicationOAuthClientArchiveInput {
   organizationId: ID!
   applicationId: ID!
   clientId: String!
-  expectedRevision: Int!
 }
 
 # ============================================================================

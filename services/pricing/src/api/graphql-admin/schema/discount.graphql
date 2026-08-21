@@ -336,10 +336,6 @@ input DiscountUsageLimitsInput {
 }
 
 input DiscountCodeCreateOperationInput {
-  """
-  Client-provided correlation key returned in the operation result.
-  """
-  clientMutationId: String
   code: String!
   usageLimit: BigInt
   metadata: JSON
@@ -347,7 +343,6 @@ input DiscountCodeCreateOperationInput {
 
 input DiscountCodeUpdateOperationInput {
   codeId: ID!
-  expectedUpdatedAt: DateTime!
   code: String
   status: DiscountCodeStatus
   usageLimit: BigInt
@@ -356,7 +351,6 @@ input DiscountCodeUpdateOperationInput {
 
 input DiscountCodeDeleteOperationInput {
   codeId: ID!
-  expectedUpdatedAt: DateTime!
 }
 
 input DiscountCodesUpdateInput {
@@ -451,7 +445,6 @@ input DiscountUpdateInput {
 
 input DiscountDeleteInput {
   id: ID!
-  expectedRevision: Int!
 }
 
 """

@@ -198,7 +198,7 @@ type Product implements Node @key(fields: "id") {
   deletedAt: DateTime
 
   """
-  Optimistic locking revision number. Incremented on each update.
+  Internal aggregate revision number.
   """
   revision: Int!
 
@@ -803,11 +803,6 @@ input VariantOperationInput {
   variantId: ID
 
   """
-  Per-request client correlation key for create operations.
-  """
-  clientMutationId: String
-
-  """
   Variant pricing.
   """
   pricing: VariantPricingOpInput
@@ -874,11 +869,6 @@ type OperationResult {
   Whether the operation was applied successfully.
   """
   applied: Boolean!
-
-  """
-  Per-request client correlation key for create operations.
-  """
-  clientMutationId: String
 
   """
   Entity affected by this operation.

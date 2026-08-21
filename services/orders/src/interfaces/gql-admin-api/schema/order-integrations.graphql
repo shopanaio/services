@@ -149,14 +149,6 @@ input OrderIntegrationSyncRequestInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Relay global ID identifying the integration link.
   """
   integrationLinkId: ID!
@@ -175,14 +167,6 @@ input OrderIntegrationSyncRetryInput {
   """
   orderId: ID!
   """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
-  """
   Relay global ID identifying the operation.
   """
   operationId: ID!
@@ -196,14 +180,6 @@ input OrderIntegrationLinkDetachInput {
   Relay global ID identifying the order.
   """
   orderId: ID!
-  """
-  Revision observed by the client; the command fails when stale.
-  """
-  expectedVersion: Int!
-  """
-  Client-generated key that makes retries return the same result and rejects parameter mismatches.
-  """
-  idempotencyKey: String!
   """
   Relay global ID identifying the integration link.
   """

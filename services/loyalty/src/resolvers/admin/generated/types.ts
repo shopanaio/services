@@ -706,7 +706,6 @@ export type LoyaltyAccountBalance = {
 
 export type LoyaltyAccountBalanceRebuildInput = {
   accountId: Scalars['ID']['input'];
-  idempotencyKey: Scalars['String']['input'];
 };
 
 export type LoyaltyAccountBalanceRebuildPayload = {
@@ -738,8 +737,6 @@ export enum LoyaltyAccountStatus {
 
 export type LoyaltyAccountStatusUpdateInput = {
   accountId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   reason: Scalars['String']['input'];
   status: LoyaltyAccountStatus;
 };
@@ -867,7 +864,6 @@ export type LoyaltyEarningRuleCreateInput = {
   code: Scalars['String']['input'];
   conditionSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   conditions: Scalars['JSON']['input'];
-  idempotencyKey: Scalars['String']['input'];
   limitSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   limits?: Scalars['JSON']['input'];
   name: Scalars['String']['input'];
@@ -881,7 +877,6 @@ export type LoyaltyEarningRuleCreateInput = {
 
 export type LoyaltyEarningRuleDeleteInput = {
   earningRuleId: Scalars['ID']['input'];
-  idempotencyKey: Scalars['String']['input'];
 };
 
 export type LoyaltyEarningRuleInput = {
@@ -914,7 +909,6 @@ export type LoyaltyEarningRuleUpdateInput = {
   conditionSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   conditions?: InputMaybe<Scalars['JSON']['input']>;
   earningRuleId: Scalars['ID']['input'];
-  idempotencyKey: Scalars['String']['input'];
   limitSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   limits?: InputMaybe<Scalars['JSON']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -1071,7 +1065,6 @@ export type LoyaltyMaintenanceResult = {
 
 export type LoyaltyMaintenanceRunInput = {
   effectiveAt: Scalars['DateTime']['input'];
-  idempotencyKey: Scalars['String']['input'];
   limit?: InputMaybe<Scalars['Int']['input']>;
   rebuildBalances?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -1141,7 +1134,6 @@ export type LoyaltyMonetaryTransaction = Node & {
   effectiveAt: Scalars['DateTime']['output'];
   entries: Array<LoyaltyMonetaryLedgerEntry>;
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   kind: LoyaltyMonetaryTransactionKind;
   metadata: Scalars['JSON']['output'];
   occurredAt: Scalars['DateTime']['output'];
@@ -1197,7 +1189,6 @@ export type LoyaltyMonetaryWalletAdjustInput = {
   amountMinor: Scalars['BigInt']['input'];
   direction: LoyaltyMonetaryAdjustmentDirection;
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
   reasonCode: Scalars['String']['input'];
@@ -1216,7 +1207,6 @@ export type LoyaltyMonetaryWalletBalance = {
 };
 
 export type LoyaltyMonetaryWalletBalanceRebuildInput = {
-  idempotencyKey: Scalars['String']['input'];
   walletId: Scalars['ID']['input'];
 };
 
@@ -1241,8 +1231,6 @@ export enum LoyaltyMonetaryWalletStatus {
 }
 
 export type LoyaltyMonetaryWalletStatusUpdateInput = {
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   reasonCode: Scalars['String']['input'];
   status: LoyaltyMonetaryWalletStatus;
   walletId: Scalars['ID']['input'];
@@ -1486,9 +1474,7 @@ export type LoyaltyPointsAdjustInput = {
   accountId: Scalars['ID']['input'];
   description: Scalars['String']['input'];
   direction: LoyaltyPointsAdjustmentDirection;
-  expectedBalanceRevision: Scalars['Int']['input'];
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   points: Scalars['BigInt']['input'];
   reasonCode: Scalars['String']['input'];
@@ -1509,7 +1495,6 @@ export enum LoyaltyPointsAdjustmentDirection {
 export type LoyaltyPointsConvertToMonetaryInput = {
   accountId: Scalars['ID']['input'];
   currencyCode: CurrencyCode;
-  idempotencyKey: Scalars['String']['input'];
   occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
   points: Scalars['BigInt']['input'];
   programVersionId: Scalars['ID']['input'];
@@ -1553,7 +1538,6 @@ export type LoyaltyProgramConnection = {
 export type LoyaltyProgramCreateInput = {
   code: Scalars['String']['input'];
   defaultCurrencyCode: CurrencyCode;
-  idempotencyKey: Scalars['String']['input'];
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   name: Scalars['String']['input'];
@@ -1632,8 +1616,6 @@ export enum LoyaltyProgramStatus {
 }
 
 export type LoyaltyProgramUpdateInput = {
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -1695,8 +1677,6 @@ export type LoyaltyProgramVersionCreateInput = {
   earningRules?: Array<LoyaltyEarningRuleInput>;
   effectiveFrom?: InputMaybe<Scalars['DateTime']['input']>;
   effectiveTo?: InputMaybe<Scalars['DateTime']['input']>;
-  expectedProgramRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   maximumOrderPercentageBps?: InputMaybe<Scalars['Int']['input']>;
   maximumRedeemPointsPerOrder?: InputMaybe<Scalars['BigInt']['input']>;
   minimumEligibleAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
@@ -1723,8 +1703,6 @@ export type LoyaltyProgramVersionCreatePayload = {
 };
 
 export type LoyaltyProgramVersionDeleteInput = {
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   programVersionId: Scalars['ID']['input'];
 };
 
@@ -1737,8 +1715,6 @@ export type LoyaltyProgramVersionDeletePayload = {
 export type LoyaltyProgramVersionPublishInput = {
   effectiveFrom: Scalars['DateTime']['input'];
   effectiveTo?: InputMaybe<Scalars['DateTime']['input']>;
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   programVersionId: Scalars['ID']['input'];
 };
 
@@ -1766,8 +1742,6 @@ export type LoyaltyProgramVersionUpdateInput = {
   earningEnabled?: InputMaybe<Scalars['Boolean']['input']>;
   effectiveFrom?: InputMaybe<Scalars['DateTime']['input']>;
   effectiveTo?: InputMaybe<Scalars['DateTime']['input']>;
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   maximumOrderPercentageBps?: InputMaybe<Scalars['Int']['input']>;
   maximumRedeemPointsPerOrder?: InputMaybe<Scalars['BigInt']['input']>;
   minimumEligibleAmountMinor?: InputMaybe<Scalars['BigInt']['input']>;
@@ -2026,7 +2000,6 @@ export type LoyaltyReservation = Node & {
   expiredAt: Maybe<Scalars['DateTime']['output']>;
   expiresAt: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   orderId: Maybe<Scalars['ID']['output']>;
   orderRevision: Maybe<Scalars['Int']['output']>;
   points: Scalars['BigInt']['output'];
@@ -2063,7 +2036,6 @@ export type LoyaltyReservationEvent = Node & {
   eventId: Maybe<Scalars['String']['output']>;
   eventType: LoyaltyReservationEventType;
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   metadata: Scalars['JSON']['output'];
   occurredAt: Scalars['DateTime']['output'];
   previousStatus: Maybe<LoyaltyReservationStatus>;
@@ -2082,8 +2054,6 @@ export enum LoyaltyReservationEventType {
 }
 
 export type LoyaltyReservationReleaseInput = {
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   reasonCode: Scalars['String']['input'];
   reservationId: Scalars['ID']['input'];
 };
@@ -2143,7 +2113,6 @@ export type LoyaltyRewardDefinitionCreateInput = {
   configuration: Scalars['JSON']['input'];
   configurationSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   endsAt?: InputMaybe<Scalars['DateTime']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   issuanceLimit?: InputMaybe<Scalars['BigInt']['input']>;
   name: Scalars['String']['input'];
   perAccountLimit?: InputMaybe<Scalars['BigInt']['input']>;
@@ -2154,7 +2123,6 @@ export type LoyaltyRewardDefinitionCreateInput = {
 };
 
 export type LoyaltyRewardDefinitionDeleteInput = {
-  idempotencyKey: Scalars['String']['input'];
   rewardDefinitionId: Scalars['ID']['input'];
 };
 
@@ -2186,7 +2154,6 @@ export type LoyaltyRewardDefinitionUpdateInput = {
   configuration?: InputMaybe<Scalars['JSON']['input']>;
   configurationSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   endsAt?: InputMaybe<Scalars['DateTime']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   issuanceLimit?: InputMaybe<Scalars['BigInt']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   perAccountLimit?: InputMaybe<Scalars['BigInt']['input']>;
@@ -2231,7 +2198,6 @@ export type LoyaltyRewardEntitlementEvent = Node & {
   entitlement: LoyaltyRewardEntitlement;
   eventType: LoyaltyRewardEntitlementEventType;
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   metadata: Scalars['JSON']['output'];
   occurredAt: Scalars['DateTime']['output'];
   previousStatus: Maybe<LoyaltyRewardEntitlementStatus>;
@@ -2251,7 +2217,6 @@ export enum LoyaltyRewardEntitlementEventType {
 export type LoyaltyRewardEntitlementIssueInput = {
   accountId: Scalars['ID']['input'];
   externalReference?: InputMaybe<Scalars['String']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
   quantity?: InputMaybe<Scalars['BigInt']['input']>;
   rewardDefinitionId: Scalars['ID']['input'];
@@ -2273,8 +2238,6 @@ export enum LoyaltyRewardEntitlementStatus {
 
 export type LoyaltyRewardEntitlementTransitionInput = {
   entitlementId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   occurredAt?: InputMaybe<Scalars['DateTime']['input']>;
   reasonCode: Scalars['String']['input'];
 };
@@ -2331,7 +2294,6 @@ export enum LoyaltyTierCalendarPeriod {
 
 export type LoyaltyTierCreateInput = {
   code: Scalars['String']['input'];
-  idempotencyKey: Scalars['String']['input'];
   maintenance?: InputMaybe<Scalars['JSON']['input']>;
   name: Scalars['String']['input'];
   programVersionId: Scalars['ID']['input'];
@@ -2341,7 +2303,6 @@ export type LoyaltyTierCreateInput = {
 };
 
 export type LoyaltyTierDeleteInput = {
-  idempotencyKey: Scalars['String']['input'];
   tierId: Scalars['ID']['input'];
 };
 
@@ -2355,7 +2316,6 @@ export type LoyaltyTierEvaluateInput = {
   accountId: Scalars['ID']['input'];
   effectiveAt?: InputMaybe<Scalars['DateTime']['input']>;
   forceRequalification?: InputMaybe<Scalars['Boolean']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   programVersionId?: InputMaybe<Scalars['ID']['input']>;
   reasonCode: Scalars['String']['input'];
 };
@@ -2424,8 +2384,6 @@ export enum LoyaltyTierMembershipEventType {
 
 export type LoyaltyTierMembershipRevokeInput = {
   effectiveAt?: InputMaybe<Scalars['DateTime']['input']>;
-  expectedRevision: Scalars['Int']['input'];
-  idempotencyKey: Scalars['String']['input'];
   membershipId: Scalars['ID']['input'];
   reasonCode: Scalars['String']['input'];
 };
@@ -2459,7 +2417,6 @@ export type LoyaltyTierPolicy = Node & {
 };
 
 export type LoyaltyTierPolicyDeleteInput = {
-  idempotencyKey: Scalars['String']['input'];
   programVersionId: Scalars['ID']['input'];
 };
 
@@ -2485,7 +2442,6 @@ export type LoyaltyTierPolicyUpsertInput = {
   calendarPeriod?: InputMaybe<LoyaltyTierCalendarPeriod>;
   downgradePolicy?: InputMaybe<LoyaltyTierDowngradePolicy>;
   gracePeriodDays?: InputMaybe<Scalars['Int']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   membershipDurationDays?: InputMaybe<Scalars['Int']['input']>;
   metricSchemaVersion?: InputMaybe<Scalars['Int']['input']>;
   programVersionId: Scalars['ID']['input'];
@@ -2513,13 +2469,11 @@ export type LoyaltyTierRewardBenefit = Node & {
 export type LoyaltyTierRewardBenefitCreateInput = {
   grantPolicy?: Scalars['JSON']['input'];
   grantPolicySchemaVersion?: InputMaybe<Scalars['Int']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   rewardDefinitionId: Scalars['ID']['input'];
   tierId: Scalars['ID']['input'];
 };
 
 export type LoyaltyTierRewardBenefitDeleteInput = {
-  idempotencyKey: Scalars['String']['input'];
   tierRewardBenefitId: Scalars['ID']['input'];
 };
 
@@ -2531,7 +2485,6 @@ export type LoyaltyTierRewardBenefitPayload = {
 
 export type LoyaltyTierUpdateInput = {
   clearMaintenance?: InputMaybe<Scalars['Boolean']['input']>;
-  idempotencyKey: Scalars['String']['input'];
   maintenance?: InputMaybe<Scalars['JSON']['input']>;
   name?: InputMaybe<Scalars['String']['input']>;
   qualification?: InputMaybe<Scalars['JSON']['input']>;
@@ -2553,7 +2506,6 @@ export type LoyaltyTransaction = Node & {
   entries: Array<LoyaltyLedgerEntry>;
   eventId: Maybe<Scalars['String']['output']>;
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   kind: LoyaltyTransactionKind;
   lotAllocations: Array<LoyaltyLotAllocation>;
   metadata: Scalars['JSON']['output'];
@@ -3371,7 +3323,6 @@ export type LoyaltyMonetaryTransactionResolvers<ContextType = ServiceContext, Pa
   effectiveAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   entries?: Resolver<Array<ResolversTypes['LoyaltyMonetaryLedgerEntry']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['LoyaltyMonetaryTransactionKind'], ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -3680,7 +3631,6 @@ export type LoyaltyReservationResolvers<ContextType = ServiceContext, ParentType
   expiredAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   expiresAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   orderId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   orderRevision?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   points?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
@@ -3718,7 +3668,6 @@ export type LoyaltyReservationEventResolvers<ContextType = ServiceContext, Paren
   eventId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   eventType?: Resolver<ResolversTypes['LoyaltyReservationEventType'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   previousStatus?: Resolver<Maybe<ResolversTypes['LoyaltyReservationStatus']>, ParentType, ContextType>;
@@ -3797,7 +3746,6 @@ export type LoyaltyRewardEntitlementEventResolvers<ContextType = ServiceContext,
   entitlement?: Resolver<ResolversTypes['LoyaltyRewardEntitlement'], ParentType, ContextType>;
   eventType?: Resolver<ResolversTypes['LoyaltyRewardEntitlementEventType'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   previousStatus?: Resolver<Maybe<ResolversTypes['LoyaltyRewardEntitlementStatus']>, ParentType, ContextType>;
@@ -3926,7 +3874,6 @@ export type LoyaltyTransactionResolvers<ContextType = ServiceContext, ParentType
   entries?: Resolver<Array<ResolversTypes['LoyaltyLedgerEntry']>, ParentType, ContextType>;
   eventId?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   kind?: Resolver<ResolversTypes['LoyaltyTransactionKind'], ParentType, ContextType>;
   lotAllocations?: Resolver<Array<ResolversTypes['LoyaltyLotAllocation']>, ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;

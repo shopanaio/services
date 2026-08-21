@@ -533,7 +533,6 @@ export type CustomerAccountsSettings = {
 
 export type CustomerAccountsSettingsUpdateInput = {
   enabledMethods: Array<CustomerAuthenticationMethod>;
-  expectedRevision: Scalars['Int']['input'];
 };
 
 export type CustomerAccountsSettingsUpdatePayload = {
@@ -885,7 +884,6 @@ export type CustomerConsentEvent = Node & {
   customer: Customer;
   evidence: Scalars['JSON']['output'];
   id: Scalars['ID']['output'];
-  idempotencyKey: Maybe<Scalars['String']['output']>;
   newState: CustomerConsentState;
   occurredAt: Scalars['DateTime']['output'];
   optInLevel: CustomerConsentOptInLevel;
@@ -1008,7 +1006,6 @@ export type CustomerDataRequest = Node & {
   dueAt: Maybe<Scalars['DateTime']['output']>;
   finishedAt: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   legalBasis: Maybe<Scalars['String']['output']>;
   rejectionReason: Maybe<Scalars['String']['output']>;
   requestMetadata: Scalars['JSON']['output'];
@@ -1173,7 +1170,6 @@ export type CustomerDataRequestWhereInput = {
 };
 
 export type CustomerDeleteInput = {
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   id: Scalars['ID']['input'];
 };
 
@@ -1470,7 +1466,6 @@ export type CustomerMerge = Node & {
   errorMessage: Maybe<Scalars['String']['output']>;
   finishedAt: Maybe<Scalars['DateTime']['output']>;
   id: Scalars['ID']['output'];
-  idempotencyKey: Scalars['String']['output'];
   reason: Maybe<Scalars['String']['output']>;
   requestedAt: Scalars['DateTime']['output'];
   requestedById: Maybe<Scalars['String']['output']>;
@@ -1864,7 +1859,6 @@ export type CustomerSegmentDefinitionUpdateInput = {
 };
 
 export type CustomerSegmentDeleteInput = {
-  expectedRevision?: InputMaybe<Scalars['Int']['input']>;
   id: Scalars['ID']['input'];
 };
 
@@ -2724,7 +2718,7 @@ export type CustomersMutation = {
   customerTagCreate: CustomerTagCreatePayload;
   customerTagDelete: CustomerTagDeletePayload;
   customerTagUpdate: CustomerTagUpdatePayload;
-  /** Unified customer profile update with optimistic locking. */
+  /** Unified customer profile update. */
   customerUpdate: CustomerUpdatePayload;
 };
 
@@ -2780,7 +2774,6 @@ export type CustomersMutationCustomerGroupDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerGroupUpdateArgs = {
-  expectedRevision: Scalars['Int']['input'];
   groupId: Scalars['ID']['input'];
   operations: CustomerGroupUpdateInput;
 };
@@ -2819,7 +2812,6 @@ export type CustomersMutationCustomerSegmentDeleteArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerSegmentUpdateArgs = {
-  expectedRevision: Scalars['Int']['input'];
   operations: CustomerSegmentUpdateInput;
   segmentId: Scalars['ID']['input'];
 };
@@ -2847,7 +2839,6 @@ export type CustomersMutationCustomerTagUpdateArgs = {
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerUpdateArgs = {
   customerId: Scalars['ID']['input'];
-  expectedRevision: Scalars['Int']['input'];
   operations: CustomerUpdateInput;
 };
 
@@ -4286,7 +4277,6 @@ export type CustomerConsentEventResolvers<ContextType = ServiceContext, ParentTy
   customer?: Resolver<ResolversTypes['Customer'], ParentType, ContextType>;
   evidence?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   newState?: Resolver<ResolversTypes['CustomerConsentState'], ParentType, ContextType>;
   occurredAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   optInLevel?: Resolver<ResolversTypes['CustomerConsentOptInLevel'], ParentType, ContextType>;
@@ -4323,7 +4313,6 @@ export type CustomerDataRequestResolvers<ContextType = ServiceContext, ParentTyp
   dueAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   finishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   legalBasis?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   rejectionReason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   requestMetadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
@@ -4475,7 +4464,6 @@ export type CustomerMergeResolvers<ContextType = ServiceContext, ParentType exte
   errorMessage?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   finishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  idempotencyKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   reason?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   requestedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   requestedById?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -4851,17 +4839,17 @@ export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType 
   customerDelete?: Resolver<ResolversTypes['CustomerDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDeleteArgs, 'input'>>;
   customerGroupCreate?: Resolver<ResolversTypes['CustomerGroupCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupCreateArgs, 'input'>>;
   customerGroupDelete?: Resolver<ResolversTypes['CustomerGroupDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupDeleteArgs, 'input'>>;
-  customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'expectedRevision' | 'groupId' | 'operations'>>;
+  customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'groupId' | 'operations'>>;
   customerMergeCreate?: Resolver<ResolversTypes['CustomerMergeCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeCreateArgs, 'input'>>;
   customerMergeDelete?: Resolver<ResolversTypes['CustomerMergeDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeDeleteArgs, 'input'>>;
   customerMergeUpdate?: Resolver<ResolversTypes['CustomerMergeUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeUpdateArgs, 'mergeId'>>;
   customerSegmentCreate?: Resolver<ResolversTypes['CustomerSegmentCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCreateArgs, 'input'>>;
   customerSegmentDelete?: Resolver<ResolversTypes['CustomerSegmentDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentDeleteArgs, 'input'>>;
-  customerSegmentUpdate?: Resolver<ResolversTypes['CustomerSegmentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentUpdateArgs, 'expectedRevision' | 'operations' | 'segmentId'>>;
+  customerSegmentUpdate?: Resolver<ResolversTypes['CustomerSegmentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentUpdateArgs, 'operations' | 'segmentId'>>;
   customerTagCreate?: Resolver<ResolversTypes['CustomerTagCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagCreateArgs, 'input'>>;
   customerTagDelete?: Resolver<ResolversTypes['CustomerTagDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagDeleteArgs, 'input'>>;
   customerTagUpdate?: Resolver<ResolversTypes['CustomerTagUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUpdateArgs, 'tagId'>>;
-  customerUpdate?: Resolver<ResolversTypes['CustomerUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerUpdateArgs, 'customerId' | 'expectedRevision' | 'operations'>>;
+  customerUpdate?: Resolver<ResolversTypes['CustomerUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerUpdateArgs, 'customerId' | 'operations'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

@@ -77,13 +77,11 @@ input RecommendationPlacementPolicyUpsertInput {
   minimumResults: Int!
   maximumResults: Int!
   fallbackChain: [String!]!
-  expectedVersion: Int
 }
 
 input RecommendationPlacementPolicySetEnabledInput {
   placement: RecommendationPlacement!
   enabled: Boolean!
-  expectedVersion: Int!
 }
 
 type RecommendationPlacementPolicyPayload {
@@ -105,7 +103,6 @@ input ManualProductRecommendationCreateInput {
 
 input ManualProductRecommendationUpdateInput {
   id: ID!
-  expectedVersion: Int!
   targetProductId: ID
   action: ManualRecommendationAction
   position: Int
@@ -117,7 +114,6 @@ input ManualProductRecommendationUpdateInput {
 
 input ManualProductRecommendationDeleteInput {
   id: ID!
-  expectedVersion: Int!
 }
 
 type ManualProductRecommendationPayload {
@@ -131,7 +127,6 @@ type ManualProductRecommendationDeletePayload {
 }
 
 input RecommendationPlacementPolicyDraftInput {
-  expectedVersion: Int
   enabled: Boolean!
   strategy: RecommendationStrategy!
   minimumResults: Int!
@@ -151,7 +146,6 @@ input ManualRecommendationDraftCreateInput {
 
 input ManualRecommendationDraftUpdateInput {
   id: ID!
-  expectedVersion: Int!
   targetProductId: ID
   action: ManualRecommendationAction
   position: Int
@@ -163,7 +157,6 @@ input ManualRecommendationDraftUpdateInput {
 
 input ManualRecommendationDraftDeleteInput {
   id: ID!
-  expectedVersion: Int!
 }
 
 input ManualRecommendationDraftChangeInput {

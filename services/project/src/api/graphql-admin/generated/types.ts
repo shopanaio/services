@@ -240,7 +240,7 @@ export type Store = {
   orderProcessing: StoreOrderProcessing;
   /** Organization that owns this store (federation reference) */
   organization: Maybe<Organization>;
-  /** Optimistic locking revision incremented by each unified update */
+  /** Internal store revision */
   revision: Scalars['Int']['output'];
   /** Current operational status of the store */
   status: StoreStatus;
@@ -444,8 +444,6 @@ export type StoreMutationStoreDeleteArgs = {
 
 /** Mutations for store management */
 export type StoreMutationStoreUpdateArgs = {
-  clientMutationId: Scalars['String']['input'];
-  expectedRevision: Scalars['Int']['input'];
   operations?: InputMaybe<StoreUpdateInput>;
   storeId: Scalars['ID']['input'];
 };
@@ -925,7 +923,7 @@ export type StoreMutationResolvers<ContextType = ServiceContext, ParentType exte
   localeSetDefault?: Resolver<ResolversTypes['LocaleUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationLocaleSetDefaultArgs, 'input'>>;
   storeCreate?: Resolver<ResolversTypes['StoreCreatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreCreateArgs, 'input'>>;
   storeDelete?: Resolver<ResolversTypes['StoreDeletePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreDeleteArgs, 'input'>>;
-  storeUpdate?: Resolver<ResolversTypes['StoreUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreUpdateArgs, 'clientMutationId' | 'expectedRevision' | 'storeId'>>;
+  storeUpdate?: Resolver<ResolversTypes['StoreUpdatePayload'], ParentType, ContextType, RequireFields<StoreMutationStoreUpdateArgs, 'storeId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

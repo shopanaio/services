@@ -93,7 +93,7 @@ type Application implements Node @key(fields: "id") {
   """
   resource: String!
   """
-  Current revision used for optimistic concurrency.
+  Internal aggregate revision.
   """
   revision: Int!
   """
@@ -276,10 +276,6 @@ input ApplicationUpdateInput {
   New application description.
   """
   description: String
-  """
-  Revision expected by the caller.
-  """
-  expectedRevision: Int!
 }
 
 """
@@ -294,10 +290,6 @@ input ApplicationArchiveInput {
   Application to archive.
   """
   applicationId: ID!
-  """
-  Revision expected by the caller.
-  """
-  expectedRevision: Int!
 }
 
 # ============================================================================

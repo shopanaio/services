@@ -40,7 +40,7 @@ type Category implements Node @key(fields: "id") {
   deletedAt: DateTime
 
   """
-  Optimistic locking revision number. Incremented on each update.
+  Internal aggregate revision number.
   """
   revision: Int!
 

@@ -373,11 +373,6 @@ input FileUploadMultipartInput {
   Alt text for accessibility.
   """
   altText: String
-
-  """
-  Idempotency key for deduplication.
-  """
-  idempotencyKey: String
 }
 
 """
@@ -394,11 +389,6 @@ input FileUploadFromUrlInput {
   Alt text for accessibility.
   """
   altText: String
-
-  """
-  Idempotency key for deduplication.
-  """
-  idempotencyKey: String
 }
 
 """
@@ -455,11 +445,6 @@ input FileCreateExternalInput {
   Provider-specific metadata.
   """
   providerMeta: JSON
-
-  """
-  Idempotency key for deduplication.
-  """
-  idempotencyKey: String
 }
 
 """

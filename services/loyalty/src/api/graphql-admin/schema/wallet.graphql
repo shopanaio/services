@@ -34,7 +34,6 @@ type LoyaltyMonetaryTransaction implements Node @key(fields: "id") {
   sourceType: String!
   sourceId: String
   sourceRevision: String
-  idempotencyKey: String!
   requestHash: String!
   actorType: LoyaltyActorType!
   actorId: ID
@@ -85,10 +84,8 @@ input LoyaltyMonetaryWalletWhereInput {
 
 input LoyaltyMonetaryWalletStatusUpdateInput {
   walletId: ID!
-  expectedRevision: Int!
   status: LoyaltyMonetaryWalletStatus!
   reasonCode: String!
-  idempotencyKey: String!
 }
 
 input LoyaltyMonetaryWalletAdjustInput {
@@ -99,7 +96,6 @@ input LoyaltyMonetaryWalletAdjustInput {
   occurredAt: DateTime
   expiresAt: DateTime
   metadata: JSON
-  idempotencyKey: String!
 }
 
 input LoyaltyPointsConvertToMonetaryInput {
@@ -109,7 +105,6 @@ input LoyaltyPointsConvertToMonetaryInput {
   currencyCode: CurrencyCode!
   points: BigInt!
   occurredAt: DateTime
-  idempotencyKey: String!
 }
 
 type LoyaltyMonetaryWalletPayload {

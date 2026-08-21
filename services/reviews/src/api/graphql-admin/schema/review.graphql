@@ -7,7 +7,6 @@ type Review implements Node & ReviewContent @key(fields: "id") {
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!
-  idempotencyKey: String
   status: ReviewContentStatus!
   moderationNote: String
   moderatedByPrincipalId: String
@@ -107,7 +106,6 @@ type ReviewReply implements Node & ReviewContent @key(fields: "id") {
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!
-  idempotencyKey: String
   status: ReviewContentStatus!
   moderationNote: String
   moderatedByPrincipalId: String
@@ -251,10 +249,6 @@ input ReviewUpdateInput {
 }
 
 input ReviewReplyCreateOperationInput {
-  """
-  Client-provided correlation key returned in the operation result.
-  """
-  clientMutationId: String
   content: ReviewContentCreateInput!
   isOfficial: Boolean = true
   sortIndex: Int
@@ -275,13 +269,11 @@ input ReviewReplyUpdateInput {
 
 input ReviewReplyUpdateOperationInput {
   replyId: ID!
-  expectedRevision: Int!
   operations: ReviewReplyUpdateInput!
 }
 
 input ReviewReplyDeleteOperationInput {
   replyId: ID!
-  expectedRevision: Int!
   """
   Hard deletion is reserved for explicit privacy or retention workflows.
   """

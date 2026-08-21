@@ -195,7 +195,6 @@ input CustomerCreateInput {
 
 input CustomerDeleteInput {
   id: ID!
-  expectedRevision: Int
 }
 
 """

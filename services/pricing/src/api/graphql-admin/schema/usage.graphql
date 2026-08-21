@@ -55,7 +55,6 @@ type DiscountUsageReservation implements Node @key(fields: "id") {
   customerId: ID
   customer: Customer
   checkoutId: ID!
-  idempotencyKey: String!
   status: DiscountReservationStatus!
   expiresAt: DateTime!
   committedAt: DateTime
@@ -88,7 +87,6 @@ type DiscountRedemption implements Node @key(fields: "id") {
   customer: Customer
   checkoutId: ID!
   orderId: ID!
-  idempotencyKey: String!
   status: DiscountRedemptionStatus!
   discountClass: DiscountClass!
   configurationRevision: Int!

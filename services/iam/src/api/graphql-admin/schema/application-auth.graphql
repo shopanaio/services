@@ -143,7 +143,7 @@ type ApplicationAuthConfiguration {
   """
   providers: [ApplicationAuthProvider!]!
   """
-  Current revision used for optimistic concurrency.
+  Internal configuration revision.
   """
   revision: Int!
   """
@@ -245,7 +245,6 @@ input ApplicationAuthUpdateInput {
   defaultLocale: LocaleCode
   trustedOrigins: [String!]
   emailDelivery: ApplicationAuthEmailDeliveryInput
-  expectedRevision: Int!
 }
 
 """
@@ -255,7 +254,6 @@ input ApplicationAuthRealmEnabledSetInput {
   organizationId: ID!
   applicationId: ID!
   enabled: Boolean!
-  expectedRevision: Int!
 }
 
 """
@@ -266,7 +264,6 @@ input ApplicationAuthMethodUpdateInput {
   applicationId: ID!
   methodId: ApplicationAuthMethodId!
   enabledCapabilities: [ApplicationAuthMethodCapability!]!
-  expectedRevision: Int!
 }
 
 """

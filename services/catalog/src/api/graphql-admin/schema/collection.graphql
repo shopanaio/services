@@ -100,8 +100,7 @@ type Collection implements Node @key(fields: "id") {
   updatedAt: DateTime!
 
   """
-  Optimistic-lock revision. Pass the latest value as `expectedRevision` to every
-  mutation that changes an existing collection.
+  Internal aggregate revision.
   """
   revision: Int!
 
@@ -523,14 +522,10 @@ type CollectionMediaItem {
 Creates a draft or published collection.
 
 RULE collections must first be created as drafts because rule persistence uses
-the revision-protected `collectionUpdateRules` mutation. After rules are saved,
-publish the collection with `collectionUpdate` and its latest revision.
+the `collectionUpdateRules` mutation. After rules are saved, publish the
+collection with `collectionUpdate`.
 """
 input CollectionCreateInput {
-  """
-  Caller-generated idempotency key. Reuse only when retrying the same input.
-  """
-  clientMutationId: String!
   handle: String!
   type: CollectionType!
   name: String!
@@ -562,9 +557,7 @@ Omitted fields remain unchanged. Null clears nullable content, SEO, or schedule
 fields where supported. Pass an empty `media` list to remove all media.
 """
 input CollectionUpdateInput {
-  clientMutationId: String!
   id: ID!
-  expectedRevision: Int!
   handle: String
   name: String
   description: RichTextInput
@@ -587,18 +580,14 @@ input CollectionMediaInput {
 }
 
 input CollectionDeleteInput {
-  clientMutationId: String!
   id: ID!
-  expectedRevision: Int!
 }
 
 """
 Adds products to a MANUAL collection. Duplicate memberships are ignored.
 """
 input CollectionAddProductsInput {
-  clientMutationId: String!
   collectionId: ID!
-  expectedRevision: Int!
   productIds: [ID!]!
 }
 
@@ -606,9 +595,7 @@ input CollectionAddProductsInput {
 Removes products from a MANUAL collection.
 """
 input CollectionRemoveProductsInput {
-  clientMutationId: String!
   collectionId: ID!
-  expectedRevision: Int!
   productIds: [ID!]!
 }
 
@@ -617,9 +604,7 @@ Moves one product in a MANUAL collection. Provide at most one anchor. Omitting
 both anchors moves the product to the end.
 """
 input CollectionMoveProductInput {
-  clientMutationId: String!
   collectionId: ID!
-  expectedRevision: Int!
   productId: ID!
   afterProductId: ID
   beforeProductId: ID
@@ -635,9 +620,7 @@ serialized size of 64 KiB. A published RULE collection cannot be saved with an
 empty rule list.
 """
 input CollectionUpdateRulesInput {
-  clientMutationId: String!
   collectionId: ID!
-  expectedRevision: Int!
   rules: [CollectionRuleInput!]!
 }
 
@@ -654,18 +637,14 @@ input CollectionRulesPreviewCountInput {
 Repairs rank spacing in a MANUAL collection without changing visible order.
 """
 input CollectionRebalanceInput {
-  clientMutationId: String!
   collectionId: ID!
-  expectedRevision: Int!
 }
 
 """
 Removes every product from a MANUAL collection.
 """
 input CollectionClearProductsInput {
-  clientMutationId: String!
   collectionId: ID!
-  expectedRevision: Int!
 }
 
 # ---- Collection mutation payloads ---------------------------------------

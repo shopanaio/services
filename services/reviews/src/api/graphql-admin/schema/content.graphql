@@ -10,7 +10,6 @@ interface ReviewContent implements Node {
   author: ReviewContentAuthor!
   sourceChannel: String!
   sourceMetadata: JSON!
-  idempotencyKey: String
   status: ReviewContentStatus!
   moderationNote: String
   moderatedByPrincipalId: String
@@ -127,7 +126,6 @@ Result for one section of a unified update.
 type ReviewsOperationResult {
   type: ReviewsOperationType!
   applied: Boolean!
-  clientMutationId: String
   entityId: ID
   errors: [GenericUserError!]!
 }
@@ -154,13 +152,11 @@ input ReviewContentAuthorUpdateInput {
 input ReviewContentSourceCreateInput {
   channel: String = "ADMIN"
   metadata: JSON
-  idempotencyKey: String
 }
 
 input ReviewContentSourceUpdateInput {
   channel: String
   metadata: JSON
-  idempotencyKey: String
 }
 
 input ReviewContentCreateInput {
@@ -207,7 +203,6 @@ input ReviewContentUpdateInput {
 
 input ReviewContentDeleteInput {
   id: ID!
-  expectedRevision: Int!
   """
   Hard deletion is reserved for explicit privacy or retention workflows.
   """

@@ -52,12 +52,10 @@ input OnlineStoreNavigationMenuUpdateInput {
   id: ID!
   handle: String
   name: String
-  expectedRevision: Int
 }
 
 input OnlineStoreNavigationMenuDeleteInput {
   id: ID!
-  expectedRevision: Int
 }
 
 input OnlineStoreNavigationTargetInput {
@@ -86,12 +84,10 @@ input OnlineStoreNavigationMenuItemUpdateInput {
   beforeItemId: ID
   target: OnlineStoreNavigationTargetInput
   openInNewTab: Boolean
-  expectedRevision: Int
 }
 
 input OnlineStoreNavigationMenuItemDeleteInput {
   id: ID!
-  expectedRevision: Int
 }
 
 type OnlineStoreNavigationMenuConnection {

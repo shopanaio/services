@@ -31,7 +31,6 @@ type CustomerMerge implements Node {
   reason: String
   requestedByType: String!
   requestedById: String
-  idempotencyKey: String!
   resolution: JSON!
   errorCode: String
   errorMessage: String
@@ -62,7 +61,6 @@ type CustomerDataRequest implements Node {
   status: CustomerDataRequestStatus!
   requestedByType: String!
   requestedById: String
-  idempotencyKey: String!
   legalBasis: String
   requestMetadata: JSON!
   resultFileId: ID

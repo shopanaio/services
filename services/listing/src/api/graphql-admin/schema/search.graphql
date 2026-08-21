@@ -34,10 +34,6 @@ type ListingSearchMutation {
   """
   settingsUpdate(
     """
-    Expected search settings version.
-    """
-    expectedVersion: Int!
-    """
     Operations to apply.
     """
     operations: SearchSettingsOperationsInput!
@@ -259,11 +255,9 @@ input SearchFieldConfigurationInput {
 
 input SearchConfigurationDeleteInput {
   id: ID!
-  expectedVersion: Int!
 }
 
 input SearchSynonymGroupCreateInput {
-  clientMutationId: String!
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
@@ -272,7 +266,6 @@ input SearchSynonymGroupCreateInput {
 
 input SearchSynonymGroupUpdateInput {
   id: ID!
-  expectedVersion: Int!
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
@@ -280,7 +273,6 @@ input SearchSynonymGroupUpdateInput {
 }
 
 input SearchProductBoostCreateInput {
-  clientMutationId: String!
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
@@ -290,7 +282,6 @@ input SearchProductBoostCreateInput {
 
 input SearchProductBoostUpdateInput {
   id: ID!
-  expectedVersion: Int!
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
@@ -305,7 +296,6 @@ enum SearchSettingsOperationType {
 type SearchSettingsOperationResult {
   type: SearchSettingsOperationType!
   applied: Boolean!
-  clientMutationId: String
   entityId: ID
   errors: [GenericUserError!]!
 }

@@ -60,7 +60,6 @@ input ReviewContentExternalReferenceUpdateInput {
 
 input ReviewContentExternalReferenceDeleteInput {
   id: ID!
-  expectedUpdatedAt: DateTime!
   permanent: Boolean = false
 }
 

@@ -266,9 +266,7 @@ export function CategoryWhereInputSchema(): z.ZodObject<Properties<CategoryWhere
 
 export function CollectionAddProductsInputSchema(): z.ZodObject<Properties<CollectionAddProductsInput>> {
   return z.object({
-    clientMutationId: z.string(),
     collectionId: z.string(),
-    expectedRevision: z.number(),
     productIds: z.array(z.string())
   })
 }
@@ -289,9 +287,7 @@ export function CollectionCategoryRuleInputSchema(): z.ZodObject<Properties<Coll
 
 export function CollectionClearProductsInputSchema(): z.ZodObject<Properties<CollectionClearProductsInput>> {
   return z.object({
-    clientMutationId: z.string(),
-    collectionId: z.string(),
-    expectedRevision: z.number()
+    collectionId: z.string()
   })
 }
 
@@ -299,7 +295,6 @@ export function CollectionCreateInputSchema(): z.ZodObject<Properties<Collection
   return z.object({
     activeFrom: z.string().nullish(),
     activeTo: z.string().nullish(),
-    clientMutationId: z.string(),
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
     description: z.lazy(() => RichTextInputSchema().nullish()),
@@ -329,8 +324,6 @@ export function CollectionCreatedAtRangeRuleInputSchema(): z.ZodObject<Propertie
 
 export function CollectionDeleteInputSchema(): z.ZodObject<Properties<CollectionDeleteInput>> {
   return z.object({
-    clientMutationId: z.string(),
-    expectedRevision: z.number(),
     id: z.string()
   })
 }
@@ -358,9 +351,7 @@ export function CollectionMoveProductInputSchema(): z.ZodObject<Properties<Colle
   return z.object({
     afterProductId: z.string().nullish(),
     beforeProductId: z.string().nullish(),
-    clientMutationId: z.string(),
     collectionId: z.string(),
-    expectedRevision: z.number(),
     productId: z.string()
   })
 }
@@ -390,17 +381,13 @@ export function CollectionPriceRangeRuleInputSchema(): z.ZodObject<Properties<Co
 
 export function CollectionRebalanceInputSchema(): z.ZodObject<Properties<CollectionRebalanceInput>> {
   return z.object({
-    clientMutationId: z.string(),
-    collectionId: z.string(),
-    expectedRevision: z.number()
+    collectionId: z.string()
   })
 }
 
 export function CollectionRemoveProductsInputSchema(): z.ZodObject<Properties<CollectionRemoveProductsInput>> {
   return z.object({
-    clientMutationId: z.string(),
     collectionId: z.string(),
-    expectedRevision: z.number(),
     productIds: z.array(z.string())
   })
 }
@@ -437,12 +424,10 @@ export function CollectionUpdateInputSchema(): z.ZodObject<Properties<Collection
   return z.object({
     activeFrom: z.string().nullish(),
     activeTo: z.string().nullish(),
-    clientMutationId: z.string(),
     defaultSort: ProductSortBySchema.nullish(),
     defaultSortDirection: SortDirectionSchema.nullish(),
     description: z.lazy(() => RichTextInputSchema().nullish()),
     excerpt: z.lazy(() => RichTextInputSchema().nullish()),
-    expectedRevision: z.number(),
     handle: z.string().nullish(),
     id: z.string(),
     media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
@@ -454,9 +439,7 @@ export function CollectionUpdateInputSchema(): z.ZodObject<Properties<Collection
 
 export function CollectionUpdateRulesInputSchema(): z.ZodObject<Properties<CollectionUpdateRulesInput>> {
   return z.object({
-    clientMutationId: z.string(),
     collectionId: z.string(),
-    expectedRevision: z.number(),
     rules: z.array(z.lazy(() => CollectionRuleInputSchema()))
   })
 }
@@ -560,7 +543,6 @@ export function ComparisonProfileOrderByInputSchema(): z.ZodObject<Properties<Co
 export function ComparisonProfileUpdateInputSchema(): z.ZodObject<Properties<ComparisonProfileUpdateInput>> {
   return z.object({
     enabled: z.boolean(),
-    expectedRevision: z.number(),
     groups: z.array(z.lazy(() => ComparisonGroupInputSchema())),
     handle: z.string(),
     id: z.string(),
@@ -777,7 +759,6 @@ export function ProductBulkUpdateInputSchema(): z.ZodObject<Properties<ProductBu
 
 export function ProductBulkUpdateItemSchema(): z.ZodObject<Properties<ProductBulkUpdateItem>> {
   return z.object({
-    expectedRevision: z.number().nullish(),
     operations: z.lazy(() => ProductUpdateInputSchema().nullish()),
     productId: z.string()
   })
@@ -801,7 +782,6 @@ export function ProductCategoryOperationInputSchema(): z.ZodObject<Properties<Pr
 
 export function ProductComparisonConfigurationSyncInputSchema(): z.ZodObject<Properties<ProductComparisonConfigurationSyncInput>> {
   return z.object({
-    expectedProductRevision: z.number(),
     mappings: z.array(z.lazy(() => ProductComparisonFieldMappingInputSchema())),
     productId: z.string(),
     profileId: z.string()
@@ -962,7 +942,6 @@ export function ProductComponentItemSyncItemInputSchema(): z.ZodObject<Propertie
 export function ProductComponentOperationInputSchema(): z.ZodObject<Properties<ProductComponentOperationInput>> {
   return z.object({
     action: ProductComponentOperationActionSchema,
-    clientMutationId: z.string().nullish(),
     configurationId: z.string().nullish(),
     dependencyRules: z.array(z.lazy(() => ProductComponentDependencyRuleSyncItemInputSchema())).nullish(),
     displayStyle: ProductComponentDisplayStyleSchema.nullish(),
@@ -1497,7 +1476,6 @@ export function VariantMediaOpInputSchema(): z.ZodObject<Properties<VariantMedia
 export function VariantOperationInputSchema(): z.ZodObject<Properties<VariantOperationInput>> {
   return z.object({
     action: VariantOperationActionSchema,
-    clientMutationId: z.string().nullish(),
     dimensions: z.lazy(() => VariantDimensionsOpInputSchema().nullish()),
     inventory: z.lazy(() => VariantInventoryOpInputSchema().nullish()),
     media: z.lazy(() => VariantMediaOpInputSchema().nullish()),

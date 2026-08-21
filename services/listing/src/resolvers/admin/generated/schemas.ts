@@ -408,7 +408,6 @@ export function ManualProductRecommendationCreateInputSchema(): z.ZodObject<Prop
 
 export function ManualProductRecommendationDeleteInputSchema(): z.ZodObject<Properties<ManualProductRecommendationDeleteInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string()
   })
 }
@@ -419,7 +418,6 @@ export function ManualProductRecommendationUpdateInputSchema(): z.ZodObject<Prop
     boost: z.string().nullish(),
     enabled: z.boolean().nullish(),
     endsAt: z.string().nullish(),
-    expectedVersion: z.number(),
     id: z.string(),
     position: z.number().nullish(),
     startsAt: z.string().nullish(),
@@ -449,7 +447,6 @@ export function ManualRecommendationDraftCreateInputSchema(): z.ZodObject<Proper
 
 export function ManualRecommendationDraftDeleteInputSchema(): z.ZodObject<Properties<ManualRecommendationDraftDeleteInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string()
   })
 }
@@ -460,7 +457,6 @@ export function ManualRecommendationDraftUpdateInputSchema(): z.ZodObject<Proper
     boost: z.string().nullish(),
     enabled: z.boolean().nullish(),
     endsAt: z.string().nullish(),
-    expectedVersion: z.number(),
     id: z.string(),
     position: z.number().nullish(),
     startsAt: z.string().nullish(),
@@ -471,7 +467,6 @@ export function ManualRecommendationDraftUpdateInputSchema(): z.ZodObject<Proper
 export function RecommendationPlacementPolicyDraftInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyDraftInput>> {
   return z.object({
     enabled: z.boolean(),
-    expectedVersion: z.number().nullish(),
     fallbackChain: z.array(z.string()),
     maximumResults: z.number(),
     minimumResults: z.number(),
@@ -482,14 +477,12 @@ export function RecommendationPlacementPolicyDraftInputSchema(): z.ZodObject<Pro
 export function RecommendationPlacementPolicySetEnabledInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicySetEnabledInput>> {
   return z.object({
     enabled: z.boolean(),
-    expectedVersion: z.number(),
     placement: RecommendationPlacementSchema
   })
 }
 
 export function RecommendationPlacementPolicyUpsertInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyUpsertInput>> {
   return z.object({
-    expectedVersion: z.number().nullish(),
     fallbackChain: z.array(z.string()),
     maximumResults: z.number(),
     minimumResults: z.number(),
@@ -509,7 +502,6 @@ export function RecommendationSnapshotPreviewInputSchema(): z.ZodObject<Properti
 
 export function SearchConfigurationDeleteInputSchema(): z.ZodObject<Properties<SearchConfigurationDeleteInput>> {
   return z.object({
-    expectedVersion: z.number(),
     id: z.string()
   })
 }
@@ -523,7 +515,6 @@ export function SearchFieldConfigurationInputSchema(): z.ZodObject<Properties<Se
 
 export function SearchProductBoostCreateInputSchema(): z.ZodObject<Properties<SearchProductBoostCreateInput>> {
   return z.object({
-    clientMutationId: z.string(),
     enabled: z.boolean(),
     locale: LocaleCodeSchema,
     name: z.string(),
@@ -542,7 +533,6 @@ export function SearchProductBoostOrderByInputSchema(): z.ZodObject<Properties<S
 export function SearchProductBoostUpdateInputSchema(): z.ZodObject<Properties<SearchProductBoostUpdateInput>> {
   return z.object({
     enabled: z.boolean(),
-    expectedVersion: z.number(),
     id: z.string(),
     locale: LocaleCodeSchema,
     name: z.string(),
@@ -591,7 +581,6 @@ export function SearchSettingsValuesInputSchema(): z.ZodObject<Properties<Search
 
 export function SearchSynonymGroupCreateInputSchema(): z.ZodObject<Properties<SearchSynonymGroupCreateInput>> {
   return z.object({
-    clientMutationId: z.string(),
     enabled: z.boolean(),
     locale: LocaleCodeSchema,
     name: z.string(),
@@ -609,7 +598,6 @@ export function SearchSynonymGroupOrderByInputSchema(): z.ZodObject<Properties<S
 export function SearchSynonymGroupUpdateInputSchema(): z.ZodObject<Properties<SearchSynonymGroupUpdateInput>> {
   return z.object({
     enabled: z.boolean(),
-    expectedVersion: z.number(),
     id: z.string(),
     locale: LocaleCodeSchema,
     name: z.string(),

@@ -31,7 +31,6 @@ type CustomerAccountsSettings {
 
 input CustomerAccountsSettingsUpdateInput {
   enabledMethods: [CustomerAuthenticationMethod!]!
-  expectedRevision: Int!
 }
 
 type CustomerAccountsSettingsUpdatePayload {
