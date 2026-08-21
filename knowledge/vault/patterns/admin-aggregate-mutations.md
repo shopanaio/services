@@ -8,6 +8,7 @@ tags:
   - workflow
   - transaction
   - events
+  - audit
 related:
   - patterns/no-cas
   - patterns/admin-graphql-layer
@@ -417,7 +418,8 @@ group. Внутренний порядок SQL может отличаться �
   GraphQL field path;
 - event запускается как durable child workflow непосредственно из workflow body только после
   фактического commit, включает tenant, actor и subject и не отправляется для no-op или полностью
-  неуспешного request;
+  неуспешного request; aggregate lifecycle event содержит обязательный sanitised `payload.audit`,
+  собранный из checkpointed step results;
 - в workflow и его write path отсутствуют CAS/optimistic-lock preconditions;
 - workflow ID, step ID, aggregate ID и tenant доступны в logs/traces; изменения кода не должны
   менять смысл уже сохранённых steps при replay существующих executions.
@@ -561,6 +563,91 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
   восстановления процесса;
 - custom outbox tables и polling publishers запрещены.
 
+### Audit contract aggregate mutation event
+
+Каждое событие `<aggregate>Created`, `<aggregate>Updated` и `<aggregate>Deleted`, опубликованное
+Admin aggregate mutation workflow, обязано содержать стандартизированный `payload.audit`. Отдельное
+событие только для audit и прямой вызов `audit.*` из mutation workflow запрещены: audit service
+строит append-only projection как durable subscriber существующих aggregate lifecycle events.
+
+Минимальный контракт:
+
+```ts
+interface AggregateMutationAudit {
+  readonly kind: "aggregate-mutation";
+  readonly schemaVersion: 1;
+  readonly storeId: string;
+  readonly action: "CREATE" | "UPDATE" | "DELETE";
+  readonly command: string;
+  readonly aggregate: {
+    readonly type: string;
+    readonly id: string;
+  };
+  readonly operations: readonly AggregateMutationAuditOperation[];
+}
+
+interface AggregateMutationAuditOperation {
+  readonly position: number;
+  readonly type: string;
+  readonly action: "CREATE" | "UPDATE" | "DELETE" | "MOVE" | "LINK" | "UNLINK";
+  readonly target?: {
+    readonly type: string;
+    readonly id: string;
+  };
+  readonly changes: readonly AggregateMutationAuditChange[];
+}
+
+interface AggregateMutationAuditChange {
+  readonly path: string;
+  readonly kind: "SET" | "ADD" | "REMOVE" | "MOVE";
+  readonly before?: SanitizedAuditValue;
+  readonly after?: SanitizedAuditValue;
+}
+```
+
+Audit envelope формируется по следующим правилам:
+
+- update-workflow собирает audit operations исключительно из checkpointed результатов
+  `@TransactionalStep()`, а не из исходного GraphQL input и не через повторное чтение aggregate
+  после commit;
+- transactional step возвращает audit fact вместе с `OperationResult` и change hints; fact должен
+  описывать только фактически закоммиченные изменения этой public operation;
+- `payload.audit.operations` сохраняет input `position`; при partial apply включает только
+  operations с `applied: true`, которые действительно изменили состояние;
+- owned entity указывается в `target`, но event `subject` и `audit.aggregate` всегда указывают на
+  aggregate root;
+- create/delete используют одну synthetic operation с `position: 0`; delete не выполняет post-commit
+  read удалённой записи;
+- raw GraphQL input, полный entity snapshot, `OperationResult.errors`, request metadata и
+  произвольный domain event payload нельзя копировать в audit envelope;
+- `actor` находится в стандартном event envelope и берётся из trusted workflow context: Admin user,
+  service или system; имя, email и другие actor snapshots в audit payload не помещаются;
+- event timestamp, event ID и monotonic subject sequence назначает events service; mutation workflow
+  не генерирует их для audit самостоятельно;
+- no-op, prevalidation failure и полностью неуспешный request не создают aggregate event и audit
+  entry; аудит неуспешных попыток относится к отдельному security/activity contract;
+- отсутствие обязательного audit envelope или невалидный audit field contract является ошибкой
+  durable event publication и не должно молча игнорироваться.
+
+#### PII masking
+
+PII и secrets должны быть удалены или замаскированы producer-ом до вызова `events.emit`.
+Маскирование только в audit event handler запрещено, потому что events service уже сохраняет event
+payload до dispatch subscriber-ам.
+
+Каждый bounded context определяет code-owned allowlist audit fields:
+
+- значение non-PII поля может быть сохранено только при явном разрешении policy;
+- для PII сохраняются только semantic path/action и значение со state `MASKED` или `OMITTED`;
+- passwords, credentials, tokens, payment secrets и аналогичные secret fields не включаются;
+- неизвестный field path обрабатывается fail-closed и не превращается в автоматически разрешённое
+  audit value;
+- audit service повторно валидирует envelope при ingestion, но эта проверка является вторым рубежом
+  и не заменяет producer-side sanitisation.
+
+Audit facts являются частью durable step result: workflow replay восстанавливает их из checkpoint,
+не вычисляет заново из текущего состояния и не меняет уже опубликованный исторический смысл.
+
 Побочные действия, зависящие от события, выполняются подписчиками. Они не должны создавать второй
 прямой write path к aggregate владельца.
 
@@ -581,6 +668,12 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
   `@TransactionalStep()`;
 - broker/event emit внутри `@TransactionalStep()`;
 - event emit после возврата из недолговечного resolver без durable parent workflow;
+- aggregate lifecycle event без обязательного sanitised `payload.audit`;
+- построение audit envelope из raw mutation input, post-commit aggregate read или непроверенного
+  event payload вместо checkpointed transactional step results;
+- маскирование PII только в audit consumer после сохранения исходного event payload;
+- отдельный audit event или прямой вызов `audit.*` из mutation workflow вместо durable subscription
+  на существующее `<aggregate>Created|Updated|Deleted` событие;
 - один внешний side effect и database write в общей транзакционной функции;
 - CAS/optimistic locking на любом слое от database schema и repository до workflow, API и UI;
 - version/revision/timestamp/hash predicate, read-compare-write или affected-row conflict,
@@ -634,6 +727,11 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 17. Workflow input и results immutable; read scripts типобезопасны, без cast `unknown as T`.
 18. Для batch input заданы ограничения размера; prevalidation не содержит N+1 reads и проверяет
     переполнение вычислений combinations/cardinality.
+19. Aggregate lifecycle event содержит валидный `payload.audit`; update audit facts восстановлены из
+    checkpointed step results, сохраняют input position и включают только фактически применённые
+    изменения.
+20. Audit values проходят producer-side allowlist и PII masking до `events.emit`; raw input, full
+    snapshots, secrets и volatile request metadata в audit envelope отсутствуют.
 
 ## Связанные документы
 
