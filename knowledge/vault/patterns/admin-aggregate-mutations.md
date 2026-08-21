@@ -20,8 +20,8 @@ related:
 
 ## Решение
 
-Все изменения уже существующего aggregate root через Admin GraphQL API должны проходить через
-одну объединённую мутацию:
+Все изменения уже существующего aggregate root через Admin GraphQL API должны проходить через одну
+объединённую мутацию:
 
 ```graphql
 <aggregate>Update(
@@ -30,9 +30,9 @@ related:
 ): <Aggregate>UpdatePayload!
 ```
 
-`operations` описывает все допустимые изменения самого aggregate root и принадлежащих ему
-сущностей. Отдельные admin-мутации для изменения полей, статуса, порядка, связей или CRUD
-дочерних сущностей запрещены.
+`operations` описывает все допустимые изменения самого aggregate root и принадлежащих ему сущностей.
+Отдельные admin-мутации для изменения полей, статуса, порядка, связей или CRUD дочерних сущностей
+запрещены.
 
 Эталон паттерна — `productUpdate` и `ProductUpdateWorkflow`: resolver преобразует GraphQL input в
 упорядоченные внутренние operations, запускает один durable workflow, workflow применяет operations
@@ -50,16 +50,16 @@ related:
 - пакетные изменения нескольких частей aggregate в одном запросе.
 
 После создания aggregate любой его write path должен быть выражен как operation в
-`<aggregate>Update`. Нельзя добавлять, например, `variantUpdate`, `categoryMove`,
-`productPublish` или `<child>Create` как отдельный публичный write path, если действие принадлежит
-aggregate и может быть представлено его update operation.
+`<aggregate>Update`. Нельзя добавлять, например, `variantUpdate`, `categoryMove`, `productPublish`
+или `<child>Create` как отдельный публичный write path, если действие принадлежит aggregate и может
+быть представлено его update operation.
 
 `<aggregate>Create` допускается только как bootstrap-команда, потому что aggregate root ещё не
 существует. Она также обязана запускать зарегистрированный durable workflow; после успешного
-transactional commit workflow публикует `<aggregate>Created`. Иное отдельное имя мутации
-допускается только для самостоятельной semantic command, которая не является изменением одного
-существующего aggregate. Такое исключение должно быть явно обосновано в архитектурном документе
-bounded context. Удобство UI или исторически существующий CRUD endpoint не являются обоснованием.
+transactional commit workflow публикует `<aggregate>Created`. Иное отдельное имя мутации допускается
+только для самостоятельной semantic command, которая не является изменением одного существующего
+aggregate. Такое исключение должно быть явно обосновано в архитектурном документе bounded context.
+Удобство UI или исторически существующий CRUD endpoint не являются обоснованием.
 
 ## GraphQL-контракт
 
@@ -101,8 +101,7 @@ type ExampleUpdatePayload {
 3. Порядок элементов в массивах является частью контракта и сохраняется resolver-ом и workflow.
 4. `OperationResult` содержит стабильный `type`, `applied`, при необходимости `entityId`, а также
    `errors` с путём к исходному полю `operations`.
-5. `userErrors` содержит агрегированный список ошибок из `operationResults` и request-level
-   ошибок.
+5. `userErrors` содержит агрегированный список ошибок из `operationResults` и request-level ошибок.
 6. В публичный Admin GraphQL input и payload нельзя добавлять `expectedRevision`, `expectedVersion`,
    ETag или иной CAS token. Сквозной запрет CAS определён ниже.
 
@@ -130,9 +129,9 @@ resolver также запрещена: между commit и emit возникн
 ## Durable workflow
 
 Каждая `<aggregate>Update` реализуется как зарегистрированный DBOS `@Workflow` и запускается через
-service broker. Workflow является единственным orchestration write path для aggregate.
-Отдельная bootstrap-мутация `<aggregate>Create>` следует тем же правилам durable execution,
-transactional steps и публикации события `<aggregate>Created`.
+service broker. Workflow является единственным orchestration write path для aggregate. Отдельная
+bootstrap-мутация `<aggregate>Create>` следует тем же правилам durable execution, transactional
+steps и публикации события `<aggregate>Created`.
 
 Типовой порядок выполнения:
 
@@ -157,16 +156,18 @@ Workflow body должен быть replay-safe. Генерация ID, врем
 - workflow имеет единственный broker-registered `@Workflow` entry point и детерминированный
   idempotency context с tenant scope; повтор одного логического request не создаёт второй набор
   изменений;
-- body replay-safe: порядок, ветвления и аргументы steps зависят только от input и сохранённых
-  step results; ID, время, random и другие nondeterministic values создаются только в durable step;
-- все значимые этапы имеют отдельную durable step boundary, а database writes выполняются только
-  в `@TransactionalStep()`;
-- transactional step атомарно коммитит local domain writes и DBOS checkpoint, содержит только
-  local database work и выпускает exception наружу;
+- body replay-safe: порядок, ветвления и аргументы steps зависят только от input и сохранённых step
+  results; ID, время, random и другие nondeterministic values создаются только в durable step;
+- все значимые этапы имеют отдельную durable step boundary, а database writes выполняются только в
+  `@TransactionalStep()`;
+- workflow не обращается к `repository` напрямую, включая pre-validation и read-only steps: каждый
+  local database step вызывает script через `kernel.runScript(..., workflowContext)`; это
+  восстанавливает `ServiceContext` и tenant scope при DBOS replay;
+- transactional step атомарно коммитит local domain writes и DBOS checkpoint, содержит только local
+  database work и выпускает exception наружу;
 - direct broker calls, S3, HTTP, email и прочие external side effects выполняются в отдельных
-  `@SideEffectStep()` только после local commit; это настоящий durable DBOS step с retry/timeout,
-  и каждый вызов имеет стабильный idempotency context,
-  если это поддерживает target;
+  `@SideEffectStep()` только после local commit; это настоящий durable DBOS step с retry/timeout, и
+  каждый вызов имеет стабильный idempotency context, если это поддерживает target;
 - `broker.runWorkflow()` и `broker.runSaga()` нельзя вызывать из `@WorkflowStep()`,
   `@SideEffectStep()` или `@TransactionalStep()`; метод запуска child workflow/saga помечается
   metadata-only декоратором `@ChildWorkflowStep()` и вызывается непосредственно из workflow body
@@ -188,8 +189,8 @@ Workflow body должен быть replay-safe. Генерация ID, врем
 
 ## Сквозной запрет CAS
 
-Compare-and-swap (CAS) и optimistic locking полностью запрещены на write path независимо от того,
-на каком слое скрыта проверка.
+Compare-and-swap (CAS) и optimistic locking полностью запрещены на write path независимо от того, на
+каком слое скрыта проверка.
 
 Общее project-wide правило определено в [[patterns/no-cas]] и обязательно для всех сервисов.
 
@@ -197,8 +198,8 @@ Compare-and-swap (CAS) и optimistic locking полностью запрещен
 
 - schema/migrations не добавляют `version`, `revision`, `lock_version`, timestamp или hash column,
   предназначенные для CAS;
-- SQL и Drizzle updates/deletes не добавляют expected version/revision/timestamp/hash в `WHERE` и
-  не выполняют предварительную read-compare-write проверку;
+- SQL и Drizzle updates/deletes не добавляют expected version/revision/timestamp/hash в `WHERE` и не
+  выполняют предварительную read-compare-write проверку;
 - repositories, mutation builders и scripts не принимают CAS token, не создают stale-object
   conflicts и не превращают affected-row count в optimistic-lock semantics;
 - workflows и broker contracts не передают expected state token между steps или сервисами;
@@ -207,11 +208,11 @@ Compare-and-swap (CAS) и optimistic locking полностью запрещен
 - UI не хранит и не отправляет version/revision как условие применения изменений и не предлагает
   retry flow, основанный на обновлении CAS token.
 
-Технические sequence/revision/version identifiers допустимы только как immutable provenance,
-порядок событий, версия формата или idempotency metadata. Они не могут приниматься от caller-а или
+Технические sequence/revision/version identifiers допустимы только как immutable provenance, порядок
+событий, версия формата или idempotency metadata. Они не могут приниматься от caller-а или
 сравниваться с текущим mutable state как precondition для write. Проверка tenant scope, identity и
-ожидаемой кардинальности affected rows остаётся обязательной, но mismatch является not-found,
-scope или integrity error, а не CAS conflict.
+ожидаемой кардинальности affected rows остаётся обязательной, но mismatch является not-found, scope
+или integrity error, а не CAS conflict.
 
 ## Транзакционные steps
 
@@ -238,20 +239,20 @@ private async stepUpdateFields(
 - внутри находится только database work текущего сервиса;
 - все записи, необходимые для инвариантов одной operation, выполняются в одной транзакции;
 - вложенные scripts/repositories переиспользуют текущую DBOS transaction;
-- exception должен выйти из step; нельзя преобразовывать инфраструктурный сбой в успешный
-  checkpoint с failure value;
+- exception должен выйти из step; нельзя преобразовывать инфраструктурный сбой в успешный checkpoint
+  с failure value;
 - broker calls, child workflows, другие сервисы, S3, email, webhooks и любые внешние side effects
   внутри `@TransactionalStep()` запрещены;
 - DB write нельзя помещать в обычный `@WorkflowStep()`;
 - `@TransactionalStep()` нельзя оборачивать в `DBOS.runStep()`.
 
-Если одна публичная operation содержит несколько тесно связанных database writes, они остаются
-одним transactional step. Если операции независимы и контракт допускает partial apply, каждая
-получает отдельный transactional step и отдельный `OperationResult`. Семантика atomicity должна
-быть определена до реализации, а не случайно зависеть от количества scripts.
+Если одна публичная operation содержит несколько тесно связанных database writes, они остаются одним
+transactional step. Если операции независимы и контракт допускает partial apply, каждая получает
+отдельный transactional step и отдельный `OperationResult`. Семантика atomicity должна быть
+определена до реализации, а не случайно зависеть от количества scripts.
 
-Distributed operation, требующая компенсации уже завершённых внешних действий, моделируется
-durable saga. Она не отменяет правило: локальные database writes всё равно выполняются только в
+Distributed operation, требующая компенсации уже завершённых внешних действий, моделируется durable
+saga. Она не отменяет правило: локальные database writes всё равно выполняются только в
 `@TransactionalStep()`, вызванном из saga body, а внешние вызовы — в отдельных durable saga steps.
 
 ## Ошибки и partial apply
@@ -260,11 +261,11 @@ durable saga. Она не отменяет правило: локальные da
 предсказуемо некорректного batch: ownership, ссылки между owned entities и aggregate-wide
 инварианты.
 
-Business/validation error конкретной operation возвращается в её `OperationResult.errors`.
-Ранее закоммиченные независимые operations не откатываются автоматически. Если контракт разрешает
+Business/validation error конкретной operation возвращается в её `OperationResult.errors`. Ранее
+закоммиченные независимые operations не откатываются автоматически. Если контракт разрешает
 продолжение, workflow выполняет следующие operations и возвращает полный ordered result. Если
-инвариант требует all-or-nothing, связанные изменения должны быть объединены в одну operation и
-один transactional step либо реализованы saga с явно определённой компенсацией.
+инвариант требует all-or-nothing, связанные изменения должны быть объединены в одну operation и один
+transactional step либо реализованы saga с явно определённой компенсацией.
 
 Infrastructure exception не маскируется под `userErrors`: он должен позволить DBOS повторить или
 восстановить workflow согласно retry policy.
@@ -311,8 +312,8 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 
 Требования к событию:
 
-- метод emit помечается `@ChildWorkflowStep()`, который хранит только semantic metadata и не
-  создаёт DBOS step; метод вызывается непосредственно из parent workflow body после завершения
+- метод emit помечается `@ChildWorkflowStep()`, который хранит только semantic metadata и не создаёт
+  DBOS step; метод вызывается непосредственно из parent workflow body после завершения
   соответствующих transactional steps;
 - idempotency context выводится из parent `DBOS.workflowID`, стабильного `stepId` и `callId`;
 - событие содержит tenant/store context, aggregate ID, actor и subject;

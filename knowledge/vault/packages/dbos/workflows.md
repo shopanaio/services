@@ -10,13 +10,33 @@ related:
   - dbos/errors
   - shared-kernel/base-classes
 ---
+
 # Workflows
 
 Durable workflows with step-based execution and automatic persistence.
 
 ## Overview
 
-Workflows are durable functions that survive crashes and resume from the last checkpoint. Each step's result is persisted, and on replay, completed steps return their stored results without re-executing.
+Workflows are durable functions that survive crashes and resume from the last checkpoint. Each
+step's result is persisted, and on replay, completed steps return their stored results without
+re-executing.
+
+## Repository Access Boundary
+
+Workflow classes must not access repositories directly. A workflow step must delegate local domain
+reads and writes to a script through the service kernel
+(`kernel.runScript(Script, params, context)`). This rule applies to pre-validation and read-only
+steps as well as to transactional write steps.
+
+Repositories obtain tenant scope (`storeId`, locale, actor) from `ServiceContext` via
+AsyncLocalStorage. A durable workflow may resume without the original request context; passing the
+workflow's persisted context to `kernel.runScript()` reconstructs that context when necessary.
+Direct `kernel.repository.*` calls from a workflow therefore risk an absent or wrong tenant scope on
+replay and are forbidden.
+
+`@TransactionalStep()` remains the database-write boundary. The script it invokes performs only
+local database work; `@SideEffectStep()` and child-workflow methods perform external delivery only
+after the required transactional step has committed.
 
 ## BaseWorkflow
 
@@ -38,7 +58,7 @@ class StoreCreateWorkflow extends BaseWorkflow<StoreCreateInput, StoreCreateOutp
     private readonly storeService: StoreService,
     private readonly emailService: EmailService,
   ) {
-    super(registry, "project");  // Service name prefix
+    super(registry, "project"); // Service name prefix
   }
 
   @Workflow("storeCreate")
@@ -51,7 +71,7 @@ class StoreCreateWorkflow extends BaseWorkflow<StoreCreateInput, StoreCreateOutp
 
   @WorkflowStep()
   private async generateStoreId(): Promise<string> {
-    return uuidv7();  // Durable: same ID on replay
+    return uuidv7(); // Durable: same ID on replay
   }
 
   @WorkflowStep({ retry: { maxAttempts: 3, intervalSeconds: 1, backoffRate: 2 } })
@@ -59,7 +79,7 @@ class StoreCreateWorkflow extends BaseWorkflow<StoreCreateInput, StoreCreateOutp
     await this.storeService.create(storeId, input);
   }
 
-  @SideEffectStep({ retriesAllowed: false })  // Fire-and-forget external effect
+  @SideEffectStep({ retriesAllowed: false }) // Fire-and-forget external effect
   private async sendWelcomeEmail(email: string): Promise<void> {
     await this.emailService.send(email, "welcome");
   }
@@ -111,21 +131,21 @@ Marks a method as a durable step within workflow:
 
 ```typescript
 interface WorkflowStepOptions {
-  name?: string;              // Step name for logging
-  timeoutMs?: number;         // Execution timeout (default: 30000)
-  retry?: RetryPolicy;        // Retry configuration
-  retriesAllowed?: boolean;   // Enable/disable retries (default: true)
+  name?: string; // Step name for logging
+  timeoutMs?: number; // Execution timeout (default: 30000)
+  retry?: RetryPolicy; // Retry configuration
+  retriesAllowed?: boolean; // Enable/disable retries (default: true)
 }
 ```
 
 ### Step Behavior
 
-| Behavior | Description |
-|----------|-------------|
-| **Timeout** | Non-retryable `StepTimeoutError` thrown on timeout |
+| Behavior             | Description                                           |
+| -------------------- | ----------------------------------------------------- |
+| **Timeout**          | Non-retryable `StepTimeoutError` thrown on timeout    |
 | **Retryable errors** | Network/transient errors trigger DBOS automatic retry |
-| **Fatal errors** | Business logic errors skip retry, fail immediately |
-| **Durable** | Results persisted, skipped on workflow replay |
+| **Fatal errors**     | Business logic errors skip retry, fail immediately    |
+| **Durable**          | Results persisted, skipped on workflow replay         |
 
 ### Retry Configuration
 
@@ -319,7 +339,7 @@ export class FileProcessWorkflow extends BaseWorkflow<FileProcessInput, FileProc
   }
 
   @SideEffectStep({
-    retry: { maxAttempts: 3, intervalSeconds: 5, backoffRate: 2 }
+    retry: { maxAttempts: 3, intervalSeconds: 5, backoffRate: 2 },
   })
   private async generateThumbnail(file: Buffer, fileId: string): Promise<string> {
     const thumbnail = await this.processor.generateThumbnail(file);

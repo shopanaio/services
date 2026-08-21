@@ -11,10 +11,8 @@ import {
   type DurableStepResult,
 } from "@shopana/shared-kernel";
 import type { ProductUpdatedReason } from "@shopana/events";
-import { and, eq, isNull } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
-import { product } from "../repositories/models/index.js";
 import type {
   ProductUpdateWorkflowInput,
   ProductUpdateWorkflowResult,
@@ -66,8 +64,10 @@ import {
 import type { BackRefNotifyInput } from "../sagas/index.js";
 import { OptionsSyncScript } from "../scripts/option/OptionsSyncScript.js";
 import { FeaturesSyncScript } from "../scripts/feature/FeaturesSyncScript.js";
-import { validateOptionSyncParams } from "../scripts/option/validation/index.js";
-import { validateFeatureSyncParams } from "../scripts/feature/validation/index.js";
+import {
+  ProductUpdateReadScript,
+  type ProductUpdateReadQuery,
+} from "../scripts/product/ProductUpdateReadScript.js";
 import {
   ProductComponentOperationScript,
   type ProductComponentWorkflowOperation,
@@ -125,6 +125,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
+  private read<T>(query: ProductUpdateReadQuery, context: RunScriptContext): Promise<T> {
+    return this.kernel.runScript(ProductUpdateReadScript, query, context) as Promise<T>;
+  }
+
   @Workflow("productUpdate")
   @Policy<ProductUpdateWorkflowInput>({
     resource: "store.data",
@@ -137,7 +141,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     const changes: ProductChanges = { productId: input.productId };
     const hasVariantOperations = input.operations.some((op) => isVariantOperation(op));
 
-    const productExists = await this.stepProductExists(input.productId, input.context.storeId);
+    const scriptCtx = this.toScriptContext(input.context);
+    const productExists = await this.stepProductExists(input.productId, scriptCtx);
     if (!productExists) {
       return {
         product: null,
@@ -146,7 +151,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       };
     }
 
-    const definitionValidation = await this.stepPreValidateDefinitions(input);
+    const definitionValidation = await this.stepPreValidateDefinitions(input, scriptCtx);
     if (!definitionValidation.valid) {
       return {
         product: null,
@@ -161,7 +166,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (hasVariantOperations) {
-      const validation = await this.stepPreValidateVariantBatch(input);
+      const validation = await this.stepPreValidateVariantBatch(input, scriptCtx);
       if (!validation.valid) {
         return {
           product: null,
@@ -181,7 +186,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }> = [];
 
     // Run operations, collect changes (options handled separately)
-    const scriptCtx = this.toScriptContext(input.context);
     for (let i = 0; i < input.operations.length; i++) {
       const op = input.operations[i];
       if (op.type === "productUpdate") {
@@ -280,6 +284,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   @WorkflowStep()
   private async stepPreValidateDefinitions(
     input: ProductUpdateWorkflowInput,
+    context: RunScriptContext,
   ): Promise<VariantBatchValidationResult> {
     const errorsByOperationIndex: Record<number, UserError[]> = {};
     const userErrors: UserError[] = [];
@@ -287,14 +292,23 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     for (const [index, op] of input.operations.entries()) {
       let errors: UserError[] = [];
       if (op.type === "productOptionsSync") {
-        const validation = await validateOptionSyncParams(this.kernel.repository, op.params);
+        const validation = await this.read<VariantBatchValidationResult>(
+          { type: "optionSyncValidation", params: op.params },
+          context,
+        );
         errors = prefixUserErrors(validation.userErrors, op);
       } else if (op.type === "productFeaturesSync") {
-        const validation = await validateFeatureSyncParams(this.kernel.repository, op.params);
+        const validation = await this.read<VariantBatchValidationResult>(
+          { type: "featureSyncValidation", params: op.params },
+          context,
+        );
         errors = prefixUserErrors(validation.userErrors, op);
       } else if (op.type === "productUpdate") {
         if (op.params.vendorId !== undefined && op.params.vendorId !== null) {
-          const vendor = await this.kernel.repository.vendor.findById(op.params.vendorId);
+          const vendor = await this.read<{ id: string } | null>(
+            { type: "vendor", vendorId: op.params.vendorId },
+            context,
+          );
           if (!vendor) {
             errors.push({
               message: "Vendor not found",
@@ -305,8 +319,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         }
 
         if (op.params.handle !== undefined) {
-          const productWithHandle = await this.kernel.repository.product.findByHandle(
-            op.params.handle,
+          const productWithHandle = await this.read<{ id: string } | null>(
+            { type: "productByHandle", handle: op.params.handle },
+            context,
           );
           if (productWithHandle && productWithHandle.id !== op.params.id) {
             errors.push({
@@ -319,14 +334,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
 
         if (op.params.status === "published") {
           const effective = (
-            await this.kernel.repository.comparisonRead.getEffectiveProfilesByProductIds([
-              op.params.id,
-            ])
+            await this.read<Array<{ profileId: string | null }>>(
+              { type: "effectiveProfiles", productId: op.params.id },
+              context,
+            )
           )[0];
-          const configured =
-            await this.kernel.repository.comparisonRead.productConfigurationProfileIds(
-              op.params.id,
-            );
+          const configured = await this.read<string[]>(
+            { type: "configurationProfileIds", productId: op.params.id },
+            context,
+          );
           if (configured.some((profileId) => profileId !== effective?.profileId)) {
             errors.push({
               message: "Product comparison configuration does not match its effective profile",
@@ -351,20 +367,14 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async stepProductExists(productId: string, storeId: string): Promise<boolean> {
-    const rows = await this.kernel.db
-      .select({ id: product.id })
-      .from(product)
-      .where(
-        and(eq(product.storeId, storeId), eq(product.id, productId), isNull(product.deletedAt)),
-      )
-      .limit(1);
-    return rows.length > 0;
+  private async stepProductExists(productId: string, context: RunScriptContext): Promise<boolean> {
+    return this.read<boolean>({ type: "productExists", productId }, context);
   }
 
   @WorkflowStep()
   private async stepPreValidateVariantBatch(
     input: ProductUpdateWorkflowInput,
+    context: RunScriptContext,
   ): Promise<VariantBatchValidationResult> {
     const errorsByOperationIndex: Record<number, UserError[]> = {};
     const userErrors: UserError[] = [];
@@ -385,12 +395,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       addError(firstVariantIndex, error);
     };
 
-    const currentProduct = await this.kernel.db
-      .select({ id: product.id })
-      .from(product)
-      .where(eq(product.id, input.productId))
-      .limit(1)
-      .then((rows) => rows[0] ?? null);
+    const currentProduct = await this.read<boolean>(
+      { type: "productExists", productId: input.productId },
+      context,
+    );
 
     if (!currentProduct) {
       addRequestError({
@@ -405,8 +413,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       };
     }
 
-    const allProductVariants = await this.kernel.repository.variant.findByProductId(
-      input.productId,
+    const allProductVariants = await this.read<Array<{ id: string }>>(
+      { type: "variants", productId: input.productId },
+      context,
     );
     const variantById = new Map(allProductVariants.map((v) => [v.id, v]));
     const optionsSyncOperation = input.operations.find(
@@ -415,7 +424,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     );
     const storedProductOptions = optionsSyncOperation
       ? undefined
-      : await this.kernel.repository.option.findByProductId(input.productId);
+      : await this.read<Array<{ id: string }>>(
+          { type: "options", productId: input.productId },
+          context,
+        );
     const productOptions: Array<{ id: string }> = optionsSyncOperation
       ? optionsSyncOperation.params.options.map((option, index) => ({
           id: option.id ?? `pending-option:${index}`,
@@ -435,7 +447,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             ];
           }),
         )
-      : await this.kernel.repository.option.findValuesByOptionIds(productOptionIds);
+      : await this.read<Map<string, Array<{ id: string }>>>(
+          { type: "optionValues", optionIds: productOptionIds },
+          context,
+        );
     const valueToOptionId = new Map<string, string>();
     for (const [optionId, values] of valuesByOption) {
       for (const value of values) {
@@ -459,10 +474,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         ? [op.params.variantId]
         : [],
     );
-    const existingInventoryItems =
-      await this.kernel.repository.inventoryItem.findActiveByVariantIds(
-        inventoryItemRequiredVariantIds,
-      );
+    const existingInventoryItems = await this.read<Array<{ variantId: string }>>(
+      { type: "inventoryItems", variantIds: inventoryItemRequiredVariantIds },
+      context,
+    );
     const inventoryItemVariantIds = new Set(existingInventoryItems.map((item) => item.variantId));
     for (const { op, index } of variantOps) {
       if (
@@ -480,8 +495,11 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    const storedCurrentLinksMap = await this.kernel.repository.option.findVariantLinks(
-      allProductVariants.map((variant) => variant.id),
+    const storedCurrentLinksMap = await this.read<
+      Map<string, Array<{ optionId: string; optionValueId: string | null }>>
+    >(
+      { type: "variantLinks", variantIds: allProductVariants.map((variant) => variant.id) },
+      context,
     );
     const currentLinksMap = optionsSyncOperation
       ? new Map(
@@ -597,9 +615,13 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           params.inventory.warehouseId &&
           params.inventory.onHand !== undefined
         ) {
-          const existingStock = await this.kernel.repository.stock.findByVariantWarehouse(
-            params.variantId,
-            params.inventory.warehouseId,
+          const existingStock = await this.read<{ reservedQty: number } | null>(
+            {
+              type: "stock",
+              variantId: params.variantId,
+              warehouseId: params.inventory.warehouseId,
+            },
+            context,
           );
           const reservedQuantity = existingStock?.reservedQty ?? 0;
           const unavailable = params.inventory.unavailable ?? 0;
@@ -653,7 +675,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (warehouseIds.size > 0) {
-      const warehouses = await this.kernel.repository.warehouse.getByIds([...warehouseIds]);
+      const warehouses = await this.read<Array<{ id: string }>>(
+        { type: "warehouses", warehouseIds: [...warehouseIds] },
+        context,
+      );
       const existingWarehouseIds = new Set(warehouses.map((warehouse) => warehouse.id));
       for (const { op, index } of variantOps) {
         if (
@@ -672,9 +697,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     if (mediaFileIds.size > 0) {
-      const registeredMedia = await this.kernel.repository.media.getProductMediaByFileIds(
-        input.productId,
-        [...mediaFileIds],
+      const registeredMedia = await this.read<Array<{ fileId: string }>>(
+        { type: "productMedia", productId: input.productId, fileIds: [...mediaFileIds] },
+        context,
       );
       const registeredFileIds = new Set(registeredMedia.map((media) => media.fileId));
       for (const { op, index } of variantOps) {
@@ -693,7 +718,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     for (const [sku, index] of requestedSkus) {
-      const existingItem = await this.kernel.repository.inventoryItem.findBySku(sku);
+      const existingItem = await this.read<{ variantId: string } | null>(
+        { type: "inventoryItemBySku", sku },
+        context,
+      );
       if (!existingItem) continue;
       const op = input.operations[index];
       const allowedVariantId = op.type === "variantUpdate" ? op.params.variantId : undefined;
