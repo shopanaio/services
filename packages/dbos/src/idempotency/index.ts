@@ -73,10 +73,44 @@ export interface ContentIdempotencyContext {
 }
 
 /**
+ * Content-derived idempotency scoped to a request-time window.
+ * Used when equal mutations should collapse briefly but remain executable later.
+ */
+export interface TimeWindowIdempotencyContext {
+  source: "time-window";
+  /** Tenant/organization ID for key isolation (optional) */
+  organizationId?: string;
+  /** Resource identifier (e.g., productId) */
+  resourceId: string;
+  /** Operation name */
+  operation: string;
+  /** Raw semantic content to hash */
+  content?: unknown;
+  /** Pre-computed SHA256 hash of canonicalized content */
+  contentHash?: string;
+  /** Stable request timestamp assigned at the transport boundary, in Unix milliseconds */
+  requestTimestamp: number;
+  /** Size of the deduplication window, in milliseconds */
+  windowMs: number;
+}
+
+export class InvalidTimeWindowIdempotencyContextError extends Error {
+  readonly code = "INVALID_TIME_WINDOW_IDEMPOTENCY_CONTEXT";
+
+  constructor(message: string) {
+    super(`Invalid time-window idempotency context: ${message}`);
+    this.name = "InvalidTimeWindowIdempotencyContextError";
+  }
+}
+
+/**
  * Union type for all idempotency contexts.
  */
 export type IdempotencyContext =
-  ClientIdempotencyContext | WorkflowIdempotencyContext | ContentIdempotencyContext;
+  | ClientIdempotencyContext
+  | WorkflowIdempotencyContext
+  | ContentIdempotencyContext
+  | TimeWindowIdempotencyContext;
 
 // ============================================================================
 // HELPERS
@@ -128,5 +162,30 @@ export function buildIdempotencyKey(workflowName: string, ctx: IdempotencyContex
       const input = `v1:content:${tenantPrefix(ctx.organizationId)}${ctx.resourceId}:${ctx.operation}${contentSuffix}:${workflowName}`;
       return `content:${hash(input)}`;
     }
+
+    case "time-window": {
+      assertTimeWindowContext(ctx);
+      const contentHashValue =
+        ctx.contentHash ?? (ctx.content !== undefined ? hashContent(ctx.content) : undefined);
+      if (!contentHashValue) {
+        throw new InvalidTimeWindowIdempotencyContextError("content or contentHash is required");
+      }
+      const window = Math.floor(ctx.requestTimestamp / ctx.windowMs);
+      const input = `v1:time-window:${tenantPrefix(ctx.organizationId)}${ctx.resourceId}:${ctx.operation}:${contentHashValue}:${ctx.windowMs}:${window}:${workflowName}`;
+      return `time-window:${hash(input)}`;
+    }
+  }
+}
+
+function assertTimeWindowContext(ctx: TimeWindowIdempotencyContext): void {
+  if (!Number.isSafeInteger(ctx.requestTimestamp) || ctx.requestTimestamp < 0) {
+    throw new InvalidTimeWindowIdempotencyContextError(
+      "requestTimestamp must be a non-negative safe integer Unix timestamp in milliseconds",
+    );
+  }
+  if (!Number.isSafeInteger(ctx.windowMs) || ctx.windowMs <= 0) {
+    throw new InvalidTimeWindowIdempotencyContextError(
+      "windowMs must be a positive safe integer number of milliseconds",
+    );
   }
 }

@@ -24,7 +24,7 @@ export interface WorkflowMetadata {
   /** Workflow name for registration */
   name: string;
   /** Idempotency strategy hint */
-  idempotencyStrategy?: "client" | "workflow" | "content";
+  idempotencyStrategy?: "client" | "workflow" | "content" | "time-window";
 }
 
 export type WorkflowStepMetadata = StepOptions;

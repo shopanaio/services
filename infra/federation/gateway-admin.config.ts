@@ -1,5 +1,5 @@
 import { defineConfig } from "@graphql-hive/gateway";
-import { ADMIN_CONTEXT_HEADER } from "@shopana/shared-context";
+import { ADMIN_CONTEXT_HEADER, REQUEST_TIMESTAMP_HEADER } from "@shopana/shared-context";
 import { createAdminContextPlugin } from "./plugins/admin-context/index.js";
 
 const adminContext = createAdminContextPlugin();
@@ -13,6 +13,7 @@ export const gatewayConfig = defineConfig({
       return {
         authorization: request.headers.get("authorization"),
         [ADMIN_CONTEXT_HEADER]: adminContext.contextFor(request),
+        [REQUEST_TIMESTAMP_HEADER]: adminContext.requestTimestampFor(request),
         "x-store-name": request.headers.get("x-store-name"),
         "user-agent": request.headers.get("user-agent"),
         "x-request-id": request.headers.get("x-request-id"),

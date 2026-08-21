@@ -7,6 +7,7 @@ export type {
   GetCurrentUserResult,
   GetCurrentStoreResult,
 } from "./types.js";
+export { REQUEST_TIMESTAMP_HEADER, resolveRequestTimestamp } from "./requestTimestamp.js";
 
 // Admin context middleware (for Inventory, Media, etc.)
 export {

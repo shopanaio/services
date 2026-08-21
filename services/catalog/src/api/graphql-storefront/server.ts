@@ -3,7 +3,11 @@ import { unwrapResolverError } from "@apollo/server/errors";
 import { ApolloServerPluginInlineTraceDisabled } from "@apollo/server/plugin/disabled";
 import { buildSubgraphSchema } from "@apollo/subgraph";
 import fastifyApollo, { fastifyApolloDrainPlugin } from "@as-integrations/fastify";
-import { requireStorefrontPermission } from "@shopana/shared-context";
+import {
+  REQUEST_TIMESTAMP_HEADER,
+  requireStorefrontPermission,
+  resolveRequestTimestamp,
+} from "@shopana/shared-context";
 import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
 import { ResolverError } from "@shopana/type-resolver";
 import fastify from "fastify";
@@ -125,6 +129,7 @@ export async function startStorefrontServer(serverConfig: StorefrontServerConfig
         if (isIntrospection) {
           return new ServiceContext({
             requestId: request.id as string,
+            requestTimestamp: resolveRequestTimestamp(request.headers[REQUEST_TIMESTAMP_HEADER]),
             kernel,
             loaders: null as never,
           });
@@ -139,6 +144,7 @@ export async function startStorefrontServer(serverConfig: StorefrontServerConfig
 
         const ctx = new ServiceContext({
           requestId: request.id as string,
+          requestTimestamp: resolveRequestTimestamp(request.headers[REQUEST_TIMESTAMP_HEADER]),
           kernel,
           loaders: new Loader(kernel.repository),
           store: request.store,

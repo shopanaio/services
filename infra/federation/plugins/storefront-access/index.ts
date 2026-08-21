@@ -45,17 +45,20 @@ export function createStorefrontAccessPlugin() {
   );
   const generatedRequestIds = new WeakMap<Request, string>();
   const contexts = new WeakMap<Request, string>();
+  const requestTimestamps = new WeakMap<Request, number>();
   const requestId: RequestIdConfig = {
     headerName: STOREFRONT_REQUEST_ID_HEADER,
     generateRequestId({ request, fetchAPI }) {
       const value = fetchAPI.crypto.randomUUID();
       generatedRequestIds.set(request, value);
+      requestTimestamps.set(request, Date.now());
       return value;
     },
   };
   const plugin: GatewayPlugin = {
     async onRequest({ request, fetchAPI, endResponse }) {
       if (new URL(request.url).pathname === "/health") return;
+      if (!requestTimestamps.has(request)) requestTimestamps.set(request, Date.now());
       try {
         contexts.set(request, await resolveRequest(request, generatedRequestIds.get(request)));
       } catch (error) {
@@ -90,6 +93,7 @@ export function createStorefrontAccessPlugin() {
         );
         const requestId = parseRequestId(request) ?? randomUUID();
         request.headers.set(STOREFRONT_REQUEST_ID_HEADER, requestId);
+        requestTimestamps.set(request, Date.now());
         contexts.set(request, await resolveRequest(request, requestId));
         extendContext({ request });
       } catch (error) {
@@ -152,6 +156,10 @@ export function createStorefrontAccessPlugin() {
     requestId,
     contextFor(request: Request): string | undefined {
       return contexts.get(request);
+    },
+    requestTimestampFor(request: Request): string | undefined {
+      const timestamp = requestTimestamps.get(request);
+      return timestamp === undefined ? undefined : String(timestamp);
     },
   };
 }

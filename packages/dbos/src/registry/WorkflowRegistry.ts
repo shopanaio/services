@@ -3,14 +3,16 @@
  * @description Central registry for workflow instances with DBOS execution
  */
 
-import { Injectable, Logger } from "@nestjs/common";
+import { Inject, Injectable, Logger, type OnModuleDestroy } from "@nestjs/common";
 import { DBOS, ConfiguredInstance } from "@dbos-inc/dbos-sdk";
+import postgres from "postgres";
 import type {
   WorkflowDuplicationPolicy,
   WorkflowHandle,
   WorkflowExecutionContext,
   WorkflowQueueEnqueueOptions,
   WorkflowStartOptions,
+  WorkflowModuleConfig,
 } from "../core/types.js";
 import type { WorkflowDescriptor, WorkflowRegistrar } from "../workflow/BaseWorkflow.js";
 import {
@@ -18,6 +20,7 @@ import {
   IdempotencyConflictError,
   type IdempotencyContext,
 } from "../idempotency/index.js";
+import { WORKFLOW_CONFIG } from "./tokens.js";
 
 interface DBOSStartWorkflowParams {
   workflowID: string;
@@ -36,9 +39,20 @@ const isWorkflowDescriptor = (value: unknown): value is WorkflowDescriptor => {
 };
 
 @Injectable()
-export class WorkflowRegistry implements WorkflowRegistrar {
+export class WorkflowRegistry implements WorkflowRegistrar, OnModuleDestroy {
   private readonly logger = new Logger(WorkflowRegistry.name);
   private readonly workflows = new Map<string, WorkflowDescriptor>();
+  private readonly lockDatabase: ReturnType<typeof postgres>;
+
+  constructor(@Inject(WORKFLOW_CONFIG) config: WorkflowModuleConfig) {
+    this.lockDatabase = postgres(config.databaseUrl, {
+      onnotice: () => undefined,
+    });
+  }
+
+  async onModuleDestroy(): Promise<void> {
+    await this.lockDatabase.end({ timeout: 5 });
+  }
 
   /**
    * Register workflow with metadata.
@@ -128,10 +142,26 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     options?: WorkflowStartOptions,
     context?: WorkflowExecutionContext,
   ): Promise<WorkflowHandle<TResult>> {
+    if (idempotencyCtx.source === "time-window" && options?.workflowId === undefined) {
+      return this.withTimeWindowLock(qualifiedName, idempotencyCtx, async () => {
+        const workflowId = await resolveIdempotentWorkflowId(qualifiedName, idempotencyCtx);
+        return this.start<TParams, TResult>(
+          qualifiedName,
+          params,
+          idempotencyCtx,
+          { ...options, workflowId },
+          context,
+        );
+      });
+    }
+
     const descriptor = this.getDescriptor(qualifiedName);
 
-    const workflowID = options?.workflowId ?? buildIdempotencyKey(qualifiedName, idempotencyCtx);
+    const workflowID =
+      options?.workflowId ?? (await resolveIdempotentWorkflowId(qualifiedName, idempotencyCtx));
     const requestHash = idempotencyCtx.source === "client" ? idempotencyCtx.requestHash : undefined;
+    const requestTimestamp =
+      idempotencyCtx.source === "time-window" ? idempotencyCtx.requestTimestamp : undefined;
     if (requestHash) {
       const existing = await DBOS.getWorkflowStatus(workflowID);
       if (existing) {
@@ -140,11 +170,14 @@ export class WorkflowRegistry implements WorkflowRegistrar {
     }
     const startParams = mapWorkflowStartOptions(workflowID, {
       ...options,
-      ...(requestHash
+      ...(requestHash || requestTimestamp !== undefined
         ? {
             attributes: {
               ...options?.attributes,
-              shopanaRequestHash: requestHash,
+              ...(requestHash ? { shopanaRequestHash: requestHash } : {}),
+              ...(requestTimestamp !== undefined
+                ? { shopanaRequestTimestamp: requestTimestamp }
+                : {}),
             },
           }
         : {}),
@@ -206,6 +239,57 @@ export class WorkflowRegistry implements WorkflowRegistrar {
       getStatus: () => handle.getStatus(),
     };
   }
+
+  private async withTimeWindowLock<TResult>(
+    workflowName: string,
+    context: Extract<IdempotencyContext, { source: "time-window" }>,
+    work: () => Promise<TResult>,
+  ): Promise<TResult> {
+    const lockIdentity = buildIdempotencyKey(workflowName, {
+      ...context,
+      requestTimestamp: 0,
+    });
+
+    return this.lockDatabase.begin(async (transaction) => {
+      // Keep the lock until DBOS has durably accepted the selected workflow ID.
+      // Releasing it after status lookup would reintroduce a bucket-boundary TOCTOU race.
+      await transaction`
+        SELECT pg_advisory_xact_lock(hashtextextended(${lockIdentity}, 0))
+      `;
+      return work();
+    }) as Promise<TResult>;
+  }
+}
+
+async function resolveIdempotentWorkflowId(
+  workflowName: string,
+  context: IdempotencyContext,
+): Promise<string> {
+  const workflowId = buildIdempotencyKey(workflowName, context);
+  if (context.source !== "time-window" || context.requestTimestamp < context.windowMs) {
+    return workflowId;
+  }
+
+  const current = await DBOS.getWorkflowStatus(workflowId);
+  if (current) {
+    return workflowId;
+  }
+
+  const previousWorkflowId = buildIdempotencyKey(workflowName, {
+    ...context,
+    requestTimestamp: context.requestTimestamp - context.windowMs,
+  });
+  const previous = await DBOS.getWorkflowStatus(previousWorkflowId);
+  const previousTimestamp = previous?.attributes?.shopanaRequestTimestamp;
+  if (
+    typeof previousTimestamp === "number" &&
+    context.requestTimestamp >= previousTimestamp &&
+    context.requestTimestamp - previousTimestamp < context.windowMs
+  ) {
+    return previousWorkflowId;
+  }
+
+  return workflowId;
 }
 
 function assertMatchingRequestHash(

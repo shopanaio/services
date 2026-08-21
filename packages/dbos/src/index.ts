@@ -101,6 +101,8 @@ export {
   type ClientIdempotencyContext,
   type WorkflowIdempotencyContext,
   type ContentIdempotencyContext,
+  type TimeWindowIdempotencyContext,
+  InvalidTimeWindowIdempotencyContextError,
 } from "./idempotency/index.js";
 
 // ============================================================================

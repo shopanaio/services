@@ -19,7 +19,7 @@ export interface WorkflowDescriptor {
   /** Workflow metadata from @Workflow decorator */
   metadata: {
     name: string;
-    idempotencyStrategy?: "client" | "workflow" | "content";
+    idempotencyStrategy?: "client" | "workflow" | "content" | "time-window";
   };
 }
 

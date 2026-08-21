@@ -861,14 +861,13 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       "catalog.productUpdate",
       workflowInput,
       {
-        source: "content",
+        source: "time-window",
         organizationId: this.$ctx.store.organizationId,
         resourceId: decodedProductId,
         operation: "productUpdate",
-        content: {
-          requestId: this.$ctx.requestId,
-          operations: workflowInput.operations,
-        },
+        content: workflowInput.operations,
+        requestTimestamp: this.$ctx.requestTimestamp,
+        windowMs: 5_000,
       },
       { adminContext: this.$ctx.adminContext },
     )) as ProductUpdateWorkflowResult;

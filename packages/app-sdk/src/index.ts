@@ -228,6 +228,16 @@ export type AppIdempotencyContext =
       readonly operation: string;
       readonly content?: unknown;
       readonly contentHash?: string;
+    }
+  | {
+      readonly source: "time-window";
+      readonly organizationId?: string;
+      readonly resourceId: string;
+      readonly operation: string;
+      readonly content?: unknown;
+      readonly contentHash?: string;
+      readonly requestTimestamp: number;
+      readonly windowMs: number;
     };
 
 export interface AppWorkflowStartOptions {

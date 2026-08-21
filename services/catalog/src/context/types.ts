@@ -19,6 +19,8 @@ export interface ServiceGraphqlError {
  */
 export interface ServiceContextOptions {
   requestId: string;
+  /** Stable timestamp assigned once at the HTTP gateway/Fastify boundary. */
+  requestTimestamp?: number;
   kernel: Kernel;
   loaders: Loader;
   /** Store slug from X-Store-Name header */
@@ -46,6 +48,8 @@ export interface ServiceContextOptions {
 export class ServiceContext {
   /** Unique request identifier */
   readonly requestId: string;
+  /** Stable Unix timestamp in milliseconds for this request. */
+  readonly requestTimestamp: number;
   /** Kernel for business logic */
   readonly kernel: Kernel;
   /** DataLoaders for efficient batched data fetching */
@@ -67,6 +71,7 @@ export class ServiceContext {
 
   constructor(options: ServiceContextOptions) {
     this.requestId = options.requestId;
+    this.requestTimestamp = options.requestTimestamp ?? Date.now();
     this.kernel = options.kernel;
     this.loaders = options.loaders;
     this.locale = options.locale;

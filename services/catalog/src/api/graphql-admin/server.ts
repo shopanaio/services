@@ -8,6 +8,7 @@ import { gql } from "graphql-tag";
 import { dirname, join } from "path";
 import { fileURLToPath } from "url";
 import { getServiceConfig, isDevelopment } from "@shopana/shared-service-config";
+import { REQUEST_TIMESTAMP_HEADER, resolveRequestTimestamp } from "@shopana/shared-context";
 import { setContext, ServiceContext } from "../../context/index.js";
 
 const { global } = getServiceConfig("catalog");
@@ -117,6 +118,7 @@ export async function startServer(serverConfig: ServerConfig) {
         if (isIntrospection) {
           return new ServiceContext({
             requestId: request.id as string,
+            requestTimestamp: resolveRequestTimestamp(request.headers[REQUEST_TIMESTAMP_HEADER]),
             kernel: kernel as Kernel,
             loaders: null as any,
           });
@@ -127,6 +129,7 @@ export async function startServer(serverConfig: ServerConfig) {
 
         const ctx = new ServiceContext({
           requestId: request.id as string,
+          requestTimestamp: resolveRequestTimestamp(request.headers[REQUEST_TIMESTAMP_HEADER]),
           kernel: kernel!,
           store: request.store,
           user: request.user,

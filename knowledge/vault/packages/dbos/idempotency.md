@@ -8,21 +8,25 @@ related:
   - dbos/index
   - dbos/registry
 ---
+
 # Idempotency
 
 Deterministic workflow IDs prevent duplicate execution.
 
 ## Overview
 
-Idempotent execution ensures that starting the same workflow multiple times with the same idempotency context results in only one execution. DBOS uses the workflow ID as the deduplication key.
+Idempotent execution ensures that starting the same workflow multiple times with the same
+idempotency context results in only one execution. DBOS uses the workflow ID as the deduplication
+key.
 
-`@shopana/dbos` provides three idempotency strategies:
+`@shopana/dbos` provides four idempotency strategies:
 
-| Strategy | Use Case | Key Components |
-|----------|----------|----------------|
-| `client` | External API requests | Client-provided key, tenant, API key |
-| `workflow` | Service-initiated workflows | Parent workflow ID, step ID |
-| `content` | Content-based deduplication | Resource ID, operation, content hash |
+| Strategy      | Use Case                          | Key Components                                            |
+| ------------- | --------------------------------- | --------------------------------------------------------- |
+| `client`      | External API requests             | Client-provided key, tenant, API key                      |
+| `workflow`    | Service-initiated workflows       | Parent workflow ID, step ID                               |
+| `content`     | Content-based deduplication       | Resource ID, operation, content hash                      |
+| `time-window` | Short-lived content deduplication | Resource ID, operation, content hash, request-time window |
 
 ## Client Idempotency
 
@@ -31,9 +35,9 @@ For external API requests with `Idempotency-Key` header:
 ```typescript
 const handle = await registry.start("orders.createOrder", input, {
   source: "client",
-  clientKey: req.headers["idempotency-key"],  // Client-provided key
-  tenantId: ctx.organizationId,                // Tenant isolation
-  apiKeyId: ctx.apiKey.id,                     // API key isolation
+  clientKey: req.headers["idempotency-key"], // Client-provided key
+  tenantId: ctx.organizationId, // Tenant isolation
+  apiKeyId: ctx.apiKey.id, // API key isolation
 });
 ```
 
@@ -82,9 +86,9 @@ async createOrder(
 ```typescript
 interface ClientIdempotencyContext {
   source: "client";
-  clientKey: string;      // Client-provided idempotency key
-  tenantId: string;       // Tenant/organization ID
-  apiKeyId: string;       // API key ID
+  clientKey: string; // Client-provided idempotency key
+  tenantId: string; // Tenant/organization ID
+  apiKeyId: string; // API key ID
 }
 ```
 
@@ -95,10 +99,10 @@ For service-initiated workflows (child workflows, event handlers):
 ```typescript
 const handle = await registry.start("inventory.syncStock", input, {
   source: "workflow",
-  workflowId: parentWorkflowId,    // Parent workflow ID
-  stepId: "syncInventory",          // Step name
-  callId: itemId,                   // Unique for fan-out
-  tenantId: ctx.organizationId,     // Optional tenant isolation
+  workflowId: parentWorkflowId, // Parent workflow ID
+  stepId: "syncInventory", // Step name
+  callId: itemId, // Unique for fan-out
+  tenantId: ctx.organizationId, // Optional tenant isolation
 });
 ```
 
@@ -144,10 +148,10 @@ async run(input: OrderInput): Promise<OrderResult> {
 ```typescript
 interface WorkflowIdempotencyContext {
   source: "workflow";
-  workflowId: string;     // Parent workflow ID
-  stepId: string;         // Step identifier
-  callId?: string;        // Call-specific ID (for fan-out)
-  tenantId?: string;      // Optional tenant isolation
+  workflowId: string; // Parent workflow ID
+  stepId: string; // Step identifier
+  callId?: string; // Call-specific ID (for fan-out)
+  tenantId?: string; // Optional tenant isolation
 }
 ```
 
@@ -158,10 +162,10 @@ For idempotent updates (same content = same operation):
 ```typescript
 const handle = await registry.start("catalog.updateProduct", input, {
   source: "content",
-  resourceId: input.productId,     // Resource being updated
-  operation: "updateProduct",      // Operation name
-  content: input,                  // Content to hash
-  tenantId: ctx.organizationId,    // Optional tenant isolation
+  resourceId: input.productId, // Resource being updated
+  operation: "updateProduct", // Operation name
+  content: input, // Content to hash
+  tenantId: ctx.organizationId, // Optional tenant isolation
 });
 ```
 
@@ -207,11 +211,44 @@ async productUpdate(
 ```typescript
 interface ContentIdempotencyContext {
   source: "content";
-  resourceId: string;         // Resource identifier
-  operation: string;          // Operation name
-  content: unknown;           // Content to hash
-  tenantId?: string;          // Optional tenant isolation
+  resourceId: string; // Resource identifier
+  operation: string; // Operation name
+  content: unknown; // Content to hash
+  tenantId?: string; // Optional tenant isolation
 }
+```
+
+## Time-Window Idempotency
+
+Use `time-window` when equal mutation content should reuse one workflow briefly, while the same
+content must be executable again later. The transport boundary assigns `requestTimestamp` once;
+callers must not use `Date.now()` inside resolver or workflow code.
+
+```typescript
+await registry.run("catalog.productUpdate", input, {
+  source: "time-window",
+  resourceId: input.productId,
+  operation: "productUpdate",
+  content: input.operations,
+  requestTimestamp: ctx.requestTimestamp,
+  windowMs: 5_000,
+  organizationId: ctx.organizationId,
+});
+```
+
+The timestamp is divided into `windowMs` buckets for deterministic IDs. The registry serializes
+time-window resolution and durable workflow start with a PostgreSQL transaction-scoped advisory lock
+derived from the semantic content identity without the bucket. At a bucket boundary it checks the
+preceding bucket's recorded request timestamp while holding that same lock, so equal content less
+than `windowMs` apart cannot race into two workflows. A completed workflow returns its stored
+result; a call made while it is running waits on that same workflow handle and does not execute a
+duplicate workflow. Invalid timestamps, window sizes, or missing content fail with
+`INVALID_TIME_WINDOW_IDEMPOTENCY_CONTEXT` and a field-specific message.
+
+Generated ID format:
+
+```
+time-window:{sha256(v1:time-window:tenantId:resourceId:operation:contentHash:windowMs:window:workflowName)}
 ```
 
 ## Hash Content Helper
@@ -232,6 +269,7 @@ const contentHash = hashContent({
 ### Canonicalization
 
 Content is canonicalized before hashing:
+
 - Objects keys sorted alphabetically
 - Undefined values removed
 - Consistent JSON serialization
@@ -252,20 +290,22 @@ hashContent({ a: 2 });
 type IdempotencyContext =
   | ClientIdempotencyContext
   | WorkflowIdempotencyContext
-  | ContentIdempotencyContext;
+  | ContentIdempotencyContext
+  | TimeWindowIdempotencyContext;
 ```
 
 ## Choosing a Strategy
 
-| Scenario | Strategy | Reason |
-|----------|----------|--------|
-| REST API with Idempotency-Key | `client` | Client controls deduplication |
-| GraphQL mutation | `client` | Use request ID or custom header |
-| Child workflow | `workflow` | Parent provides context |
-| Fan-out processing | `workflow` | Use callId for each item |
-| Event handler | `content` | Event content determines uniqueness |
-| Data import | `content` | Same data = same operation |
-| Scheduled job | `content` | Job parameters determine uniqueness |
+| Scenario                      | Strategy      | Reason                                                             |
+| ----------------------------- | ------------- | ------------------------------------------------------------------ |
+| REST API with Idempotency-Key | `client`      | Client controls deduplication                                      |
+| GraphQL mutation              | `client`      | Use request ID or custom header                                    |
+| Child workflow                | `workflow`    | Parent provides context                                            |
+| Fan-out processing            | `workflow`    | Use callId for each item                                           |
+| Event handler                 | `content`     | Event content determines uniqueness                                |
+| Data import                   | `content`     | Same data = same operation                                         |
+| Scheduled job                 | `content`     | Job parameters determine uniqueness                                |
+| Debounced mutation            | `time-window` | Equal content reuses a workflow only inside a short request window |
 
 ## Tenant Isolation
 
@@ -342,7 +382,7 @@ await registry.start("catalog.sync", input, {
 await registry.start("orders.create", input, {
   source: "client",
   clientKey: key,
-  tenantId: ctx.organizationId,  // Always include
+  tenantId: ctx.organizationId, // Always include
   apiKeyId: ctx.apiKey.id,
 });
 ```
@@ -352,12 +392,16 @@ await registry.start("orders.create", input, {
 ```typescript
 // Processing multiple items
 for (const item of items) {
-  await registry.start("process.item", { item }, {
-    source: "workflow",
-    workflowId: parentId,
-    stepId: "processItem",
-    callId: item.id,  // Unique per item
-  });
+  await registry.start(
+    "process.item",
+    { item },
+    {
+      source: "workflow",
+      workflowId: parentId,
+      stepId: "processItem",
+      callId: item.id, // Unique per item
+    },
+  );
 }
 ```
 
