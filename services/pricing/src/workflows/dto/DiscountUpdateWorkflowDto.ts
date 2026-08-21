@@ -104,7 +104,7 @@ export interface DiscountUpdateOperationResult {
 }
 
 export interface DiscountUpdateWorkflowResult {
-  discount: { id: string; revision: number } | null;
+  discount: { id: string } | null;
   operationResults: DiscountUpdateOperationResult[];
   userErrors: UserError[];
 }

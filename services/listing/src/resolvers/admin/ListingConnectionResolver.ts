@@ -156,7 +156,6 @@ export class ListingConnectionResolver extends ListingType<
             universe: "admin",
             definitionKey: {
               kind: "persisted",
-              listingRevision: state.listingRevision,
               rulesHash: state.rulesHash,
             },
           })
@@ -177,7 +176,6 @@ export class ListingConnectionResolver extends ListingType<
       resolvedScope: {
         kind: "collection",
         collectionId,
-        listingRevision: state.listingRevision,
         rulesHash: state.rulesHash,
         productBitmap,
         membershipBitmap: evaluated?.membershipBitmap ?? productBitmap,

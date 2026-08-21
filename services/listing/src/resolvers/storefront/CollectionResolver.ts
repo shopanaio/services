@@ -15,7 +15,6 @@ interface CollectionProductsArgs {
 
 export interface CollectionResolverProps {
   id: string;
-  listingRevision: number;
 }
 
 export class CollectionResolver extends ListingType<CollectionResolverProps> {
@@ -27,7 +26,7 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
     const state = await this.$ctx.kernel.repository.collectionState.findStateWithVisibility(
       this.$props.id,
     );
-    if (!state || state.listingRevision !== this.$props.listingRevision) {
+    if (!state) {
       throw new GraphQLError("Collection index is not ready", {
         extensions: { code: "COLLECTION_INDEX_NOT_READY" },
       });
@@ -46,7 +45,6 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
             currency,
             definitionKey: {
               kind: "persisted",
-              listingRevision: state.listingRevision,
               rulesHash: state.rulesHash,
             },
           });
@@ -54,7 +52,6 @@ export class CollectionResolver extends ListingType<CollectionResolverProps> {
     return this.resolvers.productConnection({
       entryPoint: "collection",
       collectionId: this.$props.id,
-      collectionListingRevision: state.listingRevision,
       collectionRulesHash: state.rulesHash,
       collectionMembershipBitmap: membershipBitmap,
       collectionProductBitmap: evaluated?.productBitmap ?? membershipBitmap,

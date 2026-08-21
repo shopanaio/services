@@ -18,7 +18,6 @@ type ReviewStoreConfiguration implements Node @key(fields: "id") {
   answerEditWindowHours: Int!
   maxReviewMediaCount: Int!
   maxAnswersPerQuestion: Int!
-  revision: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

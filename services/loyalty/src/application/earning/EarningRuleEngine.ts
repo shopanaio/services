@@ -450,7 +450,7 @@ export class EarningRuleEngine {
       const monetaryAmounts = { ...usage.monetaryAmounts };
       if (currency && money > 0n)
         monetaryAmounts[currency] = (BigInt(monetaryAmounts[currency] ?? "0") + money).toString();
-      const updated = await this.repository.event.updateUsage(usage.id, usage.revision, {
+      const updated = await this.repository.event.updateUsage(usage.id, {
         occurrenceCount: usage.occurrenceCount + 1n,
         pointsAwarded: usage.pointsAwarded + points,
         monetaryAmounts,

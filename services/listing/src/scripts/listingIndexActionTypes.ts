@@ -123,7 +123,6 @@ export type ListingIndexValidationIssue = {
     | "UNSUPPORTED_CONTRACT_VERSION"
     | "PROJECT_MISMATCH"
     | "IDEMPOTENCY_CONFLICT"
-    | "REVISION_CONFLICT"
     | "VALIDATION_FAILED";
   field?: string[];
   message: string;

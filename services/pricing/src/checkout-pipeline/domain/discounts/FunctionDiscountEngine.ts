@@ -3,7 +3,6 @@ import type {
   CommerceFunctionBindingRef,
   CommerceFunctionRunResult,
 } from "@shopana/function-runner";
-import { contentRevision } from "../../canonicalJson.js";
 import { PricingCheckoutError } from "../../errors.js";
 import type {
   PricingDeliveryDiscountFunctionOutput,
@@ -16,7 +15,6 @@ import { money } from "../componentPricing.js";
 import {
   collectNativeLineCandidates,
   collectNativeShippingCandidates,
-  canonicalCounterVersions,
   discountEligibility,
   initialLineCodeResolutions,
   type DiscountOwner,
@@ -189,16 +187,7 @@ export function applyLineFunctionOutputs(input: {
     candidates,
     codeResolutions,
   });
-  return {
-    ...applied,
-    revision: contentRevision("pricing-discount-evaluation", {
-      bindingSet: input.run?.trace.bindingSetRevision ?? null,
-      plan: input.run?.trace.planRevision ?? null,
-      applications: applied.applications,
-      codeResolutions: applied.codeResolutions,
-      ...canonicalCounterVersions(input.snapshot),
-    }),
-  };
+  return applied;
 }
 
 export function applyDeliveryFunctionOutputs(input: {
@@ -276,18 +265,7 @@ export function applyDeliveryFunctionOutputs(input: {
     candidates,
     codeResolutions,
   });
-  return {
-    ...applied,
-    revision: contentRevision("pricing-discount-evaluation", {
-      preliminary: input.preliminary.discountEvaluationRevision,
-      delivery: input.delivery.revision,
-      bindingSet: input.run?.trace.bindingSetRevision ?? null,
-      plan: input.run?.trace.planRevision ?? null,
-      applications: applied.applications,
-      codeResolutions: applied.codes,
-      ...canonicalCounterVersions(input.snapshot),
-    }),
-  };
+  return applied;
 }
 
 function resolveOwners(
@@ -449,7 +427,6 @@ function functionContext(context: Pricing.PricingCheckoutEvaluationContext) {
           marketId: context.buyerEligibility.marketId,
           companyId: context.buyerEligibility.companyId,
           segmentIds: [...context.buyerEligibility.segmentIds],
-          segmentMembershipRevision: context.buyerEligibility.segmentMembershipRevision,
         }
       : null,
   };

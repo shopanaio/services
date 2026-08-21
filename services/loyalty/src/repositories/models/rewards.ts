@@ -146,7 +146,6 @@ export const rewardEntitlements = loyaltySchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    revision: integer("revision").notNull().default(1),
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
       mode: "string",
@@ -206,7 +205,6 @@ export const rewardEntitlements = loyaltySchema.table(
       "loyalty_reward_entitlement_validity_check",
       sql`${table.validTo} IS NULL OR ${table.validTo} > ${table.validFrom}`,
     ),
-    check("loyalty_reward_entitlement_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_reward_entitlement_state_check",
       sql`(${table.status} = 'ISSUED' AND ${table.reservedAt} IS NULL

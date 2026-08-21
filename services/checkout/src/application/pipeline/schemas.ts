@@ -1394,7 +1394,6 @@ export const checkoutLoyaltyRedemptionIntentSchema = z
 const loyaltyRewardQuoteSchema = z
   .object({
     entitlementId: identifierSchema,
-    entitlementRevision: z.number().int().nonnegative(),
     accountId: identifierSchema,
     rewardDefinitionId: identifierSchema,
     rewardType: z.enum([

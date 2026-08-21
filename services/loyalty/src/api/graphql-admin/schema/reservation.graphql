@@ -4,7 +4,6 @@ type LoyaltyReservation implements Node @key(fields: "id") {
   program: LoyaltyProgram!
   programVersion: LoyaltyProgramVersion!
   checkoutId: ID!
-  checkoutVersion: Int!
   quoteId: ID!
   quoteRevision: String!
   points: BigInt!
@@ -18,7 +17,6 @@ type LoyaltyReservation implements Node @key(fields: "id") {
   releasedAt: DateTime
   expiredAt: DateTime
   reversedAt: DateTime
-  revision: Int!
   events: [LoyaltyReservationEvent!]!
   createdAt: DateTime!
   updatedAt: DateTime!

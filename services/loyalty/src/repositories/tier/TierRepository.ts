@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   tierMembershipEvents,
@@ -265,7 +265,6 @@ export class TierRepository extends BaseRepository {
       .update(tierMemberships)
       .set({
         ...input,
-        revision: sql`${tierMemberships.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(tierMemberships.storeId, this.storeId), eq(tierMemberships.id, id)))

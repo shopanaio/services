@@ -52,7 +52,6 @@ export const storeConfiguration = reviewsSchema.table(
     answerEditWindowHours: integer("answer_edit_window_hours").notNull().default(720),
     maxReviewMediaCount: smallint("max_review_media_count").notNull().default(8),
     maxAnswersPerQuestion: smallint("max_answers_per_question").notNull().default(50),
-    revision: integer("revision").notNull().default(1),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),

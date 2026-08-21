@@ -1,5 +1,4 @@
 import type { Catalog } from "@shopana/broker-types";
-import { contentRevision } from "./canonicalJson.js";
 import type { CheckoutCatalogRow, ResolvedCheckoutMerchandiseEntry } from "./contracts.js";
 
 export function aggregateResolvedDemand(
@@ -41,12 +40,5 @@ export function buildCheckoutAvailability(
     availableQuantity: tracked ? sellable : null,
     continueSellingWhenOutOfStock,
     unavailabilityReason,
-    revision: contentRevision("catalog-availability", {
-      inventory: row.inventory,
-      stocks: row.stocks,
-      aggregateDemand,
-      available,
-      unavailabilityReason,
-    }),
   };
 }

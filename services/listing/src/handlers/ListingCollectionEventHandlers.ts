@@ -50,21 +50,10 @@ export class ListingCollectionEventHandlers extends EventHandlers {
         },
       };
     }
-    if (!Number.isSafeInteger(event.payload.listingRevision) || event.payload.listingRevision < 0) {
-      return {
-        success: false,
-        error: {
-          code: "INVALID_COLLECTION_LISTING_REVISION",
-          message: "Collection listing revision must be a non-negative safe integer",
-          retryable: false,
-        },
-      };
-    }
     const input: ListingCollectionProjectionWorkflowInput = {
       organizationId: event.context.organizationId,
       storeId: event.payload.storeId,
       collectionId: event.payload.collectionId,
-      eventListingRevision: event.payload.listingRevision,
       eventSequence: eventSequence!,
       requestId: event.context.correlationId,
     };
@@ -85,13 +74,7 @@ export class ListingCollectionEventHandlers extends EventHandlers {
         },
         timeoutMS: 120_000,
       });
-      this.logger.debug(
-        {
-          operation: "accepted",
-          listingRevision: event.payload.listingRevision,
-        },
-        "Collection projection event accepted",
-      );
+      this.logger.debug({ operation: "accepted" }, "Collection projection event accepted");
       return { success: true };
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);

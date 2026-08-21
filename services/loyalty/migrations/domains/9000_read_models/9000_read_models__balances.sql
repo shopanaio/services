@@ -9,7 +9,6 @@ CREATE TABLE "loyalty"."account_balance" (
   "lifetime_redeemed_points" bigint NOT NULL DEFAULT 0,
   "lifetime_expired_points" bigint NOT NULL DEFAULT 0,
   "lifetime_adjusted_points" bigint NOT NULL DEFAULT 0,
-  "revision" integer NOT NULL DEFAULT 1,
   "last_transaction_id" uuid,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
@@ -27,8 +26,7 @@ CREATE TABLE "loyalty"."account_balance" (
     AND "lifetime_earned_points" >= 0
     AND "lifetime_redeemed_points" >= 0
     AND "lifetime_expired_points" >= 0
-  ),
-  CONSTRAINT "loyalty_account_balance_revision_check" CHECK ("revision" > 0)
+  )
 );
 
 CREATE INDEX "loyalty_account_balance_store_available_idx"

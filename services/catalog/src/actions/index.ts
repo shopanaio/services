@@ -414,7 +414,6 @@ export class CatalogBrokerActions extends BrokerActions {
             state: "deleted",
             id: collection.id,
             storeId: collection.storeId,
-            listingRevision: collection.listingRevision,
             deletedAt: new Date(collection.deletedAt).toISOString(),
           };
           return {
@@ -444,7 +443,6 @@ export class CatalogBrokerActions extends BrokerActions {
           state: "live",
           id: collection.id,
           storeId: collection.storeId,
-          listingRevision: collection.listingRevision,
           type: collection.type as "manual" | "rule",
           defaultSort: collection.defaultSort as "manual" | "price" | "newest" | "name",
           defaultSortDirection: collection.defaultSortDirection as "asc" | "desc",

@@ -165,7 +165,7 @@ export class SearchSynonymRepository extends BaseRepository {
   async findEnabledByLocale(input: {
     locale: string;
     normalizationContractVersion: string;
-    normalizationProfileRevision: string;
+    normalizationProfileHash: string;
   }): Promise<SearchSynonymGroupAggregate[]> {
     assertNonEmpty(input.locale, "locale");
     const groups = await this.connection
@@ -186,7 +186,7 @@ export class SearchSynonymRepository extends BaseRepository {
         aggregate.values.every(
           (value) =>
             value.normalizationContractVersion === input.normalizationContractVersion &&
-            value.normalizationProfileRevision === input.normalizationProfileRevision,
+            value.normalizationProfileHash === input.normalizationProfileHash,
         ),
     );
   }
@@ -398,10 +398,10 @@ export class SearchSynonymRepository extends BaseRepository {
       assertNonEmpty(value.normalizedValue, "normalizedValue");
       assertNonEmpty(value.preparedText, "preparedText");
       assertNonEmpty(value.normalizationContractVersion, "normalizationContractVersion");
-      assertNonEmpty(value.normalizationProfileRevision, "normalizationProfileRevision");
+      assertNonEmpty(value.normalizationProfileHash, "normalizationProfileHash");
       if (
         value.normalizationContractVersion !== input.values[0].normalizationContractVersion ||
-        value.normalizationProfileRevision !== input.values[0].normalizationProfileRevision
+        value.normalizationProfileHash !== input.values[0].normalizationProfileHash
       ) {
         throw new Error("All synonym values must use one normalization profile");
       }

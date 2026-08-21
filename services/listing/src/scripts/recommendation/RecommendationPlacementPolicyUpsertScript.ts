@@ -20,7 +20,7 @@ export class RecommendationPlacementPolicyUpsertScript extends BaseScript<
       const policy = await this.repository.recommendationPlacementPolicy.create(input);
       return {
         policy,
-        generationTrigger: `policy:${policy.policyId}:${policy.version}`,
+        generationTrigger: `policy:${policy.policyId}`,
         userErrors: [],
       };
     }
@@ -41,21 +41,16 @@ export class RecommendationPlacementPolicyUpsertScript extends BaseScript<
         ],
       };
     }
-    const policy = await this.repository.recommendationPlacementPolicy.update(
-      current.policyId,
-      current.version,
-      {
-        strategy: input.strategy,
-        minimumResults: input.minimumResults,
-        maximumResults: input.maximumResults,
-        fallbackChain: input.fallbackChain,
-      },
-    );
-    if (!policy)
-      return { userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }] };
+    const policy = await this.repository.recommendationPlacementPolicy.update(current.policyId, {
+      strategy: input.strategy,
+      minimumResults: input.minimumResults,
+      maximumResults: input.maximumResults,
+      fallbackChain: input.fallbackChain,
+    });
+    if (!policy) return { userErrors: [{ message: "Policy not found", code: "NOT_FOUND" }] };
     return {
       policy,
-      generationTrigger: policy.enabled ? `policy:${policy.policyId}:${policy.version}` : undefined,
+      generationTrigger: policy.enabled ? `policy:${policy.policyId}` : undefined,
       userErrors: [],
     };
   }

@@ -82,7 +82,7 @@ export class LoyaltyAvailableRewardResolver extends LoyaltyStorefrontType<
     const { canonicalHash } = await import("../../application/math.js");
     return canonicalHash({
       id: this.$props,
-      revision: await this.$get("revision"),
+      updatedAt: await this.$get("updatedAt"),
       status: await this.$get("status"),
       validFrom: await this.$get("validFrom"),
       validTo: await this.$get("validTo"),

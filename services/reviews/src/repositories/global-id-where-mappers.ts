@@ -51,11 +51,12 @@ export const decodeReviewContentVoteGlobalId = createGlobalIdWhereFieldMapper(
 export const decodeModerationEventGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.ReviewModerationEvent,
 );
-export const decodeContentRevisionGlobalId = createGlobalIdWhereFieldMapper(
-  GlobalIdEntity.ReviewContentRevision,
-);
 export const decodeModerationSignalGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.ReviewModerationSignal,
+);
+
+export const decodeContentRevisionGlobalId = createGlobalIdWhereFieldMapper(
+  GlobalIdEntity.ReviewContentRevision,
 );
 export const decodeRatingCriterionGlobalId = createGlobalIdWhereFieldMapper(
   GlobalIdEntity.ReviewRatingCriterion,

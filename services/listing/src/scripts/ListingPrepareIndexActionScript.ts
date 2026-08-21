@@ -122,13 +122,6 @@ function validateSyncAction(
       message: "item.id is required",
     });
   }
-  if (!Number.isInteger(item.productRevision) || item.productRevision < 0) {
-    issues.push({
-      code: "VALIDATION_FAILED",
-      field: ["item", "productRevision"],
-      message: "productRevision must be a non-negative integer",
-    });
-  }
   if (!Number.isInteger(action.params.eventSequence) || action.params.eventSequence <= 0) {
     issues.push({
       code: "VALIDATION_FAILED",

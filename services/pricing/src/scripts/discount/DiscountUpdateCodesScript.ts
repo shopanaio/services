@@ -1,7 +1,6 @@
 import type { UserError } from "../../kernel/BaseScript.js";
 import { getPgErrorInfo, isUniqueViolation, PG_ERROR_CODES } from "../../kernel/types.js";
 import {
-  DiscountCodeRevisionConflictError,
   type DiscountAggregate,
   type DiscountCodeCreateWriteInput,
   type DiscountCodeDeleteWriteInput,
@@ -44,15 +43,6 @@ export class DiscountUpdateCodesScript extends BaseDiscountUpdateScript<Discount
   }
 
   protected handleError(error: unknown): DiscountUpdateCodesResult {
-    if (error instanceof DiscountCodeRevisionConflictError) {
-      return sectionErrors([
-        {
-          message: "Discount code was modified by another user",
-          code: "REVISION_CONFLICT",
-          field: ["update"],
-        },
-      ]);
-    }
     if (isUniqueViolation(error, "discount_code_store_normalized_unique")) {
       return sectionErrors([
         {
@@ -118,13 +108,6 @@ function mapCodeChanges(
     const field = ["update", String(index)];
     const current = currentById.get(item.codeId);
     validateTouchedCode(item.codeId, current, touchedIds, field, errors);
-    if (current && current.updatedAt !== item.expectedUpdatedAt) {
-      errors.push({
-        message: "Discount code was modified by another user",
-        code: "REVISION_CONFLICT",
-        field: [...field, "expectedUpdatedAt"],
-      });
-    }
     const patch: DiscountCodeUpdateWriteInput["patch"] = {};
     if (hasOwn(item, "code")) {
       if (item.code == null) {
@@ -188,7 +171,6 @@ function mapCodeChanges(
     }
     return {
       codeId: item.codeId,
-      expectedUpdatedAt: item.expectedUpdatedAt,
       patch,
     };
   });
@@ -197,13 +179,6 @@ function mapCodeChanges(
     const field = ["delete", String(index)];
     const current = currentById.get(item.codeId);
     validateTouchedCode(item.codeId, current, touchedIds, field, errors);
-    if (current && current.updatedAt !== item.expectedUpdatedAt) {
-      errors.push({
-        message: "Discount code was modified by another user",
-        code: "REVISION_CONFLICT",
-        field: [...field, "expectedUpdatedAt"],
-      });
-    }
     const counter = aggregate.codeUsageCounters.find((value) => value.codeId === item.codeId);
     if (
       counter &&

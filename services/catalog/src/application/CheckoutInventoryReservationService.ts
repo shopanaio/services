@@ -315,14 +315,7 @@ function aggregateLines(lines: Inventory.ReserveCheckoutInventoryParams["lines"]
 function result(
   allocations: readonly Inventory.CheckoutInventoryReservationAllocation[],
 ): Inventory.ReserveCheckoutInventoryResult {
-  const canonical = allocations.map((allocation) => ({
-    lineId: allocation.lineId,
-    variantId: allocation.variantId,
-    warehouseId: allocation.warehouseId,
-    quantity: allocation.quantity,
-  }));
   return {
-    revision: `inventory-reservation:v1:sha256:${createHash("sha256").update(JSON.stringify(canonical)).digest("hex")}`,
     allocations,
   };
 }

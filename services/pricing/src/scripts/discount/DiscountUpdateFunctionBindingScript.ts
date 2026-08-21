@@ -29,8 +29,6 @@ export class DiscountUpdateFunctionBindingScript extends BaseDiscountUpdateScrip
       !Number.isSafeInteger(precedence) ||
       precedence < 0 ||
       !input.functionKey.trim() ||
-      !input.configurationRevision.trim() ||
-      !input.routeRevision.trim() ||
       !isRecord(input.configurationSnapshot)
     ) {
       return sectionErrors([
@@ -49,8 +47,6 @@ export class DiscountUpdateFunctionBindingScript extends BaseDiscountUpdateScrip
       status: input.status ?? "ACTIVE",
       failureMode: input.failureMode ?? "OPTIONAL",
       configurationSnapshot: input.configurationSnapshot,
-      configurationRevision: input.configurationRevision.trim(),
-      routeRevision: input.routeRevision.trim(),
     });
     return sectionSuccess();
   }

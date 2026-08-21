@@ -34,6 +34,7 @@ type ReviewMedia implements Node @key(fields: "id") {
   sortIndex: Int!
   caption: String
   status: ReviewContentStatus!
+  revision: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -46,7 +47,6 @@ type ReviewReply implements Node & ReviewContent @key(fields: "id") {
   locale: LocaleCode!
   author: ReviewContentAuthor!
   status: ReviewContentStatus!
-  revision: Int!
   publishedAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!

@@ -118,7 +118,6 @@ export interface ListingFacetValueRef {
 export interface ListingVariantSnapshot {
   id: string;
   handle: string;
-  productRevision?: number;
   status: "active" | "inactive" | "archived";
   availability: ListingAvailabilitySnapshot;
   prices: ListingVariantPriceSnapshot[];
@@ -144,7 +143,6 @@ export interface ListingSearchContentSnapshot {
 }
 
 export interface ListingSellableItemSnapshot extends ListingSellableItemRef {
-  productRevision: number;
   sourceUpdatedAt: string;
   status: "draft" | "published" | "archived";
   publishedAt: string | null;

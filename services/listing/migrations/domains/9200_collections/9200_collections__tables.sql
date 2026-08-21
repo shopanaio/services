@@ -3,7 +3,6 @@
 CREATE TABLE "listing"."collection_state" (
   "store_id" uuid NOT NULL,
   "collection_id" uuid NOT NULL,
-  "listing_revision" integer NOT NULL,
   "collection_type" varchar(16) NOT NULL,
   "default_sort" varchar(32) NOT NULL,
   "default_sort_direction" varchar(4) NOT NULL,
@@ -34,8 +33,6 @@ CREATE TABLE "listing"."collection_state" (
     CHECK ("collection_type" != 'rule' OR "default_sort" != 'manual'),
   CONSTRAINT "collection_state_manual_rules_check"
     CHECK ("collection_type" != 'manual' OR "rules_json" = '[]'::jsonb),
-  CONSTRAINT "collection_state_listing_revision_check"
-    CHECK ("listing_revision" BETWEEN 0 AND 2147483646),
   CONSTRAINT "collection_state_event_sequence_check"
     CHECK ("event_sequence" BETWEEN 1 AND 9007199254740991),
   CONSTRAINT "collection_state_rules_hash_check"
@@ -61,15 +58,12 @@ CREATE INDEX "idx_collection_state_visibility"
 CREATE TABLE "listing"."collection_tombstone" (
   "store_id" uuid NOT NULL,
   "collection_id" uuid NOT NULL,
-  "listing_revision" integer NOT NULL,
   "payload_hash" text NOT NULL,
   "event_sequence" bigint NOT NULL,
   "deleted_at" timestamp with time zone NOT NULL,
   "projected_at" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "collection_tombstone_pkey"
     PRIMARY KEY ("store_id", "collection_id"),
-  CONSTRAINT "collection_tombstone_listing_revision_check"
-    CHECK ("listing_revision" BETWEEN 0 AND 2147483646),
   CONSTRAINT "collection_tombstone_event_sequence_check"
     CHECK ("event_sequence" BETWEEN 1 AND 9007199254740991),
   CONSTRAINT "collection_tombstone_payload_hash_check"

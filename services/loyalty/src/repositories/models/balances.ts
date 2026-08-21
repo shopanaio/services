@@ -1,5 +1,5 @@
 import { sql } from "drizzle-orm";
-import { bigint, check, foreignKey, index, integer, timestamp, uuid } from "drizzle-orm/pg-core";
+import { bigint, check, foreignKey, index, timestamp, uuid } from "drizzle-orm/pg-core";
 import { accounts } from "./accounts.js";
 import { transactions } from "./ledger.js";
 import { loyaltySchema } from "./schema.js";
@@ -33,7 +33,6 @@ export const accountBalances = loyaltySchema.table(
     })
       .notNull()
       .default(0n),
-    revision: integer("revision").notNull().default(1),
     lastTransactionId: uuid("last_transaction_id"),
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
@@ -68,7 +67,6 @@ export const accountBalances = loyaltySchema.table(
         AND ${table.lifetimeRedeemedPoints} >= 0
         AND ${table.lifetimeExpiredPoints} >= 0`,
     ),
-    check("loyalty_account_balance_revision_check", sql`${table.revision} > 0`),
   ],
 );
 

@@ -37,7 +37,6 @@ type RecommendationPlacementPolicy implements Node {
   minimumResults: Int!
   maximumResults: Int!
   fallbackChain: [String!]!
-  version: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -55,7 +54,6 @@ type ManualProductRecommendation implements Node {
   endsAt: DateTime
   anchorReferenceStatus: RecommendationReferenceStatus!
   targetReferenceStatus: RecommendationReferenceStatus!
-  version: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

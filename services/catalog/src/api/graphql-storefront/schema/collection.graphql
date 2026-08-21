@@ -1,6 +1,5 @@
 type Collection implements Node @key(fields: "id") {
   id: ID!
-  listingRevision: Int! @inaccessible
   handle: String!
   type: CollectionType!
   name: String!

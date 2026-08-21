@@ -20,7 +20,7 @@ export interface StorefrontReviewUpdateParams {
 
 export type StorefrontReviewUpdateResult =
   | { status: "applied"; productId: string; userErrors: UserError[] }
-  | { status: "conflict" | "not_found"; userErrors: UserError[] }
+  | { status: "not_found"; userErrors: UserError[] }
   | { status: "error"; userErrors: UserError[] };
 
 export class StorefrontReviewUpdateScript extends BaseScript<
@@ -70,7 +70,7 @@ export interface StorefrontQuestionAnswerCreateParams {
 
 export type StorefrontQuestionAnswerCreateResult =
   | { status: "applied"; answerId: string; productId: string; userErrors: UserError[] }
-  | { status: "conflict" | "not_found" | "limit_exceeded"; userErrors: UserError[] }
+  | { status: "not_found" | "limit_exceeded"; userErrors: UserError[] }
   | { status: "error"; userErrors: UserError[] };
 
 export class StorefrontQuestionAnswerCreateScript extends BaseScript<

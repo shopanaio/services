@@ -29,7 +29,6 @@ export const discountFunctionBinding = pricingSchema.table(
       .notNull()
       .references(() => discount.id, { onDelete: "cascade" }),
     target: discountFunctionTargetEnum("target").notNull(),
-    contractVersion: integer("contract_version").notNull(),
     installationId: uuid("installation_id").notNull(),
     functionKey: text("function_key").notNull(),
     precedence: integer("precedence").notNull(),
@@ -37,8 +36,6 @@ export const discountFunctionBinding = pricingSchema.table(
     status: discountFunctionBindingStatusEnum("status").notNull(),
     failureMode: discountFunctionFailureModeEnum("failure_mode").notNull(),
     configurationSnapshot: jsonb("configuration_snapshot").notNull(),
-    configurationRevision: text("configuration_revision").notNull(),
-    routeRevision: text("route_revision").notNull(),
     createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -49,7 +46,6 @@ export const discountFunctionBinding = pricingSchema.table(
   (table) => [
     unique("discount_function_binding_store_id_id_unique").on(table.storeId, table.id),
     unique("discount_function_binding_discount_target_unique").on(table.discountId, table.target),
-    check("discount_function_binding_contract_check", sql`${table.contractVersion} > 0`),
     check(
       "discount_function_binding_order_check",
       sql`${table.precedence} >= 0 AND ${table.activationSequence} >= 0`,
@@ -58,10 +54,7 @@ export const discountFunctionBinding = pricingSchema.table(
       "discount_function_binding_configuration_check",
       sql`jsonb_typeof(${table.configurationSnapshot}) = 'object'`,
     ),
-    check(
-      "discount_function_binding_revision_check",
-      sql`length(${table.configurationRevision}) > 0 AND length(${table.routeRevision}) > 0 AND length(${table.functionKey}) > 0`,
-    ),
+    check("discount_function_binding_function_key_check", sql`length(${table.functionKey}) > 0`),
     index("discount_function_binding_active_target_idx")
       .on(table.storeId, table.target, table.precedence, table.activationSequence, table.id)
       .where(sql`${table.status} = 'ACTIVE'`),

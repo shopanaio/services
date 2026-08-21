@@ -175,9 +175,6 @@ export class DiscountRedemptionResolver extends PricingType<string, DiscountRede
   discountClass() {
     return this.$get("discountClass");
   }
-  configurationRevision() {
-    return this.$get("configurationRevision");
-  }
   currency() {
     return this.$get("currency");
   }

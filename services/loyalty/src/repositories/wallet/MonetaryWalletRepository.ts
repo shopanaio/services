@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lte, or } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   monetaryCreditLots,
@@ -238,7 +238,6 @@ export class MonetaryWalletRepository extends BaseRepository {
       .update(monetaryWallets)
       .set({
         ...input,
-        revision: sql`${monetaryWallets.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(monetaryWallets.storeId, this.storeId), eq(monetaryWallets.id, id)))
@@ -582,7 +581,6 @@ export class MonetaryWalletRepository extends BaseRepository {
       .update(monetaryWalletBalances)
       .set({
         ...input,
-        revision: sql`${monetaryWalletBalances.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -610,7 +608,6 @@ export class MonetaryWalletRepository extends BaseRepository {
       .update(monetaryWalletBalances)
       .set({
         ...input,
-        revision: sql`${monetaryWalletBalances.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(

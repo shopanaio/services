@@ -17,7 +17,6 @@ CREATE TABLE "pricing"."discount" (
   "applies_on_subscription" boolean NOT NULL DEFAULT false,
   "starts_at" timestamptz NOT NULL DEFAULT now(),
   "ends_at" timestamptz,
-  "revision" integer NOT NULL DEFAULT 0,
   "created_by_id" text,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "created_at" timestamptz NOT NULL DEFAULT now(),
@@ -60,8 +59,6 @@ CREATE TABLE "pricing"."discount" (
     CHECK ("applies_on_one_time_purchase" OR "applies_on_subscription"),
   CONSTRAINT "discount_active_interval_check"
     CHECK ("ends_at" IS NULL OR "ends_at" > "starts_at"),
-  CONSTRAINT "discount_revision_check"
-    CHECK ("revision" >= 0),
   CONSTRAINT "discount_archive_state_check"
     CHECK (
       ("state" = 'ARCHIVED' AND "archived_at" IS NOT NULL)

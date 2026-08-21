@@ -21,7 +21,7 @@ export class ProductComparisonMatrixBuilder {
     const profile = profiles[0];
     if (!profile?.enabled) return null;
     const cacheKey = this.storeId
-      ? `store:${this.storeId}:comparison:locale:${this.locale}:profile:${profile.id}:revision:${profile.revision}`
+      ? `store:${this.storeId}:comparison:locale:${this.locale}:profile:${profile.id}:updated:${profile.updatedAt}`
       : null;
     const cached = cacheKey ? await this.cache?.get<StaticLayout>(cacheKey) : null;
     const layout = cached ?? (await this.loadLayout(input.profileId));

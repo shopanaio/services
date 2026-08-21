@@ -26,7 +26,6 @@ export async function manualConfigurationHash(input: {
       hash.update(
         canonicalJson({
           recommendationId: row.recommendationId,
-          version: row.version,
           targetProductId: row.targetProductId,
           action: row.action,
           position: row.position,

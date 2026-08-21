@@ -74,7 +74,6 @@ export type CategoryProductsArgs = {
 export type Collection = {
   __typename?: 'Collection';
   id: Scalars['ID']['output'];
-  listingRevision: Scalars['Int']['output'];
   products: ProductConnection;
 };
 
@@ -1598,8 +1597,7 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
 export type CollectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Collection'] = ResolversParentTypes['Collection']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Collection']>, { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
 
-
-  products?: Resolver<ResolversTypes['ProductConnection'], { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}> & GraphQLRecursivePick<ParentType, {"listingRevision":true}>, ContextType, RequireFields<CollectionProductsArgs, 'first'>>;
+  products?: Resolver<ResolversTypes['ProductConnection'], { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType, RequireFields<CollectionProductsArgs, 'first'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

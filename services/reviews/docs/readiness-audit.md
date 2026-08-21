@@ -105,7 +105,7 @@ server или browser. Build не запускался, поскольку но�
 - soft-delete учитывается в большинстве list/read paths;
 - Relay query builders используют limits и deterministic tie-breaker;
 - ID filters проходят через global-ID mappers;
-- optimistic updates возвращают `applied`, `conflict` или `not_found`;
+- mutations возвращают `applied` или `not_found`;
 - summary rebuild использует transaction-level advisory locks;
 - vote upsert и report uniqueness опираются на repository/database guarantees.
 
@@ -149,7 +149,7 @@ business policy, authorization, publication rules или side effects.
 - schema composition фактически не проверена;
 - happy paths и failure paths не проверены;
 - tenant isolation не доказан;
-- optimistic concurrency не доказана;
+- concurrent mutation serialization не доказана;
 - atomicity и idempotency не доказаны;
 - projection consistency не доказана;
 - federation visibility не доказана.
@@ -194,26 +194,19 @@ connection, nested и federation paths должны использовать о�
 
 ### P0-3. Aggregate update не является атомарным
 
-`ReviewUpdateWorkflow.run()`:
-
-1. вызывает `stepAcquireRevision()`;
-2. выполняет `content.update(reviewId, expectedRevision, {})`, увеличивая revision пустым patch;
-3. последовательно запускает каждую operation отдельным workflow step/script;
-4. сохраняет успехи и ошибки каждой операции независимо;
-5. не откатывает ранее применённые операции, если следующая операция завершилась ошибкой.
+`ReviewUpdateWorkflow.run()` последовательно запускает каждую operation отдельным workflow
+step/script, сохраняет успехи и ошибки каждой операции независимо и не откатывает ранее применённые
+операции, если следующая операция завершилась ошибкой.
 
 Это противоречит заявленным требованиям:
 
 - update агрегата атомарен;
-- все вложенные операции разделяют один optimistic revision;
 - validation failure не создаёт mutation/revision/event;
 - semantic no-op не создаёт revision/event.
 
 Практические дефекты:
 
 - частичное сохранение aggregate при mixed success/failure;
-- revision увеличивается до завершения бизнес-валидации;
-- пустой или полностью no-op update меняет revision;
 - failed nested operation может сосуществовать с применёнными sibling operations;
 - summary refresh видит частичное состояние.
 
@@ -374,7 +367,7 @@ README требует, чтобы snapshot содержал root и typed-extens
 - publications.
 
 `ContentRevisionRestoreScript` восстанавливает только content patch. Поэтому операция не может
-восстановить aggregate version, которую пользователь видел в прошлом.
+восстановить состояние aggregate, которое пользователь видел в прошлом.
 
 Дополнительный privacy-риск: восстановление старого snapshot может вернуть ранее redacted author
 PII, если policy явно не запрещает такой restore. Заявленный тест требует не восстанавливать
@@ -406,9 +399,8 @@ Metrics обновляются синхронно в части Storefront mutat
 редактирования после lifecycle transition. Repository read скрывает soft-deleted rows, но остальные
 policy facts должны быть явными.
 
-Update/delete mutations также не имеют собственного idempotency key. Повтор после успешного
-изменения превращается в revision conflict, хотя активная спецификация заявляет idempotent replay
-без duplicate events.
+Update/delete mutations также не имеют собственного idempotency key, поэтому активная спецификация
+idempotent replay без duplicate events не подтверждена.
 
 ### P1-7. Question/answer ordering и notification policy неполны
 
@@ -455,21 +447,19 @@ references. External reference type включает provider metadata. Даже
 
 ### P2-2. Semantic no-op behavior неоднородно
 
-Некоторые section scripts возвращают `applied: false`, но outer workflow уже увеличил revision.
-Другие timestamp-guarded entity updates могут обновлять `updatedAt` даже при patch без effective
-changes. Требование «no revision/event for semantic no-op» должно быть единым для всех mutations.
+Некоторые entity updates могут обновлять `updatedAt` даже при patch без effective changes.
+Требование «no revision/event for semantic no-op» должно быть единым для всех mutations.
 
 ### P2-3. Error contract неоднороден
 
-Встречаются разные conflict codes (`REVISION_CONFLICT`, `VERSION_CONFLICT`) и разные field paths для
-сходных optimistic errors. Storefront `decodeContentId()` бросает runtime error для malformed ID,
-вместо стабильного `ReviewUserError`.
+Storefront `decodeContentId()` бросает runtime error для malformed ID вместо стабильного
+`ReviewUserError`.
 
 Нужна единая taxonomy:
 
 - invalid ID/type;
 - not found/inaccessible;
-- revision/timestamp conflict;
+- concurrent write failure;
 - policy violation;
 - retryable integration failure;
 - internal error.
@@ -545,7 +535,7 @@ entities.
 1. Отделить preflight parsing/validation от mutation.
 2. Собрать aggregate command без записи в БД.
 3. Выполнить все effective operations в одной transaction.
-4. Увеличить revision один раз после успешного effective change.
+4. Записывать audit revision один раз после успешного effective change.
 5. Не менять revision/updatedAt и не создавать event для semantic no-op.
 6. Записывать complete revision snapshot.
 7. Публиковать event/outbox только после commit.
@@ -590,7 +580,7 @@ criterion aggregates.
 1. Создать mutation-to-event matrix.
 2. Ввести гарантированную post-commit доставку.
 3. Реализовать idempotent monotonic handlers.
-4. Обновлять summaries/metrics/publication/search projections по revision/version.
+4. Обновлять summaries/metrics/publication/search projections идемпотентно.
 5. Реализовать answer/subscription notifications.
 6. Проверить recovery после сбоев зависимостей без повторной domain mutation.
 
@@ -609,7 +599,7 @@ Reviews Service можно считать полностью готовым то
 - каждый Admin и Storefront SDL field имеет используемый resolver path;
 - все заявленные business invariants реализованы до записи;
 - aggregate mutations атомарны;
-- optimistic concurrency единообразна;
+- concurrent mutations сериализуются backend workflow;
 - semantic no-op не меняет состояние;
 - tenant и cross-service ownership проверяются fail-closed;
 - Storefront visibility учитывает moderation, publication, channel, locale, schedule и parent state;

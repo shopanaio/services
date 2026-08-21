@@ -39,10 +39,6 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
     return this.$get("storeId");
   }
 
-  async revision(): Promise<number> {
-    return this.$get("revision");
-  }
-
   async status(): Promise<CatalogProductStatus> {
     return (await this.$get("publishedAt")) ? "published" : "draft";
   }
@@ -183,7 +179,6 @@ export class ProductSnapshotResolver extends ServiceType<string, Product> {
       snapshotVersion: this.snapshotVersion(),
       id: product.id,
       storeId: product.storeId,
-      revision: product.revision,
       status: product.publishedAt ? "published" : "draft",
       publishedAt: product.publishedAt,
       createdAt: product.createdAt,

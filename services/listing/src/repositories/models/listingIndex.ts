@@ -84,7 +84,6 @@ export const productListingIndex = listingSchema.table(
       withTimezone: true,
       mode: "string",
     }).notNull(),
-    productRevision: integer("product_revision").notNull().default(0),
     totalStock: integer("total_stock").notNull().default(0),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
       .notNull()

@@ -38,12 +38,12 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
   async run(
     input: ProductQuestionUpdateWorkflowInput,
   ): Promise<ProductQuestionUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(input.productQuestionId);
-    if ("error" in acquired) {
+    const question = await this.stepFindQuestion(input.productQuestionId);
+    if ("error" in question) {
       return {
         productQuestion: null,
         operationResults: [],
-        userErrors: [acquired.error],
+        userErrors: [question.error],
       };
     }
 
@@ -72,26 +72,22 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
     if (operationResults.some((result) => result.applied)) {
       await this.stepRefreshProductQuestionSummary({
         context: input.context,
-        productId: acquired.productId,
+        productId: question.productId,
       });
     }
 
     return {
-      productQuestion: {
-        id: input.productQuestionId,
-        revision: acquired.revision,
-      },
+      productQuestion: { id: input.productQuestionId },
       operationResults,
       userErrors: operationResults.flatMap((result) => result.errors),
     };
   }
 
   @WorkflowStep()
-  private async stepAcquireRevision(
+  private async stepFindQuestion(
     productQuestionId: string,
   ): Promise<
-    | { revision: number; productId: string }
-    | { error: { message: string; code: string; field: string[] } }
+    { productId: string } | { error: { message: string; code: string; field: string[] } }
   > {
     const question = await this.kernel.repository.productQuestion.findById(productQuestionId);
     if (!question) {
@@ -104,33 +100,7 @@ export class ProductQuestionUpdateWorkflow extends ReviewsMutationWorkflow {
       };
     }
 
-    const acquired = await this.kernel.repository.content.update(
-      productQuestionId,
-
-      {},
-    );
-    if (acquired.status === "applied") {
-      return {
-        revision: acquired.value.revision,
-        productId: question.question.productId,
-      };
-    }
-    if (acquired.status === "conflict") {
-      return {
-        error: {
-          message: "Product question was modified by another user",
-          code: "REVISION_CONFLICT",
-          field: ["expectedRevision"],
-        },
-      };
-    }
-    return {
-      error: {
-        message: "Product question not found",
-        code: "NOT_FOUND",
-        field: ["productQuestionId"],
-      },
-    };
+    return { productId: question.question.productId };
   }
 
   private runOperation(

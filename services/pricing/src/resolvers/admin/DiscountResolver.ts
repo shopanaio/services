@@ -93,9 +93,6 @@ export class DiscountResolver extends PricingType<string, DiscountReadModel> {
   endsAt() {
     return this.$get("endsAt");
   }
-  revision() {
-    return this.$get("revision");
-  }
   async reservedUsageCount() {
     return toGraphqlBigInt(await this.$get("reservedUsageCount"));
   }

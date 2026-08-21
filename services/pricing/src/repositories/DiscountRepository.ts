@@ -286,13 +286,11 @@ export interface DiscountCodeCreateWriteInput {
 
 export interface DiscountCodeUpdateWriteInput {
   codeId: string;
-  expectedUpdatedAt: string;
   patch: Partial<Pick<DiscountCode, "code" | "status" | "usageLimit" | "metadata" | "disabledAt">>;
 }
 
 export interface DiscountCodeDeleteWriteInput {
   codeId: string;
-  expectedUpdatedAt: string;
 }
 
 export type DiscountExternalReferencePatch = Partial<
@@ -313,16 +311,7 @@ export type DiscountExternalReferencePatch = Partial<
 >;
 
 export type DiscountExternalReferenceMutationResult =
-  | { status: "applied"; value: DiscountExternalReference }
-  | { status: "not_found" }
-  | { status: "conflict"; current: DiscountExternalReference };
-
-export class DiscountCodeRevisionConflictError extends Error {
-  constructor(public readonly codeId: string) {
-    super("Discount code was modified by another user");
-    this.name = "DiscountCodeRevisionConflictError";
-  }
-}
+  { status: "applied"; value: DiscountExternalReference } | { status: "not_found" };
 
 function mapVirtualWhereFields(value: unknown): unknown {
   if (Array.isArray(value)) {
@@ -577,8 +566,6 @@ export class DiscountRepository extends BaseRepository {
       | "status"
       | "failureMode"
       | "configurationSnapshot"
-      | "configurationRevision"
-      | "routeRevision"
     >,
   ): Promise<void> {
     const rows = await this.connection
@@ -799,13 +786,10 @@ export class DiscountRepository extends BaseRepository {
             eq(discountCode.storeId, this.storeId),
             eq(discountCode.discountId, id),
             eq(discountCode.id, item.codeId),
-            eq(discountCode.updatedAt, item.expectedUpdatedAt),
           ),
         )
         .returning({ id: discountCode.id });
-      if (rows.length === 0) {
-        throw new DiscountCodeRevisionConflictError(item.codeId);
-      }
+      if (rows.length === 0) throw new Error("Discount code not found");
     }
 
     for (const item of input.delete) {
@@ -816,13 +800,10 @@ export class DiscountRepository extends BaseRepository {
             eq(discountCode.storeId, this.storeId),
             eq(discountCode.discountId, id),
             eq(discountCode.id, item.codeId),
-            eq(discountCode.updatedAt, item.expectedUpdatedAt),
           ),
         )
         .returning({ id: discountCode.id });
-      if (rows.length === 0) {
-        throw new DiscountCodeRevisionConflictError(item.codeId);
-      }
+      if (rows.length === 0) throw new Error("Discount code not found");
     }
 
     if (input.create.length > 0) {
@@ -855,13 +836,10 @@ export class DiscountRepository extends BaseRepository {
             eq(discountCode.storeId, this.storeId),
             eq(discountCode.discountId, id),
             eq(discountCode.id, item.codeId),
-            eq(discountCode.updatedAt, item.expectedUpdatedAt),
           ),
         )
         .returning({ id: discountCode.id });
-      if (rows.length === 0) {
-        throw new DiscountCodeRevisionConflictError(item.codeId);
-      }
+      if (rows.length === 0) throw new Error("Discount code not found");
     }
   }
 
@@ -1270,7 +1248,6 @@ export class DiscountRepository extends BaseRepository {
 
   async updateExternalReference(
     id: string,
-    expectedUpdatedAt: string,
     patch: DiscountExternalReferencePatch,
   ): Promise<DiscountExternalReferenceMutationResult> {
     const rows = await this.connection
@@ -1280,24 +1257,21 @@ export class DiscountRepository extends BaseRepository {
         and(
           eq(discountExternalReference.storeId, this.storeId),
           eq(discountExternalReference.id, id),
-          eq(discountExternalReference.updatedAt, expectedUpdatedAt),
           isNull(discountExternalReference.deletedAt),
         ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.externalReferenceMutationMiss(id);
+    return this.externalReferenceMutationMiss();
   }
 
   async deleteExternalReference(input: {
     id: string;
-    expectedUpdatedAt: string;
     permanent: boolean;
   }): Promise<DiscountExternalReferenceMutationResult> {
     const conditions = and(
       eq(discountExternalReference.storeId, this.storeId),
       eq(discountExternalReference.id, input.id),
-      eq(discountExternalReference.updatedAt, input.expectedUpdatedAt),
       isNull(discountExternalReference.deletedAt),
     );
     const rows = input.permanent
@@ -1311,14 +1285,11 @@ export class DiscountRepository extends BaseRepository {
           .where(conditions)
           .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.externalReferenceMutationMiss(input.id);
+    return this.externalReferenceMutationMiss();
   }
 
-  private async externalReferenceMutationMiss(
-    id: string,
-  ): Promise<DiscountExternalReferenceMutationResult> {
-    const current = await this.findExternalReferenceById(id, true);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+  private externalReferenceMutationMiss(): DiscountExternalReferenceMutationResult {
+    return { status: "not_found" };
   }
 
   @ReadOnly()

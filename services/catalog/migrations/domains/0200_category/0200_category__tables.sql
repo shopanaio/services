@@ -10,7 +10,6 @@ CREATE TABLE "catalog"."category" (
   "default_sort" varchar(32) NOT NULL DEFAULT 'manual',
   "default_sort_direction" varchar(4) NOT NULL DEFAULT 'asc',
   "published_at" timestamp with time zone,
-  "revision" integer NOT NULL DEFAULT 0,
   "products_count" integer NOT NULL DEFAULT 0,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),

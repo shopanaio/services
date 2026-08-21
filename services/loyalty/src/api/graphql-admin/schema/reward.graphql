@@ -19,7 +19,6 @@ type LoyaltyRewardEntitlement implements Node @key(fields: "id") {
   redeemedAt: DateTime
   expiredAt: DateTime
   revokedAt: DateTime
-  revision: Int!
   events: [LoyaltyRewardEntitlementEvent!]!
   updatedAt: DateTime!
 }

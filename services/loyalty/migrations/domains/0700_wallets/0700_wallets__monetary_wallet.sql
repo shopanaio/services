@@ -7,7 +7,6 @@ CREATE TABLE "loyalty"."monetary_wallet" (
   "currency_code" varchar(3) NOT NULL,
   "status" "loyalty"."monetary_wallet_status" NOT NULL DEFAULT 'ACTIVE',
   "merged_into_wallet_id" uuid,
-  "revision" integer NOT NULL DEFAULT 1,
   "opened_at" timestamptz NOT NULL DEFAULT now(),
   "closed_at" timestamptz,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
@@ -24,7 +23,6 @@ CREATE TABLE "loyalty"."monetary_wallet" (
     UNIQUE ("id", "program_id"),
   CONSTRAINT "loyalty_monetary_wallet_currency_check"
     CHECK ("currency_code" ~ '^[A-Z]{3}$'),
-  CONSTRAINT "loyalty_monetary_wallet_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_monetary_wallet_merge_check" CHECK (
     ("status" = 'MERGED' AND "merged_into_wallet_id" IS NOT NULL
       AND "merged_into_wallet_id" <> "id" AND "closed_at" IS NOT NULL)
@@ -419,7 +417,6 @@ CREATE TABLE "loyalty"."monetary_wallet_balance" (
   "available_amount_minor" bigint NOT NULL DEFAULT 0,
   "reserved_amount_minor" bigint NOT NULL DEFAULT 0,
   "debt_amount_minor" bigint NOT NULL DEFAULT 0,
-  "revision" integer NOT NULL DEFAULT 1,
   "last_transaction_id" uuid,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
@@ -433,7 +430,6 @@ CREATE TABLE "loyalty"."monetary_wallet_balance" (
     AND "available_amount_minor" >= 0
     AND "reserved_amount_minor" >= 0
     AND "debt_amount_minor" >= 0
-    AND "revision" > 0
   )
 );
 

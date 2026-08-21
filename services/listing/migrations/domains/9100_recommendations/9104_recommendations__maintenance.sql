@@ -23,7 +23,6 @@ CREATE INDEX recommendation_order_fact_effective_order_scan_idx
   ON listing.recommendation_order_fact (
     store_id,
     order_id,
-    order_revision DESC,
     ingestion_position DESC
   );
 

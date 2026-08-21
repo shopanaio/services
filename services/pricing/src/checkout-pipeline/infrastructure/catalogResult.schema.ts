@@ -3,7 +3,6 @@ import { CURRENCY_CODES } from "@shopana/shared-references";
 import { z } from "zod";
 
 const id = z.string().trim().min(1).max(256);
-const revision = id;
 const currency = z.enum(CURRENCY_CODES as [string, ...string[]]);
 const money = z.object({ amountMinor: z.string().regex(/^\d+$/), currencyCode: currency }).strict();
 const purchase = z.discriminatedUnion("type", [
@@ -38,13 +37,12 @@ const resolvedLine = z
     productId: id,
     quantity: z.number().int().safe().positive(),
     purchase,
-    revision,
     title: z.string().min(1),
     sku: z.string().nullable(),
     imageUrl: z.string().url().nullable(),
     requiresShipping: z.boolean(),
     requiresComponents: z.boolean(),
-    price: z.object({ price: money, compareAtPrice: money.nullable(), revision }).strict(),
+    price: z.object({ price: money, compareAtPrice: money.nullable() }).strip(),
     availability: z
       .object({
         available: z.boolean(),
@@ -52,7 +50,6 @@ const resolvedLine = z
         availableQuantity: z.number().int().safe().nonnegative().nullable(),
         continueSellingWhenOutOfStock: z.boolean(),
         unavailabilityReason: z.enum(["OUT_OF_STOCK", "INSUFFICIENT_STOCK"]).nullable(),
-        revision,
       })
       .strict(),
     targeting: z
@@ -63,10 +60,10 @@ const resolvedLine = z
         optionValueIds: z.array(id),
       })
       .strict(),
-    componentConfiguration: z.object({ configurationId: id, revision }).strict().nullable(),
+    componentConfiguration: z.object({ configurationId: id }).strip().nullable(),
     componentSelection: z
-      .object({ configurationId: id, groupId: id, componentItemId: id, revision, priceRule })
-      .strict()
+      .object({ configurationId: id, groupId: id, componentItemId: id, priceRule })
+      .strip()
       .nullable(),
   })
   .strict();
@@ -97,11 +94,9 @@ export const catalogMerchandiseResultSchema: z.ZodType<Catalog.ResolveCheckoutMe
     z
       .object({
         ok: z.literal(true),
-        merchandiseRevision: revision,
-        availabilityRevision: revision,
         lines: z.array(line).max(250),
       })
-      .strict(),
+      .strip(),
     z
       .object({
         ok: z.literal(false),

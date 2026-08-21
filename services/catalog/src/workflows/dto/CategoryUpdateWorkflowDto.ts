@@ -49,7 +49,7 @@ export interface CategorySortParams {
 }
 
 export interface CategoryUpdateWorkflowResult {
-  category: { id: string; revision: number } | null;
+  category: { id: string } | null;
   operationResults: OperationResult[];
   userErrors: UserError[];
 }

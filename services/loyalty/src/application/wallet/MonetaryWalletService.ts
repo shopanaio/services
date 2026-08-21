@@ -535,7 +535,6 @@ export class MonetaryWalletService {
         kind: "ADJUST_DEBIT",
         source: "SYSTEM",
         sourceId: wallet.id,
-        sourceRevision: String(wallet.revision),
         idempotencyKey: `points-conversion:${input.idempotencyKey}`,
         requestHash: input.requestHash,
         actorType: "SYSTEM",
@@ -891,7 +890,7 @@ export class MonetaryWalletService {
       },
       entries.map((entry, index) => ({ ...entry, sequence: index + 1 })),
     );
-    const updated = await this.repository.wallet.updateBalance(wallet.id, balance.revision, {
+    const updated = await this.repository.wallet.updateBalance(wallet.id, {
       ...next,
       lastTransactionId: appended.transaction.id,
     });

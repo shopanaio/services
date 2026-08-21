@@ -24,9 +24,9 @@ export interface CommerceFunctionBindingRef {
   readonly installationId: string;
   readonly functionKey: string;
   readonly owner: CommerceFunctionOwnerRef;
-  readonly configurationRevision: string;
+  readonly configurationRevision?: string;
   readonly configurationSnapshot: unknown;
-  readonly routeRevision: string;
+  readonly routeRevision?: string;
   readonly precedence: number;
   readonly activationSequence: number;
   readonly failureMode?: FunctionFailureMode;
@@ -64,7 +64,7 @@ export interface CommerceFunctionRunRequest<TInput = unknown> {
   readonly storeId: string;
   readonly target: CommerceFunctionTarget;
   readonly bindings: readonly CommerceFunctionBindingRef[];
-  readonly bindingSetRevision: string;
+  readonly bindingSetRevision?: string;
   readonly input: TInput;
   readonly executionId: string;
   readonly correlationId?: string;

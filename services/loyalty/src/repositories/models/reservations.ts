@@ -66,7 +66,6 @@ export const reservations = loyaltySchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    revision: integer("revision").notNull().default(1),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "string",
@@ -107,7 +106,6 @@ export const reservations = loyaltySchema.table(
     index("loyalty_reservation_order_idx")
       .on(table.storeId, table.orderId, table.id)
       .where(sql`${table.orderId} IS NOT NULL`),
-    check("loyalty_reservation_checkout_version_check", sql`${table.checkoutVersion} > 0`),
     check("loyalty_reservation_points_check", sql`${table.points} > 0`),
     check("loyalty_reservation_discount_check", sql`${table.discountAmountMinor} > 0`),
     check("loyalty_reservation_currency_check", sql`${table.currencyCode} ~ '^[A-Z]{3}$'`),
@@ -117,7 +115,6 @@ export const reservations = loyaltySchema.table(
       sql`${table.quoteRevision} ~ '^[0-9a-f]{64}$'`,
     ),
     check("loyalty_reservation_expiry_check", sql`${table.expiresAt} > ${table.createdAt}`),
-    check("loyalty_reservation_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_reservation_order_pair_check",
       sql`(${table.orderId} IS NULL) = (${table.orderRevision} IS NULL)`,

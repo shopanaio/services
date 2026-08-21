@@ -35,7 +35,6 @@ export interface ProductListingIndexUpsertInput {
   publishedAt?: string | null;
   productCreatedAt: string;
   productUpdatedAt: string;
-  productRevision: number;
   totalStock: number;
 }
 

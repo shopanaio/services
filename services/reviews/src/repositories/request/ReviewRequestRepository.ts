@@ -20,7 +20,7 @@ import {
   type ReviewRequest,
   type ReviewRequestEvent,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const reviewRequestRelayQuery = createRelayQuery(
   createQuery(reviewRequest)
@@ -204,25 +204,14 @@ export class ReviewRequestRepository extends BaseRepository {
   }
 
   @Transactional()
-  async update(
-    id: string,
-    expectedUpdatedAt: string,
-    patch: ReviewRequestPatch,
-  ): Promise<OptimisticMutationResult<ReviewRequest>> {
+  async update(id: string, patch: ReviewRequestPatch): Promise<MutationResult<ReviewRequest>> {
     const rows = await this.connection
       .update(reviewRequest)
       .set({ ...patch, updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(reviewRequest.storeId, this.storeId),
-          eq(reviewRequest.id, id),
-          eq(reviewRequest.updatedAt, expectedUpdatedAt),
-        ),
-      )
+      .where(and(eq(reviewRequest.storeId, this.storeId), eq(reviewRequest.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @Transactional()

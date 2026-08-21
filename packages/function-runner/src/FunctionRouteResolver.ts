@@ -60,7 +60,7 @@ export class FunctionRouteResolver {
       storeId: request.storeId,
       owningService: definition.owningService,
       executionId: request.executionId,
-      bindingSetRevision: request.bindingSetRevision,
+      bindingSetRevision: request.bindingSetRevision ?? "",
       deadlineAt,
       mode: definition.executionMode,
       items: selected.map(revisionItem),
@@ -72,7 +72,7 @@ export class FunctionRouteResolver {
       owningService: definition.owningService,
       executionId: request.executionId,
       correlationId: request.correlationId,
-      bindingSetRevision: request.bindingSetRevision,
+      bindingSetRevision: request.bindingSetRevision ?? "",
       deadlineAt,
       mode: definition.executionMode,
       items: selected,
@@ -153,7 +153,9 @@ function appItem(
 ): AppExecutionPlanItem {
   const functionKeyMatches = route !== undefined && route.functionKey === binding.functionKey;
   const revisionMatches =
-    route !== undefined && functionKeyMatches && route.routeRevision === binding.routeRevision;
+    route !== undefined &&
+    functionKeyMatches &&
+    (binding.routeRevision === undefined || route.routeRevision === binding.routeRevision);
   const configurationSnapshot = canonicalizeEnvelope(
     binding.configurationSnapshot ?? null,
     definition.maxEnvelopeDepth ?? DEFAULT_MAX_ENVELOPE_DEPTH,
@@ -171,7 +173,7 @@ function appItem(
     functionBindingId: binding.functionBindingId,
     functionKey: binding.functionKey,
     owner: cloneAndFreeze(binding.owner),
-    configurationRevision: binding.configurationRevision,
+    configurationRevision: binding.configurationRevision ?? "",
     configurationSnapshot,
     configurationSnapshotDigest,
     precedence: binding.precedence,
@@ -201,9 +203,7 @@ function assertBindings(bindings: readonly CommerceFunctionBindingRef[], storeId
     if (
       !binding.functionBindingId.trim() ||
       !binding.installationId.trim() ||
-      !binding.functionKey.trim() ||
-      !binding.configurationRevision.trim() ||
-      !binding.routeRevision.trim()
+      !binding.functionKey.trim()
     ) {
       throw new Error("Function binding identity and revisions are required");
     }

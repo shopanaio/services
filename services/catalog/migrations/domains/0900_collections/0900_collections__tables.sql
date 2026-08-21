@@ -10,8 +10,6 @@ CREATE TABLE "catalog"."collection" (
   "effective_from" timestamp with time zone,
   "effective_to" timestamp with time zone,
   "published_at" timestamp with time zone,
-  "revision" integer NOT NULL DEFAULT 0,
-  "listing_revision" integer NOT NULL DEFAULT 0,
   "listing_updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
@@ -30,10 +28,6 @@ CREATE TABLE "catalog"."collection" (
     ),
   CONSTRAINT "collection_rule_manual_sort_check"
     CHECK ("type" != 'rule' OR "default_sort" != 'manual'),
-  CONSTRAINT "collection_revision_check"
-    CHECK ("revision" BETWEEN 0 AND 2147483646),
-  CONSTRAINT "collection_listing_revision_check"
-    CHECK ("listing_revision" BETWEEN 0 AND 2147483646),
   CONSTRAINT "collection_effective_range_check"
     CHECK (
       "effective_to" IS NULL

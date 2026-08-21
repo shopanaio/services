@@ -102,7 +102,6 @@ CREATE TABLE "loyalty"."earning_rule_usage" (
   "occurrence_count" bigint NOT NULL DEFAULT 0,
   "points_awarded" bigint NOT NULL DEFAULT 0,
   "monetary_amounts" jsonb NOT NULL DEFAULT '{}'::jsonb,
-  "revision" integer NOT NULL DEFAULT 1,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_earning_rule_usage_rule_fk"
@@ -116,7 +115,6 @@ CREATE TABLE "loyalty"."earning_rule_usage" (
     AND "occurrence_count" >= 0
     AND "points_awarded" >= 0
     AND jsonb_typeof("monetary_amounts") = 'object'
-    AND "revision" > 0
   )
 );
 

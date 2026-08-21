@@ -5,7 +5,6 @@ CREATE TABLE "catalog"."comparison_profile" (
   "id" uuid NOT NULL,
   "handle" varchar(255) NOT NULL,
   "enabled" boolean NOT NULL DEFAULT true,
-  "revision" integer NOT NULL DEFAULT 0,
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   CONSTRAINT "comparison_profile_pkey" PRIMARY KEY ("id"),
@@ -15,9 +14,6 @@ CREATE TABLE "catalog"."comparison_profile" (
 
 CREATE INDEX "idx_comparison_profile_store_enabled"
   ON "catalog"."comparison_profile" ("store_id", "enabled");
-
-CREATE INDEX "idx_comparison_profile_id_revision"
-  ON "catalog"."comparison_profile" ("id", "revision");
 
 CREATE TABLE "catalog"."comparison_group" (
   "store_id" uuid NOT NULL,

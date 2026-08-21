@@ -134,7 +134,6 @@ export type ResolveCheckoutDeliveryLineResult =
       status: "RESOLVED";
       lineId: string;
       variantId: string;
-      physicalRevision: string;
       weightGrams: number | null;
       dimensionsMm: Readonly<{
         width: number;
@@ -148,7 +147,6 @@ export type ResolveCheckoutDeliveryLineResult =
       }> | null;
       fulfillmentLocations: readonly Readonly<{
         locationId: string;
-        locationRevision: string;
         availableQuantity: number | null;
         address: CheckoutFulfillmentLocationAddress;
       }>[];
@@ -165,7 +163,6 @@ export type ResolveCheckoutDeliveryLineResult =
 export type ResolveCheckoutDeliveryFactsResult =
   | Readonly<{
       ok: true;
-      revision: string;
       lines: readonly ResolveCheckoutDeliveryLineResult[];
     }>
   | Readonly<{
@@ -212,8 +209,6 @@ export interface CheckoutMerchandiseMoney {
 export interface CheckoutMerchandisePriceSnapshot {
   price: CheckoutMerchandiseMoney;
   compareAtPrice: CheckoutMerchandiseMoney | null;
-  /** Stable revision of every Catalog row used to resolve this price. */
-  revision: string;
 }
 
 export interface CheckoutMerchandiseAvailabilitySnapshot {
@@ -228,8 +223,6 @@ export interface CheckoutMerchandiseAvailabilitySnapshot {
   continueSellingWhenOutOfStock: boolean;
   /** Null iff available; OUT_OF_STOCK means zero sellable units. */
   unavailabilityReason: "OUT_OF_STOCK" | "INSUFFICIENT_STOCK" | null;
-  /** Stable revision of inventory settings and stock rows used by the read. */
-  revision: string;
 }
 
 /** Catalog identities required by native discounts and Commerce Functions. */
@@ -263,7 +256,6 @@ export type CheckoutComponentPriceRuleSnapshot =
 /** Component configuration owned by the resolved parent variant. */
 export interface CheckoutMerchandiseComponentConfigurationSnapshot {
   configurationId: string;
-  revision: string;
 }
 
 /** Exact component item selected for a nested resolved variant. */
@@ -271,7 +263,6 @@ export interface CheckoutMerchandiseComponentSelectionSnapshot {
   configurationId: string;
   groupId: string;
   componentItemId: string;
-  revision: string;
   priceRule: CheckoutComponentPriceRuleSnapshot;
 }
 
@@ -283,8 +274,6 @@ export interface ResolvedCheckoutMerchandiseLine {
   quantity: number;
   purchase:
     { type: "ONE_TIME"; sellingPlanId: null } | { type: "SUBSCRIPTION"; sellingPlanId: string };
-  /** Revision of all non-price merchandise fields in this snapshot. */
-  revision: string;
   title: string;
   sku: string | null;
   imageUrl: string | null;
@@ -327,10 +316,6 @@ export type ResolveCheckoutMerchandiseErrorCode =
 export type ResolveCheckoutMerchandiseResult =
   | {
       ok: true;
-      /** Includes identity, content, media, physical, component and price rows. */
-      merchandiseRevision: string;
-      /** Includes inventory settings and every stock row used by the batch. */
-      availabilityRevision: string;
       /** Flat pre-order traversal; every requested line appears exactly once. */
       lines: ResolveCheckoutMerchandiseLineResolution[];
     }
@@ -724,8 +709,6 @@ export interface ProductSnapshot {
   id: string;
   /** Source: catalog.product.store_id. */
   storeId: string;
-  /** Source: catalog.product.revision. */
-  revision: number;
   /** Source: derived from catalog.product.published_at. */
   status: CatalogProductStatus;
   /** Source: catalog.product.published_at. */

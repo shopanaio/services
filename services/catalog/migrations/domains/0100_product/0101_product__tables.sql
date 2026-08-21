@@ -9,7 +9,6 @@ CREATE TABLE "catalog"."product" (
   "created_at" timestamp with time zone NOT NULL DEFAULT now(),
   "updated_at" timestamp with time zone NOT NULL DEFAULT now(),
   "deleted_at" timestamp with time zone,
-  "revision" integer NOT NULL DEFAULT 0,
   CONSTRAINT "product_pkey" PRIMARY KEY ("id"),
   CONSTRAINT "product_published_requires_handle"
     CHECK ("published_at" IS NULL OR "handle" IS NOT NULL),
@@ -38,9 +37,6 @@ CREATE INDEX "idx_product_updated_at"
 CREATE INDEX "idx_product_deleted_at"
   ON "catalog"."product" ("deleted_at")
   WHERE "deleted_at" IS NOT NULL;
-
-CREATE INDEX "idx_product_revision"
-  ON "catalog"."product" ("id", "revision");
 
 CREATE TABLE "catalog"."variant" (
   "store_id" uuid NOT NULL,

@@ -86,7 +86,6 @@ export class CheckoutRedemptionService {
         debtPoints: balance.debtPoints.toString(),
         expiringPoints: expiringPoints.toString(),
         nextExpiryAt: expiring[0]?.expiresAt ?? null,
-        revision: balance.revision,
       },
       tier:
         membership && tier
@@ -99,11 +98,6 @@ export class CheckoutRedemptionService {
               effectiveTo: membership.effectiveTo,
             }
           : null,
-      revision: canonicalHash({
-        accountRevision: account.revision,
-        balanceRevision: balance.revision,
-        membershipRevision: membership?.revision ?? null,
-      }),
     };
     return { found: true, account: snapshot };
   }
@@ -230,7 +224,6 @@ export class CheckoutRedemptionService {
     const quoteBase = {
       quoteId: randomUUID(),
       accountId: account.id,
-      accountRevision: balance.revision,
       program: this.programSnapshot(program, version),
       requestedPoints: params.requestedPoints,
       redeemablePoints: requested.toString(),
@@ -290,20 +283,12 @@ export class CheckoutRedemptionService {
             true,
           );
         }
-        if (balance.revision !== params.quote.accountRevision) {
-          return this.reserveRejected(
-            "CONCURRENT_BALANCE_CHANGE",
-            "Loyalty balance changed after the quote",
-            true,
-          );
-        }
         const operation = await this.points.moveWithLotAllocation({
           account,
           programVersionId: params.quote.program.programVersionId,
           kind: "RESERVE",
           source: "CHECKOUT",
           sourceId: params.context.checkoutId,
-          sourceRevision: String(params.context.checkoutVersion),
           idempotencyKey: `points:${params.idempotencyKey}`,
           requestHash: params.requestHash,
           correlationId: params.context.correlationId,
@@ -408,10 +393,7 @@ export class CheckoutRedemptionService {
             "Loyalty reservation expired before commit",
             false,
           );
-        if (
-          reservation.checkoutId !== params.checkoutId ||
-          reservation.checkoutVersion !== params.checkoutVersion
-        )
+        if (reservation.checkoutId !== params.checkoutId)
           return this.commitRejected(
             "CHECKOUT_MISMATCH",
             "Checkout does not match the reservation",
@@ -444,16 +426,12 @@ export class CheckoutRedemptionService {
           entries: [{ bucket: "RESERVED", pointsDelta: -reservation.points }],
           lifetime: { redeemed: reservation.points },
         });
-        const updated = await this.repository.reservation.updateState(
-          reservation.id,
-          reservation.revision,
-          {
-            status: "COMMITTED",
-            orderId: params.orderId,
-            orderRevision: params.orderRevision,
-            committedAt: params.committedAt,
-          },
-        );
+        const updated = await this.repository.reservation.updateState(reservation.id, {
+          status: "COMMITTED",
+          orderId: params.orderId,
+          orderRevision: params.orderRevision,
+          committedAt: params.committedAt,
+        });
         if (!updated)
           return this.commitRejected(
             "RESERVATION_NOT_ACTIVE",
@@ -636,11 +614,10 @@ export class CheckoutRedemptionService {
           lots: chunks,
         });
         if (alreadyRestored + points === reservation.points && reservation.status !== "REVERSED") {
-          const updated = await this.repository.reservation.updateState(
-            reservation.id,
-            reservation.revision,
-            { status: "REVERSED", reversedAt: params.occurredAt },
-          );
+          const updated = await this.repository.reservation.updateState(reservation.id, {
+            status: "REVERSED",
+            reversedAt: params.occurredAt,
+          });
           if (!updated)
             throw new LoyaltyDomainError(
               "RESERVATION_CONCURRENT_CHANGE",
@@ -723,7 +700,6 @@ export class CheckoutRedemptionService {
           kind: "RELEASE",
           source: target === "EXPIRED" ? "EXPIRATION" : "CHECKOUT",
           sourceId: reservation.id,
-          sourceRevision: String(reservation.revision),
           idempotencyKey: `points:${params.idempotencyKey}`,
           requestHash: params.requestHash,
           actorType: "SERVICE",
@@ -737,7 +713,6 @@ export class CheckoutRedemptionService {
         });
         const updated = await this.repository.reservation.updateState(
           reservation.id,
-          reservation.revision,
           target === "EXPIRED"
             ? { status: "EXPIRED", expiredAt: occurredAt }
             : { status: "RELEASED", releasedAt: occurredAt },
@@ -782,8 +757,6 @@ export class CheckoutRedemptionService {
     const { context, quote } = params;
     const { revision: _revision, ...base } = quote;
     if (canonicalHash(base) !== quote.revision) return "Quote revision is invalid";
-    if (quote.basedOnCheckoutVersion !== context.checkoutVersion)
-      return "Checkout version changed after quote";
     if (quote.basedOnPricingQuoteRevision !== context.pricingQuoteRevision)
       return "Pricing quote changed after loyalty quote";
     if (quote.basedOnCustomerEligibilityRevision !== context.customerEligibilityRevision)
@@ -799,7 +772,6 @@ export class CheckoutRedemptionService {
       programCode: program.code,
       programVersionId: version.id,
       programVersion: version.version,
-      programRevision: program.revision,
       currencyCode: program.defaultCurrencyCode,
       redemptionEnabled: version.redemptionEnabled,
       redeemPoints: version.redeemPoints.toString(),
@@ -807,11 +779,6 @@ export class CheckoutRedemptionService {
       minimumRedeemPoints: version.minimumRedeemPoints.toString(),
       maximumRedeemPointsPerOrder: version.maximumRedeemPointsPerOrder?.toString() ?? null,
       maximumOrderPercentageBps: version.maximumOrderPercentageBps,
-      policyRevision: canonicalHash({
-        id: version.id,
-        revision: version.revision,
-        rules: version.rules,
-      }),
     };
   }
 
@@ -914,7 +881,6 @@ export class CheckoutRedemptionService {
         currencyCode: reservation.currencyCode,
       },
       expiresAt: reservation.expiresAt,
-      reservationRevision: reservation.revision,
     };
   }
 

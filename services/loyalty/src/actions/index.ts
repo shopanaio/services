@@ -216,7 +216,6 @@ export class LoyaltyBrokerActions extends BrokerActions {
         }
         const quote = {
           entitlementId: entitlement.id,
-          entitlementRevision: entitlement.revision,
           accountId: account.id,
           rewardDefinitionId: definition.id,
           rewardType: definition.rewardType,
@@ -226,7 +225,6 @@ export class LoyaltyBrokerActions extends BrokerActions {
           expiresAt: entitlement.validTo,
           revision: canonicalHash({
             entitlementId: entitlement.id,
-            revision: entitlement.revision,
             checkoutId: params.context.checkoutId,
             pricingQuoteRevision: params.context.pricingQuoteRevision,
             appliedDiscountIds: params.appliedDiscountIds,
@@ -283,7 +281,6 @@ export class LoyaltyBrokerActions extends BrokerActions {
         return {
           status: "RESERVED" as const,
           entitlementId: updated.id,
-          entitlementRevision: updated.revision,
         };
       } catch (error) {
         return rewardRejected(error);
@@ -406,7 +403,6 @@ export class LoyaltyBrokerActions extends BrokerActions {
             return {
               status: "NOOP",
               entitlementId: current.id,
-              entitlementRevision: current.revision,
             };
           throw new LoyaltyDomainError(
             "CHECKOUT_MISMATCH",
@@ -421,7 +417,7 @@ export class LoyaltyBrokerActions extends BrokerActions {
           actorType: "SERVICE",
           reasonCode: `CHECKOUT_REWARD_${status}`,
         });
-        return { status, entitlementId: updated.id, entitlementRevision: updated.revision };
+        return { status, entitlementId: updated.id };
       } catch (error) {
         return rewardRejected(error);
       }

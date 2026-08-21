@@ -78,16 +78,6 @@ export class ReviewReplyUpdateScript extends BaseScript<
     if (acquired.status === "not_found") {
       return sectionErrors([{ message: "Reply not found", code: "NOT_FOUND", field: ["replyId"] }]);
     }
-    if (acquired.status === "conflict") {
-      return sectionErrors([
-        {
-          message: "Reply was modified by another user",
-          code: "REVISION_CONFLICT",
-          field: ["expectedRevision"],
-        },
-      ]);
-    }
-
     if (mapped.translations) {
       await this.repository.content.replaceTranslations(input.replyId, mapped.translations);
     }

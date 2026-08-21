@@ -18,12 +18,12 @@ import {
   type ModerationCase,
   type ModerationEvent,
   type ModerationSignal,
-  type NewContentRevision,
   type NewModerationCase,
   type NewModerationEvent,
+  type NewContentRevision,
   type NewModerationSignal,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const moderationCaseRelayQuery = createRelayQuery(
   createQuery(moderationCase)
@@ -343,23 +343,15 @@ export class ModerationRepository extends BaseRepository {
   @Transactional()
   async updateCase(
     id: string,
-    expectedUpdatedAt: string,
     patch: ModerationCasePatch,
-  ): Promise<OptimisticMutationResult<ModerationCase>> {
+  ): Promise<MutationResult<ModerationCase>> {
     const rows = await this.connection
       .update(moderationCase)
       .set({ ...patch, updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(moderationCase.storeId, this.storeId),
-          eq(moderationCase.id, id),
-          eq(moderationCase.updatedAt, expectedUpdatedAt),
-        ),
-      )
+      .where(and(eq(moderationCase.storeId, this.storeId), eq(moderationCase.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findCaseById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @Transactional()

@@ -23,7 +23,6 @@ CREATE TABLE listing.recommendation_order_fact (
   store_id uuid NOT NULL,
   order_id uuid NOT NULL,
   state varchar(16) NOT NULL,
-  order_revision integer NOT NULL,
   committed_at timestamptz NOT NULL,
   occurred_at timestamptz NOT NULL,
   payload_hash varchar(64) NOT NULL,
@@ -34,8 +33,6 @@ CREATE TABLE listing.recommendation_order_fact (
     UNIQUE (event_id),
   CONSTRAINT recommendation_order_fact_ingestion_position_unique
     UNIQUE (store_id, ingestion_position),
-  CONSTRAINT recommendation_order_fact_order_revision_unique
-    UNIQUE (order_id, order_revision),
   CONSTRAINT chk_recommendation_order_fact_uuid_v7
     CHECK (
       substring(order_fact_id::text FROM 15 FOR 1) = '7'
@@ -45,8 +42,6 @@ CREATE TABLE listing.recommendation_order_fact (
     ),
   CONSTRAINT chk_recommendation_order_fact_state
     CHECK (state IN ('COMMITTED', 'REVERSED')),
-  CONSTRAINT chk_recommendation_order_fact_revision
-    CHECK (order_revision > 0),
   CONSTRAINT chk_recommendation_order_fact_ingestion_position
     CHECK (ingestion_position > 0),
   CONSTRAINT chk_recommendation_order_fact_timestamps
@@ -59,14 +54,12 @@ CREATE INDEX recommendation_order_fact_calculation_scan_idx
   ON listing.recommendation_order_fact (
     store_id,
     ingestion_position,
-    order_id,
-    order_revision DESC
+    order_id
   );
 
 CREATE INDEX recommendation_order_fact_order_timeline_idx
   ON listing.recommendation_order_fact (
     order_id,
-    order_revision DESC,
     ingestion_position DESC
   );
 

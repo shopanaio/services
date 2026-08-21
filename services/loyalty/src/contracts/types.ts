@@ -259,7 +259,6 @@ export interface LoyaltyProgramContract {
   status: LoyaltyProgramStatus;
   isDefault: boolean;
   defaultCurrencyCode: string;
-  revision: number;
   metadata: LoyaltyJsonObject;
   createdAt: string;
   updatedAt: string;
@@ -272,7 +271,6 @@ export interface LoyaltyProgramVersionContract {
   programId: string;
   version: number;
   status: LoyaltyProgramVersionStatus;
-  revision: number;
   effectiveFrom: string | null;
   effectiveTo: string | null;
   earningEnabled: boolean;
@@ -309,7 +307,6 @@ export interface LoyaltyBalanceContract {
   lifetimeRedeemedPoints: string;
   lifetimeExpiredPoints: string;
   lifetimeAdjustedPoints: string;
-  revision: number;
   updatedAt: string;
 }
 
@@ -319,7 +316,6 @@ export interface LoyaltyAccountContract {
   programId: string;
   customerId: string;
   status: LoyaltyAccountStatus;
-  revision: number;
   mergedIntoAccountId: string | null;
   suspendedReason: string | null;
   openedAt: string;
@@ -408,7 +404,6 @@ export interface LoyaltyReservationContract {
   committedAt: string | null;
   releasedAt: string | null;
   reversedAt: string | null;
-  revision: number;
   createdAt: string;
   updatedAt: string;
 }
@@ -529,7 +524,6 @@ export interface LoyaltyRewardEntitlementContract {
   validFrom: string;
   validTo: string | null;
   externalReference: string | null;
-  revision: number;
 }
 
 export interface LoyaltyMonetaryWalletContract {
@@ -541,7 +535,6 @@ export interface LoyaltyMonetaryWalletContract {
   currencyCode: string;
   status: LoyaltyMonetaryWalletStatus;
   mergedIntoWalletId: string | null;
-  revision: number;
   openedAt: string;
   closedAt: string | null;
   updatedAt: string;
@@ -558,7 +551,6 @@ export interface LoyaltyTierMembershipContract {
   qualifiedAt: string;
   effectiveFrom: string;
   effectiveTo: string | null;
-  revision: number;
   createdAt: string;
   updatedAt: string;
 }

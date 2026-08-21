@@ -11,15 +11,13 @@ This baseline models the four native discount flows represented by the Admin UI 
 
 Every kind supports code or automatic activation where the product contract allows it. Shared
 capabilities include buyer eligibility, minimum requirements, usage limits, customer limits, sales
-channels, tags, combinations, scheduling, redemption accounting, optimistic revisions, and external
-synchronization.
+channels, tags, combinations, scheduling, redemption accounting, and external synchronization.
 
 ## Aggregate boundaries
 
 `pricing.discount` is the tenant-scoped aggregate root. It owns lifecycle, activation method, native
-kind/class, schedule, currency, purchase modes, aggregate usage limits, and an optimistic
-concurrency revision. Configuration updates advance the revision but do not create immutable
-configuration snapshots.
+kind/class, schedule, currency, purchase modes, and aggregate usage limits. Configuration updates do
+not create immutable configuration snapshots.
 
 Behavior-specific data is normalized into exactly one applicable subtype:
 

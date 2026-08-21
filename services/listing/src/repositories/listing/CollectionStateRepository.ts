@@ -5,9 +5,7 @@ import type {
 } from "@shopana/broker-types";
 import {
   decodeCollectionRuleTerm,
-  COLLECTION_LISTING_CONTRACT_VERSION,
   hashCanonicalCollectionRulesV1,
-  hashCollectionListingPayloadV1,
   normalizeCanonicalCollectionRulesV1,
 } from "@shopana/broker-types";
 import { BaseRepository } from "../BaseRepository.js";
@@ -76,25 +74,6 @@ export class CollectionStateRepository extends BaseRepository {
         if (hashCanonicalCollectionRulesV1(rules) !== state.rulesHash) {
           throw new Error("Rules hash does not match canonical rule JSON");
         }
-        const payloadHash = hashCollectionListingPayloadV1({
-          snapshotVersion: COLLECTION_LISTING_CONTRACT_VERSION,
-          state: "live",
-          id: state.collectionId,
-          storeId: state.storeId,
-          listingRevision: state.listingRevision,
-          type: state.collectionType,
-          defaultSort: state.defaultSort,
-          defaultSortDirection: state.defaultSortDirection,
-          publishedAt: state.publishedAt,
-          effectiveFrom: state.effectiveFrom,
-          effectiveTo: state.effectiveTo,
-          rulesHash: state.rulesHash,
-          rules,
-          listingUpdatedAt: state.sourceUpdatedAt,
-        });
-        if (payloadHash !== state.payloadHash) {
-          throw new Error("Live collection payload hash does not match");
-        }
       } catch (error) {
         issues.push({
           code: "INVALID_LIVE_STATE",
@@ -105,16 +84,8 @@ export class CollectionStateRepository extends BaseRepository {
     }
     for (const tombstone of tombstones) {
       try {
-        const payloadHash = hashCollectionListingPayloadV1({
-          snapshotVersion: COLLECTION_LISTING_CONTRACT_VERSION,
-          state: "deleted",
-          id: tombstone.collectionId,
-          storeId: tombstone.storeId,
-          listingRevision: tombstone.listingRevision,
-          deletedAt: tombstone.deletedAt,
-        });
-        if (payloadHash !== tombstone.payloadHash) {
-          throw new Error("Collection tombstone payload hash does not match");
+        if (!/^sha256:v1:[0-9a-f]{64}$/.test(tombstone.payloadHash)) {
+          throw new Error("Collection tombstone payload hash is invalid");
         }
       } catch (error) {
         issues.push({
@@ -280,21 +251,15 @@ export class CollectionStateRepository extends BaseRepository {
       this.findTombstone(snapshot.id),
     ]);
     if (tombstone) {
-      if (tombstone.listingRevision > snapshot.listingRevision) {
-        return "ignored_stale";
-      }
+      if (tombstone.eventSequence > eventSequence) return "ignored_stale";
       throw new CollectionProjectionConflictError(
         "A deleted collection cannot be restored by a live snapshot",
       );
     }
-    if (current && current.listingRevision > snapshot.listingRevision) {
-      return "ignored_stale";
-    }
-    if (current?.listingRevision === snapshot.listingRevision) {
+    if (current && current.eventSequence > eventSequence) return "ignored_stale";
+    if (current?.eventSequence === eventSequence) {
       if (current.payloadHash !== snapshot.payloadHash) {
-        throw new CollectionProjectionConflictError(
-          "Collection payload changed without a listing revision change",
-        );
+        throw new CollectionProjectionConflictError("Collection event payload changed");
       }
       await this.observeLiveEventSequence(snapshot.id, eventSequence);
       return "noop";
@@ -306,7 +271,6 @@ export class CollectionStateRepository extends BaseRepository {
       .values({
         storeId: this.storeId,
         collectionId: snapshot.id,
-        listingRevision: snapshot.listingRevision,
         collectionType: snapshot.type,
         defaultSort: snapshot.defaultSort,
         defaultSortDirection: snapshot.defaultSortDirection,
@@ -323,7 +287,6 @@ export class CollectionStateRepository extends BaseRepository {
       .onConflictDoUpdate({
         target: [collectionState.storeId, collectionState.collectionId],
         set: {
-          listingRevision: snapshot.listingRevision,
           collectionType: snapshot.type,
           defaultSort: snapshot.defaultSort,
           defaultSortDirection: snapshot.defaultSortDirection,
@@ -350,25 +313,17 @@ export class CollectionStateRepository extends BaseRepository {
       this.findState(snapshot.id),
       this.findTombstone(snapshot.id),
     ]);
-    if (tombstone && tombstone.listingRevision > snapshot.listingRevision) {
-      return "ignored_stale";
-    }
-    if (tombstone?.listingRevision === snapshot.listingRevision) {
+    if (tombstone && tombstone.eventSequence > eventSequence) return "ignored_stale";
+    if (tombstone?.eventSequence === eventSequence) {
       if (tombstone.payloadHash !== snapshot.payloadHash) {
-        throw new CollectionProjectionConflictError(
-          "Collection tombstone changed without a listing revision change",
-        );
+        throw new CollectionProjectionConflictError("Collection tombstone event payload changed");
       }
       await this.observeTombstoneEventSequence(snapshot.id, eventSequence);
       return "noop";
     }
-    if (current && current.listingRevision >= snapshot.listingRevision) {
-      if (current.listingRevision > snapshot.listingRevision) {
-        return "ignored_stale";
-      }
-      throw new CollectionProjectionConflictError(
-        "Live and deleted collection states share a listing revision",
-      );
+    if (current && current.eventSequence > eventSequence) return "ignored_stale";
+    if (current?.eventSequence === eventSequence) {
+      throw new CollectionProjectionConflictError("Live and deleted collection events overlap");
     }
 
     await this.connection
@@ -376,7 +331,6 @@ export class CollectionStateRepository extends BaseRepository {
       .values({
         storeId: this.storeId,
         collectionId: snapshot.id,
-        listingRevision: snapshot.listingRevision,
         payloadHash: snapshot.payloadHash,
         eventSequence,
         deletedAt: snapshot.deletedAt,
@@ -385,7 +339,6 @@ export class CollectionStateRepository extends BaseRepository {
       .onConflictDoUpdate({
         target: [collectionTombstone.storeId, collectionTombstone.collectionId],
         set: {
-          listingRevision: snapshot.listingRevision,
           payloadHash: snapshot.payloadHash,
           eventSequence,
           deletedAt: snapshot.deletedAt,

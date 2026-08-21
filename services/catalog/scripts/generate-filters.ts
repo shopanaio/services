@@ -56,13 +56,13 @@ const productListFieldTypes: Record<string, GraphQLFieldType> = {
 const productWhere = generateWhereInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt"],
 });
 
 const productOrderBy = generateOrderByInputType(productRelayQuery, "Product", {
   includeDescriptions: true,
   fieldTypes: productListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt"],
 });
 
 const vendorFieldTypes: Record<string, GraphQLFieldType> = {
@@ -129,13 +129,13 @@ const categoryListFieldTypes: Record<string, GraphQLFieldType> = {
 const categoryWhere = generateWhereInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
   fieldTypes: categoryListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt"],
 });
 
 const categoryOrderBy = generateOrderByInputType(categoryRelayQuery, "Category", {
   includeDescriptions: true,
   fieldTypes: categoryListFieldTypes,
-  excludeFields: ["storeId", "deletedAt", "revision"],
+  excludeFields: ["storeId", "deletedAt"],
 });
 
 const tagListFieldTypes: Record<string, GraphQLFieldType> = {

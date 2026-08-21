@@ -10,7 +10,6 @@ type LoyaltyProgram implements Node @key(fields: "id") {
   status: LoyaltyProgramStatus!
   isDefault: Boolean!
   defaultCurrencyCode: CurrencyCode!
-  revision: Int!
   metadata: JSON!
   activeVersion: LoyaltyProgramVersion
   versions: [LoyaltyProgramVersion!]!
@@ -24,7 +23,6 @@ type LoyaltyProgramVersion implements Node @key(fields: "id") {
   program: LoyaltyProgram!
   version: Int!
   status: LoyaltyProgramVersionStatus!
-  revision: Int!
   effectiveFrom: DateTime
   effectiveTo: DateTime
   earningEnabled: Boolean!

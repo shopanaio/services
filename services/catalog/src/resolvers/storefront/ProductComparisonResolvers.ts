@@ -20,7 +20,6 @@ interface GroupInput {
   title?: string;
 }
 interface CustomerData {
-  revision: number;
   groups: GroupInput[];
   itemCount: number;
 }
@@ -96,13 +95,9 @@ export class CustomerProductComparisonsResolver extends CatalogType<string, Cust
       });
     }
     return {
-      revision: selection.revision,
       groups,
       itemCount: groups.reduce((sum, group) => sum + group.columns.length, 0),
     };
-  }
-  revision() {
-    return this.$get("revision");
   }
   async nodes() {
     return ((await this.$get("groups")) ?? []).map(

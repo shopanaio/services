@@ -23,7 +23,6 @@ import { PRICING_DISCOUNT_TARGETS } from "./targetDefinitions.js";
 type FunctionRunRequest<TInput> = {
   storeId: string;
   bindings: readonly CommerceFunctionBindingRef[];
-  bindingSetRevision: string;
   input: TInput;
   executionId: string;
   correlationId?: string;

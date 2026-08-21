@@ -31,7 +31,6 @@ SELECT
   discount.applies_on_subscription,
   discount.starts_at,
   discount.ends_at,
-  discount.revision,
   COALESCE(usage_counter.reserved_count, 0)::bigint AS reserved_usage_count,
   (
     COALESCE(usage_counter.committed_count, 0)

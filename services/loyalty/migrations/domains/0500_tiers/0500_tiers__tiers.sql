@@ -90,7 +90,6 @@ CREATE TABLE "loyalty"."tier_membership" (
   "qualified_at" timestamptz NOT NULL,
   "effective_from" timestamptz NOT NULL,
   "effective_to" timestamptz,
-  "revision" integer NOT NULL DEFAULT 1,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
@@ -109,8 +108,7 @@ CREATE TABLE "loyalty"."tier_membership" (
   CONSTRAINT "loyalty_tier_membership_status_check" CHECK (
     ("status" = 'ACTIVE' AND ("effective_to" IS NULL OR "effective_to" > "effective_from"))
     OR ("status" <> 'ACTIVE' AND "effective_to" IS NOT NULL)
-  ),
-  CONSTRAINT "loyalty_tier_membership_revision_check" CHECK ("revision" > 0)
+  )
 );
 
 CREATE FUNCTION "loyalty"."guard_tier_mutation"()

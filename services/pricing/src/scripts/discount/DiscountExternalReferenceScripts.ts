@@ -109,14 +109,6 @@ export class DiscountExternalReferenceUpdateScript extends BaseScript<
   protected async execute(
     params: DiscountExternalReferenceUpdateParams,
   ): Promise<DiscountExternalReferenceUpdateResult> {
-    if (!isDateTime(params.expectedUpdatedAt)) {
-      return errorResult({
-        message: "Expected updated time must be a valid date",
-        code: "INVALID_DATE",
-        field: ["expectedUpdatedAt"],
-      });
-    }
-
     const current = await this.repository.discount.findExternalReferenceById(
       params.externalReferenceId,
     );
@@ -127,10 +119,6 @@ export class DiscountExternalReferenceUpdateScript extends BaseScript<
         field: ["externalReferenceId"],
       });
     }
-    if (current.updatedAt !== params.expectedUpdatedAt) {
-      return versionConflict("expectedUpdatedAt");
-    }
-
     const patch: DiscountExternalReferencePatch = {};
     const errors: UserError[] = [];
     const { identity, sync } = params.operations;
@@ -215,7 +203,6 @@ export class DiscountExternalReferenceUpdateScript extends BaseScript<
     try {
       const updated = await this.repository.discount.updateExternalReference(
         params.externalReferenceId,
-        params.expectedUpdatedAt,
         patch,
       );
       if (updated.status === "applied") {
@@ -231,13 +218,11 @@ export class DiscountExternalReferenceUpdateScript extends BaseScript<
           userErrors: [],
         };
       }
-      return updated.status === "conflict"
-        ? versionConflict("expectedUpdatedAt")
-        : errorResult({
-            message: "External reference not found",
-            code: "NOT_FOUND",
-            field: ["externalReferenceId"],
-          });
+      return errorResult({
+        message: "External reference not found",
+        code: "NOT_FOUND",
+        field: ["externalReferenceId"],
+      });
     } catch (error) {
       if (isDuplicate(error)) {
         return duplicateResult(["operations", "identity", "externalId"]);
@@ -259,13 +244,6 @@ export class DiscountExternalReferenceDeleteScript extends BaseScript<
   protected async execute(
     params: DiscountExternalReferenceDeleteParams,
   ): Promise<DiscountExternalReferenceDeleteResult> {
-    if (!isDateTime(params.expectedUpdatedAt)) {
-      return errorResult({
-        message: "Expected updated time must be a valid date",
-        code: "INVALID_DATE",
-        field: ["input", "expectedUpdatedAt"],
-      });
-    }
     const deleted = await this.repository.discount.deleteExternalReference(params);
     if (deleted.status === "not_found") {
       return errorResult({
@@ -273,9 +251,6 @@ export class DiscountExternalReferenceDeleteScript extends BaseScript<
         code: "NOT_FOUND",
         field: ["input", "id"],
       });
-    }
-    if (deleted.status === "conflict") {
-      return versionConflict("input", "expectedUpdatedAt");
     }
     this.logger.info(
       {
@@ -340,16 +315,6 @@ function nullSyncError(field: string): UserError {
     code: "INVALID_VALUE",
     field: ["operations", "sync", field],
   };
-}
-
-function versionConflict(...field: string[]): {
-  userErrors: UserError[];
-} {
-  return errorResult({
-    message: "External reference was modified by another operation",
-    code: "VERSION_CONFLICT",
-    field,
-  });
 }
 
 function duplicateResult(field: string[]): { userErrors: UserError[] } {

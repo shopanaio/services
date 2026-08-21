@@ -14,20 +14,11 @@ export class CollectionDeleteScript extends BaseScript<
         userErrors: [{ message: "Collection not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
-    if (existing.revision >= 2_147_483_646 || existing.listingRevision >= 2_147_483_646) {
-      return {
-        deletedCollectionId: undefined,
-        userErrors: [
-          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
-        ],
-      };
-    }
     const syncOperation =
       existing.type === "manual"
         ? await this.repository.collectionSync.clearCollection({
             workflowId: `${this.context.requestId}:collection:delete`,
             collectionId: params.id,
-            collectionRevision: existing.revision + 1,
           })
         : null;
     const deleted = await this.repository.collection.softDelete(params.id);
@@ -36,8 +27,6 @@ export class CollectionDeleteScript extends BaseScript<
     }
     return {
       deletedCollectionId: params.id,
-      revision: deleted.revision,
-      listingRevision: deleted.listingRevision,
       deletedAt: deleted.deletedAt ?? undefined,
       syncOperationId: syncOperation?.operationId ?? undefined,
       userErrors: [],

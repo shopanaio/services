@@ -10,7 +10,6 @@ import type {
 
 export interface AdminCollectionResolverProps {
   id: string;
-  listingRevision: number;
 }
 
 interface AdminCollectionProductsArgs {
@@ -30,7 +29,7 @@ export class CollectionResolver extends ListingType<AdminCollectionResolverProps
 
   async products(args: AdminCollectionProductsArgs) {
     const state = await this.$ctx.kernel.repository.collectionState.findState(this.$props.id);
-    if (!state || state.listingRevision !== this.$props.listingRevision) {
+    if (!state) {
       throw new GraphQLError("Collection index is not ready", {
         extensions: { code: "COLLECTION_INDEX_NOT_READY" },
       });
@@ -44,7 +43,6 @@ export class CollectionResolver extends ListingType<AdminCollectionResolverProps
             universe: "admin",
             definitionKey: {
               kind: "persisted",
-              listingRevision: state.listingRevision,
               rulesHash: state.rulesHash,
             },
           })
@@ -60,7 +58,6 @@ export class CollectionResolver extends ListingType<AdminCollectionResolverProps
       resolvedScope: {
         kind: "collection",
         collectionId: this.$props.id,
-        listingRevision: state.listingRevision,
         rulesHash: state.rulesHash,
         productBitmap,
         membershipBitmap: evaluated?.membershipBitmap ?? productBitmap,

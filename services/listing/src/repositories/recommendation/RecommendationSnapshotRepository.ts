@@ -75,7 +75,7 @@ export class RecommendationSnapshotRepository extends BaseRepository {
     const existingRows = await this.connection.execute<RecommendationSnapshot>(sql`
       SELECT snapshot_id AS "snapshotId", store_id AS "storeId",
         anchor_product_id AS "anchorProductId", placement, status, strategy,
-        policy_id AS "policyId", policy_version AS "policyVersion",
+        policy_id AS "policyId",
         calculation_run_id AS "calculationRunId", ranker_type AS "rankerType",
         model_version AS "modelVersion", build_key AS "buildKey",
         source_watermarks AS "sourceWatermarks", item_count AS "itemCount",
@@ -99,12 +99,11 @@ export class RecommendationSnapshotRepository extends BaseRepository {
         status: "BUILDING",
         strategy: input.policy.strategy,
         policyId: input.policy.policyId,
-        policyVersion: input.policy.version,
         calculationRunId: input.buildInputs.calculationRunId,
         rankerType: "RULES",
         modelVersion: input.buildInputs.modelVersion,
         buildKey: input.buildKey,
-        sourceWatermarks: { version: 1, ...input.buildInputs },
+        sourceWatermarks: input.buildInputs,
         itemCount: 0,
         contentHash: null,
         generatedAt: input.buildInputs.asOf,
@@ -124,7 +123,7 @@ export class RecommendationSnapshotRepository extends BaseRepository {
     const lockedRows = await this.connection.execute<RecommendationSnapshot>(sql`
       SELECT snapshot_id AS "snapshotId", store_id AS "storeId",
         anchor_product_id AS "anchorProductId", placement, status, strategy,
-        policy_id AS "policyId", policy_version AS "policyVersion",
+        policy_id AS "policyId",
         calculation_run_id AS "calculationRunId", ranker_type AS "rankerType",
         model_version AS "modelVersion", build_key AS "buildKey",
         source_watermarks AS "sourceWatermarks", item_count AS "itemCount",
@@ -229,7 +228,7 @@ export class RecommendationSnapshotRepository extends BaseRepository {
     const policyRows = await this.connection.execute<RecommendationPlacementPolicy>(sql`
       SELECT policy_id AS "policyId", store_id AS "storeId", placement, enabled,
         strategy, minimum_results AS "minimumResults", maximum_results AS "maximumResults",
-        fallback_chain AS "fallbackChain", version, created_at AS "createdAt", updated_at AS "updatedAt"
+        fallback_chain AS "fallbackChain", created_at AS "createdAt", updated_at AS "updatedAt"
       FROM listing.recommendation_placement_policy
       WHERE store_id = ${this.storeId}::uuid AND placement = ${input.placement}
       FOR UPDATE
@@ -254,7 +253,7 @@ export class RecommendationSnapshotRepository extends BaseRepository {
     const snapshotRows = await this.connection.execute<RecommendationSnapshot>(sql`
       SELECT snapshot_id AS "snapshotId", store_id AS "storeId",
         anchor_product_id AS "anchorProductId", placement, status, strategy,
-        policy_id AS "policyId", policy_version AS "policyVersion",
+        policy_id AS "policyId",
         calculation_run_id AS "calculationRunId", ranker_type AS "rankerType",
         model_version AS "modelVersion", build_key AS "buildKey",
         source_watermarks AS "sourceWatermarks", item_count AS "itemCount",

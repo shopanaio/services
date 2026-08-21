@@ -12,7 +12,7 @@ import {
   type NewQuestionSubscription,
   type QuestionSubscription,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const questionSubscriptionRelayQuery = createRelayQuery(
   createQuery(questionSubscription)
@@ -137,22 +137,14 @@ export class QuestionSubscriptionRepository extends BaseRepository {
   @Transactional()
   async update(
     id: string,
-    expectedUpdatedAt: string,
     patch: QuestionSubscriptionPatch,
-  ): Promise<OptimisticMutationResult<QuestionSubscription>> {
+  ): Promise<MutationResult<QuestionSubscription>> {
     const rows = await this.connection
       .update(questionSubscription)
       .set({ ...patch, updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(questionSubscription.storeId, this.storeId),
-          eq(questionSubscription.id, id),
-          eq(questionSubscription.updatedAt, expectedUpdatedAt),
-        ),
-      )
+      .where(and(eq(questionSubscription.storeId, this.storeId), eq(questionSubscription.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 }

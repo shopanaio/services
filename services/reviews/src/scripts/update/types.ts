@@ -60,7 +60,6 @@ export interface StoreConfigurationUpdateResult {
 
 export interface QuestionSubscriptionUpdateParams {
   subscriptionId: string;
-  expectedUpdatedAt: string;
   operations?: ProductQuestionSubscriptionUpdateInput | null;
 }
 
@@ -90,7 +89,6 @@ export interface ContentRevisionRestoreResult {
 
 export interface ReviewRequestUpdateParams {
   reviewRequestId: string;
-  expectedUpdatedAt: string;
   operations?: ReviewRequestUpdateInput | null;
 }
 
@@ -101,7 +99,6 @@ export interface ReviewRequestUpdateResult {
 
 export interface ContentReportUpdateParams {
   contentReportId: string;
-  expectedUpdatedAt: string;
   operations?: ReviewContentReportUpdateInput | null;
 }
 
@@ -112,7 +109,6 @@ export interface ContentReportUpdateResult {
 
 export interface ModerationCaseUpdateParams {
   moderationCaseId: string;
-  expectedUpdatedAt: string;
   operations?: ReviewModerationCaseUpdateInput | null;
 }
 
@@ -123,7 +119,6 @@ export interface ModerationCaseUpdateResult {
 
 export interface ContentExternalReferenceUpdateParams {
   externalReferenceId: string;
-  expectedUpdatedAt: string;
   operations?: ReviewContentExternalReferenceUpdateInput | null;
 }
 

@@ -36,12 +36,12 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(input: ReviewUpdateWorkflowInput): Promise<ReviewUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(input.reviewId);
-    if ("error" in acquired) {
+    const review = await this.stepFindReview(input.reviewId);
+    if ("error" in review) {
       return {
         review: null,
         operationResults: [],
-        userErrors: [acquired.error],
+        userErrors: [review.error],
       };
     }
 
@@ -69,23 +69,22 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
     if (operationResults.some((result) => result.applied)) {
       await this.stepRefreshProductReviewSummary({
         context: input.context,
-        productId: acquired.productId,
+        productId: review.productId,
       });
     }
 
     return {
-      review: { id: input.reviewId, revision: acquired.revision },
+      review: { id: input.reviewId },
       operationResults,
       userErrors: operationResults.flatMap((result) => result.errors),
     };
   }
 
   @WorkflowStep()
-  private async stepAcquireRevision(
+  private async stepFindReview(
     reviewId: string,
   ): Promise<
-    | { revision: number; productId: string }
-    | { error: { message: string; code: string; field: string[] } }
+    { productId: string } | { error: { message: string; code: string; field: string[] } }
   > {
     const review = await this.kernel.repository.review.findById(reviewId);
     if (!review) {
@@ -98,29 +97,7 @@ export class ReviewUpdateWorkflow extends ReviewsMutationWorkflow {
       };
     }
 
-    const acquired = await this.kernel.repository.content.update(reviewId, {});
-    if (acquired.status === "applied") {
-      return {
-        revision: acquired.value.revision,
-        productId: review.review.productId,
-      };
-    }
-    if (acquired.status === "conflict") {
-      return {
-        error: {
-          message: "Review was modified by another user",
-          code: "REVISION_CONFLICT",
-          field: ["expectedRevision"],
-        },
-      };
-    }
-    return {
-      error: {
-        message: "Review not found",
-        code: "NOT_FOUND",
-        field: ["reviewId"],
-      },
-    };
+    return { productId: review.review.productId };
   }
 
   private runOperation(

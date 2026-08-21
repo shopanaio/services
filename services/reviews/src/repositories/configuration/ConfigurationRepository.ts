@@ -1,6 +1,6 @@
 import { createQuery, createRelayQuery, type InferRelayInput } from "@shopana/drizzle-query";
 import { ReadOnly, Transactional } from "@shopana/shared-kernel";
-import { and, asc, eq, inArray, isNull, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { decodeRatingCriterionGlobalId } from "../global-id-where-mappers.js";
 import {
@@ -17,7 +17,7 @@ import {
   type RatingCriterionTranslation,
   type StoreConfiguration,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const ratingCriterionRelayQuery = createRelayQuery(
   createQuery(ratingCriterion)
@@ -110,20 +110,18 @@ export class ConfigurationRepository extends BaseRepository {
     id: string,
 
     patch: StoreConfigurationPatch,
-  ): Promise<OptimisticMutationResult<StoreConfiguration>> {
+  ): Promise<MutationResult<StoreConfiguration>> {
     const rows = await this.connection
       .update(storeConfiguration)
       .set({
         ...patch,
-        revision: sql`${storeConfiguration.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(storeConfiguration.storeId, this.storeId), eq(storeConfiguration.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
 
-    const current = await this.findStoreConfigurationById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @ReadOnly()
@@ -299,9 +297,8 @@ export class ConfigurationRepository extends BaseRepository {
   @Transactional()
   async updateCriterion(
     id: string,
-    expectedUpdatedAt: string,
     patch: RatingCriterionPatch,
-  ): Promise<OptimisticMutationResult<RatingCriterion>> {
+  ): Promise<MutationResult<RatingCriterion>> {
     const rows = await this.connection
       .update(ratingCriterion)
       .set({ ...patch, updatedAt: new Date().toISOString() })
@@ -309,18 +306,16 @@ export class ConfigurationRepository extends BaseRepository {
         and(
           eq(ratingCriterion.storeId, this.storeId),
           eq(ratingCriterion.id, id),
-          eq(ratingCriterion.updatedAt, expectedUpdatedAt),
           isNull(ratingCriterion.deletedAt),
         ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findCriterionRowById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @Transactional()
-  async updateCriterionWithinVersion(
+  async updateCriterionFields(
     id: string,
     patch: RatingCriterionPatch,
   ): Promise<RatingCriterion | null> {
@@ -406,13 +401,11 @@ export class ConfigurationRepository extends BaseRepository {
   @Transactional()
   async deleteCriterion(input: {
     id: string;
-    expectedUpdatedAt: string;
     permanent?: boolean;
-  }): Promise<OptimisticMutationResult<RatingCriterion>> {
+  }): Promise<MutationResult<RatingCriterion>> {
     const conditions = and(
       eq(ratingCriterion.storeId, this.storeId),
       eq(ratingCriterion.id, input.id),
-      eq(ratingCriterion.updatedAt, input.expectedUpdatedAt),
       isNull(ratingCriterion.deletedAt),
     );
     const rows = input.permanent
@@ -426,8 +419,7 @@ export class ConfigurationRepository extends BaseRepository {
           .where(conditions)
           .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findCriterionRowById(input.id, true);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   private async findStoreConfigurationById(id: string): Promise<StoreConfiguration | null> {

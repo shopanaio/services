@@ -50,7 +50,6 @@ export class ComparisonRepository extends BaseRepository {
         id: input.id,
         handle: input.handle,
         enabled: input.enabled,
-        revision: 0,
         createdAt: now,
         updatedAt: now,
       })
@@ -67,7 +66,6 @@ export class ComparisonRepository extends BaseRepository {
       .set({
         handle: input.handle,
         enabled: input.enabled,
-        revision: sql`${comparisonProfile.revision} + 1`,
         updatedAt: now,
       })
       .where(and(eq(comparisonProfile.storeId, this.storeId), eq(comparisonProfile.id, input.id)))
@@ -414,10 +412,10 @@ export class ComparisonRepository extends BaseRepository {
     }
     const [updated] = await this.connection
       .update(product)
-      .set({ revision: sql`${product.revision} + 1`, updatedAt: now })
+      .set({ updatedAt: now })
       .where(and(eq(product.storeId, this.storeId), eq(product.id, productId)))
       .returning();
-    if (!updated) throw new Error("Product revision update returned no row");
+    if (!updated) throw new Error("Product update returned no row");
     return updated;
   }
 

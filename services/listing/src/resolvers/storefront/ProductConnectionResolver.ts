@@ -158,7 +158,6 @@ export class ProductConnectionResolver extends ListingType<
           entryPoint: this.$props.entryPoint,
           categoryId: this.$props.categoryId ?? null,
           collectionId: this.$props.collectionId ?? null,
-          collectionListingRevision: this.$props.collectionListingRevision ?? null,
           queryProvided: !!this.$props.query?.trim(),
           first: this.$props.first ?? null,
           afterProvided: !!this.$props.after,

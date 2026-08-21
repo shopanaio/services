@@ -152,7 +152,6 @@ export const tierMemberships = loyaltySchema.table(
       withTimezone: true,
       mode: "string",
     }),
-    revision: integer("revision").notNull().default(1),
     createdAt: createdAt(),
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
@@ -197,7 +196,6 @@ export const tierMemberships = loyaltySchema.table(
           AND (${table.effectiveTo} IS NULL OR ${table.effectiveTo} > ${table.effectiveFrom}))
         OR (${table.status} <> 'ACTIVE' AND ${table.effectiveTo} IS NOT NULL)`,
     ),
-    check("loyalty_tier_membership_revision_check", sql`${table.revision} > 0`),
   ],
 );
 

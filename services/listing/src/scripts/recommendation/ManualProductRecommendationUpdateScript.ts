@@ -54,7 +54,6 @@ export class ManualProductRecommendationUpdateScript extends BaseScript<
     try {
       const recommendation = await this.repository.manualProductRecommendation.update(
         locked.recommendationId,
-        locked.version,
         {
           targetProductId: normalized.targetProductId,
           action: normalized.action,
@@ -66,12 +65,8 @@ export class ManualProductRecommendationUpdateScript extends BaseScript<
         },
       );
       if (!recommendation)
-        return {
-          userErrors: [
-            { message: "Manual recommendation version changed", code: "VERSION_CONFLICT" },
-          ],
-        };
-      const triggerKey = `manual:${this.context.requestId}:${recommendation.recommendationId}:update:${recommendation.version}`;
+        return { userErrors: [{ message: "Manual recommendation not found", code: "NOT_FOUND" }] };
+      const triggerKey = `manual:${this.context.requestId}:${recommendation.recommendationId}:update`;
       const request = await this.repository.recommendationBuildRequest.request(
         locked.anchorProductId,
         locked.placement,

@@ -12,7 +12,6 @@ CREATE TABLE "pricing"."discount_redemption" (
   "idempotency_key" text NOT NULL,
   "status" "pricing"."discount_redemption_status" NOT NULL DEFAULT 'COMMITTED',
   "discount_class" "pricing"."discount_class" NOT NULL,
-  "configuration_revision" integer NOT NULL,
   "currency" "pricing"."currency_code" NOT NULL,
   "amount_minor" bigint NOT NULL,
   "committed_at" timestamptz NOT NULL DEFAULT now(),
@@ -50,8 +49,6 @@ CREATE TABLE "pricing"."discount_redemption" (
     UNIQUE ("reservation_id"),
   CONSTRAINT "discount_redemption_idempotency_check"
     CHECK (length(btrim("idempotency_key")) > 0),
-  CONSTRAINT "discount_redemption_revision_check"
-    CHECK ("configuration_revision" >= 0),
   CONSTRAINT "discount_redemption_amount_check"
     CHECK ("amount_minor" >= 0),
   CONSTRAINT "discount_redemption_status_check"

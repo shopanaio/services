@@ -38,7 +38,6 @@ export type BooleanFilter = {
 export type Collection = {
   __typename?: 'Collection';
   id: Scalars['ID']['output'];
-  listingRevision: Scalars['Int']['output'];
   products: ListingConnection;
 };
 
@@ -1719,7 +1718,6 @@ export type ManualProductRecommendation = Node & {
   targetProduct: Product;
   targetReferenceStatus: RecommendationReferenceStatus;
   updatedAt: Scalars['DateTime']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type ManualProductRecommendationConnection = {
@@ -1888,7 +1886,6 @@ export type RecommendationPlacementPolicy = Node & {
   placement: RecommendationPlacement;
   strategy: RecommendationStrategy;
   updatedAt: Scalars['DateTime']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type RecommendationPlacementPolicyDraftInput = {
@@ -2006,7 +2003,7 @@ export type SearchExplain = {
   membershipSerializedBytes: Scalars['Int']['output'];
   mode: SearchExecutionMode;
   normalizationContractVersion: Scalars['String']['output'];
-  normalizationProfileRevision: Scalars['String']['output'];
+  normalizationProfileHash: Scalars['String']['output'];
   normalizedQuery: Scalars['String']['output'];
   originalQuery: Scalars['String']['output'];
   planFingerprint: Scalars['String']['output'];
@@ -2534,8 +2531,8 @@ export type ResolversTypes = ResolversObject<{
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   Collection: ResolverTypeWrapper<Omit<Collection, 'products'> & { products: ResolversTypes['ListingConnection'] }>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   String: ResolverTypeWrapper<Scalars['String']['output']>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
@@ -2715,8 +2712,8 @@ export type ResolversParentTypes = ResolversObject<{
   Boolean: Scalars['Boolean']['output'];
   Collection: Omit<Collection, 'products'> & { products: ResolversParentTypes['ListingConnection'] };
   ID: Scalars['ID']['output'];
-  Int: Scalars['Int']['output'];
   String: Scalars['String']['output'];
+  Int: Scalars['Int']['output'];
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
   Email: Scalars['Email']['output'];
@@ -2860,8 +2857,7 @@ export interface BigIntScalarConfig extends GraphQLScalarTypeConfig<ResolversTyp
 export type CollectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Collection'] = ResolversParentTypes['Collection']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['Collection']>, { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
 
-
-  products?: Resolver<ResolversTypes['ListingConnection'], { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}> & GraphQLRecursivePick<ParentType, {"listingRevision":true}>, ContextType, Partial<CollectionProductsArgs>>;
+  products?: Resolver<ResolversTypes['ListingConnection'], { __typename: 'Collection' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType, Partial<CollectionProductsArgs>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3183,7 +3179,6 @@ export type ManualProductRecommendationResolvers<ContextType = ServiceContext, P
   targetProduct?: Resolver<ResolversTypes['Product'], ParentType, ContextType>;
   targetReferenceStatus?: Resolver<ResolversTypes['RecommendationReferenceStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3249,7 +3244,6 @@ export type RecommendationPlacementPolicyResolvers<ContextType = ServiceContext,
   placement?: Resolver<ResolversTypes['RecommendationPlacement'], ParentType, ContextType>;
   strategy?: Resolver<ResolversTypes['RecommendationStrategy'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3309,7 +3303,7 @@ export type SearchExplainResolvers<ContextType = ServiceContext, ParentType exte
   membershipSerializedBytes?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   mode?: Resolver<ResolversTypes['SearchExecutionMode'], ParentType, ContextType>;
   normalizationContractVersion?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  normalizationProfileRevision?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  normalizationProfileHash?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   normalizedQuery?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   originalQuery?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   planFingerprint?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

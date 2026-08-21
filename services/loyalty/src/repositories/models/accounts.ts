@@ -1,14 +1,5 @@
 import { sql } from "drizzle-orm";
-import {
-  check,
-  foreignKey,
-  index,
-  integer,
-  timestamp,
-  unique,
-  uuid,
-  varchar,
-} from "drizzle-orm/pg-core";
+import { check, foreignKey, index, timestamp, unique, uuid, varchar } from "drizzle-orm/pg-core";
 import { accountStatusEnum, loyaltySchema } from "./schema.js";
 import { programs } from "./programs.js";
 
@@ -22,7 +13,6 @@ export const accounts = loyaltySchema.table(
     programId: uuid("program_id").notNull(),
     customerId: uuid("customer_id").notNull(),
     status: accountStatusEnum("status").notNull().default("ACTIVE"),
-    revision: integer("revision").notNull().default(1),
     mergedIntoAccountId: uuid("merged_into_account_id"),
     suspendedReason: varchar("suspended_reason", { length: 500 }),
     openedAt: timestamp("opened_at", {
@@ -73,7 +63,6 @@ export const accounts = loyaltySchema.table(
       table.openedAt.desc(),
       table.id.desc(),
     ),
-    check("loyalty_account_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_account_merge_check",
       sql`(${table.status} = 'MERGED' AND ${table.mergedIntoAccountId} IS NOT NULL

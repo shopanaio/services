@@ -54,10 +54,6 @@ export class PricingCheckoutQuoteRepository {
         checkoutId: input.checkoutId,
         executionId: input.executionId,
         requestDigest: input.requestDigest,
-        revision: payload.revision,
-        merchandiseRevision: payload.merchandiseRevision,
-        availabilityRevision: payload.availabilityRevision,
-        discountEvaluationRevision: payload.discountEvaluationRevision,
         payload,
       })
       .onConflictDoNothing({
@@ -113,11 +109,7 @@ export class PricingCheckoutQuoteRepository {
         checkoutId: input.checkoutId,
         executionId: input.executionId,
         preliminaryQuoteId,
-        basedOnPreliminaryRevision: payload.basedOnPreliminaryRevision,
-        basedOnDeliveryRevision: payload.basedOnDeliveryRevision,
         requestDigest: input.requestDigest,
-        revision: payload.revision,
-        discountEvaluationRevision: payload.discountEvaluationRevision,
         payload,
       })
       .onConflictDoNothing({

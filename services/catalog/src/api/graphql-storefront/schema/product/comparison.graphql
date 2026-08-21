@@ -16,11 +16,6 @@ All persisted comparison matrices prepared for the current customer.
 """
 type CustomerProductComparisons {
   """
-  Current optimistic-concurrency revision of the persisted selection.
-  """
-  revision: Int!
-
-  """
   Category matrices in deterministic server-defined order.
   """
   nodes: [ProductComparison!]!

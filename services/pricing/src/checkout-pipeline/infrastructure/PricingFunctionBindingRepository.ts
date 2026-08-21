@@ -2,7 +2,6 @@ import { and, asc, eq, inArray } from "drizzle-orm";
 import type { CommerceFunctionBindingRef } from "@shopana/function-runner";
 import type { Database } from "../../infrastructure/db/database.js";
 import { discount, discountFunctionBinding } from "../../repositories/models/index.js";
-import { contentRevision } from "../canonicalJson.js";
 import type { PricingDiscountFunctionTarget } from "../discount-function-contracts.js";
 
 export class PricingFunctionBindingRepository {
@@ -11,9 +10,8 @@ export class PricingFunctionBindingRepository {
     storeId: string;
     target: PricingDiscountFunctionTarget;
     discountIds: readonly string[];
-  }): Promise<{ bindingSetRevision: string; bindings: readonly CommerceFunctionBindingRef[] }> {
-    if (!input.discountIds.length)
-      return { bindingSetRevision: contentRevision("pricing-function-bindings", []), bindings: [] };
+  }): Promise<{ bindings: readonly CommerceFunctionBindingRef[] }> {
+    if (!input.discountIds.length) return { bindings: [] };
     const rows = await this.db
       .select()
       .from(discountFunctionBinding)
@@ -35,20 +33,12 @@ export class PricingFunctionBindingRepository {
       installationId: row.installationId,
       functionKey: row.functionKey,
       owner: { service: "pricing", resourceType: "discount", resourceId: row.discountId },
-      configurationRevision: row.configurationRevision,
       configurationSnapshot: row.configurationSnapshot,
-      routeRevision: row.routeRevision,
       precedence: row.precedence,
       activationSequence: row.activationSequence,
       failureMode: row.failureMode,
     }));
-    return {
-      bindingSetRevision: contentRevision(
-        "pricing-function-bindings",
-        rows.map((row) => ({ ...row, activationSequence: String(row.activationSequence) })),
-      ),
-      bindings,
-    };
+    return { bindings };
   }
 
   async save(input: {
@@ -56,7 +46,6 @@ export class PricingFunctionBindingRepository {
     storeId: string;
     discountId: string;
     target: PricingDiscountFunctionTarget;
-    contractVersion: number;
     installationId: string;
     functionKey: string;
     precedence: number;
@@ -64,8 +53,6 @@ export class PricingFunctionBindingRepository {
     status: "ACTIVE" | "DISABLED";
     failureMode: "REQUIRED" | "OPTIONAL";
     configurationSnapshot: Record<string, unknown>;
-    configurationRevision: string;
-    routeRevision: string;
   }) {
     return this.db.transaction(async (tx) => {
       const owner = (
@@ -93,7 +80,6 @@ export class PricingFunctionBindingRepository {
         .onConflictDoUpdate({
           target: [discountFunctionBinding.discountId, discountFunctionBinding.target],
           set: {
-            contractVersion: input.contractVersion,
             installationId: input.installationId,
             functionKey: input.functionKey,
             precedence: input.precedence,
@@ -101,8 +87,6 @@ export class PricingFunctionBindingRepository {
             status: input.status,
             failureMode: input.failureMode,
             configurationSnapshot: input.configurationSnapshot,
-            configurationRevision: input.configurationRevision,
-            routeRevision: input.routeRevision,
             updatedAt: new Date().toISOString(),
           },
         })

@@ -1558,7 +1558,7 @@ export type ReviewContentConnection = Connection & {
   totalCount: Scalars['Int']['output'];
 };
 
-/** Optimistic input used to delete content owned by the current customer. */
+/** Input used to delete content owned by the current customer. */
 export type ReviewContentDeleteInput = {
   id: Scalars['ID']['input'];
 };
@@ -1928,6 +1928,7 @@ export type ReviewMedia = Node & {
   id: Scalars['ID']['output'];
   media: Media;
   review: Review;
+  revision: Scalars['Int']['output'];
   sortIndex: Scalars['Int']['output'];
   status: ReviewContentStatus;
   updatedAt: Scalars['DateTime']['output'];
@@ -2168,7 +2169,6 @@ export type ReviewReply = Node & ReviewContent & {
   metrics: ReviewContentMetrics;
   publishedAt: Maybe<Scalars['DateTime']['output']>;
   review: Review;
-  revision: Scalars['Int']['output'];
   sortIndex: Scalars['Int']['output'];
   status: ReviewContentStatus;
   title: Maybe<Scalars['String']['output']>;
@@ -2316,7 +2316,6 @@ export type ReviewStoreConfiguration = Node & {
   reviewRequestExpiryDays: Scalars['Int']['output'];
   reviewRequestsEnabled: Scalars['Boolean']['output'];
   reviewsEnabled: Scalars['Boolean']['output'];
-  revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
   verifiedPurchaseRequired: Scalars['Boolean']['output'];
 };
@@ -3375,6 +3374,7 @@ export type ReviewMediaResolvers<ContextType = ServiceContext, ParentType extend
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   media?: Resolver<ResolversTypes['Media'], ParentType, ContextType>;
   review?: Resolver<ResolversTypes['Review'], ParentType, ContextType>;
+  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ReviewContentStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -3551,7 +3551,6 @@ export type ReviewReplyResolvers<ContextType = ServiceContext, ParentType extend
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   review?: Resolver<ResolversTypes['Review'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   sortIndex?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ReviewContentStatus'], ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
@@ -3658,7 +3657,6 @@ export type ReviewStoreConfigurationResolvers<ContextType = ServiceContext, Pare
   reviewRequestExpiryDays?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   reviewRequestsEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   reviewsEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   verifiedPurchaseRequired?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

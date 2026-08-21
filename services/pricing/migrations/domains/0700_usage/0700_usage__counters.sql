@@ -8,7 +8,6 @@ CREATE TABLE "pricing"."discount_usage_counter" (
   "reserved_count" bigint NOT NULL DEFAULT 0,
   "committed_count" bigint NOT NULL DEFAULT 0,
   "reversed_count" bigint NOT NULL DEFAULT 0,
-  "version" bigint NOT NULL DEFAULT 0,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "discount_usage_counter_discount_fk"
@@ -21,9 +20,7 @@ CREATE TABLE "pricing"."discount_usage_counter" (
       AND "committed_count" >= 0
       AND "reversed_count" >= 0
       AND "reversed_count" <= "committed_count"
-    ),
-  CONSTRAINT "discount_usage_counter_version_check"
-    CHECK ("version" >= 0)
+    )
 );
 
 CREATE INDEX "discount_usage_counter_store_idx"
@@ -36,7 +33,6 @@ CREATE TABLE "pricing"."discount_code_usage_counter" (
   "reserved_count" bigint NOT NULL DEFAULT 0,
   "committed_count" bigint NOT NULL DEFAULT 0,
   "reversed_count" bigint NOT NULL DEFAULT 0,
-  "version" bigint NOT NULL DEFAULT 0,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "discount_code_usage_counter_code_fk"
@@ -49,9 +45,7 @@ CREATE TABLE "pricing"."discount_code_usage_counter" (
       AND "committed_count" >= 0
       AND "reversed_count" >= 0
       AND "reversed_count" <= "committed_count"
-    ),
-  CONSTRAINT "discount_code_usage_counter_version_check"
-    CHECK ("version" >= 0)
+    )
 );
 
 CREATE INDEX "discount_code_usage_counter_store_discount_idx"

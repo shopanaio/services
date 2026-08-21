@@ -137,9 +137,15 @@ export class StorefrontPresentationService {
       if (opportunity) opportunities.push(opportunity);
     }
     const presentation = opportunityPresentation(opportunities, this.ctx.loaders.effectiveAt, {
-      program: base.program.revision,
-      version: base.version.revision,
-      account: base.account.revision,
+      program: base.program.updatedAt,
+      version: {
+        id: base.version.id,
+        status: base.version.status,
+        effectiveFrom: base.version.effectiveFrom,
+        effectiveTo: base.version.effectiveTo,
+        publishedAt: base.version.publishedAt,
+      },
+      account: base.account.updatedAt,
       rules: rules.map(({ id, createdAt }) => ({ id, createdAt })),
     });
     presentation.validUntil = nearestDate(
@@ -179,9 +185,15 @@ export class StorefrontPresentationService {
       evaluatedAt,
       validUntil,
       revision: canonicalHash({
-        program: base.program.revision,
-        version: base.version.revision,
-        account: base.account?.revision ?? null,
+        program: base.program.updatedAt,
+        version: {
+          id: base.version.id,
+          status: base.version.status,
+          effectiveFrom: base.version.effectiveFrom,
+          effectiveTo: base.version.effectiveTo,
+          publishedAt: base.version.publishedAt,
+        },
+        account: base.account?.updatedAt ?? null,
         subject: subject.revision,
         opportunities: opportunities.map(({ key, state, remainingUses }) => ({
           key,
@@ -629,7 +641,7 @@ function productSubject(product: Catalog.ProductSnapshot, currency: string): Cat
       })),
   );
   const prices = lines.map(({ price }) => price);
-  return { prices, lines, revision: { revision: product.revision, updatedAt: product.updatedAt } };
+  return { prices, lines, revision: { updatedAt: product.updatedAt } };
 }
 
 function conditionMatches(

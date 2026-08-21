@@ -131,7 +131,6 @@ export class CollectionSyncRepository extends BaseRepository {
   async createOperation(input: {
     workflowId: string;
     collectionId: string;
-    collectionRevision: number;
     reason: CollectionProductSyncReason;
     productIds: readonly string[];
   }): Promise<CollectionProductSyncOperation> {
@@ -145,7 +144,6 @@ export class CollectionSyncRepository extends BaseRepository {
         operationId,
         workflowId: input.workflowId,
         collectionId: input.collectionId,
-        collectionRevision: input.collectionRevision,
         reason: input.reason,
         status: completed ? "completed" : "pending",
         affectedCount: productIds.length,
@@ -172,7 +170,6 @@ export class CollectionSyncRepository extends BaseRepository {
   async clearCollection(input: {
     workflowId: string;
     collectionId: string;
-    collectionRevision: number;
   }): Promise<CollectionBulkSyncOperationResult> {
     const operationId = await this.generateUuidV7();
     const rows = await this.connection.execute<{
@@ -195,7 +192,6 @@ export class CollectionSyncRepository extends BaseRepository {
           operation_id,
           workflow_id,
           collection_id,
-          collection_revision,
           reason,
           status,
           affected_count,
@@ -206,7 +202,6 @@ export class CollectionSyncRepository extends BaseRepository {
           ${operationId}::uuid,
           ${input.workflowId},
           ${input.collectionId}::uuid,
-          ${input.collectionRevision},
           'clear',
           'pending',
           counts.affected_count,
@@ -243,7 +238,6 @@ export class CollectionSyncRepository extends BaseRepository {
   async rebalanceCollection(input: {
     workflowId: string;
     collectionId: string;
-    collectionRevision: number;
   }): Promise<CollectionBulkSyncOperationResult> {
     const operationId = await this.generateUuidV7();
     const rows = await this.connection.execute<{
@@ -293,7 +287,6 @@ export class CollectionSyncRepository extends BaseRepository {
           operation_id,
           workflow_id,
           collection_id,
-          collection_revision,
           reason,
           status,
           affected_count,
@@ -304,7 +297,6 @@ export class CollectionSyncRepository extends BaseRepository {
           ${operationId}::uuid,
           ${input.workflowId},
           ${input.collectionId}::uuid,
-          ${input.collectionRevision},
           'rebalance',
           'pending',
           counts.affected_count,

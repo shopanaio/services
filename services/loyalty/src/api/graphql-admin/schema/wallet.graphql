@@ -6,7 +6,6 @@ type LoyaltyMonetaryWallet implements Node @key(fields: "id") {
   currencyCode: CurrencyCode!
   status: LoyaltyMonetaryWalletStatus!
   mergedIntoWallet: LoyaltyMonetaryWallet
-  revision: Int!
   balance: LoyaltyMonetaryWalletBalance!
   transactions(first: Int = 100): [LoyaltyMonetaryTransaction!]!
   creditLots: [LoyaltyMonetaryCreditLot!]!
@@ -20,7 +19,6 @@ type LoyaltyMonetaryWalletBalance {
   available: LoyaltyMoney!
   reserved: LoyaltyMoney!
   debt: LoyaltyMoney!
-  revision: Int!
   lastTransaction: LoyaltyMonetaryTransaction
   updatedAt: DateTime!
 }

@@ -9,7 +9,7 @@ import {
   DBOS,
 } from "@shopana/shared-kernel";
 import type { ProductUpdatedReason } from "@shopana/events";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import { product } from "../repositories/models/index.js";
@@ -80,7 +80,6 @@ interface VariantBatchValidationResult {
 /**
  * ProductUpdateWorkflow for Catalog Service.
  * Handles atomic product updates with:
- * - Optimistic locking via revision field
  * - Partial failure support (each operation independent)
  * - Event emission with update reasons
  * - Product category assignment operations for bulk and single updates
@@ -149,25 +148,23 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    // 1. Advance the internal revision for the accepted mutation.
-    const acquired = await this.stepAcquireRevision(input.productId);
-    if ("error" in acquired) {
+    const productExists = await this.stepProductExists(input.productId, input.context.storeId);
+    if (!productExists) {
       return {
         product: null,
         operationResults: [],
-        userErrors: [acquired.error],
+        userErrors: [{ message: "Product not found", code: "NOT_FOUND" }],
       };
     }
-    const { revision } = acquired;
 
-    // 2. Collect option updates for batch processing
+    // Collect option updates for batch processing
     const optionUpdates: Array<{
       index: number;
       variantId: string;
       options: VariantOptionsUpdate;
     }> = [];
 
-    // 3. Run operations, collect changes (options handled separately)
+    // Run operations, collect changes (options handled separately)
     const scriptCtx = this.toScriptContext(input.context);
     for (let i = 0; i < input.operations.length; i++) {
       const op = input.operations[i];
@@ -216,7 +213,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    // 4. Process all option updates in a single batch (enables swapping)
+    // Process all option updates in a single batch (enables swapping)
     if (optionUpdates.length > 0) {
       const batchResults = await this.stepBatchUpdateOptions(
         input.productId,
@@ -240,7 +237,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    // 5. Emit event with update reasons
+    // Emit event with update reasons
     const hasChanges =
       changes.product !== undefined ||
       changes.component !== undefined ||
@@ -251,7 +248,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      product: { id: input.productId, revision },
+      product: { id: input.productId },
       operationResults: results,
       userErrors: results.flatMap((r) => r.errors),
     };
@@ -287,26 +284,16 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  /** Increment the internal revision before applying operations. */
   @WorkflowStep()
-  private async stepAcquireRevision(
-    productId: string,
-  ): Promise<{ revision: number } | { error: UserError }> {
-    const db = this.kernel.db;
-
-    const result = await db
-      .update(product)
-      .set({ revision: sql`${product.revision} + 1` })
-      .where(eq(product.id, productId))
-      .returning({ revision: product.revision });
-
-    if (result.length === 0) {
-      return {
-        error: { message: "Product not found", code: "NOT_FOUND" },
-      };
-    }
-
-    return { revision: result[0].revision };
+  private async stepProductExists(productId: string, storeId: string): Promise<boolean> {
+    const rows = await this.kernel.db
+      .select({ id: product.id })
+      .from(product)
+      .where(
+        and(eq(product.storeId, storeId), eq(product.id, productId), isNull(product.deletedAt)),
+      )
+      .limit(1);
+    return rows.length > 0;
   }
 
   @WorkflowStep()

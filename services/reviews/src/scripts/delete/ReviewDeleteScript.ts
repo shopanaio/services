@@ -1,8 +1,8 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { getPgErrorInfo, PG_ERROR_CODES } from "../../kernel/types.js";
 import type { ContentItem } from "../../repositories/models/index.js";
-import type { OptimisticMutationResult } from "../../repositories/types.js";
-import { conflict, internalError, notFound } from "./errors.js";
+import type { MutationResult } from "../../repositories/types.js";
+import { internalError, notFound } from "./errors.js";
 import type { ReviewDeleteParams, ReviewDeleteResult } from "./types.js";
 
 export class ReviewDeleteScript extends BaseScript<ReviewDeleteParams, ReviewDeleteResult> {
@@ -10,7 +10,7 @@ export class ReviewDeleteScript extends BaseScript<ReviewDeleteParams, ReviewDel
   protected async execute(params: ReviewDeleteParams): Promise<ReviewDeleteResult> {
     const aggregate = await this.repository.review.findById(params.id);
     if (!aggregate) return { userErrors: notFound("Review") };
-    let result: OptimisticMutationResult<ContentItem>;
+    let result: MutationResult<ContentItem>;
     try {
       result = await this.repository.content.delete({
         id: params.id,
@@ -33,7 +33,6 @@ export class ReviewDeleteScript extends BaseScript<ReviewDeleteParams, ReviewDel
       throw error;
     }
     if (result.status === "not_found") return { userErrors: notFound("Review") };
-    if (result.status === "conflict") return { userErrors: conflict("expectedRevision") };
     this.logger.info(
       { reviewId: params.id, permanent: params.permanent ?? false },
       "Review deleted",

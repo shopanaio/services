@@ -32,7 +32,6 @@ export const comparisonProfile = catalogSchema.table(
     id: uuid("id").primaryKey(),
     handle: varchar("handle", { length: 255 }).notNull(),
     enabled: boolean("enabled").notNull().default(true),
-    revision: integer("revision").notNull().default(0),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "string",
@@ -49,7 +48,6 @@ export const comparisonProfile = catalogSchema.table(
   (table) => [
     unique("comparison_profile_store_id_handle_uniq").on(table.storeId, table.handle),
     index("idx_comparison_profile_store_enabled").on(table.storeId, table.enabled),
-    index("idx_comparison_profile_id_revision").on(table.id, table.revision),
   ],
 );
 

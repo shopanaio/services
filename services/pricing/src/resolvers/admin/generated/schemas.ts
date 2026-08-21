@@ -398,13 +398,11 @@ export function DiscountFreeShippingRuleInputSchema(): z.ZodObject<Properties<Di
 export function DiscountFunctionBindingInputSchema(): z.ZodObject<Properties<DiscountFunctionBindingInput>> {
   return z.object({
     activationSequence: z.string(),
-    configurationRevision: z.string(),
     configurationSnapshot: z.record(z.unknown()),
     failureMode: DiscountFunctionFailureModeSchema.default("OPTIONAL").nullish(),
     functionKey: z.string(),
     installationId: z.string(),
     precedence: z.number().default(0).nullish(),
-    routeRevision: z.string(),
     status: DiscountFunctionBindingStatusSchema.default("ACTIVE").nullish()
   })
 }
@@ -486,7 +484,6 @@ export function DiscountRedemptionWhereInputSchema(): z.ZodObject<Properties<Dis
     checkoutId: z.lazy(() => IdFilterSchema().nullish()),
     codeId: z.lazy(() => IdFilterSchema().nullish()),
     committedAt: z.lazy(() => DateTimeFilterSchema().nullish()),
-    configurationRevision: z.lazy(() => IntFilterSchema().nullish()),
     createdAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     currency: z.lazy(() => DiscountCurrencyFilterSchema().nullish()),
     customerId: z.lazy(() => IdFilterSchema().nullish()),
@@ -618,7 +615,6 @@ export function DiscountWhereInputSchema(): z.ZodObject<Properties<DiscountWhere
     primaryCode: z.lazy(() => StringFilterSchema().nullish()),
     priority: z.lazy(() => IntFilterSchema().nullish()),
     reservedUsageCount: z.lazy(() => BigIntFilterSchema().nullish()),
-    revision: z.lazy(() => IntFilterSchema().nullish()),
     startsAt: z.lazy(() => DateTimeFilterSchema().nullish()),
     state: z.lazy(() => DiscountStateFilterSchema().nullish()),
     tag: z.lazy(() => StringFilterSchema().nullish()),

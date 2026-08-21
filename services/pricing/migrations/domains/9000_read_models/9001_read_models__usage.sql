@@ -27,7 +27,6 @@ SELECT
       0
     )::bigint
   END AS remaining_count,
-  counter.version,
   counter.updated_at
 FROM "pricing"."discount" discount
 LEFT JOIN "pricing"."discount_usage_counter" counter

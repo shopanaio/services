@@ -108,8 +108,6 @@ export interface CollectionResult {
 
 export interface CollectionDeleteResult {
   deletedCollectionId?: string;
-  revision?: number;
-  listingRevision?: number;
   deletedAt?: string;
   syncOperationId?: string;
   userErrors: UserError[];

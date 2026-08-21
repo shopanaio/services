@@ -19,7 +19,6 @@ interface UsageGroup {
   discountId: string;
   codeId: string | null;
   customerId: string | null;
-  configurationRevision: string;
   reservationRequired: boolean;
   applicationIds: string[];
 }
@@ -34,11 +33,7 @@ export class DiscountUsageLifecycleService {
     params: Pricing.CommitCheckoutDiscountUsageParams,
   ): Promise<Pricing.CommitCheckoutDiscountUsageResult> {
     const quote = await this.quotes.getFinalById(params.storeId, params.quoteId);
-    if (
-      !quote ||
-      quote.checkoutId !== params.checkoutId ||
-      quote.revision !== params.quoteRevision
-    ) {
+    if (!quote || quote.checkoutId !== params.checkoutId || false) {
       throw conflict("Final quote does not match usage commit");
     }
 
@@ -97,10 +92,6 @@ export class DiscountUsageLifecycleService {
           throw conflict("A required usage reservation is missing");
         }
 
-        const configurationRevision = Number(group.configurationRevision);
-        if (!Number.isSafeInteger(configurationRevision)) {
-          throw conflict("Usage application configuration is invalid");
-        }
         const amountMinor = applications.reduce(
           (sum, application) => sum + BigInt(application.amount.amountMinor),
           0n,
@@ -163,7 +154,6 @@ export class DiscountUsageLifecycleService {
               ? { reservedCount: sql`${discountUsageCounter.reservedCount} - 1` }
               : {}),
             committedCount: sql`${discountUsageCounter.committedCount} + 1`,
-            version: sql`${discountUsageCounter.version} + 1`,
             updatedAt: now,
           })
           .where(
@@ -180,7 +170,6 @@ export class DiscountUsageLifecycleService {
                 ? { reservedCount: sql`${discountCodeUsageCounter.reservedCount} - 1` }
                 : {}),
               committedCount: sql`${discountCodeUsageCounter.committedCount} + 1`,
-              version: sql`${discountCodeUsageCounter.version} + 1`,
               updatedAt: now,
             })
             .where(
@@ -203,13 +192,11 @@ export class DiscountUsageLifecycleService {
             orderId: params.orderId,
             idempotencyKey: `${params.idempotencyKey}:${group.discountId}`,
             discountClass: applications[0]!.discountClass,
-            configurationRevision,
             currency: quote.currencyCode as never,
             amountMinor,
             committedAt: now,
             metadata: {
               quoteId: params.quoteId,
-              quoteRevision: params.quoteRevision,
               applicationIds: group.applicationIds,
             },
           })
@@ -326,7 +313,6 @@ export class DiscountUsageLifecycleService {
           .update(discountUsageCounter)
           .set({
             reversedCount: sql`${discountUsageCounter.reversedCount} + 1`,
-            version: sql`${discountUsageCounter.version} + 1`,
             updatedAt: now,
           })
           .where(
@@ -340,7 +326,6 @@ export class DiscountUsageLifecycleService {
             .update(discountCodeUsageCounter)
             .set({
               reversedCount: sql`${discountCodeUsageCounter.reversedCount} + 1`,
-              version: sql`${discountCodeUsageCounter.version} + 1`,
               updatedAt: now,
             })
             .where(
@@ -389,7 +374,6 @@ export class DiscountUsageLifecycleService {
           .update(discountUsageCounter)
           .set({
             reservedCount: sql`${discountUsageCounter.reservedCount} - 1`,
-            version: sql`${discountUsageCounter.version} + 1`,
             updatedAt: closedAt,
           })
           .where(
@@ -403,7 +387,6 @@ export class DiscountUsageLifecycleService {
             .update(discountCodeUsageCounter)
             .set({
               reservedCount: sql`${discountCodeUsageCounter.reservedCount} - 1`,
-              version: sql`${discountCodeUsageCounter.version} + 1`,
               updatedAt: closedAt,
             })
             .where(
@@ -438,14 +421,10 @@ export function groupUsageRequirements(
       discountId: requirement.discountId,
       codeId: requirement.codeId,
       customerId: requirement.customerId,
-      configurationRevision: requirement.configurationRevision,
       reservationRequired: requirement.reservationRequired,
       applicationIds: [],
     };
-    if (
-      group.configurationRevision !== requirement.configurationRevision ||
-      group.reservationRequired !== requirement.reservationRequired
-    ) {
+    if (group.reservationRequired !== requirement.reservationRequired) {
       throw conflict("Usage requirements contain inconsistent discount state");
     }
     group.applicationIds.push(requirement.applicationId);
@@ -487,7 +466,6 @@ function applicationsForGroup(
       (application) =>
         application.discountId !== group.discountId ||
         (application.code?.codeId ?? null) !== group.codeId ||
-        application.configurationRevision !== group.configurationRevision ||
         application.discountClass !== resolved[0]!.discountClass,
     )
   ) {
@@ -507,7 +485,6 @@ function validateReservationProvenance(
   );
   if (
     metadata.quoteId !== params.quoteId ||
-    metadata.quoteRevision !== params.quoteRevision ||
     canonicalJson(applicationIds) !== canonicalJson(group.applicationIds)
   ) {
     throw conflict("Usage reservation quote provenance is invalid");
@@ -532,12 +509,10 @@ function validateExistingRedemption(
     redemption.codeId !== group.codeId ||
     redemption.customerId !== group.customerId ||
     redemption.reservationId !== (reservation?.id ?? null) ||
-    String(redemption.configurationRevision) !== group.configurationRevision ||
     redemption.discountClass !== applications[0]!.discountClass ||
     redemption.currency !== currencyCode ||
     redemption.amountMinor !== amountMinor ||
     metadata.quoteId !== params.quoteId ||
-    metadata.quoteRevision !== params.quoteRevision ||
     canonicalJson(applicationIds) !== canonicalJson(group.applicationIds) ||
     (reservation !== null && reservation.status !== "COMMITTED")
   ) {
@@ -578,7 +553,7 @@ async function validateAndLockUsageConfiguration(
       .limit(1)
       .for("update")
   )[0];
-  if (!owner || String(owner.revision) !== group.configurationRevision) {
+  if (!owner) {
     throw conflict("Discount configuration changed before usage commit");
   }
   if (!group.reservationRequired) {

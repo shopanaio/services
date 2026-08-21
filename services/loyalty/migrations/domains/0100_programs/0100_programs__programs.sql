@@ -6,7 +6,6 @@ CREATE TABLE "loyalty"."program" (
   "status" "loyalty"."program_status" NOT NULL DEFAULT 'DRAFT',
   "is_default" boolean NOT NULL DEFAULT false,
   "default_currency_code" varchar(3) NOT NULL,
-  "revision" integer NOT NULL DEFAULT 1,
   "metadata" jsonb NOT NULL DEFAULT '{}'::jsonb,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
@@ -19,7 +18,6 @@ CREATE TABLE "loyalty"."program" (
   CONSTRAINT "loyalty_program_name_check" CHECK (btrim("name") <> ''),
   CONSTRAINT "loyalty_program_currency_check"
     CHECK ("default_currency_code" ~ '^[A-Z]{3}$'),
-  CONSTRAINT "loyalty_program_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_program_metadata_check"
     CHECK (jsonb_typeof("metadata") = 'object'),
   CONSTRAINT "loyalty_program_archive_check" CHECK (
@@ -41,7 +39,6 @@ CREATE TABLE "loyalty"."program_version" (
   "program_id" uuid NOT NULL,
   "version" integer NOT NULL,
   "status" "loyalty"."program_version_status" NOT NULL DEFAULT 'DRAFT',
-  "revision" integer NOT NULL DEFAULT 1,
   "effective_from" timestamptz,
   "effective_to" timestamptz,
   "earning_enabled" boolean NOT NULL DEFAULT true,
@@ -85,7 +82,6 @@ CREATE TABLE "loyalty"."program_version" (
     UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_program_version_id_program_store_unique"
     UNIQUE ("id", "program_id", "store_id"),
-  CONSTRAINT "loyalty_program_version_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_program_version_schedule_check" CHECK (
     ("status" = 'DRAFT' AND (
       "effective_from" IS NULL OR "effective_to" IS NULL

@@ -51,7 +51,6 @@ export function transformLines(
         purchase: intent.purchase,
         merchandise: {
           variantId: resolved.variantId,
-          revision: resolved.revision,
           title: resolved.title,
           sku: resolved.sku,
           imageUrl: resolved.imageUrl,
@@ -61,7 +60,6 @@ export function transformLines(
             ? {
                 componentConfigurationId: resolved.componentSelection.configurationId,
                 componentItemId: resolved.componentSelection.componentItemId,
-                componentRevision: resolved.componentSelection.revision,
               }
             : null,
         },

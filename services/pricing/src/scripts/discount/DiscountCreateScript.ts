@@ -44,10 +44,7 @@ export class DiscountCreateScript extends BaseScript<DiscountCreateParams, Disco
     const created = await this.repository.discount.create(mappedRoot.value);
     if (!created.created) {
       return {
-        discount: {
-          id: created.discount.id,
-          revision: created.discount.revision,
-        },
+        discount: { id: created.discount.id },
         userErrors: [],
       };
     }
@@ -70,7 +67,6 @@ export class DiscountCreateScript extends BaseScript<DiscountCreateParams, Disco
           mappedRoot.value.discountClass === "SHIPPING"
             ? "cart.delivery-options.discounts.generate.run"
             : "cart.lines.discounts.generate.run",
-        contractVersion: 1,
         installationId: input.functionBinding.installationId,
         functionKey: input.functionBinding.functionKey.trim(),
         precedence: input.functionBinding.precedence ?? 0,
@@ -78,8 +74,6 @@ export class DiscountCreateScript extends BaseScript<DiscountCreateParams, Disco
         status: input.functionBinding.status ?? "ACTIVE",
         failureMode: input.functionBinding.failureMode ?? "OPTIONAL",
         configurationSnapshot: input.functionBinding.configurationSnapshot,
-        configurationRevision: input.functionBinding.configurationRevision.trim(),
-        routeRevision: input.functionBinding.routeRevision.trim(),
       });
     }
     if (input.rule != null) {
@@ -175,7 +169,7 @@ export class DiscountCreateScript extends BaseScript<DiscountCreateParams, Disco
 
     this.logger.info({ discountId }, "Discount created");
     return {
-      discount: { id: discountId, revision: aggregate.discount.revision },
+      discount: { id: discountId },
       userErrors: [],
     };
   }
@@ -310,8 +304,6 @@ export class DiscountCreateScript extends BaseScript<DiscountCreateParams, Disco
     if (
       input.functionBinding &&
       (!input.functionBinding.functionKey.trim() ||
-        !input.functionBinding.configurationRevision.trim() ||
-        !input.functionBinding.routeRevision.trim() ||
         !isRecord(input.functionBinding.configurationSnapshot))
     ) {
       errors.push({

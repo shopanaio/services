@@ -52,6 +52,5 @@ export function toPricingLineAvailability(
         : availability.availableQuantity,
     continueSellingWhenOutOfStock: availability.continueSellingWhenOutOfStock,
     reasonCode: availability.unavailabilityReason,
-    revision: availability.revision,
   };
 }

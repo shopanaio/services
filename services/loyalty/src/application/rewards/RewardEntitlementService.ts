@@ -164,7 +164,6 @@ export class RewardEntitlementService {
       const change = this.transitionChange(current, input.transition, input.occurredAt);
       const updated = await this.repository.reward.updateEntitlementState(
         current.id,
-        current.revision,
         change.fields,
       );
       if (!updated)
@@ -193,16 +192,12 @@ export class RewardEntitlementService {
       const candidates = await this.repository.reward.listExpirationCandidates(at, limit);
       const expired: RewardEntitlement[] = [];
       for (const current of candidates) {
-        const updated = await this.repository.reward.updateEntitlementState(
-          current.id,
-          current.revision,
-          {
-            status: "EXPIRED",
-            reservedForCheckoutId: null,
-            reservedAt: null,
-            expiredAt: at,
-          },
-        );
+        const updated = await this.repository.reward.updateEntitlementState(current.id, {
+          status: "EXPIRED",
+          reservedForCheckoutId: null,
+          reservedAt: null,
+          expiredAt: at,
+        });
         if (!updated) continue;
         await this.repository.reward.appendEntitlementEvent({
           entitlementId: current.id,
@@ -286,7 +281,7 @@ export class RewardEntitlementService {
     at: string,
   ): {
     eventType: "RESERVED" | "RELEASED" | "REDEEMED" | "EXPIRED" | "REVOKED";
-    fields: Parameters<Repository["reward"]["updateEntitlementState"]>[2];
+    fields: Parameters<Repository["reward"]["updateEntitlementState"]>[1];
   } {
     if (transition.type === "RESERVE") {
       if (current.status !== "ISSUED")

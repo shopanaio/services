@@ -25,18 +25,14 @@ export class RecommendationOrderFactIngestScript extends BaseScript<
     const normalized = normalizeEvent(event, this.context.store.id);
     const cursor = await this.repository.recommendationIngestionCursor.lockOrCreate();
     const byEvent = await this.repository.recommendationOrderFact.findByEventId(event.eventId);
-    const byRevision = await this.repository.recommendationOrderFact.findByOrderRevision(
-      normalized.orderId,
-      normalized.orderRevision,
-    );
-    const existing = byEvent ?? byRevision;
+    const existing = byEvent;
     if (existing) {
       if (existing.payloadHash === normalized.payloadHash) {
         return { status: "duplicate", ingestionPosition: existing.ingestionPosition.toString() };
       }
       throw new RecommendationIntegrityError(
         "EVENT_PAYLOAD_CONFLICT",
-        "Sale event or order revision has conflicting payload",
+        "Sale event has conflicting payload",
       );
     }
     const committedAt = await this.repository.recommendationOrderFact.findGenerationCommittedAt(
@@ -45,7 +41,7 @@ export class RecommendationOrderFactIngestScript extends BaseScript<
     if (committedAt !== null && Date.parse(committedAt) !== Date.parse(normalized.committedAt)) {
       throw new RecommendationIntegrityError(
         "EVENT_PAYLOAD_CONFLICT",
-        "committedAt is immutable across order revisions",
+        "committedAt is immutable across sale events",
       );
     }
     const ingestionPosition = cursor.lastPosition + 1n;
@@ -75,9 +71,6 @@ function normalizeEvent(event: RecommendationSaleEvent, trustedStoreId: string) 
   ) {
     invalid("Sale event identifiers or schemaVersion are invalid");
   }
-  const revision = event.payload.orderRevision;
-  if (!Number.isSafeInteger(revision) || revision < 1 || revision > 2_147_483_647)
-    invalid("orderRevision is outside schemaVersion 1 bounds");
   const committedAt = requiredTimestamp(event.payload.committedAt, "committedAt");
   const effectiveOccurredAt =
     event.eventType === "orderSaleCommitted"
@@ -113,7 +106,6 @@ function normalizeEvent(event: RecommendationSaleEvent, trustedStoreId: string) 
     orderId: event.payload.orderId,
     state:
       event.eventType === "orderSaleCommitted" ? ("COMMITTED" as const) : ("REVERSED" as const),
-    orderRevision: revision,
     committedAt,
     occurredAt: effectiveOccurredAt,
     payloadHash: sha256Canonical({

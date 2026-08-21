@@ -177,7 +177,6 @@ export class ProductListingIndexRepository extends BaseRepository {
         publishedAt: null,
         productCreatedAt: row.productCreatedAt ?? now,
         productUpdatedAt: row.productUpdatedAt ?? now,
-        productRevision: 0,
         totalStock: 0,
         indexedAt: now,
         updatedAt: now,
@@ -235,7 +234,6 @@ export class ProductListingIndexRepository extends BaseRepository {
             publishedAt: sql`excluded.published_at`,
             productCreatedAt: sql`excluded.product_created_at`,
             productUpdatedAt: sql`excluded.product_updated_at`,
-            productRevision: sql`excluded.product_revision`,
             totalStock: sql`excluded.total_stock`,
             indexedAt: now,
             updatedAt: now,
@@ -336,7 +334,6 @@ export class ProductListingIndexRepository extends BaseRepository {
     assertPositiveDocId(row.productDocId, "productDocId");
     assertProductEntityType(row.entityType);
     assertListingStatus(row.status);
-    assertNonNegativeInteger(row.productRevision, "productRevision");
     assertNonNegativeInteger(row.totalStock, "totalStock");
 
     return {
@@ -350,7 +347,6 @@ export class ProductListingIndexRepository extends BaseRepository {
       publishedAt: row.publishedAt ?? null,
       productCreatedAt: row.productCreatedAt,
       productUpdatedAt: row.productUpdatedAt,
-      productRevision: row.productRevision,
       totalStock: row.totalStock,
       indexedAt: now,
       updatedAt: now,
@@ -378,10 +374,6 @@ export class ProductListingIndexRepository extends BaseRepository {
     }
     if (patch.productUpdatedAt !== undefined) {
       updateData.productUpdatedAt = patch.productUpdatedAt;
-    }
-    if (patch.productRevision !== undefined) {
-      assertNonNegativeInteger(patch.productRevision, "productRevision");
-      updateData.productRevision = patch.productRevision;
     }
     if (patch.totalStock !== undefined) {
       assertNonNegativeInteger(patch.totalStock, "totalStock");

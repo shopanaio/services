@@ -655,7 +655,6 @@ export type LoyaltyAccount = Node & {
   monetaryWallets: Array<LoyaltyMonetaryWallet>;
   openedAt: Scalars['DateTime']['output'];
   program: LoyaltyProgram;
-  revision: Scalars['Int']['output'];
   rewardEntitlements: Array<LoyaltyRewardEntitlement>;
   status: LoyaltyAccountStatus;
   suspendedAt: Maybe<Scalars['DateTime']['output']>;
@@ -700,7 +699,6 @@ export type LoyaltyAccountBalance = {
   lifetimeRedeemedPoints: Scalars['BigInt']['output'];
   pendingPoints: Scalars['BigInt']['output'];
   reservedPoints: Scalars['BigInt']['output'];
-  revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -926,7 +924,6 @@ export type LoyaltyEarningRuleUsage = Node & {
   monetaryAmounts: Scalars['JSON']['output'];
   occurrenceCount: Scalars['BigInt']['output'];
   pointsAwarded: Scalars['BigInt']['output'];
-  revision: Scalars['Int']['output'];
   scopeKey: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
   windowEndedAt: Maybe<Scalars['DateTime']['output']>;
@@ -1173,7 +1170,6 @@ export type LoyaltyMonetaryWallet = Node & {
   mergedIntoWallet: Maybe<LoyaltyMonetaryWallet>;
   openedAt: Scalars['DateTime']['output'];
   program: LoyaltyProgram;
-  revision: Scalars['Int']['output'];
   status: LoyaltyMonetaryWalletStatus;
   transactions: Array<LoyaltyMonetaryTransaction>;
   updatedAt: Scalars['DateTime']['output'];
@@ -1202,7 +1198,6 @@ export type LoyaltyMonetaryWalletBalance = {
   lastTransaction: Maybe<LoyaltyMonetaryTransaction>;
   pending: LoyaltyMoney;
   reserved: LoyaltyMoney;
-  revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
 
@@ -1522,7 +1517,6 @@ export type LoyaltyProgram = Node & {
   isDefault: Scalars['Boolean']['output'];
   metadata: Scalars['JSON']['output'];
   name: Scalars['String']['output'];
-  revision: Scalars['Int']['output'];
   status: LoyaltyProgramStatus;
   updatedAt: Scalars['DateTime']['output'];
   versions: Array<LoyaltyProgramVersion>;
@@ -1657,7 +1651,6 @@ export type LoyaltyProgramVersion = Node & {
   referenceReconciliationStatus: LoyaltyReferenceReconciliationStatus;
   refundPolicy: LoyaltyRefundPolicy;
   restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy;
-  revision: Scalars['Int']['output'];
   rewardDefinitions: Array<LoyaltyRewardDefinition>;
   roundingMode: LoyaltyRoundingMode;
   rules: LoyaltyProgramRules;
@@ -2009,7 +2002,6 @@ export type LoyaltyReservation = Node & {
   releasedAt: Maybe<Scalars['DateTime']['output']>;
   requestHash: Scalars['String']['output'];
   reversedAt: Maybe<Scalars['DateTime']['output']>;
-  revision: Scalars['Int']['output'];
   status: LoyaltyReservationStatus;
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -2180,7 +2172,6 @@ export type LoyaltyRewardEntitlement = Node & {
   redeemedOrderId: Maybe<Scalars['ID']['output']>;
   reservedAt: Maybe<Scalars['DateTime']['output']>;
   reservedForCheckoutId: Maybe<Scalars['ID']['output']>;
-  revision: Scalars['Int']['output'];
   revokedAt: Maybe<Scalars['DateTime']['output']>;
   sourceEventFact: Maybe<LoyaltyEventFact>;
   status: LoyaltyRewardEntitlementStatus;
@@ -2351,7 +2342,6 @@ export type LoyaltyTierMembership = Node & {
   events: Array<LoyaltyTierMembershipEvent>;
   id: Scalars['ID']['output'];
   qualifiedAt: Scalars['DateTime']['output'];
-  revision: Scalars['Int']['output'];
   status: LoyaltyTierMembershipStatus;
   tier: LoyaltyTier;
   updatedAt: Scalars['DateTime']['output'];
@@ -3072,7 +3062,6 @@ export type LoyaltyAccountResolvers<ContextType = ServiceContext, ParentType ext
   monetaryWallets?: Resolver<Array<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType>;
   openedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   program?: Resolver<ResolversTypes['LoyaltyProgram'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   rewardEntitlements?: Resolver<Array<ResolversTypes['LoyaltyRewardEntitlement']>, ParentType, ContextType, RequireFields<LoyaltyAccountRewardEntitlementsArgs, 'first'>>;
   status?: Resolver<ResolversTypes['LoyaltyAccountStatus'], ParentType, ContextType>;
   suspendedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -3093,7 +3082,6 @@ export type LoyaltyAccountBalanceResolvers<ContextType = ServiceContext, ParentT
   lifetimeRedeemedPoints?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   pendingPoints?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   reservedPoints?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3183,7 +3171,6 @@ export type LoyaltyEarningRuleUsageResolvers<ContextType = ServiceContext, Paren
   monetaryAmounts?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   occurrenceCount?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
   pointsAwarded?: Resolver<ResolversTypes['BigInt'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   scopeKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   windowEndedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
@@ -3347,7 +3334,6 @@ export type LoyaltyMonetaryWalletResolvers<ContextType = ServiceContext, ParentT
   mergedIntoWallet?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryWallet']>, ParentType, ContextType>;
   openedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   program?: Resolver<ResolversTypes['LoyaltyProgram'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['LoyaltyMonetaryWalletStatus'], ParentType, ContextType>;
   transactions?: Resolver<Array<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType, RequireFields<LoyaltyMonetaryWalletTransactionsArgs, 'first'>>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -3361,7 +3347,6 @@ export type LoyaltyMonetaryWalletBalanceResolvers<ContextType = ServiceContext, 
   lastTransaction?: Resolver<Maybe<ResolversTypes['LoyaltyMonetaryTransaction']>, ParentType, ContextType>;
   pending?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
   reserved?: Resolver<ResolversTypes['LoyaltyMoney'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3465,7 +3450,6 @@ export type LoyaltyProgramResolvers<ContextType = ServiceContext, ParentType ext
   isDefault?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   metadata?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['LoyaltyProgramStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   versions?: Resolver<Array<ResolversTypes['LoyaltyProgramVersion']>, ParentType, ContextType>;
@@ -3549,7 +3533,6 @@ export type LoyaltyProgramVersionResolvers<ContextType = ServiceContext, ParentT
   referenceReconciliationStatus?: Resolver<ResolversTypes['LoyaltyReferenceReconciliationStatus'], ParentType, ContextType>;
   refundPolicy?: Resolver<ResolversTypes['LoyaltyRefundPolicy'], ParentType, ContextType>;
   restoredPointsExpiryPolicy?: Resolver<ResolversTypes['LoyaltyRestoredPointsExpiryPolicy'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   rewardDefinitions?: Resolver<Array<ResolversTypes['LoyaltyRewardDefinition']>, ParentType, ContextType>;
   roundingMode?: Resolver<ResolversTypes['LoyaltyRoundingMode'], ParentType, ContextType>;
   rules?: Resolver<ResolversTypes['LoyaltyProgramRules'], ParentType, ContextType>;
@@ -3639,7 +3622,6 @@ export type LoyaltyReservationResolvers<ContextType = ServiceContext, ParentType
   releasedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   requestHash?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   reversedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['LoyaltyReservationStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -3726,7 +3708,6 @@ export type LoyaltyRewardEntitlementResolvers<ContextType = ServiceContext, Pare
   redeemedOrderId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   reservedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   reservedForCheckoutId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   revokedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   sourceEventFact?: Resolver<Maybe<ResolversTypes['LoyaltyEventFact']>, ParentType, ContextType>;
   status?: Resolver<ResolversTypes['LoyaltyRewardEntitlementStatus'], ParentType, ContextType>;
@@ -3790,7 +3771,6 @@ export type LoyaltyTierMembershipResolvers<ContextType = ServiceContext, ParentT
   events?: Resolver<Array<ResolversTypes['LoyaltyTierMembershipEvent']>, ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   qualifiedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['LoyaltyTierMembershipStatus'], ParentType, ContextType>;
   tier?: Resolver<ResolversTypes['LoyaltyTier'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;

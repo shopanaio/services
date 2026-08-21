@@ -16,15 +16,6 @@ export class CollectionRemoveProductsScript extends BaseScript<
         ],
       };
     }
-    if (collection.revision >= 2_147_483_646) {
-      return {
-        collection: undefined,
-        userErrors: [
-          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
-        ],
-      };
-    }
-
     if (collection.type !== "manual") {
       return {
         collection: undefined,
@@ -54,7 +45,7 @@ export class CollectionRemoveProductsScript extends BaseScript<
     if (changedProductIds.length === 0) {
       return { collection, userErrors: [] };
     }
-    const refreshed = await this.repository.collection.bumpRevision(params.collectionId, {
+    const refreshed = await this.repository.collection.markChanged(params.collectionId, {
       listingChanged: false,
     });
     if (!refreshed) {
@@ -63,7 +54,6 @@ export class CollectionRemoveProductsScript extends BaseScript<
     const operation = await this.repository.collectionSync.createOperation({
       workflowId: `${this.context.requestId}:collection:remove`,
       collectionId: params.collectionId,
-      collectionRevision: refreshed.revision,
       reason: "remove",
       productIds: changedProductIds,
     });

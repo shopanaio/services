@@ -38,15 +38,6 @@ export class ReviewReplyDeleteScript extends BaseScript<
     if (result.status === "not_found") {
       return sectionErrors([{ message: "Reply not found", code: "NOT_FOUND", field: ["replyId"] }]);
     }
-    if (result.status === "conflict") {
-      return sectionErrors([
-        {
-          message: "Reply was modified by another user",
-          code: "REVISION_CONFLICT",
-          field: ["expectedRevision"],
-        },
-      ]);
-    }
     return sectionSuccess(true, input.replyId);
   }
 

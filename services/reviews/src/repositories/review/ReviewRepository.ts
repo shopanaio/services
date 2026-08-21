@@ -29,7 +29,7 @@ import {
   type ReviewMedia,
   type ReviewRating,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const reviewRelayQuery = createRelayQuery(
   createQuery(reviewListView)
@@ -317,25 +317,14 @@ export class ReviewRepository extends BaseRepository {
   }
 
   @Transactional()
-  async updateMedia(
-    id: string,
-    expectedUpdatedAt: string,
-    patch: ReviewMediaPatch,
-  ): Promise<OptimisticMutationResult<ReviewMedia>> {
+  async updateMedia(id: string, patch: ReviewMediaPatch): Promise<MutationResult<ReviewMedia>> {
     const rows = await this.connection
       .update(reviewMedia)
       .set({ ...patch, updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(reviewMedia.storeId, this.storeId),
-          eq(reviewMedia.id, id),
-          eq(reviewMedia.updatedAt, expectedUpdatedAt),
-        ),
-      )
+      .where(and(eq(reviewMedia.storeId, this.storeId), eq(reviewMedia.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findMediaById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @ReadOnly()

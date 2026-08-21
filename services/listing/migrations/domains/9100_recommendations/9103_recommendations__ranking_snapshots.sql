@@ -6,7 +6,6 @@ CREATE TABLE listing.recommendation_snapshot (
   status varchar(16) NOT NULL DEFAULT 'BUILDING',
   strategy varchar(32) NOT NULL,
   policy_id uuid,
-  policy_version integer NOT NULL,
   calculation_run_id uuid,
   ranker_type varchar(16) NOT NULL,
   model_version varchar(64) NOT NULL,
@@ -62,8 +61,6 @@ CREATE TABLE listing.recommendation_snapshot (
         'AUTOMATED_ONLY'
       )
     ),
-  CONSTRAINT chk_recommendation_snapshot_policy_version
-    CHECK (policy_version > 0),
   CONSTRAINT chk_recommendation_snapshot_ranker_type
     CHECK (ranker_type IN ('RULES', 'ML')),
   CONSTRAINT chk_recommendation_snapshot_model_version

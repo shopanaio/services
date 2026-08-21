@@ -27,7 +27,7 @@ export interface ListingSearchIndexIdentifierWriteModel extends Omit<
   "productDocId"
 > {
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
 }
 
 export interface ListingSearchIndexAllocatedProductWriteModel {

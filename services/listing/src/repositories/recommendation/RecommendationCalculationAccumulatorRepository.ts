@@ -74,7 +74,7 @@ export class RecommendationCalculationAccumulatorRepository extends BaseReposito
         JOIN next_order_ids n ON n.order_id = f.order_id
         WHERE f.store_id = ${this.storeId}::uuid
           AND f.ingestion_position <= ${run.sourceIngestionWatermark}
-        ORDER BY f.order_id, f.order_revision DESC, f.ingestion_position DESC
+        ORDER BY f.order_id, f.ingestion_position DESC
       )
       SELECT
         n.order_id AS "orderId",

@@ -142,7 +142,7 @@ export class ComparisonProfileUpdateScript extends ProfileScript<
         ],
       };
     const profile = await this.repository.comparison.updateProfile(await this.aggregate(id, input));
-    this.logger.info({ profileId: id, revision: profile.revision }, "comparison.profile.updated");
+    this.logger.info({ profileId: id }, "comparison.profile.updated");
     return { profile, userErrors: [] };
   }
   protected handleError(error: unknown): ComparisonProfileMutationResult {

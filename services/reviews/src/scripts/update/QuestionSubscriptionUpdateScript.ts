@@ -1,12 +1,7 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { QuestionSubscriptionPatch } from "../../repositories/question/QuestionSubscriptionRepository.js";
-import {
-  conflictError,
-  hasOwn,
-  internalError,
-  notFoundError,
-} from "./StoreConfigurationUpdateScript.js";
+import { hasOwn, internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
 import type {
   QuestionSubscriptionUpdateParams,
   QuestionSubscriptionUpdateResult,
@@ -49,7 +44,6 @@ export class QuestionSubscriptionUpdateScript extends BaseScript<
     try {
       const updated = await this.repository.questionSubscription.update(
         params.subscriptionId,
-        params.expectedUpdatedAt,
         patch,
       );
       if (updated.status === "applied") {
@@ -61,9 +55,7 @@ export class QuestionSubscriptionUpdateScript extends BaseScript<
           userErrors: [],
         };
       }
-      return updated.status === "conflict"
-        ? { userErrors: [conflictError("Subscription", "expectedUpdatedAt")] }
-        : { userErrors: [notFoundError("Subscription", "subscriptionId")] };
+      return { userErrors: [notFoundError("Subscription", "subscriptionId")] };
     } catch (error) {
       if (isUniqueViolation(error, "question_subscription_unique")) {
         return {

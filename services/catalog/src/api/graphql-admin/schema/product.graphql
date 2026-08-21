@@ -198,11 +198,6 @@ type Product implements Node @key(fields: "id") {
   deletedAt: DateTime
 
   """
-  Internal aggregate revision number.
-  """
-  revision: Int!
-
-  """
   The vendor associated with this product.
   """
   vendor: Vendor
@@ -886,7 +881,7 @@ Payload for the unified product update mutation.
 """
 type ProductUpdatePayload {
   """
-  The updated product with new revision.
+  The updated product.
   """
   product: Product
 

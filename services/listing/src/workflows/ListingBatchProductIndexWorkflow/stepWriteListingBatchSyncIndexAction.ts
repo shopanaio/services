@@ -148,7 +148,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
       if (action.effectiveIdempotencyKey !== current.lastEffectiveIdempotencyKey) {
         throw new ListingIndexActionScriptError([
           {
-            code: "REVISION_CONFLICT",
+            code: "IDEMPOTENCY_CONFLICT",
             field: ["eventSequence"],
             message:
               "Listing index action reused an eventSequence with a different idempotency key",
@@ -166,7 +166,7 @@ class ListingBatchWriteIndexActionScript extends BaseScript<
 
       throw new ListingIndexActionScriptError([
         {
-          code: "REVISION_CONFLICT",
+          code: "IDEMPOTENCY_CONFLICT",
           field: ["eventSequence"],
           message: "Listing sync action reused an eventSequence with a different payload",
         },

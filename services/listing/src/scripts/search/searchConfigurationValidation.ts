@@ -77,7 +77,7 @@ export function normalizeSynonymValues(input: {
         normalizedValue: value.normalizedValue,
         preparedText: value.preparedText,
         normalizationContractVersion: value.normalizationContractVersion,
-        normalizationProfileRevision: value.normalizationProfileRevision,
+        normalizationProfileHash: value.normalizationProfileHash,
       }),
     ),
   );
@@ -124,7 +124,7 @@ export function normalizeBoostPhrases(input: {
         displayPhrase: value.displayValue,
         normalizedPhrase: value.normalizedValue,
         normalizationContractVersion: value.normalizationContractVersion,
-        normalizationProfileRevision: value.normalizationProfileRevision,
+        normalizationProfileHash: value.normalizationProfileHash,
       }),
     ),
   );

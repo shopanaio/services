@@ -111,14 +111,6 @@ export class CollectionResolver extends CatalogType<string, Collection> {
     return this.$get("updatedAt");
   }
 
-  async revision() {
-    return this.$get("revision");
-  }
-
-  async listingRevision() {
-    return this.$get("listingRevision");
-  }
-
   async rules() {
     const rows = await this.$ctx.kernel.repository.collectionRule.findByCollectionId(this.$props);
     const normalized = rows.map((row) => ({

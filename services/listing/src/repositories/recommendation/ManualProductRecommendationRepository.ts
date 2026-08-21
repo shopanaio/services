@@ -160,7 +160,6 @@ export class ManualProductRecommendationRepository extends BaseRepository {
         ...input,
         anchorReferenceStatus: "VALID",
         targetReferenceStatus: "VALID",
-        version: 1,
         createdAt: sql`now()`,
         updatedAt: sql`now()`,
       })
@@ -171,14 +170,12 @@ export class ManualProductRecommendationRepository extends BaseRepository {
 
   async update(
     id: string,
-
     patch: Partial<Omit<ManualRecommendationInput, "anchorProductId" | "placement">>,
   ): Promise<ManualProductRecommendation | null> {
     const [row] = await this.connection
       .update(manualProductRecommendation)
       .set({
         ...patch,
-        version: sql`${manualProductRecommendation.version} + 1`,
         updatedAt: sql`now()`,
       })
       .where(

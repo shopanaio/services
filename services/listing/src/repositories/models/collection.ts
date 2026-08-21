@@ -24,7 +24,6 @@ export const collectionState = listingSchema.table(
   {
     storeId: uuid("store_id").notNull(),
     collectionId: uuid("collection_id").notNull(),
-    listingRevision: integer("listing_revision").notNull(),
     collectionType: varchar("collection_type", { length: 16 }).$type<CollectionType>().notNull(),
     defaultSort: varchar("default_sort", { length: 32 }).$type<CollectionDefaultSort>().notNull(),
     defaultSortDirection: varchar("default_sort_direction", {
@@ -85,10 +84,6 @@ export const collectionState = listingSchema.table(
       sql`${table.collectionType} != 'manual' OR ${table.rulesJson} = '[]'::jsonb`,
     ),
     check(
-      "collection_state_listing_revision_check",
-      sql`${table.listingRevision} BETWEEN 0 AND 2147483646`,
-    ),
-    check(
       "collection_state_event_sequence_check",
       sql`${table.eventSequence} BETWEEN 1 AND 9007199254740991`,
     ),
@@ -114,7 +109,6 @@ export const collectionTombstone = listingSchema.table(
   {
     storeId: uuid("store_id").notNull(),
     collectionId: uuid("collection_id").notNull(),
-    listingRevision: integer("listing_revision").notNull(),
     payloadHash: text("payload_hash").notNull(),
     eventSequence: bigint("event_sequence", { mode: "number" }).notNull(),
     deletedAt: timestamp("deleted_at", {
@@ -130,10 +124,6 @@ export const collectionTombstone = listingSchema.table(
   },
   (table) => [
     primaryKey({ columns: [table.storeId, table.collectionId] }),
-    check(
-      "collection_tombstone_listing_revision_check",
-      sql`${table.listingRevision} BETWEEN 0 AND 2147483646`,
-    ),
     check(
       "collection_tombstone_event_sequence_check",
       sql`${table.eventSequence} BETWEEN 1 AND 9007199254740991`,

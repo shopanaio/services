@@ -108,7 +108,6 @@ export interface CatalogCollectionListingSnapshot {
   state: "live";
   id: string;
   storeId: string;
-  listingRevision: number;
   type: CollectionType;
   defaultSort: CollectionDefaultSort;
   defaultSortDirection: CollectionDefaultSortDirection;
@@ -126,7 +125,6 @@ export interface CatalogCollectionListingTombstone {
   state: "deleted";
   id: string;
   storeId: string;
-  listingRevision: number;
   deletedAt: string;
   payloadHash: string;
 }
@@ -482,7 +480,6 @@ export function serializeCollectionListingPayloadV1(input: CatalogCollectionPayl
       "deleted",
       canonicalUuid(input.id, ["id"]),
       canonicalUuid(input.storeId, ["storeId"]),
-      canonicalRevision(input.listingRevision),
       canonicalInstant(input.deletedAt, ["deletedAt"]),
     ]);
   }
@@ -492,7 +489,6 @@ export function serializeCollectionListingPayloadV1(input: CatalogCollectionPayl
     "live",
     canonicalUuid(input.id, ["id"]),
     canonicalUuid(input.storeId, ["storeId"]),
-    canonicalRevision(input.listingRevision),
     input.type,
     input.defaultSort,
     input.defaultSortDirection,
@@ -600,13 +596,6 @@ function canonicalInstant(value: unknown, path: readonly (string | number)[]): s
 
 function nullableInstant(value: string | null, path: readonly (string | number)[]): string | null {
   return value === null ? null : canonicalInstant(value, path);
-}
-
-function canonicalRevision(value: number): number {
-  if (!Number.isInteger(value) || value < 0 || value > 2_147_483_646) {
-    invalid("Listing revision is out of range", ["listingRevision"]);
-  }
-  return value;
 }
 
 function strictRecord(

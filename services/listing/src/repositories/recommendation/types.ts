@@ -52,7 +52,6 @@ export interface ManualRecommendationInput {
 export interface RecommendationBuildInputs {
   asOf: string;
   policyId: string;
-  policyVersion: number;
   calculationRunId: string | null;
   sourceIngestionWatermark: string | null;
   manualConfigurationHash: string;

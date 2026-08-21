@@ -173,7 +173,7 @@ export type CatalogMutation = {
    * Create a collection.
    *
    * RULE collections are created as drafts, then receive their initial rules
-   * through collectionUpdateRules using the returned revision.
+   * through collectionUpdateRules.
    */
   collectionCreate: CollectionCreatePayload;
   /** Soft-delete a collection. */
@@ -638,8 +638,6 @@ export type Category = Node & {
   productsCount: Scalars['Int']['output'];
   /** The date and time when the category was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Internal aggregate revision number. */
-  revision: Scalars['Int']['output'];
   /** SEO metadata. */
   seo: Maybe<Seo>;
   /** The date and time when the category was last updated. */
@@ -929,8 +927,7 @@ export type CategoryWhereInput = {
  * creation; create a new collection when a different membership model is needed.
  *
  * Collection content, SEO, publication, schedule, and default listing sort are
- * managed independently from RULE membership. Every successful mutation that
- * changes the collection increments `revision`.
+ * managed independently from RULE membership.
  */
 export type Collection = Node & {
   __typename?: 'Collection';
@@ -966,16 +963,12 @@ export type Collection = Node & {
   isActive: Scalars['Boolean']['output'];
   /** Whether `publishedAt` is present and not in the future. */
   isPublished: Scalars['Boolean']['output'];
-  /** Internal revision used to coordinate the Catalog and Listing projections. */
-  listingRevision: Scalars['Int']['output'];
   /** Collection media in storefront display order. */
   media: Array<CollectionMediaItem>;
   /** Localized display name for the request locale. */
   name: Scalars['String']['output'];
   /** Publication timestamp, or null while the collection is a draft. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Internal aggregate revision. */
-  revision: Scalars['Int']['output'];
   /**
    * Complete ordered rule set for a RULE collection. The list is empty for MANUAL
    * collections and may be empty for draft RULE collections.
@@ -1601,7 +1594,6 @@ export type ComparisonProfile = Node & {
   missingLabel: Scalars['String']['output'];
   name: Scalars['String']['output'];
   notApplicableLabel: Scalars['String']['output'];
-  revision: Scalars['Int']['output'];
   unavailableLabel: Scalars['String']['output'];
   updatedAt: Scalars['DateTime']['output'];
 };
@@ -2937,8 +2929,6 @@ export type Product = Node & {
   productComponent: Maybe<ProductComponent>;
   /** The date and time when the product was published, or null if unpublished. */
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  /** Internal aggregate revision number. */
-  revision: Scalars['Int']['output'];
   /** SEO and Open Graph metadata. */
   seo: Maybe<ProductSeo>;
   /** The tags associated with this product. */
@@ -3609,7 +3599,7 @@ export enum ProductComponentLogicOperator {
 /**
  * Product component operation in the unified product update.
  *
- * The owning product and expected revision are provided by productUpdate.
+ * The owning product is provided by productUpdate.
  * Fields that are not used by the selected action must be omitted.
  */
 export enum ProductComponentOperationAction {
@@ -4528,7 +4518,7 @@ export type ProductUpdatePayload = {
   __typename?: 'ProductUpdatePayload';
   /** Results of each operation. */
   operationResults: Array<OperationResult>;
-  /** The updated product with new revision. */
+  /** The updated product. */
   product: Maybe<Product>;
   /** All errors from all operations. */
   userErrors: Array<GenericUserError>;
@@ -6812,7 +6802,6 @@ export type CategoryResolvers<ContextType = ServiceContext, ParentType extends R
   path?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   productsCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -6888,11 +6877,9 @@ export type CollectionResolvers<ContextType = ServiceContext, ParentType extends
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   isActive?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   isPublished?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  listingRevision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   media?: Resolver<Array<ResolversTypes['CollectionMediaItem']>, ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   rules?: Resolver<Array<ResolversTypes['CollectionRule']>, ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['Seo']>, ParentType, ContextType>;
   type?: Resolver<ResolversTypes['CollectionType'], ParentType, ContextType>;
@@ -7139,7 +7126,6 @@ export type ComparisonProfileResolvers<ContextType = ServiceContext, ParentType 
   missingLabel?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   notApplicableLabel?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   unavailableLabel?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -7341,7 +7327,6 @@ export type ProductResolvers<ContextType = ServiceContext, ParentType extends Re
   primaryCategory?: Resolver<Maybe<ResolversTypes['Category']>, ParentType, ContextType>;
   productComponent?: Resolver<Maybe<ResolversTypes['ProductComponent']>, ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   seo?: Resolver<Maybe<ResolversTypes['ProductSeo']>, ParentType, ContextType>;
   tags?: Resolver<Array<ResolversTypes['Tag']>, ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

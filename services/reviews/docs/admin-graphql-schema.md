@@ -28,10 +28,9 @@ Translations, publications, media, criterion assignments, and detailed rating va
 entities where they have their own lifecycle, but aggregate sync remains available from the owning
 content/criterion update.
 
-Replies and answers remain independently revisioned content nodes for reads, moderation and audit.
-Their create, update and delete commands are scoped by the owning review or question update. Child
-update/delete items therefore carry the child `expectedRevision`, while the outer mutation carries
-the parent aggregate revision.
+Replies and answers remain independently audited content nodes. Their create, update and delete
+commands are scoped by the owning review or question update and do not accept client concurrency
+tokens.
 
 ## Relay queries
 
@@ -77,19 +76,14 @@ First-class updates mirror Catalog `productUpdate`:
 ```graphql
 reviewUpdate(
   reviewId: ID!
-  expectedRevision: Int!
   operations: ReviewUpdateInput
 ): ReviewUpdatePayload!
 ```
 
-The identity and optimistic-lock token are mutation arguments. `operations` is section-based,
-omitted sections are no-ops, explicit `null` clears nullable fields, and collection sections
-document full replacement semantics. Every update returns the updated entity, ordered
-`operationResults`, and flattened `userErrors`.
-
-Entities backed by a database `revision` use `expectedRevision`. Other mutable first-class rows use
-`expectedUpdatedAt`, matching their existing physical concurrency token without inventing a schema
-column.
+`operations` is section-based, omitted sections are no-ops, explicit `null` clears nullable fields,
+and collection sections document full replacement semantics. Every update returns the updated
+entity, ordered `operationResults`, and flattened `userErrors`. Serialization and concurrency are
+handled by backend workflows and are not part of the client input.
 
 ## Federation and IDs
 

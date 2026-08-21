@@ -32,7 +32,6 @@ export const discountUsageCounter = pricingSchema.table(
     reservedCount: bigint("reserved_count", { mode: "bigint" }).notNull().default(0n),
     committedCount: bigint("committed_count", { mode: "bigint" }).notNull().default(0n),
     reversedCount: bigint("reversed_count", { mode: "bigint" }).notNull().default(0n),
-    version: bigint("version", { mode: "bigint" }).notNull().default(0n),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -45,7 +44,6 @@ export const discountUsageCounter = pricingSchema.table(
         AND ${table.reversedCount} >= 0
         AND ${table.reversedCount} <= ${table.committedCount}`,
     ),
-    check("discount_usage_counter_version_check", sql`${table.version} >= 0`),
     index("discount_usage_counter_store_idx").on(table.storeId, table.discountId),
   ],
 );
@@ -59,7 +57,6 @@ export const discountCodeUsageCounter = pricingSchema.table(
     reservedCount: bigint("reserved_count", { mode: "bigint" }).notNull().default(0n),
     committedCount: bigint("committed_count", { mode: "bigint" }).notNull().default(0n),
     reversedCount: bigint("reversed_count", { mode: "bigint" }).notNull().default(0n),
-    version: bigint("version", { mode: "bigint" }).notNull().default(0n),
     updatedAt: timestamp("updated_at", { withTimezone: true, mode: "string" })
       .notNull()
       .defaultNow(),
@@ -77,7 +74,6 @@ export const discountCodeUsageCounter = pricingSchema.table(
         AND ${table.reversedCount} >= 0
         AND ${table.reversedCount} <= ${table.committedCount}`,
     ),
-    check("discount_code_usage_counter_version_check", sql`${table.version} >= 0`),
     index("discount_code_usage_counter_store_discount_idx").on(
       table.storeId,
       table.discountId,
@@ -191,7 +187,6 @@ export const discountRedemption = pricingSchema.table(
     idempotencyKey: text("idempotency_key").notNull(),
     status: discountRedemptionStatusEnum("status").notNull().default("COMMITTED"),
     discountClass: discountClassEnum("discount_class").notNull(),
-    configurationRevision: integer("configuration_revision").notNull(),
     currency: currencyCodeEnum("currency").notNull(),
     amountMinor: bigint("amount_minor", { mode: "bigint" }).notNull(),
     committedAt: timestamp("committed_at", {
@@ -234,7 +229,6 @@ export const discountRedemption = pricingSchema.table(
     unique("discount_redemption_order_unique").on(table.storeId, table.discountId, table.orderId),
     unique("discount_redemption_reservation_unique").on(table.reservationId),
     check("discount_redemption_idempotency_check", sql`length(btrim(${table.idempotencyKey})) > 0`),
-    check("discount_redemption_revision_check", sql`${table.configurationRevision} >= 0`),
     check("discount_redemption_amount_check", sql`${table.amountMinor} >= 0`),
     check(
       "discount_redemption_status_check",

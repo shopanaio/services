@@ -144,7 +144,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
       return;
     }
 
-    // If workflow-level error without per-operation results (e.g., revision conflict)
+    // If a workflow-level error occurs without per-operation results
     if (result.product === null && result.userErrors.length > 0) {
       const errors: BulkEditError[] = result.userErrors.map(toBulkEditError);
       await Promise.all(items.map((item) => this.stepTryMarkItemFailed(item.id, errors)));

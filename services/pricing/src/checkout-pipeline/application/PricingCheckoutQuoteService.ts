@@ -3,7 +3,7 @@ import type { Catalog, Pricing } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import type { PricingCatalogMerchandisePort } from "../contracts.js";
 import { toCatalogMerchandiseParams } from "../catalog-merchandise.js";
-import { canonicalJson, contentRevision } from "../canonicalJson.js";
+import { canonicalJson, contentDigest } from "../canonicalJson.js";
 import { PricingCheckoutError } from "../errors.js";
 import { buildDeliveryIntent } from "../domain/deliveryIntent.js";
 import { validateFinalDelivery } from "../domain/finalDeliveryValidation.js";
@@ -35,7 +35,7 @@ export class PricingCheckoutQuoteService {
     store: ContextStore,
   ): Promise<Pricing.CalculateCheckoutPreliminaryQuoteResult> {
     this.validateContext(params.context, store);
-    const requestDigest = contentRevision("pricing-preliminary-request", params);
+    const requestDigest = contentDigest("pricing-preliminary-request", params);
     const attempt = attemptOf(params.context, requestDigest);
     const replay = await this.snapshots.findPreliminary(attempt);
     if (replay) return replay;
@@ -79,7 +79,6 @@ export class PricingCheckoutQuoteService {
         : await this.functionRunner.runLines({
             storeId: store.id,
             bindings: activeBindings.bindings,
-            bindingSetRevision: activeBindings.bindingSetRevision,
             input: functionInput,
             executionId: params.context.executionId,
             correlationId: params.context.correlationId,
@@ -104,12 +103,9 @@ export class PricingCheckoutQuoteService {
       executionId: params.context.executionId,
       checkoutId: params.context.checkoutId,
       currencyCode: params.context.currencyCode,
-      discountEvaluationRevision: discountResult.revision,
       transformedLines: discountResult.lines,
       sourceLineResolutions: transformed.resolutions,
       deliveryIntent,
-      merchandiseRevision: catalogResult.merchandiseRevision,
-      availabilityRevision: catalogResult.availabilityRevision,
       appliedDiscounts: discountResult.applications,
       discountCodeResolutions: discountResult.codeResolutions,
       usageRequirements: discountResult.requirements,
@@ -121,7 +117,6 @@ export class PricingCheckoutQuoteService {
     };
     const result: Pricing.CalculateCheckoutPreliminaryQuoteResult = {
       preliminaryQuoteId: randomUUID(),
-      revision: contentRevision("pricing-preliminary-quote", stable),
       ...stable,
     };
     return this.snapshots.savePreliminary(attempt, result);
@@ -133,7 +128,7 @@ export class PricingCheckoutQuoteService {
   ): Promise<Pricing.FinalizeCheckoutPricingQuoteResult> {
     this.validateContext(params.context, store);
     assertProvenance(params);
-    const requestDigest = contentRevision("pricing-final-request", params);
+    const requestDigest = contentDigest("pricing-final-request", params);
     const attempt = attemptOf(params.context, requestDigest);
     const replay = await this.snapshots.findFinal(attempt);
     if (replay) return replay;
@@ -179,7 +174,6 @@ export class PricingCheckoutQuoteService {
         : await this.functionRunner.runDelivery({
             storeId: store.id,
             bindings: activeBindings.bindings,
-            bindingSetRevision: activeBindings.bindingSetRevision,
             input: functionInput,
             executionId: params.context.executionId,
             correlationId: params.context.correlationId,
@@ -211,10 +205,6 @@ export class PricingCheckoutQuoteService {
       executionId: params.context.executionId,
       checkoutId: params.context.checkoutId,
       currencyCode: currency,
-      discountEvaluationRevision: shipping.revision,
-      basedOnPreliminaryDiscountEvaluationRevision: params.preliminary.discountEvaluationRevision,
-      basedOnPreliminaryRevision: params.preliminary.revision,
-      basedOnDeliveryRevision: params.delivery.revision,
       lines: params.preliminary.transformedLines,
       appliedDiscounts,
       discountCodeResolutions: shipping.codes,
@@ -230,7 +220,6 @@ export class PricingCheckoutQuoteService {
     };
     const result: Pricing.FinalizeCheckoutPricingQuoteResult = {
       quoteId: randomUUID(),
-      revision: contentRevision("pricing-final-quote", stable),
       ...stable,
     };
     return this.snapshots.saveFinal(attempt, params.preliminary.preliminaryQuoteId, result);
@@ -321,16 +310,10 @@ function flattenWithParent(
 }
 function assertProvenance(params: Pricing.FinalizeCheckoutPricingQuoteParams): void {
   const { context, preliminary, delivery } = params;
-  const expected = [
-    context.executionId,
-    context.checkoutId,
-    context.expectedCheckoutVersion,
-    context.currencyCode,
-  ];
+  const expected = [context.executionId, context.checkoutId, context.currencyCode];
   const preliminaryActual = [
     preliminary.executionId,
     preliminary.checkoutId,
-    preliminary.basedOnCheckoutVersion,
     preliminary.currencyCode,
   ];
   if (preliminaryActual.some((value, index) => value !== expected[index]))
@@ -339,22 +322,11 @@ function assertProvenance(params: Pricing.FinalizeCheckoutPricingQuoteParams): v
       "Preliminary quote provenance mismatch",
       false,
     );
-  const deliveryActual = [
-    delivery.executionId,
-    delivery.checkoutId,
-    delivery.basedOnCheckoutVersion,
-    delivery.currencyCode,
-  ];
+  const deliveryActual = [delivery.executionId, delivery.checkoutId, delivery.currencyCode];
   if (deliveryActual.some((value, index) => value !== expected[index]))
     throw new PricingCheckoutError(
       "PRICING_FINAL_DELIVERY_MISMATCH",
       "Delivery snapshot provenance mismatch",
-      false,
-    );
-  if (delivery.basedOnPreliminaryRevision !== preliminary.revision)
-    throw new PricingCheckoutError(
-      "PRICING_FINAL_DELIVERY_MISMATCH",
-      "Delivery is based on a stale preliminary quote",
       false,
     );
 }

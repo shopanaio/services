@@ -20,14 +20,12 @@ export class RecommendationPlacementPolicySetEnabledScript extends BaseScript<
     if (current.enabled === input.enabled) return { policy: current, userErrors: [] };
     const policy = await this.repository.recommendationPlacementPolicy.setEnabled(
       current.policyId,
-      current.version,
       input.enabled,
     );
-    if (!policy)
-      return { userErrors: [{ message: "Policy version changed", code: "VERSION_CONFLICT" }] };
+    if (!policy) return { userErrors: [{ message: "Policy not found", code: "NOT_FOUND" }] };
     return {
       policy,
-      generationTrigger: policy.enabled ? `policy:${policy.policyId}:${policy.version}` : undefined,
+      generationTrigger: policy.enabled ? `policy:${policy.policyId}` : undefined,
       userErrors: [],
     };
   }

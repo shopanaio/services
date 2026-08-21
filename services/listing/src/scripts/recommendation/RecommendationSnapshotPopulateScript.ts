@@ -14,7 +14,7 @@ export class RecommendationSnapshotPopulateScript extends BaseScript<
       throw new RecommendationIntegrityError("STALE_INPUT", "Snapshot is not BUILDING");
     }
     const policy = await this.repository.recommendationPlacementPolicy.findById(snapshot.policyId);
-    if (!policy || !policy.enabled || policy.version !== snapshot.policyVersion) {
+    if (!policy || !policy.enabled) {
       throw new RecommendationIntegrityError("STALE_INPUT", "Snapshot policy is stale");
     }
     const manualRows = await this.repository.manualProductRecommendation.listEffective({

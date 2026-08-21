@@ -91,7 +91,6 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
         minimum_results AS "minimumResults",
         maximum_results AS "maximumResults",
         fallback_chain AS "fallbackChain",
-        version,
         created_at AS "createdAt",
         updated_at AS "updatedAt"
       FROM listing.recommendation_placement_policy
@@ -111,7 +110,6 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
         storeId: this.storeId,
         ...input,
         enabled: true,
-        version: 1,
         createdAt: sql`now()`,
         updatedAt: sql`now()`,
       })
@@ -122,14 +120,12 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
 
   async update(
     policyId: string,
-
     input: Omit<PolicyWriteInput, "placement">,
   ): Promise<RecommendationPlacementPolicy | null> {
     const [row] = await this.connection
       .update(recommendationPlacementPolicy)
       .set({
         ...input,
-        version: sql`${recommendationPlacementPolicy.version} + 1`,
         updatedAt: sql`now()`,
       })
       .where(
@@ -144,14 +140,12 @@ export class RecommendationPlacementPolicyRepository extends BaseRepository {
 
   async setEnabled(
     policyId: string,
-
     enabled: boolean,
   ): Promise<RecommendationPlacementPolicy | null> {
     const [row] = await this.connection
       .update(recommendationPlacementPolicy)
       .set({
         enabled,
-        version: sql`${recommendationPlacementPolicy.version} + 1`,
         updatedAt: sql`now()`,
       })
       .where(

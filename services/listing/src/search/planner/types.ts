@@ -45,7 +45,7 @@ export interface SearchQueryPlan {
   readonly applicableBoostProductIds: readonly string[];
   readonly enabledFields: readonly SearchTextField[];
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
   readonly fingerprint: string;
 }
 
@@ -65,7 +65,7 @@ export interface CompiledSearchSynonymValue {
   readonly preparedText: string;
   readonly lexemes: readonly string[];
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
 }
 
 export interface CompiledSearchSynonymGroup {
@@ -81,7 +81,7 @@ export interface CompiledSearchSynonymTrieNode {
 export interface CompiledLocaleSynonyms {
   readonly resourceFingerprint: string;
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
   readonly groups: readonly CompiledSearchSynonymGroup[];
   readonly trie: CompiledSearchSynonymTrieNode;
 }

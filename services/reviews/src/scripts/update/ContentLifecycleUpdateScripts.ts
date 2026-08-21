@@ -1,7 +1,7 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { ContentRestorePatch } from "../../repositories/content/ContentRepository.js";
 import type { ContentItem } from "../../repositories/models/index.js";
-import { conflictError, internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
+import { internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
 import type {
   ContentRedactParams,
   ContentRedactResult,
@@ -28,9 +28,7 @@ export class ContentRedactScript extends BaseScript<ContentRedactParams, Content
 
     const updated = await this.repository.content.redact(params.contentId);
     if (updated.status !== "applied") {
-      return updated.status === "conflict"
-        ? { userErrors: [conflictError("Content", "expectedRevision")] }
-        : { userErrors: [notFoundError("Content", "contentId")] };
+      return { userErrors: [notFoundError("Content", "contentId")] };
     }
     await this.ensureRevision(current, "Content redacted");
 
@@ -101,9 +99,7 @@ export class ContentRevisionRestoreScript extends BaseScript<
       restored.value,
     );
     if (updated.status !== "applied") {
-      return updated.status === "conflict"
-        ? { userErrors: [conflictError("Content", "expectedRevision")] }
-        : { userErrors: [notFoundError("Content", "contentId")] };
+      return { userErrors: [notFoundError("Content", "contentId")] };
     }
     if (!(await this.repository.moderation.findRevision(current.id, current.revision))) {
       await this.repository.moderation.appendRevision({

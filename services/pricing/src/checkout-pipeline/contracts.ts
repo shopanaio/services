@@ -37,7 +37,7 @@ export interface PricingCheckoutActionsContract {
   finalizeCheckoutPricingQuote(params: FinalizeQuoteParams): Promise<FinalizeQuoteResult>;
 }
 
-/** Persistence boundary for immutable quote snapshots and optimistic revisions. */
+/** Persistence boundary for immutable quote snapshots. */
 export interface PricingQuoteSnapshotPort {
   savePreliminary(
     result: CalculatePreliminaryQuoteResult,
@@ -53,7 +53,6 @@ export interface PricingDiscountUsageReservationPort {
       storeId: string;
       checkoutId: string;
       quoteId: string;
-      quoteRevision: string;
       idempotencyKey: string;
       requirements: readonly Pricing.PricingCheckoutDiscountUsageRequirement[];
     }>,

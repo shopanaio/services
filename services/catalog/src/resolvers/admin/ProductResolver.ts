@@ -55,10 +55,6 @@ export class ProductResolver extends CatalogType<string, Product> {
     return this.$get("deletedAt");
   }
 
-  async revision() {
-    return this.$get("revision");
-  }
-
   async vendor(): Promise<VendorResolver | null> {
     const vendorId = await this.$get("vendorId");
     return vendorId ? this.resolvers.vendor(vendorId) : null;

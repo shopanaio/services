@@ -1,7 +1,6 @@
 import {
   foreignKey,
   index,
-  integer,
   primaryKey,
   text,
   timestamp,
@@ -33,7 +32,6 @@ export const productTitleBm25SearchIndex = catalogSchema.table(
       withTimezone: true,
       mode: "string",
     }).notNull(),
-    productRevision: integer("product_revision").notNull().default(0),
     title: text("title").notNull().default(""),
     indexedAt: timestamp("indexed_at", { withTimezone: true, mode: "string" })
       .notNull()

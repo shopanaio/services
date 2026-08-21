@@ -32,10 +32,10 @@ interface PolicyDraft {
 }
 
 export type ManualDraftChange =
-  | { kind: "create"; value: Omit<ManualDraftRow, "id" | "expectedVersion"> }
+  | { kind: "create"; value: Omit<ManualDraftRow, "id"> }
   | {
       kind: "update";
-      value: Partial<Omit<ManualDraftRow, "id" | "expectedVersion">> & {
+      value: Partial<Omit<ManualDraftRow, "id">> & {
         id: string;
       };
     }
@@ -268,7 +268,6 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
               minimumResults: input.policy.minimumResults,
               maximumResults: input.policy.maximumResults,
               fallbackChain: input.policy.fallbackChain,
-              version: persisted?.version ?? 0,
               createdAt: persisted?.createdAt ?? asOf,
               updatedAt: asOf,
             },
@@ -303,7 +302,7 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
     const userErrors: UserError[] = [];
     for (const [index, change] of input.manualChanges.entries()) {
       if (change.kind === "create") {
-        const row = draftRow(input, change.value, `preview-create-${index}`, 0, asOf);
+        const row = draftRow(input, change.value, `preview-create-${index}`, asOf);
         userErrors.push(...validateManualValues({ ...row, maximumResults }));
         rows.set(row.recommendationId, row);
         continue;
@@ -327,7 +326,7 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
         rows.delete(id);
         continue;
       }
-      const next = { ...current, ...change.value, recommendationId: id, version: current.version };
+      const next = { ...current, ...change.value, recommendationId: id };
       userErrors.push(...validateManualValues({ ...next, maximumResults }));
       rows.set(id, next);
     }
@@ -372,9 +371,8 @@ export class RecommendationSnapshotPreviewScript extends BaseScript<
 
 function draftRow(
   input: RecommendationSnapshotPreviewParams,
-  value: Omit<ManualDraftRow, "id" | "expectedVersion">,
+  value: Omit<ManualDraftRow, "id">,
   id: string,
-  version: number,
   asOf: string,
 ): ManualProductRecommendation {
   return {
@@ -391,7 +389,6 @@ function draftRow(
     endsAt: value.endsAt,
     anchorReferenceStatus: "VALID",
     targetReferenceStatus: "VALID",
-    version,
     createdAt: asOf,
     updatedAt: asOf,
   };

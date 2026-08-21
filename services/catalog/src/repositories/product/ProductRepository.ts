@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, isNull, count, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull, count } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -178,29 +178,6 @@ export class ProductRepository extends BaseRepository {
       .returning({ id: product.id });
 
     return result.length > 0;
-  }
-
-  async softDeleteWithRevision(id: string): Promise<{
-    id: string;
-    revision: number;
-    deletedAt: string | null;
-  } | null> {
-    const now = new Date().toISOString();
-    const result = await this.connection
-      .update(product)
-      .set({
-        deletedAt: now,
-        updatedAt: now,
-        revision: sql`${product.revision} + 1`,
-      })
-      .where(and(eq(product.storeId, this.storeId), eq(product.id, id), isNull(product.deletedAt)))
-      .returning({
-        id: product.id,
-        revision: product.revision,
-        deletedAt: product.deletedAt,
-      });
-
-    return result[0] ?? null;
   }
 
   async hardDelete(id: string): Promise<boolean> {

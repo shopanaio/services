@@ -5,7 +5,6 @@ import {
   check,
   foreignKey,
   index,
-  integer,
   jsonb,
   smallint,
   text,
@@ -42,7 +41,6 @@ export const monetaryWallets = loyaltySchema.table(
     currencyCode: varchar("currency_code", { length: 3 }).notNull(),
     status: monetaryWalletStatusEnum("status").notNull().default("ACTIVE"),
     mergedIntoWalletId: uuid("merged_into_wallet_id"),
-    revision: integer("revision").notNull().default(1),
     openedAt: timestamp("opened_at", {
       withTimezone: true,
       mode: "string",
@@ -90,7 +88,6 @@ export const monetaryWallets = loyaltySchema.table(
       table.id,
     ),
     check("loyalty_monetary_wallet_currency_check", sql`${table.currencyCode} ~ '^[A-Z]{3}$'`),
-    check("loyalty_monetary_wallet_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_monetary_wallet_merge_check",
       sql`(${table.status} = 'MERGED' AND ${table.mergedIntoWalletId} IS NOT NULL
@@ -314,7 +311,6 @@ export const monetaryWalletBalances = loyaltySchema.table(
       .default(0n),
     reservedAmountMinor: bigint("reserved_amount_minor", { mode: "bigint" }).notNull().default(0n),
     debtAmountMinor: bigint("debt_amount_minor", { mode: "bigint" }).notNull().default(0n),
-    revision: integer("revision").notNull().default(1),
     lastTransactionId: uuid("last_transaction_id"),
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
@@ -340,7 +336,7 @@ export const monetaryWalletBalances = loyaltySchema.table(
         AND ${table.availableAmountMinor} >= 0
         AND ${table.reservedAmountMinor} >= 0
         AND ${table.debtAmountMinor} >= 0
-        AND ${table.revision} > 0`,
+        `,
     ),
   ],
 );

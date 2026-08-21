@@ -9,7 +9,6 @@ extend type Product implements Node & Listing @key(fields: "id", resolvable: fal
 
 extend type Collection @key(fields: "id") {
   id: ID! @external
-  listingRevision: Int! @external
 
   products(
     first: Int
@@ -19,7 +18,7 @@ extend type Collection @key(fields: "id") {
     currency: CurrencyCode
     facets: [ListingProductFilter!]
     orderBy: ListingOrderByInput
-  ): ListingConnection! @requires(fields: "listingRevision")
+  ): ListingConnection!
 }
 
 # ---- Listing Inputs ----

@@ -1,5 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import { conflict, internalError, notFound } from "./errors.js";
+import { internalError, notFound } from "./errors.js";
 import type { ProductQuestionDeleteParams, ProductQuestionDeleteResult } from "./types.js";
 
 export class ProductQuestionDeleteScript extends BaseScript<
@@ -18,7 +18,6 @@ export class ProductQuestionDeleteScript extends BaseScript<
       permanent: params.permanent ?? false,
     });
     if (result.status === "not_found") return { userErrors: notFound("Product question") };
-    if (result.status === "conflict") return { userErrors: conflict("expectedRevision") };
     this.logger.info(
       { productQuestionId: params.id, permanent: params.permanent ?? false },
       "Product question deleted",

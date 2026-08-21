@@ -18,7 +18,7 @@ export interface PostgresFtsCompilerContext {
   readonly storeId: string;
   readonly locale: string;
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
   readonly fieldWeights: Readonly<Partial<Record<SearchTextField, number>>>;
 }
 
@@ -644,8 +644,8 @@ function compileTextClause(
       AND element.locale = ${context.locale}
       AND element.normalization_contract_version =
         ${context.normalizationContractVersion}
-      AND element.normalization_profile_revision =
-        ${context.normalizationProfileRevision}
+      AND element.normalization_profile_hash =
+        ${context.normalizationProfileHash}
       AND element.field IN (${fieldValues})
       AND element.search_vector @@ ${query}
   `;
@@ -722,7 +722,7 @@ function validateCommonContext(
   }
   if (
     context.normalizationContractVersion !== plan.normalizationContractVersion ||
-    context.normalizationProfileRevision !== plan.normalizationProfileRevision
+    context.normalizationProfileHash !== plan.normalizationProfileHash
   ) {
     throw indexUnavailable(
       "Search plan normalization profile does not match the active index profile",

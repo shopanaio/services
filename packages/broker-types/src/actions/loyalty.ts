@@ -42,7 +42,6 @@ export const LoyaltyCheckoutActions = {
 
 export interface LoyaltyRewardQuote {
   entitlementId: string;
-  entitlementRevision: number;
   accountId: string;
   rewardDefinitionId: string;
   rewardType:
@@ -81,7 +80,7 @@ export interface ReserveCheckoutLoyaltyRewardParams {
 }
 
 export type ReserveCheckoutLoyaltyRewardResult =
-  | Readonly<{ status: "RESERVED"; entitlementId: string; entitlementRevision: number }>
+  | Readonly<{ status: "RESERVED"; entitlementId: string }>
   | Readonly<{ status: "REJECTED"; code: string; message: string; retryable: boolean }>;
 
 export interface CommitCheckoutLoyaltyRewardParams {
@@ -106,7 +105,6 @@ export type TransitionCheckoutLoyaltyRewardResult =
   | Readonly<{
       status: "COMMITTED" | "RELEASED" | "NOOP";
       entitlementId: string;
-      entitlementRevision: number;
     }>
   | Readonly<{ status: "REJECTED"; code: string; message: string; retryable: boolean }>;
 
@@ -120,7 +118,6 @@ export interface LoyaltyProgramSnapshot {
   programCode: string;
   programVersionId: string;
   programVersion: number;
-  programRevision: number;
   currencyCode: string;
   redemptionEnabled: boolean;
   redeemPoints: string;
@@ -128,7 +125,6 @@ export interface LoyaltyProgramSnapshot {
   minimumRedeemPoints: string;
   maximumRedeemPointsPerOrder: string | null;
   maximumOrderPercentageBps: number;
-  policyRevision: string;
 }
 
 export interface LoyaltyAccountBalanceSnapshot {
@@ -138,7 +134,6 @@ export interface LoyaltyAccountBalanceSnapshot {
   debtPoints: string;
   expiringPoints: string;
   nextExpiryAt: string | null;
-  revision: number;
 }
 
 export interface LoyaltyAccountSnapshot {
@@ -156,7 +151,6 @@ export interface LoyaltyAccountSnapshot {
     effectiveFrom: string;
     effectiveTo: string | null;
   }> | null;
-  revision: string;
 }
 
 export interface GetCustomerLoyaltyAccountParams {
@@ -207,7 +201,6 @@ export interface LoyaltyRedemptionQuote {
   quoteId: string;
   revision: string;
   accountId: string;
-  accountRevision: number;
   program: LoyaltyProgramSnapshot;
   requestedPoints: string | null;
   redeemablePoints: string;
@@ -272,7 +265,6 @@ export type ReserveCheckoutLoyaltyRedemptionResult =
       points: string;
       discount: LoyaltyCheckoutMoney;
       expiresAt: string;
-      reservationRevision: number;
     }>
   | Readonly<{
       status: "REJECTED";

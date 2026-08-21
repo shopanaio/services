@@ -18,7 +18,6 @@ import { Loader } from "../loaders/Loader.js";
 export interface ManualLoyaltyAdjustmentInput {
   storeId: string;
   accountId: string;
-  expectedBalanceRevision: number;
   points: string;
   direction: "CREDIT" | "DEBIT";
   reasonCode: string;

@@ -40,15 +40,6 @@ export class ProductQuestionAnswerDeleteScript extends BaseScript<
         { message: "Answer not found", code: "NOT_FOUND", field: ["answerId"] },
       ]);
     }
-    if (result.status === "conflict") {
-      return sectionErrors([
-        {
-          message: "Answer was modified by another user",
-          code: "REVISION_CONFLICT",
-          field: ["expectedRevision"],
-        },
-      ]);
-    }
     return sectionSuccess(true, input.answerId);
   }
 

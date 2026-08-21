@@ -144,9 +144,6 @@ export class LoyaltyEarningRuleUsageResolver extends LoyaltyType<string, Earning
   monetaryAmounts() {
     return this.$get("monetaryAmounts");
   }
-  revision() {
-    return this.$get("revision");
-  }
   updatedAt() {
     return this.$get("updatedAt");
   }

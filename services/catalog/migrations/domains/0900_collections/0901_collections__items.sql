@@ -45,7 +45,6 @@ CREATE TABLE "catalog"."collection_product_sync_operation" (
   "operation_id" uuid NOT NULL,
   "workflow_id" text NOT NULL,
   "collection_id" uuid NOT NULL,
-  "collection_revision" integer NOT NULL,
   "reason" varchar(16) NOT NULL,
   "status" varchar(16) NOT NULL DEFAULT 'pending',
   "affected_count" integer NOT NULL,

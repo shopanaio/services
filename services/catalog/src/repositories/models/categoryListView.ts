@@ -17,7 +17,6 @@ export const categoryListView = catalogSchema.view("category_list_view").as((qb)
       createdAt: category.createdAt,
       updatedAt: category.updatedAt,
       deletedAt: category.deletedAt,
-      revision: category.revision,
       productsCount: category.productsCount,
       locale: categoryTranslation.locale,
       name: categoryTranslation.name,

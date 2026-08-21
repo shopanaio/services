@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, sql } from "drizzle-orm";
+import { and, asc, eq, inArray } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   accountBalances,
@@ -87,7 +87,6 @@ export class BalanceRepository extends BaseRepository {
       .update(accountBalances)
       .set({
         ...input,
-        revision: sql`${accountBalances.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -116,7 +115,6 @@ export class BalanceRepository extends BaseRepository {
       .update(accountBalances)
       .set({
         ...input,
-        revision: sql`${accountBalances.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(

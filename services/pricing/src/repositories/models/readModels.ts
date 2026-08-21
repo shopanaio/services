@@ -69,7 +69,6 @@ const discountListColumns = {
     mode: "string",
   }).notNull(),
   endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
-  revision: integer("revision").notNull(),
   reservedUsageCount: bigint("reserved_usage_count", {
     mode: "bigint",
   }).notNull(),
@@ -157,7 +156,6 @@ export const discountUsageSummaryView = pricingSchema
     }).notNull(),
     consumedCount: bigint("consumed_count", { mode: "bigint" }).notNull(),
     remainingCount: bigint("remaining_count", { mode: "bigint" }),
-    version: bigint("version", { mode: "bigint" }),
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
       mode: "string",

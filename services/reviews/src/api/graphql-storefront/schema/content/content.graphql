@@ -170,7 +170,7 @@ input ReviewContentEditInput {
 }
 
 """
-Optimistic input used to delete content owned by the current customer.
+Input used to delete content owned by the current customer.
 """
 input ReviewContentDeleteInput {
   id: ID!

@@ -31,7 +31,7 @@ export class RecommendationSnapshotTransitionScript extends BaseScript<
           rebuildRequest = await this.repository.recommendationBuildRequest.request(
             snapshot.anchorProductId,
             snapshot.placement,
-            `stale-rebuild:${snapshot.snapshotId}:${snapshot.policyVersion}`,
+            `stale-rebuild:${snapshot.snapshotId}`,
           );
         }
       }
@@ -61,7 +61,6 @@ export class RecommendationSnapshotTransitionScript extends BaseScript<
       locks.snapshot?.status === "READY" &&
       locks.policy?.enabled === true &&
       locks.policy.policyId === snapshot.policyId &&
-      locks.policy.version === snapshot.policyVersion &&
       locks.request?.generation.toString() === fixed.requestedGeneration &&
       locks.request.triggerKey === fixed.triggerKey &&
       snapshot.modelVersion === recommendationModelVersion(snapshot.placement) &&

@@ -45,7 +45,6 @@ export const discount = pricingSchema.table(
     appliesOnSubscription: boolean("applies_on_subscription").notNull().default(false),
     startsAt: timestamp("starts_at", { withTimezone: true, mode: "string" }).notNull().defaultNow(),
     endsAt: timestamp("ends_at", { withTimezone: true, mode: "string" }),
-    revision: integer("revision").notNull().default(0),
     createdById: text("created_by_id"),
     metadata: jsonb("metadata")
       .notNull()
@@ -95,7 +94,6 @@ export const discount = pricingSchema.table(
       "discount_active_interval_check",
       sql`${table.endsAt} IS NULL OR ${table.endsAt} > ${table.startsAt}`,
     ),
-    check("discount_revision_check", sql`${table.revision} >= 0`),
     check(
       "discount_archive_state_check",
       sql`(${table.state} = 'ARCHIVED' AND ${table.archivedAt} IS NOT NULL)

@@ -40,9 +40,6 @@ export const category = catalogSchema.table(
     // Publication
     publishedAt: timestamp("published_at", { withTimezone: true, mode: "string" }),
 
-    // Optimistic locking
-    revision: integer("revision").notNull().default(0),
-
     // Denormalized product count for category listings
     productsCount: integer("products_count").notNull().default(0),
 

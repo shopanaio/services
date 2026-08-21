@@ -4,7 +4,6 @@ import {
   text,
   timestamp,
   boolean,
-  integer,
   index,
   unique,
   uniqueIndex,
@@ -30,7 +29,6 @@ export const product = catalogSchema.table(
       .notNull()
       .defaultNow(),
     deletedAt: timestamp("deleted_at", { withTimezone: true, mode: "string" }),
-    revision: integer("revision").notNull().default(0),
   },
   (table) => [
     check("product_published_requires_handle", sql`published_at IS NULL OR handle IS NOT NULL`),
@@ -45,7 +43,6 @@ export const product = catalogSchema.table(
     index("idx_product_deleted_at")
       .on(table.deletedAt)
       .where(sql`deleted_at IS NOT NULL`),
-    index("idx_product_revision").on(table.id, table.revision),
     foreignKey({
       name: "product_vendor_fk",
       columns: [table.vendorId],

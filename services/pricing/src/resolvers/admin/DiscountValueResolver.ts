@@ -261,12 +261,6 @@ export class DiscountFunctionBindingResolver extends PricingType<DiscountFunctio
   configurationSnapshot() {
     return this.$props.configurationSnapshot;
   }
-  configurationRevision() {
-    return this.$props.configurationRevision;
-  }
-  routeRevision() {
-    return this.$props.routeRevision;
-  }
   createdAt() {
     return this.$props.createdAt;
   }
@@ -296,9 +290,6 @@ export class DiscountUsageSummaryResolver extends PricingType<DiscountUsageSumma
   }
   remainingCount() {
     return toGraphqlBigInt(this.$props.remainingCount);
-  }
-  version() {
-    return toGraphqlBigInt(this.$props.version);
   }
   updatedAt() {
     return this.$props.updatedAt;

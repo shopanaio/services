@@ -45,7 +45,6 @@ unique constraints.
 | `applies_on_one_time_purchase` | Разрешает применение к разовой покупке.                          |
 | `applies_on_subscription`      | Разрешает применение к подписке.                                 |
 | `starts_at`, `ends_at`         | Период действия скидки.                                          |
-| `revision`                     | Версия агрегата для optimistic concurrency.                      |
 
 Соответствие `kind` и `discount_class`:
 
@@ -173,7 +172,6 @@ FK. Для долгоживущих ссылок хранится `reference_sta
 - `reserved_count` — активные checkout reservations;
 - `committed_count` — зафиксированные применения;
 - `reversed_count` — отмененные применения;
-- `version` — версия строки для конкурентного обновления.
 
 ### `discount_code_usage_counter`
 
@@ -200,9 +198,8 @@ reservations без cross-service связей.
 ### `discount_redemption`
 
 Фиксирует применение скидки к заказу. Помимо ссылок на discount, code, reservation, checkout и order
-хранит класс и revision конфигурации, currency, итоговую сумму, время применения или отмены и
-причину reversal. Отображаемые title и code читаются из связанных сущностей и отдельно не
-снапшотятся.
+хранит класс, currency, итоговую сумму, время применения или отмены и причину reversal. Отображаемые
+title и code читаются из связанных сущностей и отдельно не снапшотятся.
 
 Уникальность по Store, Discount и Order защищает от повторного применения одной скидки к одному
 заказу.

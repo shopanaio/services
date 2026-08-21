@@ -52,7 +52,6 @@ export function normalizeListingRequest(
         ? {
             kind: "collection" as const,
             collectionId: requiredCollectionValue(input.collectionId, "collectionId"),
-            listingRevision: requiredCollectionRevision(input.collectionListingRevision),
             rulesHash: requiredCollectionValue(input.collectionRulesHash, "collectionRulesHash"),
             membershipBitmap: requiredCollectionValue(
               input.collectionMembershipBitmap,
@@ -313,16 +312,6 @@ function requiredCollectionValue(value: string | undefined, field: string): stri
     throw new ListingResolverInputError(`Collection scope requires ${field}`, [field]);
   }
   return value;
-}
-
-function requiredCollectionRevision(value: number | undefined): number {
-  if (!Number.isSafeInteger(value) || value! < 0) {
-    throw new ListingResolverInputError(
-      "Collection scope requires a non-negative listing revision",
-      ["collectionListingRevision"],
-    );
-  }
-  return value!;
 }
 
 function decodeVendorId(value: string, field: readonly string[]): string {

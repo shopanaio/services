@@ -160,7 +160,7 @@ type SearchExplain {
   normalizedQuery: String!
   locale: LocaleCode!
   normalizationContractVersion: String!
-  normalizationProfileRevision: String!
+  normalizationProfileHash: String!
   units: [SearchExplainUnit!]!
   wholeQueryClauses: [SearchExplainClause!]!
   settings: SearchExplainSettings!

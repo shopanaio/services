@@ -16,14 +16,6 @@ export class CollectionRebalanceScript extends BaseScript<
         ],
       };
     }
-    if (collection.revision >= 2_147_483_646) {
-      return {
-        collection: undefined,
-        userErrors: [
-          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
-        ],
-      };
-    }
     if (collection.type !== "manual") {
       return {
         collection: undefined,
@@ -34,12 +26,11 @@ export class CollectionRebalanceScript extends BaseScript<
     const syncOperation = await this.repository.collectionSync.rebalanceCollection({
       workflowId: `${this.context.requestId}:collection:rebalance`,
       collectionId: params.collectionId,
-      collectionRevision: collection.revision + 1,
     });
     if (syncOperation.affectedCount === 0) {
       return { collection, userErrors: [] };
     }
-    const refreshed = await this.repository.collection.bumpRevision(params.collectionId, {
+    const refreshed = await this.repository.collection.markChanged(params.collectionId, {
       listingChanged: false,
     });
     if (!refreshed) {

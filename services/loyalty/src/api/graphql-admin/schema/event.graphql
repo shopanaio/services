@@ -38,7 +38,6 @@ type LoyaltyEarningRuleUsage implements Node @key(fields: "id") {
   occurrenceCount: BigInt!
   pointsAwarded: BigInt!
   monetaryAmounts: JSON!
-  revision: Int!
   updatedAt: DateTime!
 }
 

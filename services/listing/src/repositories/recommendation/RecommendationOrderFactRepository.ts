@@ -12,7 +12,6 @@ export interface RecommendationOrderFactWrite {
   ingestionPosition: bigint;
   orderId: string;
   state: "COMMITTED" | "REVERSED";
-  orderRevision: number;
   committedAt: string;
   occurredAt: string;
   payloadHash: string;
@@ -36,24 +35,6 @@ export class RecommendationOrderFactRepository extends BaseRepository {
   }
 
   @ReadOnly()
-  async findByOrderRevision(
-    orderId: string,
-    orderRevision: number,
-  ): Promise<RecommendationOrderFact | null> {
-    const [row] = await this.connection
-      .select()
-      .from(recommendationOrderFact)
-      .where(
-        and(
-          eq(recommendationOrderFact.storeId, this.storeId),
-          eq(recommendationOrderFact.orderId, orderId),
-          eq(recommendationOrderFact.orderRevision, orderRevision),
-        ),
-      )
-      .limit(1);
-    return row ?? null;
-  }
-
   @ReadOnly()
   async findGenerationCommittedAt(orderId: string): Promise<string | null> {
     const rows = await this.connection.execute<{ committedAt: string }>(sql`
@@ -61,7 +42,7 @@ export class RecommendationOrderFactRepository extends BaseRepository {
       FROM listing.recommendation_order_fact
       WHERE store_id = ${this.storeId}::uuid
         AND order_id = ${orderId}::uuid
-      ORDER BY order_revision ASC, ingestion_position ASC
+      ORDER BY ingestion_position ASC
       LIMIT 1
     `);
     return rows[0]?.committedAt ?? null;
@@ -79,7 +60,6 @@ export class RecommendationOrderFactRepository extends BaseRepository {
         storeId: this.storeId,
         orderId: input.orderId,
         state: input.state,
-        orderRevision: input.orderRevision,
         committedAt: input.committedAt,
         occurredAt: input.occurredAt,
         payloadHash: input.payloadHash,

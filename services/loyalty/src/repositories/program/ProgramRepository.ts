@@ -189,7 +189,6 @@ export class ProgramRepository extends BaseRepository {
       .update(programs)
       .set({
         isDefault: false,
-        revision: sql`${programs.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -222,7 +221,6 @@ export class ProgramRepository extends BaseRepository {
       .update(programs)
       .set({
         ...input,
-        revision: sql`${programs.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(programs.storeId, this.storeId), eq(programs.id, id)))
@@ -339,7 +337,7 @@ export class ProgramRepository extends BaseRepository {
   ): Promise<ProgramVersion | null> {
     const rows = await this.connection
       .update(programVersions)
-      .set({ ...input, revision: sql`${programVersions.revision} + 1` })
+      .set(input)
       .where(
         and(
           eq(programVersions.storeId, this.storeId),
@@ -379,7 +377,7 @@ export class ProgramRepository extends BaseRepository {
   ): Promise<ProgramVersion | null> {
     const rows = await this.connection
       .update(programVersions)
-      .set({ ...input, revision: sql`${programVersions.revision} + 1` })
+      .set(input)
       .where(
         and(
           eq(programVersions.storeId, this.storeId),
@@ -398,7 +396,7 @@ export class ProgramRepository extends BaseRepository {
   ): Promise<ProgramVersion | null> {
     const rows = await this.connection
       .update(programVersions)
-      .set({ status: to, revision: sql`${programVersions.revision} + 1` })
+      .set({ status: to })
       .where(
         and(
           eq(programVersions.storeId, this.storeId),
@@ -456,7 +454,6 @@ export class ProgramRepository extends BaseRepository {
       .set({
         status: "RETIRED",
         effectiveTo,
-        revision: sql`${programVersions.revision} + 1`,
       })
       .where(
         and(

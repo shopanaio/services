@@ -3,7 +3,6 @@ import type { DiscountEvaluationSnapshot } from "../../../infrastructure/Discoun
 import {
   allocateNativeLineCandidate,
   allocateProportionally,
-  canonicalCounterVersions,
   type DiscountOwner,
 } from "../NativeDiscountEngine.js";
 
@@ -205,41 +204,6 @@ describe("native discount allocation", () => {
     ]);
   });
 });
-
-describe("native discount counter revisions", () => {
-  it("normalizes aggregate and code counters independently of DB row order", () => {
-    const ordered = counterSnapshot(
-      [
-        { discountId: "discount-a", version: 1n },
-        { discountId: "discount-b", version: 2n },
-      ],
-      [
-        { discountId: "discount-a", codeId: "code-a", version: 3n },
-        { discountId: "discount-b", codeId: "code-b", version: 4n },
-      ],
-    );
-    const reversed = counterSnapshot(
-      [...ordered.counters].reverse(),
-      [...ordered.codeCounters].reverse(),
-    );
-
-    expect(canonicalCounterVersions(reversed)).toEqual(canonicalCounterVersions(ordered));
-  });
-});
-
-function counterSnapshot(
-  counters: Array<{ discountId: string; version: bigint }>,
-  codeCounters: Array<{
-    discountId: string;
-    codeId: string;
-    version: bigint;
-  }>,
-): Pick<DiscountEvaluationSnapshot, "counters" | "codeCounters"> {
-  return {
-    counters: counters as unknown as DiscountEvaluationSnapshot["counters"],
-    codeCounters: codeCounters as unknown as DiscountEvaluationSnapshot["codeCounters"],
-  };
-}
 
 function owner(
   id: string,

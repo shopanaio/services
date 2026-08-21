@@ -5,7 +5,6 @@ CREATE TABLE "loyalty"."reservation" (
   "program_version_id" uuid NOT NULL,
   "account_id" uuid NOT NULL,
   "checkout_id" uuid NOT NULL,
-  "checkout_version" integer NOT NULL,
   "quote_id" uuid NOT NULL,
   "quote_revision" varchar(64) NOT NULL,
   "points" bigint NOT NULL,
@@ -21,7 +20,6 @@ CREATE TABLE "loyalty"."reservation" (
   "released_at" timestamptz,
   "expired_at" timestamptz,
   "reversed_at" timestamptz,
-  "revision" integer NOT NULL DEFAULT 1,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
@@ -38,7 +36,6 @@ CREATE TABLE "loyalty"."reservation" (
     UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_reservation_store_idempotency_unique"
     UNIQUE ("store_id", "idempotency_key"),
-  CONSTRAINT "loyalty_reservation_checkout_version_check" CHECK ("checkout_version" > 0),
   CONSTRAINT "loyalty_reservation_points_check" CHECK ("points" > 0),
   CONSTRAINT "loyalty_reservation_discount_check" CHECK ("discount_amount_minor" > 0),
   CONSTRAINT "loyalty_reservation_currency_check" CHECK ("currency_code" ~ '^[A-Z]{3}$'),
@@ -47,7 +44,6 @@ CREATE TABLE "loyalty"."reservation" (
   CONSTRAINT "loyalty_reservation_quote_revision_check"
     CHECK ("quote_revision" ~ '^[0-9a-f]{64}$'),
   CONSTRAINT "loyalty_reservation_expiry_check" CHECK ("expires_at" > "created_at"),
-  CONSTRAINT "loyalty_reservation_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_reservation_order_pair_check"
     CHECK (("order_id" IS NULL) = ("order_revision" IS NULL)),
   CONSTRAINT "loyalty_reservation_state_check" CHECK (

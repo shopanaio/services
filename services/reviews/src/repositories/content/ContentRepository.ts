@@ -17,7 +17,7 @@ import {
   type NewContentPublication,
   type NewContentTranslation,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const contentRelayQuery = createRelayQuery(
   createQuery(contentListView)
@@ -205,7 +205,7 @@ export class ContentRepository extends BaseRepository {
     id: string,
 
     patch: ContentPatch,
-  ): Promise<OptimisticMutationResult<ContentItem>> {
+  ): Promise<MutationResult<ContentItem>> {
     const rows = await this.connection
       .update(contentItem)
       .set({
@@ -222,11 +222,11 @@ export class ContentRepository extends BaseRepository {
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.optimisticContentMiss(id);
+    return { status: "not_found" };
   }
 
   @Transactional()
-  async updateWithinRevision(id: string, patch: ContentPatch): Promise<ContentItem | null> {
+  async updateFields(id: string, patch: ContentPatch): Promise<ContentItem | null> {
     const rows = await this.connection
       .update(contentItem)
       .set({ ...patch, updatedAt: new Date().toISOString() })
@@ -246,7 +246,7 @@ export class ContentRepository extends BaseRepository {
     id: string;
 
     permanent?: boolean;
-  }): Promise<OptimisticMutationResult<ContentItem>> {
+  }): Promise<MutationResult<ContentItem>> {
     const conditions = and(
       eq(contentItem.storeId, this.storeId),
       eq(contentItem.id, input.id),
@@ -265,11 +265,11 @@ export class ContentRepository extends BaseRepository {
           .where(conditions)
           .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.optimisticContentMiss(input.id);
+    return { status: "not_found" };
   }
 
   @Transactional()
-  async redact(id: string): Promise<OptimisticMutationResult<ContentItem>> {
+  async redact(id: string): Promise<MutationResult<ContentItem>> {
     const now = new Date().toISOString();
     const rows = await this.connection
       .update(contentItem)
@@ -295,7 +295,7 @@ export class ContentRepository extends BaseRepository {
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.optimisticContentMiss(id);
+    return { status: "not_found" };
   }
 
   @Transactional()
@@ -303,7 +303,7 @@ export class ContentRepository extends BaseRepository {
     id: string,
 
     patch: ContentRestorePatch,
-  ): Promise<OptimisticMutationResult<ContentItem>> {
+  ): Promise<MutationResult<ContentItem>> {
     const rows = await this.connection
       .update(contentItem)
       .set({
@@ -320,7 +320,7 @@ export class ContentRepository extends BaseRepository {
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.optimisticContentMiss(id);
+    return { status: "not_found" };
   }
 
   @ReadOnly()
@@ -452,7 +452,7 @@ export class ContentRepository extends BaseRepository {
     id: string,
 
     patch: ContentTranslationPatch,
-  ): Promise<OptimisticMutationResult<ContentTranslation>> {
+  ): Promise<MutationResult<ContentTranslation>> {
     const rows = await this.connection
       .update(contentTranslation)
       .set({
@@ -463,19 +463,17 @@ export class ContentRepository extends BaseRepository {
       .where(and(eq(contentTranslation.storeId, this.storeId), eq(contentTranslation.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findTranslationById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @Transactional()
-  async deleteTranslation(id: string): Promise<OptimisticMutationResult<ContentTranslation>> {
+  async deleteTranslation(id: string): Promise<MutationResult<ContentTranslation>> {
     const rows = await this.connection
       .delete(contentTranslation)
       .where(and(eq(contentTranslation.storeId, this.storeId), eq(contentTranslation.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findTranslationById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @ReadOnly()
@@ -585,48 +583,25 @@ export class ContentRepository extends BaseRepository {
   @Transactional()
   async updatePublication(
     id: string,
-    expectedUpdatedAt: string,
     patch: ContentPublicationPatch,
-  ): Promise<OptimisticMutationResult<ContentPublication>> {
+  ): Promise<MutationResult<ContentPublication>> {
     const rows = await this.connection
       .update(contentPublication)
       .set({ ...patch, updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(contentPublication.storeId, this.storeId),
-          eq(contentPublication.id, id),
-          eq(contentPublication.updatedAt, expectedUpdatedAt),
-        ),
-      )
+      .where(and(eq(contentPublication.storeId, this.storeId), eq(contentPublication.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findPublicationById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @Transactional()
-  async deletePublication(
-    id: string,
-    expectedUpdatedAt: string,
-  ): Promise<OptimisticMutationResult<ContentPublication>> {
+  async deletePublication(id: string): Promise<MutationResult<ContentPublication>> {
     const rows = await this.connection
       .delete(contentPublication)
-      .where(
-        and(
-          eq(contentPublication.storeId, this.storeId),
-          eq(contentPublication.id, id),
-          eq(contentPublication.updatedAt, expectedUpdatedAt),
-        ),
-      )
+      .where(and(eq(contentPublication.storeId, this.storeId), eq(contentPublication.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findPublicationById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
-  }
-
-  private async optimisticContentMiss(id: string): Promise<OptimisticMutationResult<ContentItem>> {
-    const current = await this.findById(id, { includeDeleted: true });
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @ReadOnly()

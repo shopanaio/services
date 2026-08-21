@@ -474,7 +474,7 @@ export class PointsLedgerService {
         }),
       ),
     );
-    const updated = await this.repository.balance.update(account.id, balance.revision, {
+    const updated = await this.repository.balance.update(account.id, {
       ...next,
       lastTransactionId: appended.transaction.id,
     });

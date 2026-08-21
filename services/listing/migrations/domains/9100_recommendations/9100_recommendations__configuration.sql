@@ -9,7 +9,6 @@ CREATE TABLE listing.recommendation_placement_policy (
   minimum_results smallint NOT NULL DEFAULT 0,
   maximum_results smallint NOT NULL DEFAULT 12,
   fallback_chain jsonb NOT NULL DEFAULT '[]'::jsonb,
-  version integer NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -48,9 +47,7 @@ CREATE TABLE listing.recommendation_placement_policy (
       AND minimum_results <= maximum_results
     ),
   CONSTRAINT chk_recommendation_placement_policy_fallback_chain
-    CHECK (jsonb_typeof(fallback_chain) = 'array'),
-  CONSTRAINT chk_recommendation_placement_policy_version
-    CHECK (version > 0)
+    CHECK (jsonb_typeof(fallback_chain) = 'array')
 );
 
 CREATE INDEX recommendation_placement_policy_enabled_idx
@@ -71,7 +68,6 @@ CREATE TABLE listing.manual_product_recommendation (
   ends_at timestamptz,
   anchor_reference_status varchar(16) NOT NULL DEFAULT 'VALID',
   target_reference_status varchar(16) NOT NULL DEFAULT 'VALID',
-  version integer NOT NULL DEFAULT 1,
   created_at timestamptz NOT NULL DEFAULT now(),
   updated_at timestamptz NOT NULL DEFAULT now(),
 
@@ -123,8 +119,6 @@ CREATE TABLE listing.manual_product_recommendation (
     CHECK (anchor_reference_status IN ('VALID', 'STALE')),
   CONSTRAINT chk_manual_product_recommendation_target_reference_status
     CHECK (target_reference_status IN ('VALID', 'STALE')),
-  CONSTRAINT chk_manual_product_recommendation_version
-    CHECK (version > 0),
   CONSTRAINT manual_product_recommendation_target_schedule_excl
     EXCLUDE USING gist (
       store_id WITH =,

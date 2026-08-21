@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, gte, inArray, sql } from "drizzle-orm";
+import { and, asc, desc, eq, gt, gte, inArray } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -227,15 +227,13 @@ export class AccountRepository extends BaseRepository {
       >
     >,
   ): Promise<Account | null> {
-    const conditions = [eq(accounts.storeId, this.storeId), eq(accounts.id, id)];
     const rows = await this.connection
       .update(accounts)
       .set({
         ...input,
-        revision: sql`${accounts.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
-      .where(and(...conditions))
+      .where(and(eq(accounts.storeId, this.storeId), eq(accounts.id, id)))
       .returning();
     return rows[0] ?? null;
   }

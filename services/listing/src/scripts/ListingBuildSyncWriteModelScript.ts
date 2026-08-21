@@ -61,7 +61,6 @@ export class ListingBuildSyncWriteModelScript extends BaseScript<
         publishedAt: item.publishedAt,
         productCreatedAt: item.createdAt,
         productUpdatedAt: item.updatedAt,
-        productRevision: item.productRevision,
         totalStock,
       },
       productEntityType: item.entityType,
@@ -251,7 +250,7 @@ function buildSearchIndex(
     elementId: element.elementId,
     preparedText: element.preparedText,
     normalizationContractVersion: element.normalizationContractVersion,
-    normalizationProfileRevision: element.normalizationProfileRevision,
+    normalizationProfileHash: element.normalizationProfileHash,
   }));
   const identifiers = [...locales]
     .sort(compareStrings)
@@ -271,7 +270,7 @@ function buildSearchIndex(
           kind: "SKU" as const,
           normalizedValue: normalized.normalizedValue,
           normalizationContractVersion: normalized.normalizationContractVersion,
-          normalizationProfileRevision: normalized.normalizationProfileRevision,
+          normalizationProfileHash: normalized.normalizationProfileHash,
         };
       }),
     )

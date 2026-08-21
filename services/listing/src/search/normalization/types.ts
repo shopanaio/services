@@ -8,7 +8,7 @@ export type SearchTokenKind = "language" | "code" | "foreign" | "mixed_script" |
 export interface SearchNormalizationProfileMetadata {
   readonly locale: SearchLocale;
   readonly contractVersion: string;
-  readonly profileRevision: string;
+  readonly profileHash: string;
   readonly nodeVersion: string;
   readonly icuVersion: string;
   readonly unicodeVersion: string;
@@ -52,7 +52,7 @@ export interface LexicalizedSearchQuery {
   readonly identifierForm: string;
   readonly wholeQueryPrimaryText: string;
   readonly normalizationContractVersion: string;
-  readonly profileRevision: string;
+  readonly profileHash: string;
   readonly outputHash: string;
 }
 
@@ -78,14 +78,14 @@ export interface NormalizedSearchDocumentElement {
   readonly surfaceTerms: readonly string[];
   readonly tokens: readonly SearchTokenMetadata[];
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
   readonly outputHash: string;
 }
 
 export interface SearchIdentifierNormalizationResult {
   readonly normalizedValue: string;
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
 }
 
 export interface NormalizedSearchConfigurationValue {
@@ -94,6 +94,6 @@ export interface NormalizedSearchConfigurationValue {
   readonly preparedText: string;
   readonly lexemes: readonly string[];
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
   readonly outputHash: string;
 }

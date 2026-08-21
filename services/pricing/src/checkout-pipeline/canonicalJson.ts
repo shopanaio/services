@@ -3,7 +3,7 @@ import { createHash } from "node:crypto";
 export function canonicalJson(value: unknown): string {
   return JSON.stringify(normalize(value));
 }
-export function contentRevision(namespace: string, value: unknown): string {
+export function contentDigest(namespace: string, value: unknown): string {
   return `${namespace}:v1:${createHash("sha256").update(canonicalJson(value)).digest("hex")}`;
 }
 function normalize(value: unknown): unknown {

@@ -46,7 +46,6 @@ export interface CheckoutInventoryReservationAllocation {
 }
 
 export interface ReserveCheckoutInventoryResult {
-  revision: string;
   allocations: readonly CheckoutInventoryReservationAllocation[];
 }
 

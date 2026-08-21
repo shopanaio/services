@@ -27,7 +27,6 @@ type ComparisonProfile implements Node @key(fields: "id") {
   id: ID!
   handle: String!
   enabled: Boolean!
-  revision: Int!
   name: String!
   missingLabel: String!
   notApplicableLabel: String!

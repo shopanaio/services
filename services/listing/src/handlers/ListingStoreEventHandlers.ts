@@ -27,27 +27,24 @@ export class ListingStoreEventHandlers extends EventHandlers {
     );
 
     try {
-      const result = await Kernel.getInstance().repository.searchSettings.acquireVersion({
+      const result = await Kernel.getInstance().repository.searchSettings.initialize({
         storeId: event.payload.storeId,
-
-        initialValues: this.defaultSearchSettings(),
+        values: this.defaultSearchSettings(),
       });
 
-      if (result.status === "applied") {
+      if (result.status === "applied" && result.initialized) {
         this.logger.log(
           {
             eventId: event.eventId,
             storeId: event.payload.storeId,
-            version: result.version,
           },
           "Created default listing search settings",
         );
-      } else if (result.status === "conflict") {
+      } else if (result.status === "applied") {
         this.logger.debug(
           {
             eventId: event.eventId,
             storeId: event.payload.storeId,
-            currentVersion: result.currentVersion,
           },
           "Listing search settings are already initialized",
         );

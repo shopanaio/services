@@ -86,7 +86,7 @@ export class ProductComparisonConfigurationSyncScript extends BaseScript<Params,
       params.mappings,
     );
     this.logger.info(
-      { productId: params.productId, profileId: params.profileId, revision: updated.revision },
+      { productId: params.productId, profileId: params.profileId },
       "comparison.product_configuration.synced",
     );
     return { product: updated, userErrors: [] };

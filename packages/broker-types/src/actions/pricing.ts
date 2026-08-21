@@ -82,9 +82,7 @@ export interface PricingCheckoutBuyerEligibilityContext {
   countryCode: string | null;
   marketId: string | null;
   companyId: string | null;
-  /** Canonical membership snapshot resolved before Pricing evaluates rules. */
   segmentIds: readonly string[];
-  segmentMembershipRevision: string | null;
 }
 
 export interface PricingCheckoutEvaluationContext {
@@ -133,7 +131,6 @@ export interface PricingCheckoutMerchandiseTargetingSnapshot {
 export interface PricingCheckoutMerchandiseSnapshot {
   /** Exact Catalog variant identity; product IDs are never purchasable IDs. */
   variantId: string;
-  revision: string;
   title: string;
   sku: string | null;
   imageUrl: string | null;
@@ -147,7 +144,6 @@ export interface PricingCheckoutLineAvailability {
   maxQuantity: number | null;
   continueSellingWhenOutOfStock: boolean;
   reasonCode: string | null;
-  revision: string;
 }
 
 export type PricingCheckoutDiscountClass = "PRODUCT" | "ORDER" | "SHIPPING";
@@ -167,7 +163,6 @@ export type PricingCheckoutDiscountSource =
       implementationId: string;
       functionTarget: string;
       executionId: string;
-      planRevision: string;
     }>;
 
 export type PricingCheckoutDiscountAllocation =
@@ -187,7 +182,6 @@ export type PricingCheckoutDiscountAllocation =
 export interface PricingCheckoutDiscountApplication {
   applicationId: string;
   discountId: string;
-  configurationRevision: string;
   discountClass: PricingCheckoutDiscountClass;
   method: PricingCheckoutDiscountMethod;
   code: PricingCheckoutDiscountCodeReference | null;
@@ -252,8 +246,6 @@ export interface PricingCheckoutDiscountUsageRequirement {
   discountId: string;
   codeId: string | null;
   customerId: string | null;
-  configurationRevision: string;
-  usageCounterRevision: string;
   reservationRequired: boolean;
 }
 
@@ -298,7 +290,6 @@ export interface PricingCheckoutCanonicalDeliveryDestination {
 }
 
 export interface PricingCheckoutCanonicalDeliveryIntent {
-  revision: string;
   lineage: readonly PricingCheckoutTransformedLineLineage[];
   destinations: readonly PricingCheckoutCanonicalDeliveryDestination[];
   unassignedPhysicalLineIds: readonly string[];
@@ -316,8 +307,6 @@ export interface PricingCheckoutDeliveryOption {
 }
 
 export interface PricingCheckoutDeliverySnapshot extends PricingCheckoutStageProvenance {
-  revision: string;
-  basedOnPreliminaryRevision: string;
   groups: readonly Readonly<{
     groupId: string;
     lineIds: readonly string[];
@@ -351,13 +340,9 @@ export interface CalculateCheckoutPreliminaryQuoteParams {
 
 export interface CalculateCheckoutPreliminaryQuoteResult extends PricingCheckoutStageProvenance {
   preliminaryQuoteId: string;
-  revision: string;
-  discountEvaluationRevision: string;
   transformedLines: readonly PricingCheckoutQuotedLine[];
   sourceLineResolutions: readonly PricingCheckoutSourceLineResolution[];
   deliveryIntent: PricingCheckoutCanonicalDeliveryIntent;
-  merchandiseRevision: string;
-  availabilityRevision: string;
   appliedDiscounts: readonly PricingCheckoutDiscountApplication[];
   discountCodeResolutions: readonly PricingCheckoutDiscountCodeResolution[];
   usageRequirements: readonly PricingCheckoutDiscountUsageRequirement[];
@@ -372,11 +357,6 @@ export interface FinalizeCheckoutPricingQuoteParams {
 
 export interface FinalizeCheckoutPricingQuoteResult extends PricingCheckoutStageProvenance {
   quoteId: string;
-  revision: string;
-  discountEvaluationRevision: string;
-  basedOnPreliminaryDiscountEvaluationRevision: string;
-  basedOnPreliminaryRevision: string;
-  basedOnDeliveryRevision: string;
   lines: readonly PricingCheckoutQuotedLine[];
   appliedDiscounts: readonly PricingCheckoutDiscountApplication[];
   discountCodeResolutions: readonly PricingCheckoutDiscountCodeResolution[];
@@ -388,7 +368,6 @@ export interface ReserveCheckoutDiscountUsageParams {
   storeId: string;
   checkoutId: string;
   quoteId: string;
-  quoteRevision: string;
   idempotencyKey: string;
   expiresAt: string;
   requirements: readonly PricingCheckoutDiscountUsageRequirement[];
@@ -402,7 +381,6 @@ export interface CommitCheckoutDiscountUsageParams {
   storeId: string;
   checkoutId: string;
   quoteId: string;
-  quoteRevision: string;
   orderId: string;
   idempotencyKey: string;
   reservationIds: readonly string[];

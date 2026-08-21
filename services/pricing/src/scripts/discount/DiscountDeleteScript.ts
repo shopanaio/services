@@ -24,7 +24,9 @@ export class DiscountDeleteScript extends BaseScript<DiscountDeleteParams, Disco
     }
 
     const deleted = await this.repository.discount.deleteDraft(params.id);
-    if (!deleted) return revisionConflict();
+    if (!deleted) {
+      return errorResult({ message: "Discount not found", code: "NOT_FOUND" });
+    }
 
     this.logger.info({ discountId: params.id }, "Discount deleted");
     return {
@@ -53,14 +55,6 @@ function hasUsage(
     counter &&
     (counter.reservedCount > 0n || counter.committedCount > 0n || counter.reversedCount > 0n),
   );
-}
-
-function revisionConflict(): DiscountDeleteResult {
-  return errorResult({
-    message: "Discount was modified by another user",
-    code: "REVISION_CONFLICT",
-    field: ["input", "expectedRevision"],
-  });
 }
 
 function deleteNotAllowed(): DiscountDeleteResult {

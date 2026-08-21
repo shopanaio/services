@@ -1,5 +1,4 @@
 import type { Pricing } from "@shopana/broker-types";
-import { contentRevision } from "../canonicalJson.js";
 
 export function buildDeliveryIntent(
   cart: Pricing.PricingCheckoutCartIntent,
@@ -28,5 +27,5 @@ export function buildDeliveryIntent(
       .filter((line) => physical.has(line.lineId) && !assigned.has(line.lineId))
       .map((line) => line.lineId),
   };
-  return { revision: contentRevision("pricing-delivery-intent", value), ...value };
+  return value;
 }

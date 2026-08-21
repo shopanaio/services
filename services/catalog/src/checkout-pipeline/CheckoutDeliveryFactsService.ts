@@ -1,4 +1,3 @@
-import { createHash } from "node:crypto";
 import { and, asc, desc, eq, inArray } from "drizzle-orm";
 import type { Catalog } from "@shopana/broker-types";
 import type { Database } from "../infrastructure/db/database.js";
@@ -16,7 +15,7 @@ export class CheckoutDeliveryFactsService {
   async resolve(
     params: Catalog.ResolveCheckoutDeliveryFactsParams,
   ): Promise<Catalog.ResolveCheckoutDeliveryFactsResult> {
-    if (params.lines.length === 0) return { ok: true, revision: digest([]), lines: [] };
+    if (params.lines.length === 0) return { ok: true, lines: [] };
     const variantIds = [...new Set(params.lines.map((line) => line.variantId))];
     const [items, weights, dimensions, locations, stocks] = await Promise.all([
       this.db
@@ -88,13 +87,6 @@ export class CheckoutDeliveryFactsService {
         return [
           {
             locationId: location.id,
-            locationRevision: digest([
-              location.id,
-              location.updatedAt,
-              location.countryCode,
-              location.city,
-              location.postalCode,
-            ]),
             availableQuantity,
             address: {
               countryCode: location.countryCode,
@@ -108,25 +100,17 @@ export class CheckoutDeliveryFactsService {
           },
         ];
       });
-      const physicalRevision = digest([
-        item.id,
-        item.updatedAt,
-        weight ?? null,
-        size ?? null,
-        fulfillmentLocations,
-      ]);
       return {
         status: "RESOLVED" as const,
         lineId: line.lineId,
         variantId: line.variantId,
-        physicalRevision,
         weightGrams: weight?.weightGr ?? null,
         dimensionsMm: size ? { width: size.wMm, height: size.hMm, length: size.lMm } : null,
         customs: null,
         fulfillmentLocations,
       };
     });
-    return { ok: true, revision: digest(result), lines: result };
+    return { ok: true, lines: result };
   }
 }
 
@@ -143,8 +127,4 @@ function rejected(
     message,
     retryable: false,
   };
-}
-
-function digest(value: unknown): string {
-  return `cdf_v1_${createHash("sha256").update(JSON.stringify(value)).digest("base64url")}`;
 }

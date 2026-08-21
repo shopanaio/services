@@ -25,7 +25,6 @@ CREATE TABLE listing.product_listing_index (
   published_at           timestamptz,
   product_created_at     timestamptz NOT NULL,
   product_updated_at     timestamptz NOT NULL,
-  product_revision       int NOT NULL DEFAULT 0,
 
   total_stock            int NOT NULL DEFAULT 0,
 

@@ -1,4 +1,4 @@
-import { and, asc, eq, inArray, lte, sql } from "drizzle-orm";
+import { and, asc, eq, inArray, lte } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -212,7 +212,6 @@ export class ReservationRepository extends BaseRepository {
       .update(reservations)
       .set({
         ...input,
-        revision: sql`${reservations.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(reservations.storeId, this.storeId), eq(reservations.id, id)))

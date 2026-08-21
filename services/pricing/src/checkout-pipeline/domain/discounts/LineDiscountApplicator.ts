@@ -4,7 +4,7 @@ import type {
   CommerceFunctionRunResult,
 } from "@shopana/function-runner";
 import type { PricingLineDiscountCandidate } from "../../discount-function-contracts.js";
-import { contentRevision } from "../../canonicalJson.js";
+import { contentDigest } from "../../canonicalJson.js";
 import type { DiscountEvaluationSnapshot } from "../../infrastructure/DiscountEvaluationRepository.js";
 import { money } from "../componentPricing.js";
 import { allocateNativeLineCandidate, type DiscountOwner } from "./NativeDiscountEngine.js";
@@ -177,7 +177,6 @@ function applicationOf(
           implementationId: candidate.source.implementationId,
           functionTarget: candidate.source.trace.target,
           executionId: candidate.source.trace.executionId,
-          planRevision: candidate.source.trace.planRevision,
         };
   const mapped = allocations.map((allocation) => ({
     targetType: "LINE" as const,
@@ -186,14 +185,13 @@ function applicationOf(
     amount: money(allocation.amount, currencyCode),
   }));
   return {
-    applicationId: contentRevision("pricing-discount-application", {
+    applicationId: contentDigest("pricing-discount-application", {
       discountId: candidate.owner.id,
       candidateId: candidate.candidateId,
       allocations: mapped,
       source,
     }),
     discountId: candidate.owner.id,
-    configurationRevision: String(candidate.owner.revision),
     discountClass: candidate.owner.discountClass,
     method: candidate.owner.method,
     code:
@@ -222,19 +220,11 @@ function requirementOf(
   snapshot: DiscountEvaluationSnapshot,
   context: Pricing.PricingCheckoutEvaluationContext,
 ): Pricing.PricingCheckoutDiscountUsageRequirement {
-  const counter = snapshot.counters.find((row) => row.discountId === candidate.owner.id);
-  const codeCounter =
-    candidate.code && snapshot.codeCounters.find((row) => row.codeId === candidate.code!.id);
   return {
     applicationId: application.applicationId,
     discountId: candidate.owner.id,
     codeId: candidate.code?.id ?? null,
     customerId: context.buyerEligibility?.customerId ?? null,
-    configurationRevision: String(candidate.owner.revision),
-    usageCounterRevision: contentRevision("pricing-discount-usage", {
-      aggregate: String(counter?.version ?? 0n),
-      code: String(codeCounter?.version ?? 0n),
-    }),
     reservationRequired:
       candidate.owner.usageLimit !== null ||
       candidate.code?.usageLimit != null ||

@@ -4,7 +4,6 @@ CREATE TABLE "loyalty"."account" (
   "program_id" uuid NOT NULL,
   "customer_id" uuid NOT NULL,
   "status" "loyalty"."account_status" NOT NULL DEFAULT 'ACTIVE',
-  "revision" integer NOT NULL DEFAULT 1,
   "merged_into_account_id" uuid,
   "suspended_reason" varchar(500),
   "opened_at" timestamptz NOT NULL DEFAULT now(),
@@ -24,7 +23,6 @@ CREATE TABLE "loyalty"."account" (
     UNIQUE ("id", "store_id"),
   CONSTRAINT "loyalty_account_id_program_store_unique"
     UNIQUE ("id", "program_id", "store_id"),
-  CONSTRAINT "loyalty_account_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_account_merge_check" CHECK (
     ("status" = 'MERGED' AND "merged_into_account_id" IS NOT NULL
       AND "merged_into_account_id" <> "id" AND "closed_at" IS NOT NULL)

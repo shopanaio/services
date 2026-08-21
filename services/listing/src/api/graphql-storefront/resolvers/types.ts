@@ -85,14 +85,7 @@ export const typeResolvers: Partial<Resolvers> & Record<string, unknown> = {
       const id = decodeGlobalIdByType(reference.id, GlobalIdEntity.Collection);
       const state = await ctx.kernel.repository.collectionState.findStateWithVisibility(id);
       if (!state) return null;
-      return CollectionResolver.load(
-        {
-          id,
-          listingRevision: state.listingRevision,
-        },
-        parseGraphqlInfo(info),
-        ctx,
-      );
+      return CollectionResolver.load({ id }, parseGraphqlInfo(info), ctx);
     },
   },
 

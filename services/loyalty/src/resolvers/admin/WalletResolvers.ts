@@ -45,9 +45,6 @@ export class LoyaltyMonetaryWalletResolver extends LoyaltyType<string, MonetaryW
     const id = await this.$get("mergedIntoWalletId");
     return id ? this.resolvers.monetaryWallet(id) : null;
   }
-  revision() {
-    return this.$get("revision");
-  }
   balance() {
     return new LoyaltyMonetaryWalletBalanceResolver(this.$props, this.$ctx);
   }
@@ -108,9 +105,6 @@ export class LoyaltyMonetaryWalletBalanceResolver extends LoyaltyType<
   }
   async debt() {
     return money((await this.$get("debtAmountMinor"))!, await this.currency());
-  }
-  revision() {
-    return this.$get("revision");
   }
   async lastTransaction() {
     const id = await this.$get("lastTransactionId");

@@ -49,7 +49,6 @@ export class AccountLifecycleService {
                 suspendedAt: null,
               }
             : { status: "ACTIVE", closedAt: null, suspendedReason: null, suspendedAt: null },
-        input.expectedRevision ?? current.revision,
       );
       if (!updated)
         throw new LoyaltyDomainError(
@@ -63,7 +62,6 @@ export class AccountLifecycleService {
 
   async adjust(input: {
     accountId: string;
-    expectedBalanceRevision?: number;
     points: bigint;
     direction: "CREDIT" | "DEBIT";
     reasonCode: string;
@@ -82,16 +80,6 @@ export class AccountLifecycleService {
       const balance = await this.repository.balance.lockByAccountId(input.accountId);
       if (!balance)
         throw new LoyaltyDomainError("BALANCE_NOT_FOUND", "Loyalty account balance was not found");
-      if (
-        input.expectedBalanceRevision !== undefined &&
-        balance.revision !== input.expectedBalanceRevision
-      ) {
-        throw new LoyaltyDomainError(
-          "BALANCE_CONCURRENT_CHANGE",
-          "Loyalty account balance changed concurrently",
-          true,
-        );
-      }
       if (input.points <= 0n)
         throw new LoyaltyDomainError("INVALID_ADJUSTMENT", "Adjustment points must be positive");
       if (input.direction === "CREDIT") {
@@ -308,17 +296,13 @@ export class AccountLifecycleService {
           entries: [{ bucket: "DEBT", pointsDelta: sourceBalance.debtPoints }],
         });
       }
-      const updated = await this.repository.account.updateState(
-        source.id,
-        {
-          status: "MERGED",
-          mergedIntoAccountId: target.id,
-          closedAt: input.occurredAt,
-          suspendedAt: null,
-          suspendedReason: null,
-        },
-        source.revision,
-      );
+      const updated = await this.repository.account.updateState(source.id, {
+        status: "MERGED",
+        mergedIntoAccountId: target.id,
+        closedAt: input.occurredAt,
+        suspendedAt: null,
+        suspendedReason: null,
+      });
       if (!updated)
         throw new LoyaltyDomainError(
           "ACCOUNT_CONCURRENT_CHANGE",
@@ -403,7 +387,7 @@ export class AccountLifecycleService {
         occurredAt: input.occurredAt,
         requestHash: hash,
       });
-      const updated = await this.repository.wallet.updateWalletState(wallet.id, wallet.revision, {
+      const updated = await this.repository.wallet.updateWalletState(wallet.id, {
         status: "MERGED",
         mergedIntoWalletId: targetWallet.id,
         closedAt: input.occurredAt,
@@ -421,7 +405,7 @@ export class AccountLifecycleService {
     const wallets = await this.repository.wallet.listForAccount(account.id);
     for (const wallet of wallets) {
       if (wallet.status === "CLOSED" || wallet.status === "MERGED") continue;
-      const updated = await this.repository.wallet.updateWalletState(wallet.id, wallet.revision, {
+      const updated = await this.repository.wallet.updateWalletState(wallet.id, {
         status: "CLOSED",
         closedAt: occurredAt,
       });

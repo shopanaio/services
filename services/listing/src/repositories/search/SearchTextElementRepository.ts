@@ -138,7 +138,7 @@ export class SearchTextElementRepository extends BaseRepository {
             productDocId: sql`excluded.product_doc_id`,
             preparedText: sql`excluded.prepared_text`,
             normalizationContractVersion: sql`excluded.normalization_contract_version`,
-            normalizationProfileRevision: sql`excluded.normalization_profile_revision`,
+            normalizationProfileHash: sql`excluded.normalization_profile_hash`,
             indexedAt,
           },
         })
@@ -254,7 +254,7 @@ export class SearchTextElementRepository extends BaseRepository {
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.preparedText, "preparedText");
     assertNonEmpty(input.normalizationContractVersion, "normalizationContractVersion");
-    assertNonEmpty(input.normalizationProfileRevision, "normalizationProfileRevision");
+    assertNonEmpty(input.normalizationProfileHash, "normalizationProfileHash");
     if (!SEARCH_TEXT_FIELDS.has(input.field)) {
       throw new Error(`Unsupported search text field: ${input.field}`);
     }

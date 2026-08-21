@@ -12,7 +12,6 @@ export interface ProductConnectionInput {
   entryPoint: ListingEntryPoint;
   categoryId?: string;
   collectionId?: string;
-  collectionListingRevision?: number;
   collectionRulesHash?: string;
   collectionMembershipBitmap?: string;
   collectionProductBitmap?: string;

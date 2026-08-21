@@ -25,9 +25,6 @@ export class LoyaltyReservationResolver extends LoyaltyType<string, Reservation>
   async checkoutId() {
     return this.encodeId((await this.$get("checkoutId"))!, GlobalIdEntity.Checkout);
   }
-  checkoutVersion() {
-    return this.$get("checkoutVersion");
-  }
   quoteId() {
     return this.$get("quoteId");
   }
@@ -73,9 +70,6 @@ export class LoyaltyReservationResolver extends LoyaltyType<string, Reservation>
   }
   reversedAt() {
     return this.$get("reversedAt");
-  }
-  revision() {
-    return this.$get("revision");
   }
   async events() {
     return Promise.all(

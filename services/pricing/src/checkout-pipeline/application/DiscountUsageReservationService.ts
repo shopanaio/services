@@ -31,7 +31,6 @@ export class DiscountUsageReservationService {
     if (
       !quote ||
       quote.checkoutId !== params.checkoutId ||
-      quote.revision !== params.quoteRevision ||
       canonicalJson(quote.usageRequirements) !== canonicalJson(params.requirements)
     )
       throw new PricingCheckoutError(
@@ -72,7 +71,6 @@ export class DiscountUsageReservationService {
             row.codeId !== group.codeId ||
             row.customerId !== group.customerId ||
             metadata.quoteId !== params.quoteId ||
-            metadata.quoteRevision !== params.quoteRevision ||
             canonicalJson(storedApplicationIds) !== canonicalJson(expectedApplicationIds)
           )
             throw new PricingCheckoutError(
@@ -90,7 +88,7 @@ export class DiscountUsageReservationService {
               .limit(1)
               .for("update")
           )[0];
-          if (!owner || String(owner.revision) !== group.configurationRevision)
+          if (!owner)
             throw new PricingCheckoutError(
               "PRICING_QUOTE_SNAPSHOT_CONFLICT",
               "Discount configuration changed before reservation",
@@ -204,7 +202,6 @@ export class DiscountUsageReservationService {
               .update(discountCodeUsageCounter)
               .set({
                 reservedCount: sql`${discountCodeUsageCounter.reservedCount} + 1`,
-                version: sql`${discountCodeUsageCounter.version} + 1`,
               })
               .where(eq(discountCodeUsageCounter.codeId, group.codeId));
           }
@@ -220,7 +217,6 @@ export class DiscountUsageReservationService {
               expiresAt: params.expiresAt,
               metadata: {
                 quoteId: params.quoteId,
-                quoteRevision: params.quoteRevision,
                 applicationIds: group.applicationIds,
               },
             })
@@ -229,7 +225,6 @@ export class DiscountUsageReservationService {
             .update(discountUsageCounter)
             .set({
               reservedCount: sql`${discountUsageCounter.reservedCount} + 1`,
-              version: sql`${discountUsageCounter.version} + 1`,
             })
             .where(eq(discountUsageCounter.discountId, group.discountId));
         }
@@ -273,7 +268,6 @@ async function expireReservations(tx: any, storeId: string, discountId: string):
     .update(discountUsageCounter)
     .set({
       reservedCount: sql`${discountUsageCounter.reservedCount} - ${BigInt(expired.length)}`,
-      version: sql`${discountUsageCounter.version} + 1`,
     })
     .where(
       and(
@@ -291,7 +285,6 @@ async function expireReservations(tx: any, storeId: string, discountId: string):
       .update(discountCodeUsageCounter)
       .set({
         reservedCount: sql`${discountCodeUsageCounter.reservedCount} - ${BigInt(count)}`,
-        version: sql`${discountCodeUsageCounter.version} + 1`,
       })
       .where(
         and(
@@ -310,7 +303,6 @@ function groupRequirements(
       discountId: string;
       codeId: string | null;
       customerId: string | null;
-      configurationRevision: string;
       applicationIds: string[];
     }
   >();
@@ -320,15 +312,8 @@ function groupRequirements(
       discountId: row.discountId,
       codeId: row.codeId,
       customerId: row.customerId,
-      configurationRevision: row.configurationRevision,
       applicationIds: [],
     };
-    if (group.configurationRevision !== row.configurationRevision)
-      throw new PricingCheckoutError(
-        "PRICING_QUOTE_SNAPSHOT_CONFLICT",
-        "Requirements contain mixed configuration revisions",
-        false,
-      );
     group.applicationIds.push(row.applicationId);
     groups.set(key, group);
   }

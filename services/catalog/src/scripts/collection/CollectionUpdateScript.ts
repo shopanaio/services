@@ -19,15 +19,6 @@ export class CollectionUpdateScript extends BaseScript<CollectionUpdateParams, C
         userErrors: [{ message: "Collection not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
-    if (existing.revision >= 2_147_483_646) {
-      return {
-        collection: undefined,
-        userErrors: [
-          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
-        ],
-      };
-    }
-
     // Validate handle if provided
     let normalizedHandle = params.handle;
     if (params.handle !== undefined && params.handle !== null) {
@@ -183,14 +174,6 @@ export class CollectionUpdateScript extends BaseScript<CollectionUpdateParams, C
       nextEffectiveFrom !== existing.effectiveFrom ||
       nextEffectiveTo !== existing.effectiveTo ||
       (params.publish !== undefined && params.publish !== (existing.publishedAt !== null));
-    if (listingChanged && existing.listingRevision >= 2_147_483_646) {
-      return {
-        collection: undefined,
-        userErrors: [
-          { message: "Collection listing revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
-        ],
-      };
-    }
     const publishedAt =
       params.publish === undefined || params.publish === (existing.publishedAt !== null)
         ? undefined

@@ -43,7 +43,6 @@ export class RecommendationSnapshotCreateScript extends BaseScript<
     const buildInputs: RecommendationBuildInputs = {
       asOf,
       policyId: policy.policyId,
-      policyVersion: policy.version,
       calculationRunId: run?.runId ?? null,
       sourceIngestionWatermark: run?.sourceIngestionWatermark.toString() ?? null,
       manualConfigurationHash: await manualConfigurationHash({
@@ -57,7 +56,7 @@ export class RecommendationSnapshotCreateScript extends BaseScript<
       modelVersion: recommendationModelVersion(input.placement),
     };
     const buildKey = sha256Canonical({
-      version: 1,
+      format: "recommendation-snapshot-build-key",
       anchorProductId: input.anchorProductId,
       placement: input.placement,
       ...buildInputs,

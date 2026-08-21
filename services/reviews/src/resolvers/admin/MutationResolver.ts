@@ -194,7 +194,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       "ratingCriterionUpdate",
       {
         criterionId,
-        expectedUpdatedAt: args.expectedUpdatedAt,
         operations: mapped.operations,
         context: this.mutationWorkflowContext(),
       } satisfies RatingCriterionUpdateWorkflowInput,
@@ -430,7 +429,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       {
         params: {
           subscriptionId,
-          expectedUpdatedAt: args.expectedUpdatedAt,
           operations: args.operations,
         },
         context: this.mutationWorkflowContext(),
@@ -521,7 +519,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       {
         params: {
           reviewRequestId,
-          expectedUpdatedAt: args.expectedUpdatedAt,
           operations: args.operations,
         },
         context: this.mutationWorkflowContext(),
@@ -548,7 +545,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       {
         params: {
           contentReportId,
-          expectedUpdatedAt: args.expectedUpdatedAt,
           operations: args.operations,
         },
         context: this.mutationWorkflowContext(),
@@ -600,7 +596,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       {
         params: {
           moderationCaseId,
-          expectedUpdatedAt: args.expectedUpdatedAt,
           operations: args.operations,
         },
         context: this.mutationWorkflowContext(),
@@ -653,7 +648,6 @@ export class ReviewsMutationResolver extends ReviewsType<Record<string, never>> 
       {
         params: {
           externalReferenceId,
-          expectedUpdatedAt: args.expectedUpdatedAt,
           operations: args.operations,
         },
         context: this.mutationWorkflowContext(),

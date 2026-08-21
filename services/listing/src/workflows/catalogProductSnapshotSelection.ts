@@ -41,7 +41,6 @@ function buildProductSnapshotSelectionFromArgs(
                   "snapshotVersion",
                   "id",
                   "storeId",
-                  "revision",
                   "status",
                   "publishedAt",
                   "createdAt",

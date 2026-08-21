@@ -69,7 +69,6 @@ CREATE TABLE "loyalty"."reward_entitlement" (
   "redeemed_at" timestamptz,
   "expired_at" timestamptz,
   "revoked_at" timestamptz,
-  "revision" integer NOT NULL DEFAULT 1,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
   CONSTRAINT "loyalty_reward_entitlement_definition_fk"
@@ -95,7 +94,6 @@ CREATE TABLE "loyalty"."reward_entitlement" (
   CONSTRAINT "loyalty_reward_entitlement_quantity_check" CHECK ("quantity" > 0),
   CONSTRAINT "loyalty_reward_entitlement_validity_check"
     CHECK ("valid_to" IS NULL OR "valid_to" > "valid_from"),
-  CONSTRAINT "loyalty_reward_entitlement_revision_check" CHECK ("revision" > 0),
   CONSTRAINT "loyalty_reward_entitlement_state_check" CHECK (
     ("status" = 'ISSUED' AND "reserved_at" IS NULL AND "redeemed_at" IS NULL
       AND "expired_at" IS NULL AND "revoked_at" IS NULL

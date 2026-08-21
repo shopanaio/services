@@ -120,7 +120,6 @@ export type Collection = Node & {
   featuredMedia: Maybe<Media>;
   handle: Scalars['String']['output'];
   id: Scalars['ID']['output'];
-  listingRevision: Scalars['Int']['output'];
   media: CollectionMediaConnection;
   name: Scalars['String']['output'];
   publishedAt: Scalars['DateTime']['output'];
@@ -773,8 +772,6 @@ export type CustomerProductComparisons = {
   itemCount: Scalars['Int']['output'];
   /** Category matrices in deterministic server-defined order. */
   nodes: Array<ProductComparison>;
-  /** Current optimistic-concurrency revision of the persisted selection. */
-  revision: Scalars['Int']['output'];
   /** Number of returned category matrices. */
   totalCount: Scalars['Int']['output'];
 };
@@ -2161,7 +2158,6 @@ export type CollectionResolvers<ContextType = ServiceContext, ParentType extends
   featuredMedia?: Resolver<Maybe<ResolversTypes['Media']>, ParentType, ContextType>;
   handle?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
-  listingRevision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   media?: Resolver<ResolversTypes['CollectionMediaConnection'], ParentType, ContextType, Partial<CollectionMediaArgs>>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   publishedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -2209,7 +2205,6 @@ export type CustomerResolvers<ContextType = ServiceContext, ParentType extends R
 export type CustomerProductComparisonsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerProductComparisons'] = ResolversParentTypes['CustomerProductComparisons']> = ResolversObject<{
   itemCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   nodes?: Resolver<Array<ResolversTypes['ProductComparison']>, ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;

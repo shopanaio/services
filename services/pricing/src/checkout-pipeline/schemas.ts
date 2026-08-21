@@ -3,7 +3,6 @@ import type { Pricing } from "@shopana/broker-types";
 import { z } from "zod";
 
 const id = z.string().trim().min(1).max(256);
-const revision = z.string().trim().min(1).max(256);
 const currency = z.enum(CURRENCY_CODES as [string, ...string[]]);
 const json: z.ZodType<unknown> = z.lazy(() =>
   z.union([z.null(), z.string(), z.boolean(), z.number().finite(), z.array(json), z.record(json)]),
@@ -48,7 +47,6 @@ const context = z
         marketId: id.nullable(),
         companyId: id.nullable(),
         segmentIds: z.array(id),
-        segmentMembershipRevision: revision.nullable(),
       })
       .strict()
       .nullable(),
@@ -150,7 +148,6 @@ const discountSource = z.discriminatedUnion("kind", [
       implementationId: id,
       functionTarget: id,
       executionId: id,
-      planRevision: revision,
     })
     .strict(),
 ]);
@@ -169,7 +166,6 @@ const discountApplication = z
   .object({
     applicationId: id,
     discountId: id,
-    configurationRevision: revision,
     discountClass: z.enum(["PRODUCT", "ORDER", "SHIPPING"]),
     method: z.enum(["AUTOMATIC", "CODE"]),
     code: discountCodeReference.nullable(),
@@ -234,8 +230,6 @@ const usageRequirement = z
     discountId: id,
     codeId: id.nullable(),
     customerId: id.nullable(),
-    configurationRevision: revision,
-    usageCounterRevision: revision,
     reservationRequired: z.boolean(),
   })
   .strict();
@@ -250,7 +244,6 @@ const quotedLine: z.ZodType<Pricing.PricingCheckoutQuotedLine> = z.lazy(
         merchandise: z
           .object({
             variantId: id,
-            revision,
             title: z.string(),
             sku: z.string().nullable(),
             imageUrl: z.string().nullable(),
@@ -273,7 +266,6 @@ const quotedLine: z.ZodType<Pricing.PricingCheckoutQuotedLine> = z.lazy(
             maxQuantity: z.number().int().nonnegative().nullable(),
             continueSellingWhenOutOfStock: z.boolean(),
             reasonCode: z.string().nullable(),
-            revision,
           })
           .strict(),
         unitPrice: money,
@@ -308,7 +300,6 @@ const sourceLineResolution = z.discriminatedUnion("status", [
 ]);
 const deliveryIntent = z
   .object({
-    revision,
     lineage: z.array(z.object({ lineId: id, sourceLineIds: z.array(id) }).strict()),
     destinations: z.array(
       z
@@ -331,16 +322,12 @@ const deliveryIntent = z
 export const preliminaryCheckoutQuoteResultSchema = z
   .object({
     preliminaryQuoteId: id,
-    revision,
     executionId: id,
     checkoutId: id,
     currencyCode: currency,
-    discountEvaluationRevision: revision,
     transformedLines: z.array(quotedLine),
     sourceLineResolutions: z.array(sourceLineResolution),
     deliveryIntent,
-    merchandiseRevision: revision,
-    availabilityRevision: revision,
     appliedDiscounts: z.array(discountApplication),
     discountCodeResolutions: z.array(codeResolution),
     usageRequirements: z.array(usageRequirement),
@@ -358,8 +345,6 @@ const delivery = z
     executionId: id,
     checkoutId: id,
     currencyCode: currency,
-    revision,
-    basedOnPreliminaryRevision: revision,
     groups: z.array(
       z
         .object({
@@ -397,14 +382,9 @@ export const finalizeCheckoutPricingQuoteParamsSchema: z.ZodType<Pricing.Finaliz
 export const finalCheckoutQuoteResultSchema = z
   .object({
     quoteId: id,
-    revision,
     executionId: id,
     checkoutId: id,
     currencyCode: currency,
-    discountEvaluationRevision: revision,
-    basedOnPreliminaryDiscountEvaluationRevision: revision,
-    basedOnPreliminaryRevision: revision,
-    basedOnDeliveryRevision: revision,
     lines: z.array(quotedLine),
     appliedDiscounts: z.array(discountApplication),
     discountCodeResolutions: z.array(codeResolution),
@@ -430,7 +410,6 @@ export const reserveCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.Reserve
       storeId: id,
       checkoutId: id,
       quoteId: id,
-      quoteRevision: revision,
       idempotencyKey: id,
       expiresAt: z.string().datetime({ offset: true }),
       requirements: z.array(usageRequirement),
@@ -442,7 +421,6 @@ export const commitCheckoutDiscountUsageParamsSchema: z.ZodType<Pricing.CommitCh
       storeId: id,
       checkoutId: id,
       quoteId: id,
-      quoteRevision: revision,
       orderId: id,
       idempotencyKey: id,
       reservationIds: z.array(id).max(500),

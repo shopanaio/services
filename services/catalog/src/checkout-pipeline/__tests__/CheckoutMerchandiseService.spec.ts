@@ -17,8 +17,6 @@ describe("CheckoutMerchandiseService", () => {
     const result = await service(reader).resolve(params([]), store);
 
     expect(result).toMatchObject({ ok: true, lines: [] });
-    expect(result.ok && result.merchandiseRevision).toMatch(/^catalog-merchandise:v1:/);
-    expect(result.ok && result.availabilityRevision).toMatch(/^catalog-availability:v1:/);
     expect(reader.read).not.toHaveBeenCalled();
   });
 

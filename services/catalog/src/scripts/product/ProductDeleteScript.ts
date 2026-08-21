@@ -26,7 +26,6 @@ export class ProductDeleteScript extends BaseScript<ProductDeleteParams, Product
       return {
         deletedProductId: undefined,
         categoryIds: [],
-        revision: undefined,
         deletedAt: undefined,
         userErrors: [{ message: "Product not found", field: ["id"], code: "NOT_FOUND" }],
       };
@@ -38,13 +37,12 @@ export class ProductDeleteScript extends BaseScript<ProductDeleteParams, Product
     const deletedAt = new Date().toISOString();
     const deleted = permanent
       ? await this.repository.product.hardDelete(id)
-      : await this.repository.product.softDeleteWithRevision(id);
+      : await this.repository.product.softDelete(id);
 
     if (!deleted) {
       return {
         deletedProductId: undefined,
         categoryIds,
-        revision: undefined,
         deletedAt: undefined,
         userErrors: [{ message: "Failed to delete product", code: "DELETE_FAILED" }],
       };
@@ -52,15 +50,10 @@ export class ProductDeleteScript extends BaseScript<ProductDeleteParams, Product
 
     this.logger.info({ productId: id, permanent }, "Product deleted");
 
-    const revision = typeof deleted === "boolean" ? existingProduct.revision + 1 : deleted.revision;
-    const effectiveDeletedAt =
-      typeof deleted === "boolean" ? deletedAt : (deleted.deletedAt ?? deletedAt);
-
     return {
       deletedProductId: id,
       categoryIds,
-      revision,
-      deletedAt: effectiveDeletedAt,
+      deletedAt,
       userErrors: [],
     };
   }
@@ -69,7 +62,6 @@ export class ProductDeleteScript extends BaseScript<ProductDeleteParams, Product
     return {
       deletedProductId: undefined,
       categoryIds: [],
-      revision: undefined,
       deletedAt: undefined,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };

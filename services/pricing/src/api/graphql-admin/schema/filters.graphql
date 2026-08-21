@@ -182,7 +182,6 @@ input DiscountWhereInput {
   appliesOnSubscription: BooleanFilter
   startsAt: DateTimeFilter
   endsAt: DateTimeFilter
-  revision: IntFilter
   reservedUsageCount: BigIntFilter
   usageCount: BigIntFilter
   """
@@ -223,7 +222,6 @@ enum DiscountOrderField {
   usageCount
   startsAt
   endsAt
-  revision
   createdAt
   updatedAt
   archivedAt
@@ -316,7 +314,6 @@ input DiscountRedemptionWhereInput {
   orderId: IDFilter
   status: DiscountRedemptionStatusFilter
   discountClass: DiscountClassFilter
-  configurationRevision: IntFilter
   currency: DiscountCurrencyFilter
   amountMinor: BigIntFilter
   committedAt: DateTimeFilter
@@ -328,7 +325,6 @@ enum DiscountRedemptionOrderField {
   id
   status
   discountClass
-  configurationRevision
   currency
   amountMinor
   committedAt

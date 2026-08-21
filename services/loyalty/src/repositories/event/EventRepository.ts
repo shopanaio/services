@@ -377,7 +377,6 @@ export class EventRepository extends BaseRepository {
       .update(earningRuleUsages)
       .set({
         ...input,
-        revision: sql`${earningRuleUsages.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(earningRuleUsages.storeId, this.storeId), eq(earningRuleUsages.id, id)))

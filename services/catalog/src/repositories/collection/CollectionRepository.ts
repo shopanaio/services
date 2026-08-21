@@ -170,8 +170,6 @@ export class CollectionRepository extends BaseRepository {
       effectiveFrom: data.effectiveFrom ?? null,
       effectiveTo: data.effectiveTo ?? null,
       publishedAt: data.publishedAt ?? null,
-      revision: 0,
-      listingRevision: 0,
       createdAt: now,
       updatedAt: now,
       deletedAt: null,
@@ -194,19 +192,12 @@ export class CollectionRepository extends BaseRepository {
     options: { listingChanged: boolean },
   ): Promise<Collection | null> {
     const now = new Date().toISOString();
-    const updates: Omit<
-      Partial<NewCollection>,
-      "revision" | "listingRevision" | "listingUpdatedAt"
-    > & {
-      revision: SQL;
-      listingRevision?: SQL;
+    const updates: Omit<Partial<NewCollection>, "listingUpdatedAt"> & {
       listingUpdatedAt?: SQL;
     } = {
       updatedAt: now,
-      revision: sql`${collection.revision} + 1`,
     };
     if (options.listingChanged) {
-      updates.listingRevision = sql`${collection.listingRevision} + 1`;
       updates.listingUpdatedAt = sql`now()`;
     }
     if (data.handle !== undefined) updates.handle = data.handle;
@@ -225,15 +216,13 @@ export class CollectionRepository extends BaseRepository {
           eq(collection.storeId, this.storeId),
           eq(collection.id, id),
           isNull(collection.deletedAt),
-          sql`${collection.revision} < 2147483646`,
-          options.listingChanged ? sql`${collection.listingRevision} < 2147483646` : sql`true`,
         ),
       )
       .returning();
     return rows[0] ?? null;
   }
 
-  async bumpRevision(id: string, options: { listingChanged: boolean }): Promise<Collection | null> {
+  async markChanged(id: string, options: { listingChanged: boolean }): Promise<Collection | null> {
     return this.update(id, {}, options);
   }
 
@@ -244,15 +233,11 @@ export class CollectionRepository extends BaseRepository {
         deletedAt: sql`now()`,
         updatedAt: sql`now()`,
         listingUpdatedAt: sql`now()`,
-        revision: sql`${collection.revision} + 1`,
-        listingRevision: sql`${collection.listingRevision} + 1`,
       })
       .where(
         and(
           eq(collection.storeId, this.storeId),
           eq(collection.id, id),
-          sql`${collection.revision} < 2147483646`,
-          sql`${collection.listingRevision} < 2147483646`,
           isNull(collection.deletedAt),
         ),
       )

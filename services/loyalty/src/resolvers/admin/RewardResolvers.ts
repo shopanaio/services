@@ -80,9 +80,6 @@ export class LoyaltyRewardEntitlementResolver extends LoyaltyType<string, Reward
   revokedAt() {
     return this.$get("revokedAt");
   }
-  revision() {
-    return this.$get("revision");
-  }
   async events() {
     return Promise.all(
       (await this.$ctx.loaders.rewardEntitlementEvents.load(this.$props)).map(({ id }) =>

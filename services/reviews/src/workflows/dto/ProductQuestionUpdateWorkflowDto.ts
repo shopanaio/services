@@ -85,7 +85,7 @@ export interface ProductQuestionUpdateOperationResult {
 }
 
 export interface ProductQuestionUpdateWorkflowResult {
-  productQuestion: { id: string; revision: number } | null;
+  productQuestion: { id: string } | null;
   operationResults: ProductQuestionUpdateOperationResult[];
   userErrors: UserError[];
 }

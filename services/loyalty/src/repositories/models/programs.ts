@@ -44,7 +44,6 @@ export const programs = loyaltySchema.table(
     defaultCurrencyCode: varchar("default_currency_code", {
       length: 3,
     }).notNull(),
-    revision: integer("revision").notNull().default(1),
     metadata: jsonb("metadata")
       .$type<Record<string, unknown>>()
       .notNull()
@@ -76,7 +75,6 @@ export const programs = loyaltySchema.table(
     check("loyalty_program_code_check", sql`${table.code} ~ '^[a-z][a-z0-9_-]{1,63}$'`),
     check("loyalty_program_name_check", sql`btrim(${table.name}) <> ''`),
     check("loyalty_program_currency_check", sql`${table.defaultCurrencyCode} ~ '^[A-Z]{3}$'`),
-    check("loyalty_program_revision_check", sql`${table.revision} > 0`),
     check("loyalty_program_metadata_check", sql`jsonb_typeof(${table.metadata}) = 'object'`),
     check(
       "loyalty_program_archive_check",
@@ -96,7 +94,6 @@ export const programVersions = loyaltySchema.table(
     programId: uuid("program_id").notNull(),
     version: integer("version").notNull(),
     status: programVersionStatusEnum("status").notNull().default("DRAFT"),
-    revision: integer("revision").notNull().default(1),
     effectiveFrom: timestamp("effective_from", {
       withTimezone: true,
       mode: "string",
@@ -176,7 +173,6 @@ export const programVersions = loyaltySchema.table(
       table.effectiveFrom.desc(),
       table.version.desc(),
     ),
-    check("loyalty_program_version_revision_check", sql`${table.revision} > 0`),
     check(
       "loyalty_program_version_activation_delay_check",
       sql`${table.activationDelaySeconds} >= 0`,

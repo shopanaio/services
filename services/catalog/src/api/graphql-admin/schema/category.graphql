@@ -40,11 +40,6 @@ type Category implements Node @key(fields: "id") {
   deletedAt: DateTime
 
   """
-  Internal aggregate revision number.
-  """
-  revision: Int!
-
-  """
   The depth of this category in the hierarchy (0 for root).
   """
   depth: Int!

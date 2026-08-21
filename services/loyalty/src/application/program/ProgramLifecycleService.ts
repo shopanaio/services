@@ -66,7 +66,6 @@ export type ProgramVersionDraftInput = Omit<
   | "programId"
   | "version"
   | "status"
-  | "revision"
   | "rulesSchemaVersion"
   | "rules"
   | "publishedById"
@@ -75,7 +74,6 @@ export type ProgramVersionDraftInput = Omit<
 > & { rules: LoyaltyProgramRulesValidationInputV1 };
 
 export interface ProgramVersionConfigurationInput {
-  expectedProgramRevision?: number;
   earningRules?: readonly EarningRuleDraftInput[];
   rewardDefinitions?: readonly RewardDefinitionDraftInput[];
   tierPolicy?: TierPolicyDraftInput | null;
@@ -89,7 +87,7 @@ export class ProgramLifecycleService {
   ) {}
 
   async createProgram(
-    input: Omit<NewProgram, "id" | "storeId" | "revision" | "createdAt" | "updatedAt">,
+    input: Omit<NewProgram, "id" | "storeId" | "createdAt" | "updatedAt">,
   ): Promise<Program> {
     return this.repository.runInTransaction(async () => {
       if (input.isDefault) await this.repository.program.clearDefault();
@@ -182,16 +180,6 @@ export class ProgramLifecycleService {
         throw new LoyaltyDomainError("PROGRAM_NOT_FOUND", "Loyalty program was not found");
       if (program.status === "ARCHIVED")
         throw new LoyaltyDomainError("PROGRAM_ARCHIVED", "Cannot version an archived program");
-      if (
-        configuration.expectedProgramRevision !== undefined &&
-        program.revision !== configuration.expectedProgramRevision
-      ) {
-        throw new LoyaltyDomainError(
-          "PROGRAM_CONCURRENT_CHANGE",
-          "Loyalty program changed concurrently",
-          true,
-        );
-      }
       const referenceIssues = await this.validateReferences({
         storeId: program.storeId,
         rules: canonical.rules as unknown as Record<string, unknown>,

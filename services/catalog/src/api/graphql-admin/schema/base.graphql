@@ -463,7 +463,7 @@ type CatalogMutation {
   Create a collection.
 
   RULE collections are created as drafts, then receive their initial rules
-  through collectionUpdateRules using the returned revision.
+  through collectionUpdateRules.
   """
   collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
 

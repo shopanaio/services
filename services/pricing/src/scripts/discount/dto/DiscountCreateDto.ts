@@ -8,6 +8,6 @@ export interface DiscountCreateParams {
 }
 
 export interface DiscountCreateResult {
-  discount?: { id: string; revision: number };
+  discount?: { id: string };
   userErrors: UserError[];
 }

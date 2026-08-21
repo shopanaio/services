@@ -45,17 +45,6 @@ type ReviewModerationEvent implements Node @key(fields: "id") {
 }
 
 """
-A revision of content owned by the current customer.
-"""
-type ReviewContentRevision implements Node @key(fields: "id") {
-  id: ID!
-  content: ReviewContent!
-  revision: Int!
-  changeReason: String
-  createdAt: DateTime!
-}
-
-"""
 Automated moderation evidence associated with customer-owned content.
 """
 type ReviewModerationSignal implements Node @key(fields: "id") {
@@ -66,6 +55,17 @@ type ReviewModerationSignal implements Node @key(fields: "id") {
   score: Float
   verdict: ReviewModerationVerdict!
   modelVersion: String
+  createdAt: DateTime!
+}
+
+"""
+A revision of content owned by the current customer.
+"""
+type ReviewContentRevision implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  revision: Int!
+  changeReason: String
   createdAt: DateTime!
 }
 
@@ -105,6 +105,13 @@ type ReviewModerationEventEdge {
   node: ReviewModerationEvent!
 }
 
+type ReviewModerationSignalConnection implements Connection {
+  edges: [ReviewModerationSignalEdge!]!
+  nodes: [ReviewModerationSignal!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
 type ReviewContentRevisionConnection implements Connection {
   edges: [ReviewContentRevisionEdge!]!
   nodes: [ReviewContentRevision!]!
@@ -115,13 +122,6 @@ type ReviewContentRevisionConnection implements Connection {
 type ReviewContentRevisionEdge {
   cursor: Cursor!
   node: ReviewContentRevision!
-}
-
-type ReviewModerationSignalConnection implements Connection {
-  edges: [ReviewModerationSignalEdge!]!
-  nodes: [ReviewModerationSignal!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
 }
 
 type ReviewModerationSignalEdge {

@@ -36,8 +36,6 @@ export class CollectionRuleEvaluationRepository extends BaseRepository {
       {
         result: plan.matchesNothing ? "empty" : "compiled",
         definitionKind: plan.definitionKey.kind,
-        listingRevision:
-          plan.definitionKey.kind === "persisted" ? plan.definitionKey.listingRevision : null,
         ruleCount: input.rules.length,
         fieldCounts: countBy(input.rules.map((rule) => rule.field)),
         operatorCounts: countBy(input.rules.map((rule) => rule.operator)),

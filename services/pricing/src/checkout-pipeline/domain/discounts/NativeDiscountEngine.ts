@@ -212,17 +212,17 @@ export function discountEligibility(
     );
     if (hasReservation || hasRedemption) return "USAGE_LIMIT_REACHED";
   }
-  const min = s.minimums.find((row) => row.discountId === owner.id);
+  const minimumRequirement = s.minimums.find((row) => row.discountId === owner.id);
   const contributing = lines.filter((line) => line.contributesToTotals);
   if (
-    min?.requirementType === "SUBTOTAL" &&
+    minimumRequirement?.requirementType === "SUBTOTAL" &&
     contributing.reduce((sum, line) => sum + BigInt(line.subtotal.amountMinor), 0n) <
-      min.subtotalMinor!
+      minimumRequirement.subtotalMinor!
   )
     return "MINIMUM_REQUIREMENT_NOT_MET";
   if (
-    min?.requirementType === "QUANTITY" &&
-    contributing.reduce((sum, line) => sum + line.quantity, 0) < min.quantity!
+    minimumRequirement?.requirementType === "QUANTITY" &&
+    contributing.reduce((sum, line) => sum + line.quantity, 0) < minimumRequirement.quantity!
   )
     return "MINIMUM_REQUIREMENT_NOT_MET";
   return null;
@@ -369,22 +369,6 @@ export function allocateProportionally(
   );
 }
 
-export function canonicalCounterVersions(
-  snapshot: Pick<DiscountEvaluationSnapshot, "counters" | "codeCounters">,
-) {
-  return {
-    counters: [...snapshot.counters]
-      .sort((left, right) => left.discountId.localeCompare(right.discountId))
-      .map((row) => ({ id: row.discountId, version: String(row.version) })),
-    codeCounters: [...snapshot.codeCounters]
-      .sort(
-        (left, right) =>
-          left.discountId.localeCompare(right.discountId) ||
-          left.codeId.localeCompare(right.codeId),
-      )
-      .map((row) => ({ id: row.codeId, version: String(row.version) })),
-  };
-}
 function rejected(
   inputCode: string,
   owner: Owner | null,

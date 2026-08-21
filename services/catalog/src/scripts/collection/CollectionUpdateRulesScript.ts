@@ -104,19 +104,8 @@ export class CollectionUpdateRulesScript extends BaseScript<
     );
     const listingChanged =
       hashCanonicalCollectionRulesV1(currentRules) !== hashCanonicalCollectionRulesV1(rules);
-    if (
-      collection.revision >= 2_147_483_646 ||
-      (listingChanged && collection.listingRevision >= 2_147_483_646)
-    ) {
-      return {
-        collection: undefined,
-        userErrors: [
-          { message: "Collection revision limit reached", code: "REVISION_LIMIT_EXCEEDED" },
-        ],
-      };
-    }
     await this.repository.collectionRule.replaceRules(params.collectionId, rules);
-    const refreshed = await this.repository.collection.bumpRevision(params.collectionId, {
+    const refreshed = await this.repository.collection.markChanged(params.collectionId, {
       listingChanged,
     });
     if (!refreshed) {

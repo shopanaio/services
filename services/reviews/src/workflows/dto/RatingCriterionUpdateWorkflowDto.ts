@@ -36,7 +36,6 @@ export type RatingCriterionUpdateOperation =
 
 export interface RatingCriterionUpdateWorkflowInput {
   criterionId: string;
-  expectedUpdatedAt: string;
   operations: RatingCriterionUpdateOperation[];
   context: ReviewsMutationWorkflowContext;
 }

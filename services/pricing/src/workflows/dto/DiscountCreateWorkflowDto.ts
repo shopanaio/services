@@ -8,6 +8,6 @@ export interface DiscountCreateWorkflowInput {
 }
 
 export interface DiscountCreateWorkflowResult {
-  discount: { id: string; revision: number } | null;
+  discount: { id: string } | null;
   userErrors: UserError[];
 }

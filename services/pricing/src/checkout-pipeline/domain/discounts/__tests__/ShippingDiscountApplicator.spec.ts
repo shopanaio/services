@@ -106,7 +106,6 @@ function candidate(
             trace: {
               target: "cart.delivery-options.discounts.generate.run",
               executionId: "function-execution",
-              planRevision: "plan-revision",
             } as never,
           },
   };
@@ -115,7 +114,6 @@ function candidate(
 function owner(id: string, priority: number): DiscountOwner {
   return {
     id,
-    revision: 1n,
     priority,
     method: "AUTOMATIC",
     discountClass: "SHIPPING",

@@ -77,7 +77,6 @@ export type StorefrontListingScope =
   | {
       kind: "collection";
       collectionId: string;
-      listingRevision: number;
       rulesHash: string;
       productBitmap: string;
       membershipBitmap: string;

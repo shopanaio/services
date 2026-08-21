@@ -4,7 +4,6 @@ type LoyaltyAccount implements Node @key(fields: "id") {
   customerId: ID!
   customer: Customer
   status: LoyaltyAccountStatus!
-  revision: Int!
   balance: LoyaltyAccountBalance!
   tierMembership: LoyaltyTierMembership
   tierMemberships(first: Int = 100): [LoyaltyTierMembership!]!
@@ -35,7 +34,6 @@ type LoyaltyAccountBalance {
   lifetimeRedeemedPoints: BigInt!
   lifetimeExpiredPoints: BigInt!
   lifetimeAdjustedPoints: BigInt!
-  revision: Int!
   updatedAt: DateTime!
 }
 
@@ -55,7 +53,6 @@ type LoyaltyTierMembership implements Node @key(fields: "id") {
   qualifiedAt: DateTime!
   effectiveFrom: DateTime!
   effectiveTo: DateTime
-  revision: Int!
   events: [LoyaltyTierMembershipEvent!]!
   createdAt: DateTime!
   updatedAt: DateTime!

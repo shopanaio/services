@@ -21,7 +21,6 @@ CREATE TABLE "reviews"."store_configuration" (
   "answer_edit_window_hours" integer NOT NULL DEFAULT 720,
   "max_review_media_count" smallint NOT NULL DEFAULT 8,
   "max_answers_per_question" smallint NOT NULL DEFAULT 50,
-  "revision" integer NOT NULL DEFAULT 1,
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
 
@@ -40,9 +39,7 @@ CREATE TABLE "reviews"."store_configuration" (
     CHECK (
       "max_review_media_count" BETWEEN 0 AND 20
       AND "max_answers_per_question" BETWEEN 1 AND 100
-    ),
-  CONSTRAINT "store_configuration_revision_check"
-    CHECK ("revision" >= 1)
+    )
 );
 
 CREATE INDEX "store_configuration_updated_idx"

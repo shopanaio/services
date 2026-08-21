@@ -213,7 +213,6 @@ function functionCandidate(
       trace: {
         target: "cart.lines.discounts.generate.run",
         executionId: "function-execution",
-        planRevision: "plan-revision",
       } as never,
     },
   };
@@ -227,7 +226,6 @@ function owner(
 ): DiscountOwner {
   return {
     id,
-    revision: 1,
     priority,
     method: "AUTOMATIC",
     discountClass,

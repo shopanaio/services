@@ -24,7 +24,6 @@ type Discount implements Node @key(fields: "id") {
   appliesOnSubscription: Boolean!
   startsAt: DateTime!
   endsAt: DateTime
-  revision: Int!
   reservedUsageCount: BigInt!
   usageCount: BigInt!
   tags: [String!]!
@@ -93,7 +92,6 @@ type Discount implements Node @key(fields: "id") {
 type DiscountFunctionBinding {
   id: ID!
   target: String!
-  contractVersion: Int!
   installationId: ID!
   functionKey: String!
   precedence: Int!
@@ -101,8 +99,6 @@ type DiscountFunctionBinding {
   status: DiscountFunctionBindingStatus!
   failureMode: DiscountFunctionFailureMode!
   configurationSnapshot: JSON!
-  configurationRevision: String!
-  routeRevision: String!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
@@ -397,8 +393,6 @@ input DiscountFunctionBindingInput {
   status: DiscountFunctionBindingStatus = ACTIVE
   failureMode: DiscountFunctionFailureMode = OPTIONAL
   configurationSnapshot: JSON!
-  configurationRevision: String!
-  routeRevision: String!
 }
 
 input DiscountDefinitionUpdateInput {

@@ -1,5 +1,5 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
-import { conflict, internalError, invalidDate, notFound } from "./errors.js";
+import { internalError, notFound } from "./errors.js";
 import type {
   ContentExternalReferenceDeleteParams,
   ContentExternalReferenceDeleteResult,
@@ -13,17 +13,12 @@ export class ContentExternalReferenceDeleteScript extends BaseScript<
   protected async execute(
     params: ContentExternalReferenceDeleteParams,
   ): Promise<ContentExternalReferenceDeleteResult> {
-    if (Number.isNaN(Date.parse(params.expectedUpdatedAt))) {
-      return { userErrors: invalidDate("expectedUpdatedAt") };
-    }
     const result = await this.repository.externalReference.delete({
       id: params.id,
-      expectedUpdatedAt: params.expectedUpdatedAt,
       permanent: params.permanent ?? false,
     });
     if (result.status === "not_found")
       return { userErrors: notFound("Content external reference") };
-    if (result.status === "conflict") return { userErrors: conflict("expectedUpdatedAt") };
     this.logger.info(
       { externalReferenceId: result.value.id, permanent: params.permanent ?? false },
       "Review content external reference deleted",

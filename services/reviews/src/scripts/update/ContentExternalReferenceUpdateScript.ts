@@ -1,12 +1,7 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { ContentExternalReferencePatch } from "../../repositories/integration/ExternalReferenceRepository.js";
-import {
-  conflictError,
-  hasOwn,
-  internalError,
-  notFoundError,
-} from "./StoreConfigurationUpdateScript.js";
+import { hasOwn, internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
 import type {
   ContentExternalReferenceUpdateParams,
   ContentExternalReferenceUpdateResult,
@@ -83,7 +78,6 @@ export class ContentExternalReferenceUpdateScript extends BaseScript<
     try {
       const updated = await this.repository.externalReference.update(
         params.externalReferenceId,
-        params.expectedUpdatedAt,
         patch,
       );
       if (updated.status === "applied") {
@@ -95,9 +89,7 @@ export class ContentExternalReferenceUpdateScript extends BaseScript<
           userErrors: [],
         };
       }
-      return updated.status === "conflict"
-        ? { userErrors: [conflictError("External reference", "expectedUpdatedAt")] }
-        : { userErrors: [notFoundError("External reference", "externalReferenceId")] };
+      return { userErrors: [notFoundError("External reference", "externalReferenceId")] };
     } catch (error) {
       if (
         isUniqueViolation(error, "content_external_reference_lookup_unique") ||

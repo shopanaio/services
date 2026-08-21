@@ -6,7 +6,6 @@ export interface LocalizedComparisonProfile {
   storeId: string;
   handle: string;
   enabled: boolean;
-  revision: number;
   createdAt: string;
   updatedAt: string;
   name: string;

@@ -16,7 +16,6 @@ Pricing Service уже содержит значительный объём ра
 - предварительный и финальный checkout quote;
 - распределение скидок по строкам и доставке;
 - usage reservations, redemptions и reversals;
-- optimistic revision для discount aggregate;
 - Relay pagination, фильтры и read models;
 - DBOS workflows для Admin mutations.
 
@@ -26,11 +25,10 @@ Pricing Service уже содержит значительный объём ра
 2. отсутствует проверка cross-service references и их принадлежности текущему Store;
 3. механизм `VALID`/`STALE` не имеет reconciliation handlers;
 4. Commerce Function binding сохраняется без проверки App installation и function contract;
-5. `discountUpdate` изменяет revision для пустых и частично неуспешных запросов;
-6. заявленный контракт `clientMutationId` не реализован;
-7. expiration usage reservations не подключён к maintenance workflow или scheduler;
-8. mixed one-time/subscription cart обрабатывается спорно и не покрыт спецификацией;
-9. большая часть mutation, persistence, integration и concurrency поведения не имеет прямого
+5. заявленный контракт `clientMutationId` не реализован;
+6. expiration usage reservations не подключён к maintenance workflow или scheduler;
+7. mixed one-time/subscription cart обрабатывается спорно и не покрыт спецификацией;
+8. большая часть mutation, persistence, integration и concurrency поведения не имеет прямого
    тестового покрытия.
 
 До устранения этих проблем сервис нельзя считать завершённым, даже несмотря на наличие большей части
@@ -119,14 +117,14 @@ database columns это может приводить к database error вмес
 
 ### 4.2 Admin GraphQL mutations
 
-| Mutation                          | Реализация                                  | Статус                                     |
-| --------------------------------- | ------------------------------------------- | ------------------------------------------ |
-| `discountCreate`                  | DBOS workflow + transactional create script | Реализовано с пробелами                    |
-| `discountUpdate`                  | DBOS workflow по секциям                    | Реализовано с дефектами revision semantics |
-| `discountDelete`                  | DBOS workflow + draft/history guards        | Реализовано                                |
-| `discountExternalReferenceCreate` | DBOS workflow                               | Реализовано                                |
-| `discountExternalReferenceUpdate` | DBOS workflow                               | Реализовано                                |
-| `discountExternalReferenceDelete` | DBOS workflow                               | Реализовано                                |
+| Mutation                          | Реализация                                  | Статус                                  |
+| --------------------------------- | ------------------------------------------- | --------------------------------------- |
+| `discountCreate`                  | DBOS workflow + transactional create script | Реализовано с пробелами                 |
+| `discountUpdate`                  | DBOS workflow по секциям                    | Реализовано с дефектами no-op semantics |
+| `discountDelete`                  | DBOS workflow + draft/history guards        | Реализовано                             |
+| `discountExternalReferenceCreate` | DBOS workflow                               | Реализовано                             |
+| `discountExternalReferenceUpdate` | DBOS workflow                               | Реализовано                             |
+| `discountExternalReferenceDelete` | DBOS workflow                               | Реализовано                             |
 
 Mutation surface физически существует, но не весь заявленный контракт выполняется. Детали приведены
 в разделе с findings.
@@ -151,7 +149,7 @@ Pricing регистрирует следующие checkout actions:
 | Область                     | Оценка | Комментарий                                                                                                      |
 | --------------------------- | -----: | ---------------------------------------------------------------------------------------------------------------- |
 | Admin GraphQL reads         |    85% | Surface и resolvers присутствуют; нет достаточного integration coverage и строгой обработки invalid filter IDs   |
-| Admin GraphQL mutations     |    70% | Основные workflows есть; revision/no-op и contract gaps остаются                                                 |
+| Admin GraphQL mutations     |    70% | Основные workflows есть; no-op и contract gaps остаются                                                          |
 | Native discount calculation |    75% | Реализованы четыре вида и deterministic allocation; остаются семантические и test gaps                           |
 | Checkout pricing snapshots  |    80% | Есть provenance, digest, persistence и currency checks                                                           |
 | Usage lifecycle             |    70% | Reserve/commit/release/reverse реализованы; expiration operational lifecycle не завершён                         |
@@ -297,7 +295,6 @@ Create/update scripts проверяют:
 - precedence;
 - activation sequence;
 - JSON configuration;
-- непустые revisions.
 
 Они не проверяют:
 
@@ -306,9 +303,7 @@ Create/update scripts проверяют:
 - active/installed state;
 - наличие function key в manifest;
 - поддержку нужного target;
-- contract version;
 - соответствие configuration schema;
-- актуальность route revision.
 
 Источники:
 
@@ -329,45 +324,6 @@ Runtime runner и output validation реализованы, но это не з�
 - валидировать binding через Apps/function registry до activation;
 - сохранять только разрешённые target/contract combinations;
 - добавить полный e2e от app installation до checkout application и failure modes.
-
-### P1. `discountUpdate` имеет некорректную no-op/error revision semantics
-
-**Наблюдение**
-
-Все поля `DiscountUpdateInput` nullable, поэтому GraphQL принимает пустой объект `operations: {}`.
-
-Workflow сначала вызывает `stepAcquireRevision`, который немедленно увеличивает `discount.revision`,
-и только потом выполняет mapped operations.
-
-Источник: `src/workflows/DiscountUpdateWorkflow.ts:81-97`.
-
-Следствия:
-
-- пустой update увеличивает revision;
-- update без фактических изменений увеличивает revision;
-- revision уже изменён, если одна из следующих operation sections вернула business error;
-- разные sections исполняются как отдельные workflow steps и транзакции, поэтому запрос может
-  примениться частично.
-
-Operation-level partial result может быть допустимым дизайном, но такая семантика не описана в SDL и
-конфликтует с ожиданием unified aggregate update.
-
-**Риск**
-
-- ложные optimistic conflicts;
-- клиент получает новую revision после failed/no-op mutation;
-- трудно обеспечить атомарное редактирование нескольких взаимозависимых секций;
-- intermediate aggregate validation может запрещать корректный итоговый переход, если промежуточное
-  состояние временно невалидно.
-
-**Критерий закрытия**
-
-- явно выбрать atomic или partial-update contract;
-- запретить empty operations;
-- не менять revision при полном no-op/validation failure;
-- для atomic contract выполнять все section changes и итоговую aggregate validation в одной
-  транзакции;
-- документировать operation results и retry behavior.
 
 ### P1. Заявленный `clientMutationId` не возвращается
 
@@ -703,7 +659,6 @@ matrix отсутствует.
 - create validation matrix;
 - update section matrix;
 - empty/no-op update;
-- optimistic revision conflicts;
 - partial workflow failures;
 - draft delete restrictions;
 - external reference CRUD lifecycle;
@@ -773,7 +728,6 @@ Pricing Service можно считать готовым только при в�
 - [ ] Cross-service IDs проверяются owner services и текущим Store.
 - [ ] `VALID`/`STALE` lifecycle реально работает.
 - [ ] FUNCTION discounts проверяются при binding и проходят e2e.
-- [ ] Empty/no-op/failed updates не нарушают revision contract.
 - [ ] `clientMutationId` соответствует SDL.
 - [ ] Expired reservations обслуживаются maintenance процессом.
 - [ ] Mixed purchase mode и minimum requirement semantics документированы и протестированы.
@@ -794,7 +748,7 @@ checkout integration уже существуют. Главный остаточ�
 
 - reference integrity;
 - tenant ownership;
-- workflow/revision semantics;
+- workflow semantics;
 - operational expiration;
 - Function binding validation;
 - согласованность API contract и tests.

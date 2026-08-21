@@ -14,7 +14,7 @@ export interface CachedApplicableProductBoost {
   readonly updatedAt: string;
   readonly locale: string;
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
   readonly normalizedPhrases: readonly string[];
   readonly productIds: readonly string[];
 }
@@ -30,7 +30,7 @@ export class SearchConfigurationService {
     storeId: string;
     locale: string;
     normalizationContractVersion: string;
-    normalizationProfileRevision: string;
+    normalizationProfileHash: string;
   }): Promise<CompiledLocaleSynonyms> {
     return this.loadSynonymsConsistently(input, 0);
   }
@@ -40,7 +40,7 @@ export class SearchConfigurationService {
       storeId: string;
       locale: string;
       normalizationContractVersion: string;
-      normalizationProfileRevision: string;
+      normalizationProfileHash: string;
     },
     retry: number,
   ): Promise<CompiledLocaleSynonyms> {
@@ -53,7 +53,7 @@ export class SearchConfigurationService {
       cached &&
       cached.resourceFingerprint === fingerprint &&
       cached.normalizationContractVersion === input.normalizationContractVersion &&
-      cached.normalizationProfileRevision === input.normalizationProfileRevision
+      cached.normalizationProfileHash === input.normalizationProfileHash
     ) {
       return cached;
     }
@@ -81,7 +81,7 @@ export class SearchConfigurationService {
     locale: string;
     normalizedPhrase: string;
     normalizationContractVersion: string;
-    normalizationProfileRevision: string;
+    normalizationProfileHash: string;
   }): Promise<readonly CachedApplicableProductBoost[]> {
     const headers = await this.boosts.listEnabledHeaders(input.locale);
     const compiled = await Promise.all(
@@ -92,7 +92,7 @@ export class SearchConfigurationService {
           cached &&
           cached.updatedAt === header.updatedAt &&
           cached.normalizationContractVersion === input.normalizationContractVersion &&
-          cached.normalizationProfileRevision === input.normalizationProfileRevision
+          cached.normalizationProfileHash === input.normalizationProfileHash
         ) {
           return cached;
         }
@@ -111,7 +111,7 @@ export class SearchConfigurationService {
         .filter(
           (value) =>
             value.normalizationContractVersion === input.normalizationContractVersion &&
-            value.normalizationProfileRevision === input.normalizationProfileRevision,
+            value.normalizationProfileHash === input.normalizationProfileHash,
         )
         .filter((value) => value.normalizedPhrases.includes(input.normalizedPhrase))
         .sort((left, right) => left.boostId.localeCompare(right.boostId)),
@@ -124,7 +124,7 @@ function compileLocaleSynonyms(
   profile: {
     resourceFingerprint: string;
     normalizationContractVersion: string;
-    normalizationProfileRevision: string;
+    normalizationProfileHash: string;
   },
 ): CompiledLocaleSynonyms {
   const groups: CompiledSearchSynonymGroup[] = rows.map((aggregate) =>
@@ -136,7 +136,7 @@ function compileLocaleSynonyms(
             preparedText: value.preparedText,
             lexemes: Object.freeze(value.preparedText.split(/\s+/u).filter(Boolean)),
             normalizationContractVersion: value.normalizationContractVersion,
-            normalizationProfileRevision: value.normalizationProfileRevision,
+            normalizationProfileHash: value.normalizationProfileHash,
           }),
         ),
       ),
@@ -146,7 +146,7 @@ function compileLocaleSynonyms(
   return Object.freeze({
     resourceFingerprint: profile.resourceFingerprint,
     normalizationContractVersion: profile.normalizationContractVersion,
-    normalizationProfileRevision: profile.normalizationProfileRevision,
+    normalizationProfileHash: profile.normalizationProfileHash,
     groups: Object.freeze(groups),
     trie: buildSynonymTrie(groups),
   });
@@ -201,7 +201,7 @@ function compileProductBoost(aggregate: SearchProductBoostAggregate): CachedAppl
     aggregate.phrases.some(
       (phrase) =>
         phrase.normalizationContractVersion !== firstPhrase.normalizationContractVersion ||
-        phrase.normalizationProfileRevision !== firstPhrase.normalizationProfileRevision,
+        phrase.normalizationProfileHash !== firstPhrase.normalizationProfileHash,
     )
   ) {
     throw new Error(
@@ -213,7 +213,7 @@ function compileProductBoost(aggregate: SearchProductBoostAggregate): CachedAppl
     updatedAt: aggregate.boost.updatedAt,
     locale: aggregate.boost.locale,
     normalizationContractVersion: firstPhrase.normalizationContractVersion,
-    normalizationProfileRevision: firstPhrase.normalizationProfileRevision,
+    normalizationProfileHash: firstPhrase.normalizationProfileHash,
     normalizedPhrases: Object.freeze(
       aggregate.phrases
         .map((phrase) => phrase.normalizedPhrase)

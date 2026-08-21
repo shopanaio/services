@@ -41,7 +41,6 @@ type DiscountUsageSummary {
   netCommittedCount: BigInt!
   consumedCount: BigInt!
   remainingCount: BigInt
-  version: BigInt
   updatedAt: DateTime
 }
 
@@ -89,7 +88,6 @@ type DiscountRedemption implements Node @key(fields: "id") {
   orderId: ID!
   status: DiscountRedemptionStatus!
   discountClass: DiscountClass!
-  configurationRevision: Int!
   currency: CurrencyCode!
   amountMinor: BigInt!
   committedAt: DateTime!

@@ -184,7 +184,6 @@ export const earningRuleUsages = loyaltySchema.table(
       .$type<Record<string, string>>()
       .notNull()
       .default(sql`'{}'::jsonb`),
-    revision: integer("revision").notNull().default(1),
     updatedAt: timestamp("updated_at", {
       withTimezone: true,
       mode: "string",
@@ -219,7 +218,7 @@ export const earningRuleUsages = loyaltySchema.table(
         AND ${table.occurrenceCount} >= 0
         AND ${table.pointsAwarded} >= 0
         AND jsonb_typeof(${table.monetaryAmounts}) = 'object'
-        AND ${table.revision} > 0`,
+        `,
     ),
   ],
 );

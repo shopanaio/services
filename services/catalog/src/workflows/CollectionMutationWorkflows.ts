@@ -182,27 +182,20 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
   }): Promise<void> {
     const details =
       "deletedCollectionId" in input.result
-        ? input.result.deletedCollectionId &&
-          input.result.revision !== undefined &&
-          input.result.listingRevision !== undefined &&
-          input.result.deletedAt
+        ? input.result.deletedCollectionId && input.result.deletedAt
           ? {
               collectionId: input.result.deletedCollectionId,
-              revision: input.result.revision,
-              listingRevision: input.result.listingRevision,
               deletedAt: input.result.deletedAt,
             }
           : null
         : "collection" in input.result && input.result.collection
           ? {
               collectionId: input.result.collection.id,
-              revision: input.result.collection.revision,
-              listingRevision: input.result.collection.listingRevision,
               deletedAt: null,
             }
           : null;
     if (!details) return;
-    const { collectionId, revision, listingRevision } = details;
+    const { collectionId } = details;
     const eventType =
       input.input.operation.kind === "create"
         ? "collectionCreated"
@@ -216,8 +209,6 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
         payload: {
           storeId: input.input.context.storeId,
           collectionId,
-          revision,
-          listingRevision,
           reasons: [...new Set(input.input.reasons)],
           ...(details.deletedAt ? { deletedAt: details.deletedAt } : {}),
         },
@@ -235,7 +226,7 @@ export class CollectionMutationWorkflow extends BrokerWorkflows<
         source: "workflow",
         workflowId: DBOS.workflowID!,
         stepId: "emitCollectionChanged",
-        callId: `${collectionId}:${revision}`,
+        callId: collectionId,
       },
     );
   }

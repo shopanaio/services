@@ -1,11 +1,6 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { ReviewRequestPatch } from "../../repositories/request/ReviewRequestRepository.js";
-import {
-  conflictError,
-  hasOwn,
-  internalError,
-  notFoundError,
-} from "./StoreConfigurationUpdateScript.js";
+import { hasOwn, internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
 import type { ReviewRequestUpdateParams, ReviewRequestUpdateResult } from "./types.js";
 
 type RequestEventType = "SCHEDULED" | "CANCELLED" | "EXPIRED";
@@ -131,15 +126,9 @@ export class ReviewRequestUpdateScript extends BaseScript<
     }
     if (errors.length > 0) return { userErrors: errors };
 
-    const updated = await this.repository.reviewRequest.update(
-      params.reviewRequestId,
-      params.expectedUpdatedAt,
-      patch,
-    );
+    const updated = await this.repository.reviewRequest.update(params.reviewRequestId, patch);
     if (updated.status !== "applied") {
-      return updated.status === "conflict"
-        ? { userErrors: [conflictError("Review request", "expectedUpdatedAt")] }
-        : { userErrors: [notFoundError("Review request", "reviewRequestId")] };
+      return { userErrors: [notFoundError("Review request", "reviewRequestId")] };
     }
 
     if (eventType) {

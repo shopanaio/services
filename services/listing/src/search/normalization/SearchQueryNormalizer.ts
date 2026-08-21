@@ -77,7 +77,7 @@ export class SearchQueryNormalizer {
           input.storeId,
           profile.metadata.locale,
           profile.metadata.contractVersion,
-          profile.metadata.profileRevision,
+          profile.metadata.profileHash,
           lookupKey,
         ]),
       );
@@ -108,7 +108,7 @@ export class SearchQueryNormalizer {
         identifierForm,
         wholeQueryPrimaryText: lexical.preparedText,
         normalizationContractVersion: profile.metadata.contractVersion,
-        profileRevision: profile.metadata.profileRevision,
+        profileHash: profile.metadata.profileHash,
         outputHash,
       });
 
@@ -176,7 +176,7 @@ export class SearchQueryNormalizer {
             input.field,
             input.elementId,
             profile.metadata.contractVersion,
-            profile.metadata.profileRevision,
+            profile.metadata.profileHash,
             lexical.preparedText,
             ...lexical.surfaceTerms,
           ]),
@@ -190,7 +190,7 @@ export class SearchQueryNormalizer {
           surfaceTerms: freezeArray(lexical.surfaceTerms),
           tokens: freezeArray(lexical.tokens),
           normalizationContractVersion: profile.metadata.contractVersion,
-          normalizationProfileRevision: profile.metadata.profileRevision,
+          normalizationProfileHash: profile.metadata.profileHash,
           outputHash,
         });
       });
@@ -229,7 +229,7 @@ export class SearchQueryNormalizer {
     return Object.freeze({
       normalizedValue,
       normalizationContractVersion: profile.metadata.contractVersion,
-      normalizationProfileRevision: profile.metadata.profileRevision,
+      normalizationProfileHash: profile.metadata.profileHash,
     });
   }
 
@@ -251,7 +251,7 @@ export class SearchQueryNormalizer {
         result.lexicalizedQuery.originalUnits.flatMap((unit) => unit.ftsLexemes),
       ),
       normalizationContractVersion: result.lexicalizedQuery.normalizationContractVersion,
-      normalizationProfileRevision: result.lexicalizedQuery.profileRevision,
+      normalizationProfileHash: result.lexicalizedQuery.profileHash,
       outputHash: result.lexicalizedQuery.outputHash,
     });
   }

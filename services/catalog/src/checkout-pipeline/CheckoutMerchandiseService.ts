@@ -1,7 +1,6 @@
 import type { Catalog } from "@shopana/broker-types";
 import type { ContextStore } from "@shopana/shared-context";
 import { aggregateResolvedDemand, buildCheckoutAvailability } from "./availability.js";
-import { contentRevision } from "./canonicalJson.js";
 import {
   validateComponentSelections,
   type SelectedComponentItem,
@@ -44,8 +43,6 @@ export class CheckoutMerchandiseService {
     if (flat.length === 0) {
       return {
         ok: true,
-        merchandiseRevision: contentRevision("catalog-merchandise", []),
-        availabilityRevision: contentRevision("catalog-availability", []),
         lines: [],
       };
     }
@@ -87,28 +84,6 @@ export class CheckoutMerchandiseService {
 
     return {
       ok: true,
-      merchandiseRevision: contentRevision(
-        "catalog-merchandise",
-        lines.map((row) =>
-          row.status === "RESOLVED"
-            ? {
-                status: row.status,
-                lineId: row.line.lineId,
-                revision: row.line.revision,
-                price: row.line.price,
-                component: row.line.componentSelection,
-              }
-            : row,
-        ),
-      ),
-      availabilityRevision: contentRevision(
-        "catalog-availability",
-        lines.map((row) =>
-          row.status === "RESOLVED"
-            ? { lineId: row.line.lineId, availability: row.line.availability }
-            : { lineId: row.lineId, status: row.status },
-        ),
-      ),
       lines,
     };
   }
@@ -240,16 +215,6 @@ function buildResolvedLine(
     productId: row.variant.productId,
     quantity: source.input.quantity,
     purchase: source.input.purchase,
-    revision: contentRevision("catalog-merchandise", {
-      variant: row.variant,
-      product: row.product,
-      titles: row.titles,
-      targeting: row.targeting,
-      media: row.firstMediaId,
-      inventoryPhysical: row.inventory?.requiresShipping ?? false,
-      configuration,
-      selected,
-    }),
     title,
     sku: row.variant.sku ?? row.inventory?.sku ?? null,
     imageUrl: null,
@@ -268,14 +233,12 @@ function buildResolvedLine(
         price.compareAtMinor === null
           ? null
           : { amountMinor: String(price.compareAtMinor), currencyCode },
-      revision: contentRevision("catalog-merchandise", price),
     },
     availability: buildCheckoutAvailability(row, aggregateDemand),
     targeting: row.targeting,
     componentConfiguration: configuration
       ? {
           configurationId: configuration.id,
-          revision: contentRevision("catalog-component", configuration),
         }
       : null,
     componentSelection:
@@ -284,7 +247,6 @@ function buildResolvedLine(
             configurationId: configuration.id,
             groupId: selected.groupId,
             componentItemId: selected.id,
-            revision: contentRevision("catalog-component", selected),
             priceRule: selected.rule,
           }
         : null,

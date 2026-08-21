@@ -271,8 +271,6 @@ export type CollectionUpdatedReason =
 export interface CollectionChangedPayload {
   storeId: string;
   collectionId: string;
-  revision: number;
-  listingRevision: number;
   reasons: CollectionUpdatedReason[];
 }
 

@@ -33,7 +33,7 @@ export const productSearchText = listingSchema.table(
     normalizationContractVersion: varchar("normalization_contract_version", {
       length: 32,
     }).notNull(),
-    normalizationProfileRevision: varchar("normalization_profile_revision", {
+    normalizationProfileHash: varchar("normalization_profile_hash", {
       length: 64,
     }).notNull(),
     searchVector: tsvector("search_vector").generatedAlwaysAs(
@@ -67,14 +67,14 @@ export const productSearchText = listingSchema.table(
     ),
     check(
       "chk_product_search_text_contract",
-      sql`${table.normalizationContractVersion} <> '' AND ${table.normalizationProfileRevision} <> ''`,
+      sql`${table.normalizationContractVersion} <> '' AND ${table.normalizationProfileHash} <> ''`,
     ),
     index("product_search_text_store_vector_gin").using("gin", table.storeId, table.searchVector),
     index("product_search_text_scope_idx").on(
       table.storeId,
       table.locale,
       table.normalizationContractVersion,
-      table.normalizationProfileRevision,
+      table.normalizationProfileHash,
       table.field,
     ),
     index("product_search_text_product_doc_idx").on(
@@ -266,7 +266,7 @@ export const searchSynonymValue = listingSchema.table(
     normalizationContractVersion: varchar("normalization_contract_version", {
       length: 32,
     }).notNull(),
-    normalizationProfileRevision: varchar("normalization_profile_revision", {
+    normalizationProfileHash: varchar("normalization_profile_hash", {
       length: 64,
     }).notNull(),
   },
@@ -293,7 +293,7 @@ export const searchSynonymValue = listingSchema.table(
     ),
     check(
       "chk_search_synonym_value_contract",
-      sql`${table.normalizationContractVersion} <> '' AND ${table.normalizationProfileRevision} <> ''`,
+      sql`${table.normalizationContractVersion} <> '' AND ${table.normalizationProfileHash} <> ''`,
     ),
   ],
 );
@@ -376,7 +376,7 @@ export const searchProductBoostPhrase = listingSchema.table(
     normalizationContractVersion: varchar("normalization_contract_version", {
       length: 32,
     }).notNull(),
-    normalizationProfileRevision: varchar("normalization_profile_revision", {
+    normalizationProfileHash: varchar("normalization_profile_hash", {
       length: 64,
     }).notNull(),
   },
@@ -407,7 +407,7 @@ export const searchProductBoostPhrase = listingSchema.table(
     ),
     check(
       "chk_search_product_boost_phrase_contract",
-      sql`${table.normalizationContractVersion} <> '' AND ${table.normalizationProfileRevision} <> ''`,
+      sql`${table.normalizationContractVersion} <> '' AND ${table.normalizationProfileHash} <> ''`,
     ),
     index("search_product_boost_phrase_lookup_idx").on(
       table.storeId,

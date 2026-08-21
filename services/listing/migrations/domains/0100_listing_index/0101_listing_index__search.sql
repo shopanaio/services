@@ -11,7 +11,7 @@ CREATE TABLE listing.product_search_text (
   element_id uuid NOT NULL,
   prepared_text text NOT NULL,
   normalization_contract_version varchar(32) NOT NULL,
-  normalization_profile_revision varchar(64) NOT NULL,
+  normalization_profile_hash varchar(64) NOT NULL,
   search_vector tsvector GENERATED ALWAYS AS (
     to_tsvector('pg_catalog.simple'::regconfig, prepared_text)
   ) STORED,
@@ -34,7 +34,7 @@ CREATE TABLE listing.product_search_text (
   CONSTRAINT chk_product_search_text_prepared_text
     CHECK (prepared_text <> '' AND char_length(prepared_text) <= 8192),
   CONSTRAINT chk_product_search_text_contract
-    CHECK (normalization_contract_version <> '' AND normalization_profile_revision <> '')
+    CHECK (normalization_contract_version <> '' AND normalization_profile_hash <> '')
 );
 
 CREATE INDEX product_search_text_store_vector_gin
@@ -45,7 +45,7 @@ CREATE INDEX product_search_text_scope_idx
     store_id,
     locale,
     normalization_contract_version,
-    normalization_profile_revision,
+    normalization_profile_hash,
     field
   );
 
@@ -172,7 +172,7 @@ CREATE TABLE listing.search_synonym_value (
   normalized_value text NOT NULL,
   prepared_text text NOT NULL,
   normalization_contract_version varchar(32) NOT NULL,
-  normalization_profile_revision varchar(64) NOT NULL,
+  normalization_profile_hash varchar(64) NOT NULL,
 
   PRIMARY KEY (value_id),
   CONSTRAINT search_synonym_value_position_unique UNIQUE (store_id, group_id, position),
@@ -197,7 +197,7 @@ CREATE TABLE listing.search_synonym_value (
       AND char_length(prepared_text) <= 512
     ),
   CONSTRAINT chk_search_synonym_value_contract
-    CHECK (normalization_contract_version <> '' AND normalization_profile_revision <> '')
+    CHECK (normalization_contract_version <> '' AND normalization_profile_hash <> '')
 );
 
 CREATE INDEX search_synonym_group_enabled_locale_idx
@@ -253,7 +253,7 @@ CREATE TABLE listing.search_product_boost_phrase (
   display_phrase text NOT NULL,
   normalized_phrase text NOT NULL,
   normalization_contract_version varchar(32) NOT NULL,
-  normalization_profile_revision varchar(64) NOT NULL,
+  normalization_profile_hash varchar(64) NOT NULL,
 
   PRIMARY KEY (phrase_id),
   CONSTRAINT search_product_boost_phrase_position_unique UNIQUE (store_id, boost_id, position),
@@ -276,7 +276,7 @@ CREATE TABLE listing.search_product_boost_phrase (
       AND char_length(normalized_phrase) <= 128
     ),
   CONSTRAINT chk_search_product_boost_phrase_contract
-    CHECK (normalization_contract_version <> '' AND normalization_profile_revision <> '')
+    CHECK (normalization_contract_version <> '' AND normalization_profile_hash <> '')
 );
 
 CREATE INDEX search_product_boost_enabled_locale_idx

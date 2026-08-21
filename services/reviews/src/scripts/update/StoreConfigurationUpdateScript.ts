@@ -78,9 +78,7 @@ export class StoreConfigurationUpdateScript extends BaseScript<
     if (updated.status === "applied") {
       return { configuration: updated.value, userErrors: [] };
     }
-    return updated.status === "conflict"
-      ? { userErrors: [conflictError("Configuration", "expectedRevision")] }
-      : { userErrors: [notFoundError("Configuration", "configurationId")] };
+    return { userErrors: [notFoundError("Configuration", "configurationId")] };
   }
 
   protected handleError(): StoreConfigurationUpdateResult {
@@ -98,14 +96,6 @@ function nullError(field: string): UserError {
 
 export function notFoundError(entity: string, field: string): UserError {
   return { message: `${entity} not found`, code: "NOT_FOUND", field: [field] };
-}
-
-export function conflictError(entity: string, field: string): UserError {
-  return {
-    message: `${entity} was modified by another user`,
-    code: "VERSION_CONFLICT",
-    field: [field],
-  };
 }
 
 export function internalError(): UserError {

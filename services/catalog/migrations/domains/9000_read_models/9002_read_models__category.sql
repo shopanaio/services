@@ -14,7 +14,6 @@ SELECT
   category.created_at,
   category.updated_at,
   category.deleted_at,
-  category.revision,
   category.products_count,
   category_translation.locale,
   category_translation.name

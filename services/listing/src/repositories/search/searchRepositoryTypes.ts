@@ -21,7 +21,7 @@ export interface SearchTextElementInput {
   elementId: string;
   preparedText: string;
   normalizationContractVersion: string;
-  normalizationProfileRevision: string;
+  normalizationProfileHash: string;
 }
 
 export interface SearchIdentifierInput {
@@ -50,7 +50,7 @@ export interface SearchSynonymValueInput {
   normalizedValue: string;
   preparedText: string;
   normalizationContractVersion: string;
-  normalizationProfileRevision: string;
+  normalizationProfileHash: string;
 }
 
 export interface SearchSynonymGroupAggregate {
@@ -62,7 +62,7 @@ export interface SearchProductBoostPhraseInput {
   displayPhrase: string;
   normalizedPhrase: string;
   normalizationContractVersion: string;
-  normalizationProfileRevision: string;
+  normalizationProfileHash: string;
 }
 
 export interface SearchProductBoostAggregate {

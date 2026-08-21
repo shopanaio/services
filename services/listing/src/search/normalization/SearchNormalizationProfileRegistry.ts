@@ -85,14 +85,14 @@ function buildMetadata(locale: SearchLocale): SearchNormalizationProfileMetadata
     "apostrophe:ascii",
     "dash:ascii",
   ];
-  const profileRevision = createHash("sha256")
+  const profileHash = createHash("sha256")
     .update(lengthPrefixedTuple(revisionPayload))
     .digest("hex");
 
   return Object.freeze({
     locale,
     contractVersion: SEARCH_NORMALIZATION_CONTRACT_VERSION,
-    profileRevision,
+    profileHash,
     nodeVersion,
     icuVersion,
     unicodeVersion,

@@ -26,9 +26,6 @@ export class ComparisonProfileResolver extends CatalogType<string, LocalizedComp
   enabled() {
     return this.$get("enabled");
   }
-  revision() {
-    return this.$get("revision");
-  }
   name() {
     return this.$get("name");
   }

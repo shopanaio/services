@@ -18,7 +18,6 @@ export function mapCatalogProductToListingSnapshot(input: {
   return {
     entityType: "product",
     id: product.id,
-    productRevision: product.revision,
     sourceUpdatedAt: product.updatedAt,
     status: product.status === "published" ? "published" : "draft",
     publishedAt: product.publishedAt,

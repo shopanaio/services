@@ -126,13 +126,8 @@ export class CommerceFunctionRunner {
 }
 
 function assertRequest<TInput>(request: CommerceFunctionRunRequest<TInput>): void {
-  if (
-    !request.storeId.trim() ||
-    !request.target.trim() ||
-    !request.bindingSetRevision.trim() ||
-    !request.executionId.trim()
-  ) {
-    throw new Error("storeId, target, bindingSetRevision and executionId are required");
+  if (!request.storeId.trim() || !request.target.trim() || !request.executionId.trim()) {
+    throw new Error("storeId, target and executionId are required");
   }
 }
 

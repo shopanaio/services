@@ -57,8 +57,6 @@ function requirement(
     discountId: "discount-1",
     codeId: null,
     customerId: "customer-1",
-    configurationRevision: "3",
-    usageCounterRevision: "counter-4",
     reservationRequired,
   };
 }

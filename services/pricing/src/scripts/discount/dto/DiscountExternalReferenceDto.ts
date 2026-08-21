@@ -16,7 +16,6 @@ export interface DiscountExternalReferenceCreateResult {
 
 export interface DiscountExternalReferenceUpdateParams {
   readonly externalReferenceId: string;
-  readonly expectedUpdatedAt: string;
   readonly operations: DiscountExternalReferenceUpdateInput;
 }
 
@@ -27,7 +26,6 @@ export interface DiscountExternalReferenceUpdateResult {
 
 export interface DiscountExternalReferenceDeleteParams {
   readonly id: string;
-  readonly expectedUpdatedAt: string;
   readonly permanent: boolean;
 }
 

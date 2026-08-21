@@ -24,10 +24,6 @@ export class CollectionResolver extends CatalogType<string, Collection> {
     return this.$get("handle");
   }
 
-  listingRevision() {
-    return this.$get("listingRevision");
-  }
-
   async type() {
     return (await this.$get("type")).toUpperCase();
   }

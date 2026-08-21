@@ -50,7 +50,6 @@ export const SEARCH_MEMBERSHIP_BITMAP_MAX_SERIALIZED_BYTES = 64 * 1024 * 1024;
 export type SearchExecutionMode = "PRIMARY" | "FUZZY";
 
 export interface SearchRequestSettings {
-  readonly version: number;
   readonly enabledFields: readonly SearchTextField[];
   readonly fieldWeights: Readonly<Partial<Record<SearchTextField, number>>>;
   readonly typoToleranceEnabled: boolean;
@@ -59,7 +58,6 @@ export interface SearchRequestSettings {
 
 export interface ApplicableProductBoost {
   readonly boostId: string;
-  readonly version: number;
   readonly productIds: readonly string[];
 }
 
@@ -325,7 +323,7 @@ export class SearchExecutionService {
       if (
         normalized.lexicalizedQuery.normalizationContractVersion !==
           request.lexicalizedQuery.normalizationContractVersion ||
-        normalized.lexicalizedQuery.profileRevision !== request.lexicalizedQuery.profileRevision
+        normalized.lexicalizedQuery.profileHash !== request.lexicalizedQuery.profileHash
       ) {
         throw indexUnavailable("Typo alternative normalization profile mismatch");
       }
@@ -383,14 +381,14 @@ export class SearchExecutionService {
         storeId,
         locale: normalized.profile.locale,
         normalizationContractVersion: profile.normalizationContractVersion,
-        normalizationProfileRevision: profile.profileRevision,
+        normalizationProfileHash: profile.profileHash,
       }),
       this.dependencies.configuration.loadApplicableBoosts({
         storeId,
         locale: normalized.profile.locale,
         normalizedPhrase: normalized.normalizedQuery.lookupKey,
         normalizationContractVersion: profile.normalizationContractVersion,
-        normalizationProfileRevision: profile.profileRevision,
+        normalizationProfileHash: profile.profileHash,
       }),
     ]);
 
@@ -401,7 +399,6 @@ export class SearchExecutionService {
         boostRows.map((boost) =>
           Object.freeze({
             boostId: boost.boostId,
-            version: boost.version,
             productIds: boost.productIds,
           }),
         ),
@@ -538,7 +535,7 @@ function compilerContext(request: SearchRequestContext): PostgresFtsCompilerCont
     storeId: request.storeId,
     locale: request.locale,
     normalizationContractVersion: request.lexicalizedQuery.normalizationContractVersion,
-    normalizationProfileRevision: request.lexicalizedQuery.profileRevision,
+    normalizationProfileHash: request.lexicalizedQuery.profileHash,
     fieldWeights: request.configuration.settings.fieldWeights,
   });
 }
@@ -579,7 +576,6 @@ function normalizeSettings(
     throw configurationUnavailable("Search settings out-of-stock policy is invalid");
   }
   return Object.freeze({
-    version: row.version,
     enabledFields,
     fieldWeights: Object.freeze(fieldWeights),
     typoToleranceEnabled: row.typoToleranceEnabled,

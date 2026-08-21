@@ -22,16 +22,13 @@ export interface PricingDiscountFunctionBinding {
   storeId: string;
   discountId: string;
   target: PricingDiscountFunctionTarget;
-  contractVersion: 1;
   installationId: string;
   functionKey: string;
   precedence: number;
   activationSequence: number;
   status: PricingDiscountFunctionBindingStatus;
   failureMode: PricingDiscountFunctionFailureMode;
-  configurationRevision: string;
   configurationSnapshot: Pricing.PricingCheckoutJsonValue;
-  routeRevision: string;
 }
 
 export type PricingDiscountCalculationStrategy =
@@ -52,12 +49,7 @@ export interface PricingDiscountFunctionBindingPort {
       target: PricingDiscountFunctionTarget;
       discountIds: readonly string[];
     }>,
-  ): Promise<
-    Readonly<{
-      bindingSetRevision: string;
-      bindings: readonly PricingDiscountFunctionBinding[];
-    }>
-  >;
+  ): Promise<Readonly<{ bindings: readonly PricingDiscountFunctionBinding[] }>>;
 }
 
 export interface PricingDiscountOwnerResolutionPort {
@@ -71,7 +63,6 @@ export interface PricingDiscountOwnerResolutionPort {
 }
 
 const identifierSchema = z.string().trim().min(1).max(256);
-const revisionSchema = z.string().trim().min(1).max(256);
 const currencyCodeSchema = z.enum(CURRENCY_CODES as [string, ...string[]]);
 const localeCodeSchema = z.enum(LOCALE_CODES as [string, ...string[]]);
 const moneySchema = z
@@ -100,29 +91,17 @@ export const pricingDiscountFunctionContextSchema = z
         marketId: identifierSchema.nullable(),
         companyId: identifierSchema.nullable(),
         segmentIds: identifiersSchema,
-        segmentMembershipRevision: revisionSchema.nullable(),
       })
       .strict()
       .nullable(),
   })
   .strict()
   .superRefine(({ buyer }, context) => {
-    if (
-      buyer !== null &&
-      buyer.customerId === null &&
-      (buyer.segmentIds.length > 0 || buyer.segmentMembershipRevision !== null)
-    ) {
+    if (buyer !== null && buyer.customerId === null && buyer.segmentIds.length > 0) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
         path: ["buyer", "segmentIds"],
         message: "Guest buyer cannot have customer segment membership",
-      });
-    }
-    if (buyer !== null && buyer.customerId !== null && buyer.segmentMembershipRevision === null) {
-      context.addIssue({
-        code: z.ZodIssueCode.custom,
-        path: ["buyer", "segmentMembershipRevision"],
-        message: "Customer buyer requires a segment membership revision",
       });
     }
   });
@@ -167,7 +146,6 @@ export const pricingDiscountFunctionLineSchema = z
 /** Canonical common input supplied to every active line discount binding. */
 export const pricingLineDiscountFunctionInputSchema = z
   .object({
-    schemaVersion: z.literal(1),
     context: pricingDiscountFunctionContextSchema,
     lines: z.array(pricingDiscountFunctionLineSchema).max(250),
     discountCodes: z.array(z.string().trim().min(1).max(256)).max(500),
@@ -217,14 +195,12 @@ export const pricingLineDiscountCandidateSchema = z.discriminatedUnion("discount
 
 export const pricingLineDiscountFunctionOutputSchema = z
   .object({
-    schemaVersion: z.literal(1),
     candidates: z.array(pricingLineDiscountCandidateSchema).max(500),
   })
   .strict();
 
 export const pricingDeliveryDiscountFunctionInputSchema = z
   .object({
-    schemaVersion: z.literal(1),
     context: pricingDiscountFunctionContextSchema,
     merchandiseTotal: moneySchema,
     groups: z
@@ -263,7 +239,6 @@ export const pricingDeliveryDiscountCandidateSchema = z
 
 export const pricingDeliveryDiscountFunctionOutputSchema = z
   .object({
-    schemaVersion: z.literal(1),
     candidates: z.array(pricingDeliveryDiscountCandidateSchema).max(500),
   })
   .strict();
@@ -313,7 +288,6 @@ export interface PricingDiscountApplicatorPort {
 
 export interface PricingResolvedDiscountOwnerSnapshot {
   discountId: string;
-  configurationRevision: string;
   discountClass: Pricing.PricingCheckoutDiscountClass;
   method: Pricing.PricingCheckoutDiscountMethod;
   code: Pricing.PricingCheckoutDiscountCodeReference | null;
@@ -321,14 +295,12 @@ export interface PricingResolvedDiscountOwnerSnapshot {
   priority: number;
   calculationStrategy: PricingDiscountCalculationStrategy;
   combinesWith: readonly Pricing.PricingCheckoutDiscountClass[];
-  combinationRevision: string;
   usage: Readonly<{
     aggregateLimit: string | null;
     codeLimit: string | null;
     appliesOncePerCustomer: boolean;
     consumedAggregate: string;
     consumedCode: string | null;
-    revision: string;
   }>;
 }
 
@@ -337,7 +309,6 @@ export interface PricingFunctionCandidateProvenance {
   functionBindingId: string | null;
   functionTarget: PricingDiscountFunctionTarget;
   executionId: string;
-  planRevision: string;
 }
 
 export interface PricingLineDiscountCandidateEnvelope {
@@ -353,7 +324,6 @@ export interface PricingDeliveryDiscountCandidateEnvelope {
 }
 
 export interface PricingLineDiscountApplicationResult {
-  discountEvaluationRevision: string;
   appliedDiscounts: readonly Pricing.PricingCheckoutDiscountApplication[];
   lineAllocations: Readonly<
     Record<string, readonly Pricing.PricingCheckoutLineDiscountAllocation[]>
@@ -363,7 +333,6 @@ export interface PricingLineDiscountApplicationResult {
 }
 
 export interface PricingDeliveryDiscountApplicationResult {
-  discountEvaluationRevision: string;
   appliedDiscounts: readonly Pricing.PricingCheckoutDiscountApplication[];
   codeResolutions: readonly Pricing.PricingCheckoutDiscountCodeResolution[];
   usageRequirements: readonly Pricing.PricingCheckoutDiscountUsageRequirement[];

@@ -8,7 +8,7 @@ import {
   ServiceBroker,
   DBOS,
 } from "@shopana/shared-kernel";
-import { and, eq, isNull, sql } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
 import type { RunScriptContext } from "../kernel/types.js";
 import { category, productCategory } from "../repositories/models/index.js";
@@ -57,19 +57,24 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(input: CategoryUpdateWorkflowInput): Promise<CategoryUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(input.categoryId, input.context.storeId);
-
-    if ("error" in acquired) {
+    const categoryExists = await this.stepCategoryExists(input.categoryId, input.context.storeId);
+    if (!categoryExists) {
       return {
         category: null,
         operationResults: [],
-        userErrors: [acquired.error],
+        userErrors: [
+          {
+            message: "Category not found",
+            code: "NOT_FOUND",
+            field: ["categoryId"],
+          },
+        ],
       };
     }
 
     if (!hasRequestedSections(input.operations)) {
       return {
-        category: { id: input.categoryId, revision: acquired.revision },
+        category: { id: input.categoryId },
         operationResults: [],
         userErrors: [],
       };
@@ -94,42 +99,22 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      category: { id: input.categoryId, revision: acquired.revision },
+      category: { id: input.categoryId },
       operationResults: [result],
       userErrors: result.errors,
     };
   }
 
   @WorkflowStep()
-  private async stepAcquireRevision(
-    categoryId: string,
-    storeId: string,
-  ): Promise<{ revision: number } | { error: UserError }> {
-    const conditions = [
-      eq(category.storeId, storeId),
-      eq(category.id, categoryId),
-      isNull(category.deletedAt),
-    ];
+  private async stepCategoryExists(categoryId: string, storeId: string): Promise<boolean> {
     const rows = await this.kernel.db
-      .update(category)
-      .set({
-        revision: sql`${category.revision} + 1`,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(...conditions))
-      .returning({ id: category.id, revision: category.revision });
-
-    if (rows[0]) {
-      return { revision: rows[0].revision };
-    }
-
-    return {
-      error: {
-        message: "Category not found",
-        code: "NOT_FOUND",
-        field: ["categoryId"],
-      },
-    };
+      .select({ id: category.id })
+      .from(category)
+      .where(
+        and(eq(category.storeId, storeId), eq(category.id, categoryId), isNull(category.deletedAt)),
+      )
+      .limit(1);
+    return rows.length > 0;
   }
 
   @WorkflowStep()

@@ -1,11 +1,6 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { ContentReportPatch } from "../../repositories/engagement/EngagementRepository.js";
-import {
-  conflictError,
-  hasOwn,
-  internalError,
-  notFoundError,
-} from "./StoreConfigurationUpdateScript.js";
+import { hasOwn, internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
 import type { ContentReportUpdateParams, ContentReportUpdateResult } from "./types.js";
 
 export class ContentReportUpdateScript extends BaseScript<
@@ -52,11 +47,7 @@ export class ContentReportUpdateScript extends BaseScript<
     }
     if (errors.length > 0) return { userErrors: errors };
 
-    const updated = await this.repository.engagement.updateReport(
-      params.contentReportId,
-      params.expectedUpdatedAt,
-      patch,
-    );
+    const updated = await this.repository.engagement.updateReport(params.contentReportId, patch);
     if (updated.status === "applied") {
       return {
         contentReport: {
@@ -66,9 +57,7 @@ export class ContentReportUpdateScript extends BaseScript<
         userErrors: [],
       };
     }
-    return updated.status === "conflict"
-      ? { userErrors: [conflictError("Content report", "expectedUpdatedAt")] }
-      : { userErrors: [notFoundError("Content report", "contentReportId")] };
+    return { userErrors: [notFoundError("Content report", "contentReportId")] };
   }
 
   protected handleError(): ContentReportUpdateResult {

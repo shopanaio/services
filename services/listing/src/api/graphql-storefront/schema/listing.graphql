@@ -66,7 +66,6 @@ extend type Category @key(fields: "id") {
 
 extend type Collection @key(fields: "id") {
   id: ID! @external
-  listingRevision: Int! @external
 
   products(
     first: Int = 20
@@ -74,7 +73,7 @@ extend type Collection @key(fields: "id") {
     query: String
     filters: [ListingFilterInput!]
     sort: ListingSort
-  ): ProductConnection! @requires(fields: "listingRevision")
+  ): ProductConnection!
 }
 
 # ---- Listing entry points ------------------------------------------------------

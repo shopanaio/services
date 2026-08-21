@@ -158,8 +158,6 @@ export class StorefrontListingQueryRepository extends BaseRepository {
           scopeKind: request.input.scope.kind,
           collectionId:
             request.input.scope.kind === "collection" ? request.input.scope.collectionId : null,
-          collectionListingRevision:
-            request.input.scope.kind === "collection" ? request.input.scope.listingRevision : null,
           normalizedQueryHash: request.normalizedQuery
             ? buildListingFilterHash({
                 storeId: this.storeId,

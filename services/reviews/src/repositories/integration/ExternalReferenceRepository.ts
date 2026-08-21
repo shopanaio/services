@@ -11,7 +11,7 @@ import {
   type ContentExternalReference,
   type NewContentExternalReference,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const contentExternalReferenceRelayQuery = createRelayQuery(
   createQuery(contentExternalReference)
@@ -142,9 +142,8 @@ export class ExternalReferenceRepository extends BaseRepository {
   @Transactional()
   async update(
     id: string,
-    expectedUpdatedAt: string,
     patch: ContentExternalReferencePatch,
-  ): Promise<OptimisticMutationResult<ContentExternalReference>> {
+  ): Promise<MutationResult<ContentExternalReference>> {
     const rows = await this.connection
       .update(contentExternalReference)
       .set({ ...patch, updatedAt: new Date().toISOString() })
@@ -152,25 +151,22 @@ export class ExternalReferenceRepository extends BaseRepository {
         and(
           eq(contentExternalReference.storeId, this.storeId),
           eq(contentExternalReference.id, id),
-          eq(contentExternalReference.updatedAt, expectedUpdatedAt),
           isNull(contentExternalReference.deletedAt),
         ),
       )
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.optimisticMiss(id);
+    return { status: "not_found" };
   }
 
   @Transactional()
   async delete(input: {
     id: string;
-    expectedUpdatedAt: string;
     permanent?: boolean;
-  }): Promise<OptimisticMutationResult<ContentExternalReference>> {
+  }): Promise<MutationResult<ContentExternalReference>> {
     const conditions = and(
       eq(contentExternalReference.storeId, this.storeId),
       eq(contentExternalReference.id, input.id),
-      eq(contentExternalReference.updatedAt, input.expectedUpdatedAt),
       isNull(contentExternalReference.deletedAt),
     );
     const rows = input.permanent
@@ -184,13 +180,6 @@ export class ExternalReferenceRepository extends BaseRepository {
           .where(conditions)
           .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    return this.optimisticMiss(input.id);
-  }
-
-  private async optimisticMiss(
-    id: string,
-  ): Promise<OptimisticMutationResult<ContentExternalReference>> {
-    const current = await this.findById(id, true);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 }

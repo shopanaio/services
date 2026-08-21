@@ -109,7 +109,7 @@ export interface ReviewUpdateOperationResult {
 }
 
 export interface ReviewUpdateWorkflowResult {
-  review: { id: string; revision: number } | null;
+  review: { id: string } | null;
   operationResults: ReviewUpdateOperationResult[];
   userErrors: UserError[];
 }

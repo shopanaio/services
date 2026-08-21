@@ -235,7 +235,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     });
     if (result.status === "error") return { review: null, userErrors: result.userErrors };
     if (result.status !== "applied")
-      return { review: null, userErrors: [optimisticError(result.status, "reviewId")] };
+      return { review: null, userErrors: [contentNotFoundError("reviewId")] };
     this.clearContent(id);
     this.$ctx.loaders.contentMetrics.clear(id);
     return { review: await this.resolvers.review(id), userErrors: [] };
@@ -318,7 +318,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
     if (result.status !== "applied")
       return {
         productQuestion: null,
-        userErrors: [optimisticError(result.status, "productQuestionId")],
+        userErrors: [contentNotFoundError("productQuestionId")],
       };
     const question = await this.$ctx.kernel.repository.productQuestion.findById(id);
     if (question)
@@ -421,7 +421,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
       return {
         productQuestion: null,
         answer: null,
-        userErrors: [optimisticError(created.status, "expectedRevision")],
+        userErrors: [contentNotFoundError("productQuestionId")],
       };
     this.clearContent(questionId);
     this.$ctx.loaders.contentMetrics.clear(questionId);
@@ -446,7 +446,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
       editPatch(args.input.content),
     );
     if (result.status !== "applied")
-      return { answer: null, userErrors: [optimisticError(result.status, "answerId")] };
+      return { answer: null, userErrors: [contentNotFoundError("answerId")] };
     const answer = await this.$ctx.kernel.repository.productQuestionAnswer.findById(id);
     if (answer) {
       const question = await this.$ctx.kernel.repository.productQuestion.findById(
@@ -476,7 +476,7 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
       permanent: false,
     });
     if (result.status !== "applied")
-      return { deletedAnswerId: null, userErrors: [optimisticError(result.status, "id")] };
+      return { deletedAnswerId: null, userErrors: [contentNotFoundError("id")] };
     if (answer) {
       const question = await this.$ctx.kernel.repository.productQuestion.findById(
         answer.answer.questionId,
@@ -512,21 +512,16 @@ export class MutationResolver extends ReviewsType<Record<string, never>> {
       channel,
     );
     if (current) {
-      const result = await this.$ctx.kernel.repository.questionSubscription.update(
-        current.id,
-        current.updatedAt,
-        {
-          status: args.input.subscribed ? "ACTIVE" : "UNSUBSCRIBED",
-          locale: args.input.locale ?? this.$ctx.locale ?? this.$ctx.store.defaultLocale,
-        },
-      );
+      const result = await this.$ctx.kernel.repository.questionSubscription.update(current.id, {
+        status: args.input.subscribed ? "ACTIVE" : "UNSUBSCRIBED",
+        locale: args.input.locale ?? this.$ctx.locale ?? this.$ctx.store.defaultLocale,
+      });
       return {
         subscription:
           result.status === "applied"
             ? await this.resolvers.questionSubscription(current.id)
             : null,
-        userErrors:
-          result.status === "applied" ? [] : [optimisticError(result.status, "productQuestionId")],
+        userErrors: result.status === "applied" ? [] : [contentNotFoundError("productQuestionId")],
       };
     }
     const created = await this.$ctx.kernel.repository.questionSubscription.create({
@@ -904,13 +899,8 @@ function error(message: string, code: string, field?: string[]): UserError {
 function authenticationError() {
   return error("Authentication is required", "UNAUTHENTICATED", ["input"]);
 }
-function optimisticError(status: "conflict" | "not_found", field: string) {
-  return status === "conflict"
-    ? error("Content was modified by another request", "REVISION_CONFLICT", [
-        "input",
-        "expectedRevision",
-      ])
-    : error("Content not found", "NOT_FOUND", ["input", field]);
+function contentNotFoundError(field: string) {
+  return error("Content not found", "NOT_FOUND", ["input", field]);
 }
 function validateSubmissionBody(body: string, kind: ContentItem["kind"]) {
   const min = kind === "REVIEW" ? 20 : kind === "REVIEW_REPLY" ? 1 : 10;

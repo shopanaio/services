@@ -26,7 +26,7 @@ export class ResolverRegistry {
     return new CategoryResolver(id, this.ctx);
   }
 
-  async collection(input: { id: string; listingRevision: number }) {
+  async collection(input: { id: string }) {
     const { CollectionResolver } = await import("./CollectionResolver.js");
     return new CollectionResolver(input, this.ctx);
   }

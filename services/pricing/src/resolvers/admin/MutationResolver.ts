@@ -163,7 +163,6 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     const workflowInput: DiscountExternalReferenceUpdateWorkflowInput = {
       params: {
         externalReferenceId,
-        expectedUpdatedAt: args.expectedUpdatedAt,
         operations: args.operations,
       },
       context: this.mutationWorkflowContext(),
@@ -205,7 +204,6 @@ export class PricingMutationResolver extends PricingType<Record<string, never>> 
     const workflowInput: DiscountExternalReferenceDeleteWorkflowInput = {
       params: {
         id: externalReferenceId,
-        expectedUpdatedAt: args.input.expectedUpdatedAt,
         permanent: args.input.permanent ?? false,
       },
       context: this.mutationWorkflowContext(),

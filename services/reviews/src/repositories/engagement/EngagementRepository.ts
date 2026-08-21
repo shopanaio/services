@@ -21,7 +21,7 @@ import {
   type NewContentReport,
   type NewContentVote,
 } from "../models/index.js";
-import type { OptimisticMutationResult, RepositoryConnectionResult } from "../types.js";
+import type { MutationResult, RepositoryConnectionResult } from "../types.js";
 
 export const contentReportRelayQuery = createRelayQuery(
   createQuery(contentReport)
@@ -229,23 +229,15 @@ export class EngagementRepository extends BaseRepository {
   @Transactional()
   async updateReport(
     id: string,
-    expectedUpdatedAt: string,
     patch: ContentReportPatch,
-  ): Promise<OptimisticMutationResult<ContentReport>> {
+  ): Promise<MutationResult<ContentReport>> {
     const rows = await this.connection
       .update(contentReport)
       .set({ ...patch, updatedAt: new Date().toISOString() })
-      .where(
-        and(
-          eq(contentReport.storeId, this.storeId),
-          eq(contentReport.id, id),
-          eq(contentReport.updatedAt, expectedUpdatedAt),
-        ),
-      )
+      .where(and(eq(contentReport.storeId, this.storeId), eq(contentReport.id, id)))
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
-    const current = await this.findReportById(id);
-    return current ? { status: "conflict", current } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @Transactional()

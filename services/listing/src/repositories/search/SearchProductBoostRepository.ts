@@ -187,7 +187,7 @@ export class SearchProductBoostRepository extends BaseRepository {
     locale: string;
     normalizedPhrase: string;
     normalizationContractVersion: string;
-    normalizationProfileRevision: string;
+    normalizationProfileHash: string;
   }): Promise<SearchProductBoostAggregate[]> {
     assertNonEmpty(input.locale, "locale");
     assertNonEmpty(input.normalizedPhrase, "normalizedPhrase");
@@ -204,10 +204,7 @@ export class SearchProductBoostRepository extends BaseRepository {
             searchProductBoostPhrase.normalizationContractVersion,
             input.normalizationContractVersion,
           ),
-          eq(
-            searchProductBoostPhrase.normalizationProfileRevision,
-            input.normalizationProfileRevision,
-          ),
+          eq(searchProductBoostPhrase.normalizationProfileHash, input.normalizationProfileHash),
         ),
       )
       .where(
@@ -450,10 +447,10 @@ export class SearchProductBoostRepository extends BaseRepository {
       assertNonEmpty(phrase.displayPhrase, "displayPhrase");
       assertNonEmpty(phrase.normalizedPhrase, "normalizedPhrase");
       assertNonEmpty(phrase.normalizationContractVersion, "normalizationContractVersion");
-      assertNonEmpty(phrase.normalizationProfileRevision, "normalizationProfileRevision");
+      assertNonEmpty(phrase.normalizationProfileHash, "normalizationProfileHash");
       if (
         phrase.normalizationContractVersion !== firstPhrase.normalizationContractVersion ||
-        phrase.normalizationProfileRevision !== firstPhrase.normalizationProfileRevision
+        phrase.normalizationProfileHash !== firstPhrase.normalizationProfileHash
       ) {
         throw new Error("All boost phrases must use one normalization profile");
       }

@@ -32,12 +32,12 @@ export class RatingCriterionUpdateWorkflow extends ReviewsMutationWorkflow {
   async run(
     input: RatingCriterionUpdateWorkflowInput,
   ): Promise<RatingCriterionUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireVersion(input.criterionId, input.expectedUpdatedAt);
-    if (acquired) {
+    const notFound = await this.stepCheckExists(input.criterionId);
+    if (notFound) {
       return {
         criterion: null,
         operationResults: [],
-        userErrors: [acquired],
+        userErrors: [notFound],
       };
     }
 
@@ -61,20 +61,8 @@ export class RatingCriterionUpdateWorkflow extends ReviewsMutationWorkflow {
   }
 
   @WorkflowStep()
-  private async stepAcquireVersion(criterionId: string, expectedUpdatedAt: string) {
-    const acquired = await this.kernel.repository.configuration.updateCriterion(
-      criterionId,
-      expectedUpdatedAt,
-      {},
-    );
-    if (acquired.status === "applied") return null;
-    if (acquired.status === "conflict") {
-      return {
-        message: "Rating criterion was modified by another user",
-        code: "VERSION_CONFLICT",
-        field: ["expectedUpdatedAt"],
-      };
-    }
+  private async stepCheckExists(criterionId: string) {
+    if (await this.kernel.repository.configuration.findCriterionById(criterionId)) return null;
     return {
       message: "Rating criterion not found",
       code: "NOT_FOUND",

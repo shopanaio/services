@@ -49,20 +49,6 @@ type ReviewModerationEvent implements Node @key(fields: "id") {
 }
 
 """
-Immutable aggregate snapshot used for audit and restore workflows.
-"""
-type ReviewContentRevision implements Node @key(fields: "id") {
-  id: ID!
-  content: ReviewContent!
-  revision: Int!
-  snapshot: JSON!
-  changedByType: String!
-  changedById: String
-  changeReason: String
-  createdAt: DateTime!
-}
-
-"""
 Immutable automated moderation evidence; it is not the moderation decision.
 """
 type ReviewModerationSignal implements Node @key(fields: "id") {
@@ -74,6 +60,20 @@ type ReviewModerationSignal implements Node @key(fields: "id") {
   verdict: ReviewModerationVerdict!
   modelVersion: String
   evidence: JSON!
+  createdAt: DateTime!
+}
+
+"""
+Immutable aggregate snapshot used for audit and restore workflows.
+"""
+type ReviewContentRevision implements Node @key(fields: "id") {
+  id: ID!
+  content: ReviewContent!
+  revision: Int!
+  snapshot: JSON!
+  changedByType: String!
+  changedById: String
+  changeReason: String
   createdAt: DateTime!
 }
 
@@ -110,6 +110,12 @@ type ReviewModerationEventEdge {
   cursor: String!
 }
 
+type ReviewModerationSignalConnection {
+  edges: [ReviewModerationSignalEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
 type ReviewContentRevisionConnection {
   edges: [ReviewContentRevisionEdge!]!
   pageInfo: PageInfo!
@@ -119,12 +125,6 @@ type ReviewContentRevisionConnection {
 type ReviewContentRevisionEdge {
   node: ReviewContentRevision!
   cursor: String!
-}
-
-type ReviewModerationSignalConnection {
-  edges: [ReviewModerationSignalEdge!]!
-  pageInfo: PageInfo!
-  totalCount: Int!
 }
 
 type ReviewModerationSignalEdge {

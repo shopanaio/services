@@ -10,13 +10,11 @@ import {
 
 export interface ListingApplyCollectionProjectionInput {
   snapshot: CatalogCollectionSnapshot;
-  eventListingRevision: number;
   eventSequence: number;
 }
 
 export interface ListingApplyCollectionProjectionResult {
   collectionId: string;
-  listingRevision: number;
   status: CollectionProjectionApplyStatus;
   processedAt: string;
 }
@@ -66,14 +64,6 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
         false,
       );
     }
-    if (input.snapshot.listingRevision < input.eventListingRevision) {
-      throw new ListingCollectionProjectionError(
-        "COLLECTION_SOURCE_INCONSISTENT",
-        "Catalog collection snapshot is older than the committed event",
-        true,
-      );
-    }
-
     let status: CollectionProjectionApplyStatus;
     try {
       status =
@@ -87,7 +77,6 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
             operation: input.snapshot.state === "live" ? "apply" : "delete",
             status: "conflict",
             collectionId: input.snapshot.id,
-            listingRevision: input.snapshot.listingRevision,
           },
           "Collection projection conflict",
         );
@@ -100,7 +89,6 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
         status,
         collectionId: input.snapshot.id,
         collectionType: input.snapshot.state === "live" ? input.snapshot.type : "deleted",
-        listingRevision: input.snapshot.listingRevision,
         projectionLagMs: Math.max(
           0,
           Date.now() -
@@ -115,7 +103,6 @@ export class ListingApplyCollectionProjectionScript extends BaseScript<
     );
     return {
       collectionId: input.snapshot.id,
-      listingRevision: input.snapshot.listingRevision,
       status,
       processedAt: new Date().toISOString(),
     };

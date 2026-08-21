@@ -612,7 +612,7 @@ type ProductComponentDependencyAction implements Node @key(fields: "id") {
 """
 Product component operation in the unified product update.
 
-The owning product and expected revision are provided by productUpdate.
+The owning product is provided by productUpdate.
 Fields that are not used by the selected action must be omitted.
 """
 enum ProductComponentOperationAction {

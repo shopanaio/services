@@ -9,8 +9,7 @@ import {
 } from "../listing/variantTerms/index.js";
 
 export type CollectionRuleDefinitionKey =
-  | { kind: "persisted"; listingRevision: number; rulesHash: string }
-  | { kind: "transient"; rulesHash: string };
+  { kind: "persisted"; rulesHash: string } | { kind: "transient"; rulesHash: string };
 
 export interface CollectionPostingGroup {
   field: "category" | "vendor" | "rule_term" | "term";

@@ -30,7 +30,7 @@ export class TierEvaluationService {
           "TIER_MEMBERSHIP_NOT_ACTIVE",
           "Only an active tier membership can be revoked",
         );
-      const updated = await this.repository.tier.updateMembership(current.id, current.revision, {
+      const updated = await this.repository.tier.updateMembership(current.id, {
         status: "REVOKED",
         effectiveTo: input.effectiveAt,
       });
@@ -48,7 +48,6 @@ export class TierEvaluationService {
         eventType: "REVOKED",
         evaluationRevision: canonicalHash({
           membershipId: current.id,
-          revision: current.revision,
           actorId: input.actorId,
         }),
         reasonCode: input.reasonCode,
@@ -337,7 +336,7 @@ export class TierEvaluationService {
     reasonCode: string,
     metrics: TierMetrics,
   ): Promise<void> {
-    const updated = await this.repository.tier.updateMembership(current.id, current.revision, {
+    const updated = await this.repository.tier.updateMembership(current.id, {
       status,
       effectiveTo: at,
     });

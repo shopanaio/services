@@ -36,9 +36,6 @@ export class LoyaltyProgramResolver extends LoyaltyType<string, Program> {
   defaultCurrencyCode() {
     return this.$get("defaultCurrencyCode");
   }
-  revision() {
-    return this.$get("revision");
-  }
   async metadata() {
     return (await this.$get("metadata")) ?? {};
   }
@@ -81,9 +78,6 @@ export class LoyaltyProgramVersionResolver extends LoyaltyType<string, ProgramVe
   }
   status() {
     return this.$get("status");
-  }
-  revision() {
-    return this.$get("revision");
   }
   effectiveFrom() {
     return this.$get("effectiveFrom");

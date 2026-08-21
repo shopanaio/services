@@ -1,4 +1,4 @@
-import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sql, sum } from "drizzle-orm";
+import { and, asc, desc, eq, gt, inArray, isNull, lte, or, sum } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -492,7 +492,6 @@ export class RewardRepository extends BaseRepository {
       .update(rewardEntitlements)
       .set({
         ...input,
-        revision: sql`${rewardEntitlements.revision} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(and(eq(rewardEntitlements.storeId, this.storeId), eq(rewardEntitlements.id, id)))

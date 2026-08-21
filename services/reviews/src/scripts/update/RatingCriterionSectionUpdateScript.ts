@@ -136,10 +136,7 @@ export class RatingCriterionSectionUpdateScript extends BaseScript<
     criterionId: string,
     patch: RatingCriterionPatch,
   ): Promise<ReviewSectionResult> {
-    const updated = await this.repository.configuration.updateCriterionWithinVersion(
-      criterionId,
-      patch,
-    );
+    const updated = await this.repository.configuration.updateCriterionFields(criterionId, patch);
     return updated
       ? sectionSuccess()
       : sectionErrors([{ message: "Rating criterion not found", code: "NOT_FOUND" }]);

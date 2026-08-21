@@ -32,9 +32,6 @@ export class LoyaltyAccountResolver extends LoyaltyType<string, Account> {
   status() {
     return this.$get("status");
   }
-  revision() {
-    return this.$get("revision");
-  }
   balance() {
     return new LoyaltyAccountBalanceResolver(this.$props, this.$ctx);
   }
@@ -132,9 +129,6 @@ export class LoyaltyAccountBalanceResolver extends LoyaltyType<string, AccountBa
   async lifetimeAdjustedPoints() {
     return String(await this.$get("lifetimeAdjustedPoints"));
   }
-  revision() {
-    return this.$get("revision");
-  }
   updatedAt() {
     return this.$get("updatedAt");
   }
@@ -174,9 +168,6 @@ export class LoyaltyTierMembershipResolver extends LoyaltyType<string, TierMembe
   }
   effectiveTo() {
     return this.$get("effectiveTo");
-  }
-  revision() {
-    return this.$get("revision");
   }
   async events() {
     return Promise.all(

@@ -102,7 +102,7 @@ export class SearchQueryPlanBuilder {
       applicableBoostProductIds,
       enabledFields,
       normalizationContractVersion: input.lexicalizedQuery.normalizationContractVersion,
-      normalizationProfileRevision: input.lexicalizedQuery.profileRevision,
+      normalizationProfileHash: input.lexicalizedQuery.profileHash,
     };
     const fingerprint = createHash("sha256")
       .update(JSON.stringify(planWithoutFingerprint))
@@ -247,7 +247,7 @@ function validateSynonyms(input: BuildSearchQueryPlanInput): CompiledLocaleSynon
   const synonyms = input.synonyms ?? emptyCompiledSynonyms(input);
   if (
     synonyms.normalizationContractVersion !== input.lexicalizedQuery.normalizationContractVersion ||
-    synonyms.normalizationProfileRevision !== input.lexicalizedQuery.profileRevision
+    synonyms.normalizationProfileHash !== input.lexicalizedQuery.profileHash
   ) {
     throw indexUnavailable("Compiled synonym trie normalization profile does not match the query");
   }
@@ -271,7 +271,7 @@ function validateSynonyms(input: BuildSearchQueryPlanInput): CompiledLocaleSynon
       if (
         value.normalizationContractVersion !==
           input.lexicalizedQuery.normalizationContractVersion ||
-        value.normalizationProfileRevision !== input.lexicalizedQuery.profileRevision
+        value.normalizationProfileHash !== input.lexicalizedQuery.profileHash
       ) {
         throw indexUnavailable(
           `Synonym group ${group.groupId} normalization profile does not match the query`,
@@ -338,7 +338,7 @@ function emptyCompiledSynonyms(input: BuildSearchQueryPlanInput): CompiledLocale
   return Object.freeze({
     resourceFingerprint: "empty",
     normalizationContractVersion: input.lexicalizedQuery.normalizationContractVersion,
-    normalizationProfileRevision: input.lexicalizedQuery.profileRevision,
+    normalizationProfileHash: input.lexicalizedQuery.profileHash,
     groups: Object.freeze([]),
     trie: Object.freeze({
       children: Object.freeze({}),

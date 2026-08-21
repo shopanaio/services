@@ -92,16 +92,6 @@ export class ProductQuestionAnswerUpdateScript extends BaseScript<
         { message: "Answer not found", code: "NOT_FOUND", field: ["answerId"] },
       ]);
     }
-    if (acquired.status === "conflict") {
-      return sectionErrors([
-        {
-          message: "Answer was modified by another user",
-          code: "REVISION_CONFLICT",
-          field: ["expectedRevision"],
-        },
-      ]);
-    }
-
     if (mapped.translations) {
       await this.repository.content.replaceTranslations(input.answerId, mapped.translations);
     }

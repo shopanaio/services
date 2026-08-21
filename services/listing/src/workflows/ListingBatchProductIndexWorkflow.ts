@@ -372,7 +372,7 @@ export class ListingBatchProductIndexWorkflow extends BrokerWorkflows<
      *   - ignored_stale when action.eventSequence < current.eventSequence;
      *   - noop when eventSequence and effectiveIdempotencyKey match current
      *     state and statePayloadHash matches current.payloadHash;
-     *   - revision conflict when the same eventSequence is reused with a
+     *   - idempotency conflict when the same eventSequence is reused with a
      *     different effective idempotency key or incompatible payload;
      *   - applied when the product is fresh enough and must rewrite index rows.
      * - Build the merged payload only after classification, and only from

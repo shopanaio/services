@@ -50,10 +50,6 @@ export class CategoryResolver extends CatalogType<string, Category> {
     return this.$get("deletedAt");
   }
 
-  async revision() {
-    return this.$get("revision");
-  }
-
   async depth() {
     return this.$get("depth");
   }

@@ -73,7 +73,6 @@ export interface SearchExplainFieldWeight {
 }
 
 export interface SearchExplainSettings {
-  readonly version: number;
   readonly enabledFields: readonly SearchTextField[];
   readonly fieldWeights: readonly SearchExplainFieldWeight[];
   readonly typoToleranceEnabled: boolean;
@@ -86,7 +85,7 @@ export interface SearchExplain {
   readonly normalizedQuery: string;
   readonly locale: string;
   readonly normalizationContractVersion: string;
-  readonly normalizationProfileRevision: string;
+  readonly normalizationProfileHash: string;
   readonly units: readonly SearchExplainUnit[];
   readonly wholeQueryClauses: readonly SearchExplainClause[];
   readonly settings: SearchExplainSettings;
@@ -157,13 +156,12 @@ export function createSearchExplain(
     normalizedQuery: contract.request.normalizedQuery.lookupKey,
     locale: contract.request.locale,
     normalizationContractVersion: contract.request.lexicalizedQuery.normalizationContractVersion,
-    normalizationProfileRevision: contract.request.lexicalizedQuery.profileRevision,
+    normalizationProfileHash: contract.request.lexicalizedQuery.profileHash,
     units: freezeArray(units),
     wholeQueryClauses: primaryMode
       ? freezeArray(contract.plan.wholeQueryIdentifierAlternatives.map(mapClause))
       : Object.freeze([]),
     settings: Object.freeze({
-      version: settings.version,
       enabledFields: freezeArray(settings.enabledFields),
       fieldWeights: freezeArray(
         settings.enabledFields.map((field) =>

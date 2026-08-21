@@ -3360,7 +3360,6 @@ export type ReviewStoreConfiguration = Node & {
   reviewRequestExpiryDays: Scalars['Int']['output'];
   reviewRequestsEnabled: Scalars['Boolean']['output'];
   reviewsEnabled: Scalars['Boolean']['output'];
-  revision: Scalars['Int']['output'];
   updatedAt: Scalars['DateTime']['output'];
   verifiedPurchaseRequired: Scalars['Boolean']['output'];
 };
@@ -5480,7 +5479,6 @@ export type ReviewStoreConfigurationResolvers<ContextType = ServiceContext, Pare
   reviewRequestExpiryDays?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   reviewRequestsEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   reviewsEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   verifiedPurchaseRequired?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;

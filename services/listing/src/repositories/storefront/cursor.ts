@@ -92,7 +92,6 @@ function canonicalScopeHashInput(scope: StorefrontListingScope): unknown {
   return {
     kind: scope.kind,
     collectionId: scope.collectionId,
-    listingRevision: scope.listingRevision,
     rulesHash: scope.rulesHash,
   };
 }

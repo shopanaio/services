@@ -185,7 +185,6 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
               ) as never,
             },
             {
-              expectedProgramRevision: input.expectedProgramRevision,
               earningRules: (input.earningRules ?? []).map((rule) => ({
                 code: rule.code,
                 name: rule.name,
@@ -304,7 +303,6 @@ export class LoyaltyMutationResolver extends LoyaltyType<Record<string, never>> 
         {
           storeId: this.$ctx.store.id,
           accountId,
-          expectedBalanceRevision: input.expectedBalanceRevision,
           points: input.points,
           direction: input.direction,
           reasonCode: input.reasonCode,

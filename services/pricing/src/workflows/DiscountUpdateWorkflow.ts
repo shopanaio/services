@@ -7,11 +7,8 @@ import {
   Workflow,
   WorkflowStep,
 } from "@shopana/shared-kernel";
-import { and, eq, sql } from "drizzle-orm";
 import { Kernel } from "../kernel/Kernel.js";
-import type { UserError } from "../kernel/BaseScript.js";
 import type { RunScriptContext } from "../kernel/types.js";
-import { discount } from "../repositories/models/index.js";
 import { DiscountUpdateChannelsScript } from "../scripts/discount/DiscountUpdateChannelsScript.js";
 import { DiscountUpdateCodesScript } from "../scripts/discount/DiscountUpdateCodesScript.js";
 import { DiscountUpdateCombinationsScript } from "../scripts/discount/DiscountUpdateCombinationsScript.js";
@@ -79,16 +76,12 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     domain: (_self, input) => `store:${input.context.storeId}`,
   })
   async run(input: DiscountUpdateWorkflowInput): Promise<DiscountUpdateWorkflowResult> {
-    const acquired = await this.stepAcquireRevision(
-      input.discountId,
-
-      input.context.storeId,
-    );
-    if ("error" in acquired) {
+    const existing = await this.kernel.repository.discount.findAggregateById(input.discountId);
+    if (!existing) {
       return {
         discount: null,
         operationResults: [],
-        userErrors: [acquired.error],
+        userErrors: [{ message: "Discount not found", code: "NOT_FOUND" }],
       };
     }
 
@@ -179,43 +172,9 @@ export class DiscountUpdateWorkflow extends BrokerWorkflows {
     }
 
     return {
-      discount: { id: input.discountId, revision: acquired.revision },
+      discount: { id: input.discountId },
       operationResults: results,
       userErrors: results.flatMap((result) => result.errors),
-    };
-  }
-
-  @WorkflowStep()
-  private async stepAcquireRevision(
-    discountId: string,
-
-    storeId: string,
-  ): Promise<{ revision: number } | { error: UserError }> {
-    const rows = await this.kernel.db
-      .update(discount)
-      .set({
-        revision: sql`${discount.revision} + 1`,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(and(eq(discount.storeId, storeId), eq(discount.id, discountId)))
-      .returning({ revision: discount.revision });
-
-    if (rows[0]) return { revision: rows[0].revision };
-
-    const [existing] = await this.kernel.db
-      .select({ id: discount.id })
-      .from(discount)
-      .where(and(eq(discount.storeId, storeId), eq(discount.id, discountId)))
-      .limit(1);
-
-    return {
-      error: existing
-        ? {
-            message: "Discount was modified by another user",
-            code: "REVISION_CONFLICT",
-            field: ["expectedRevision"],
-          }
-        : { message: "Discount not found", code: "NOT_FOUND" },
     };
   }
 

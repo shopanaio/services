@@ -26,7 +26,6 @@ export interface ListingCollectionProjectionWorkflowInput {
   organizationId: string;
   storeId: string;
   collectionId: string;
-  eventListingRevision: number;
   eventSequence: number;
   requestId: string;
 }
@@ -87,7 +86,6 @@ export class ListingCollectionProjectionWorkflow extends BrokerWorkflows<
         ListingApplyCollectionProjectionScript,
         {
           snapshot: input.snapshot,
-          eventListingRevision: input.input.eventListingRevision,
           eventSequence: input.input.eventSequence,
         },
         {

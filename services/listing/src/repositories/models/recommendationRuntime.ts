@@ -36,7 +36,6 @@ export const recommendationPlacementPolicy = listingSchema.table(
     minimumResults: smallint("minimum_results").notNull(),
     maximumResults: smallint("maximum_results").notNull(),
     fallbackChain: jsonb("fallback_chain").$type<string[]>().notNull(),
-    version: integer("version").notNull(),
     createdAt: time("created_at").notNull(),
     updatedAt: time("updated_at").notNull(),
   },
@@ -66,7 +65,6 @@ export const manualProductRecommendation = listingSchema.table("manual_product_r
   targetReferenceStatus: varchar("target_reference_status", { length: 16 })
     .$type<RecommendationReferenceStatus>()
     .notNull(),
-  version: integer("version").notNull(),
   createdAt: time("created_at").notNull(),
   updatedAt: time("updated_at").notNull(),
 });
@@ -90,7 +88,6 @@ export const recommendationOrderFact = listingSchema.table(
     storeId: uuid("store_id").notNull(),
     orderId: uuid("order_id").notNull(),
     state: varchar("state", { length: 16 }).$type<"COMMITTED" | "REVERSED">().notNull(),
-    orderRevision: integer("order_revision").notNull(),
     committedAt: time("committed_at").notNull(),
     occurredAt: time("occurred_at").notNull(),
     payloadHash: varchar("payload_hash", { length: 64 }).notNull(),
@@ -100,10 +97,6 @@ export const recommendationOrderFact = listingSchema.table(
     unique("recommendation_order_fact_ingestion_position_unique").on(
       table.storeId,
       table.ingestionPosition,
-    ),
-    unique("recommendation_order_fact_order_revision_unique").on(
-      table.orderId,
-      table.orderRevision,
     ),
   ],
 );
@@ -219,7 +212,6 @@ export const recommendationSnapshot = listingSchema.table(
     status: varchar("status", { length: 16 }).$type<RecommendationRunStatus>().notNull(),
     strategy: varchar("strategy", { length: 32 }).$type<RecommendationStrategy>().notNull(),
     policyId: uuid("policy_id").notNull(),
-    policyVersion: integer("policy_version").notNull(),
     calculationRunId: uuid("calculation_run_id"),
     rankerType: varchar("ranker_type", { length: 16 }).$type<"RULES" | "ML">().notNull(),
     modelVersion: varchar("model_version", { length: 64 }).notNull(),

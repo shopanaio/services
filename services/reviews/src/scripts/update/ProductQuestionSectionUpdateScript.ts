@@ -112,10 +112,7 @@ export class ProductQuestionSectionUpdateScript extends BaseScript<
   ): Promise<ReviewSectionResult> {
     if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
     if (Object.keys(mapped.patch).length === 0) return sectionSuccess(false);
-    const updated = await this.repository.content.updateWithinRevision(
-      productQuestionId,
-      mapped.patch,
-    );
+    const updated = await this.repository.content.updateFields(productQuestionId, mapped.patch);
     return updated
       ? sectionSuccess()
       : sectionErrors([{ message: "Product question not found", code: "NOT_FOUND" }]);

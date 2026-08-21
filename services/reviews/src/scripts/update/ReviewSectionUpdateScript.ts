@@ -117,7 +117,7 @@ export class ReviewSectionUpdateScript extends BaseScript<
   ): Promise<ReviewSectionResult> {
     if (mapped.errors.length > 0) return sectionErrors(mapped.errors);
     if (Object.keys(mapped.patch).length === 0) return sectionSuccess(false);
-    const updated = await this.repository.content.updateWithinRevision(reviewId, mapped.patch);
+    const updated = await this.repository.content.updateFields(reviewId, mapped.patch);
     return updated
       ? sectionSuccess()
       : sectionErrors([{ message: "Review not found", code: "NOT_FOUND" }]);

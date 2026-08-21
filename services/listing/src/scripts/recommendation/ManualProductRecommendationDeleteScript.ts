@@ -25,12 +25,8 @@ export class ManualProductRecommendationDeleteScript extends BaseScript<
     );
     const deletedId = await this.repository.manualProductRecommendation.delete(input.id);
     if (!deletedId)
-      return {
-        userErrors: [
-          { message: "Manual recommendation version changed", code: "VERSION_CONFLICT" },
-        ],
-      };
-    const triggerKey = `manual:${this.context.requestId}:${deletedId}:delete:${input.expectedVersion}`;
+      return { userErrors: [{ message: "Manual recommendation not found", code: "NOT_FOUND" }] };
+    const triggerKey = `manual:${this.context.requestId}:${deletedId}:delete`;
     const request = await this.repository.recommendationBuildRequest.request(
       existing.anchorProductId,
       existing.placement,

@@ -1,11 +1,6 @@
 import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import type { ModerationCasePatch } from "../../repositories/moderation/ModerationRepository.js";
-import {
-  conflictError,
-  hasOwn,
-  internalError,
-  notFoundError,
-} from "./StoreConfigurationUpdateScript.js";
+import { hasOwn, internalError, notFoundError } from "./StoreConfigurationUpdateScript.js";
 import type { ModerationCaseUpdateParams, ModerationCaseUpdateResult } from "./types.js";
 
 export class ModerationCaseUpdateScript extends BaseScript<
@@ -105,11 +100,7 @@ export class ModerationCaseUpdateScript extends BaseScript<
     }
     if (errors.length > 0) return { userErrors: errors };
 
-    const updated = await this.repository.moderation.updateCase(
-      params.moderationCaseId,
-      params.expectedUpdatedAt,
-      patch,
-    );
+    const updated = await this.repository.moderation.updateCase(params.moderationCaseId, patch);
     if (updated.status === "applied") {
       return {
         moderationCase: {
@@ -119,9 +110,7 @@ export class ModerationCaseUpdateScript extends BaseScript<
         userErrors: [],
       };
     }
-    return updated.status === "conflict"
-      ? { userErrors: [conflictError("Moderation case", "expectedUpdatedAt")] }
-      : { userErrors: [notFoundError("Moderation case", "moderationCaseId")] };
+    return { userErrors: [notFoundError("Moderation case", "moderationCaseId")] };
   }
 
   protected handleError(): ModerationCaseUpdateResult {

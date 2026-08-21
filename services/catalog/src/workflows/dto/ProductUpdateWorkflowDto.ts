@@ -390,8 +390,8 @@ export interface VariantOptionLink {
  * Result of ProductUpdateWorkflow.
  */
 export interface ProductUpdateWorkflowResult {
-  /** Updated product with new revision, or null if failed */
-  product: { id: string; revision: number } | null;
+  /** Updated product, or null if failed */
+  product: { id: string } | null;
   /** Results for each operation */
   operationResults: OperationResult[];
   /** Aggregated errors from all operations */

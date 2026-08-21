@@ -6,8 +6,7 @@ derive their product set from `rules`. The collection type is immutable after
 creation; create a new collection when a different membership model is needed.
 
 Collection content, SEO, publication, schedule, and default listing sort are
-managed independently from RULE membership. Every successful mutation that
-changes the collection increments `revision`.
+managed independently from RULE membership.
 """
 type Collection implements Node @key(fields: "id") {
   """
@@ -98,16 +97,6 @@ type Collection implements Node @key(fields: "id") {
   Timestamp of the most recent collection change.
   """
   updatedAt: DateTime!
-
-  """
-  Internal aggregate revision.
-  """
-  revision: Int!
-
-  """
-  Internal revision used to coordinate the Catalog and Listing projections.
-  """
-  listingRevision: Int! @inaccessible
 
   """
   Complete ordered rule set for a RULE collection. The list is empty for MANUAL
