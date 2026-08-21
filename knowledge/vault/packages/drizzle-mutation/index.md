@@ -7,6 +7,7 @@ tags:
   - repository
 related:
   - drizzle-query/index
+  - patterns/no-cas
   - patterns/repository
   - patterns/script
   - shared-kernel/transaction-manager
@@ -33,7 +34,7 @@ related:
 6. Удалить, soft-delete, detach или проигнорировать вложенные записи, отсутствующие в input.
 7. Выполнить все операции в одной транзакции.
 
-Если писать эту логику вручную в каждом repository, появляется дублирование и несогласованное поведение вокруг tenancy filters, timestamps, optimistic locking, nested deletes и idempotent updates.
+Если писать эту логику вручную в каждом repository, появляется дублирование и несогласованное поведение вокруг tenancy filters, timestamps, nested deletes и idempotent updates.
 
 ## Не Цели
 
@@ -130,8 +131,7 @@ async syncProduct(input: ProductSyncInput): Promise<ProductMutationResult> {
 ```typescript
 const mutation = createMutation(table, config)
   .defaultMissing("ignore")
-  .returning(["id"])
-  .optimisticLock({ column: products.updatedAt });
+  .returning(["id"]);
 ```
 
 Configuration methods должны возвращать новый builder, как в immutable builder style у `drizzle-query`.
@@ -262,11 +262,11 @@ createMutation()
   -> Plan Builder
      - converts changes into operations
      - orders operations by dependency
-     - adds scope, timestamps, version checks
+     - adds scope and timestamps
   -> Executor
      - executes operations through Drizzle
      - collects returning data
-     - reports affected rows and conflicts
+     - verifies affected-row cardinality
 ```
 
 ## Семантика Diff
@@ -333,34 +333,20 @@ Scope должен применяться к:
 - relation snapshot loads;
 - update where clauses;
 - delete where clauses;
-- optimistic-lock checks.
 
 Пакет должен предпочитать явную scope configuration, а не implicit conventions по именам колонок.
 
-## Optimistic Locking
+## Запрет CAS и Optimistic Locking
 
-Optimistic locking должен быть optional, но first-class:
+Пакет не поддерживает CAS или optimistic locking ни как option, ни как внутреннюю implementation
+detail. Config и input не могут принимать expected version/revision/timestamp/hash. Executor не
+добавляет такие значения в `WHERE`, не выполняет read-compare-write и не возвращает stale-object
+conflicts. Этот запрет распространяется на database schema, generated plans, repositories, scripts,
+workflows и публичные API согласно [[patterns/admin-aggregate-mutations]].
 
-```typescript
-optimisticLock: {
-  column: products.updatedAt,
-  inputField: "updatedAt",
-}
-```
-
-Если текущее значение в базе не совпадает с ожидаемым значением из input, execution должен завершиться conflict result до применения последующих операций.
-
-Result shape:
-
-```typescript
-interface MutationConflict {
-  readonly path: string;
-  readonly code: "STALE_OBJECT" | "MISSING_OBJECT" | "AFFECTED_ROWS_MISMATCH";
-  readonly message: string;
-}
-```
-
-Scripts должны переводить conflicts в GraphQL `userErrors`.
+Affected-row count проверяется только как гарантия identity, tenant scope и ожидаемой
+кардинальности операции. Mismatch возвращается как missing/scope/integrity error и не является
+CAS conflict.
 
 ## Timestamps и Generated Values
 
@@ -424,7 +410,7 @@ hooks: {
 |-------|---------|
 | `InvalidMutationConfigError` | config нельзя скомпилировать |
 | `MissingIdentityError` | collection item нельзя сопоставить |
-| `MutationConflictError` | optimistic lock или affected-row mismatch |
+| `MutationCardinalityError` | affected-row count нарушает identity/scope/cardinality invariant |
 | `MutationExecutionError` | Drizzle operation упала |
 | `UnsafeDeleteError` | destructive operation не имеет явной policy или scope |
 
@@ -529,7 +515,7 @@ packages/drizzle-mutation/
       scalar-update.test.ts
       collection-sync.test.ts
       missing-policy.test.ts
-      optimistic-lock.test.ts
+      affected-row-cardinality.test.ts
       tenant-scope.test.ts
 ```
 
@@ -564,7 +550,7 @@ packages/drizzle-mutation/
 - использование transaction-aware connection;
 - tenant scope enforcement;
 - helpers для timestamp и default values;
-- affected-row verification.
+- affected-row cardinality verification.
 
 ### Phase 3: Nested Aggregates
 
@@ -574,10 +560,8 @@ packages/drizzle-mutation/
 - relation-level scopes;
 - child ordering.
 
-### Phase 4: Safety and Concurrency
+### Phase 4: Safety
 
-- optimistic locking;
-- stale object conflicts;
 - unsafe delete detection;
 - no-op detection;
 - plan hash generation.
@@ -649,7 +633,6 @@ delete product_variants where store_id and id
 - Должен ли `apply()` возвращать только affected IDs или заново читать aggregate после execution?
 - Должен ли relation input по умолчанию означать full sync или partial patch semantics?
 - Нужно ли включать soft-delete rows в snapshot loading для restore support?
-- Должен ли plan execution останавливаться на первом conflict или сначала собирать все detectable conflicts?
 - Должен ли этот пакет переиспользовать field metadata из `@shopana/drizzle-query` или держать независимые helpers?
 
 ## Рекомендуемые Defaults

@@ -114,7 +114,8 @@ ranking semantics, caching и analytics attribution. Один target может 
 - `maximum_results` ограничивает опубликованный snapshot;
 - `fallback_chain` хранит упорядоченный список зарегистрированных fallback
   sources;
-- `version` используется для optimistic concurrency и snapshot provenance.
+- immutable policy identifier/version используется только для snapshot provenance и никогда не
+  принимается или сравнивается как CAS precondition для write.
 
 `fallback_chain` должен валидироваться application layer как JSON array
 уникальных зарегистрированных source codes. Неизвестный source code является
@@ -485,7 +486,6 @@ availability rules.
 3. выбирает strategy;
 4. добавляет targets через Product picker;
 5. задаёт `PIN`, `BOOST` или `EXCLUDE`, schedule и position/boost;
-6. mutation проверяет optimistic `version`;
 7. успешная запись инициирует snapshot rebuild;
 8. Admin показывает состояние последнего build и preview active snapshot.
 
@@ -605,7 +605,6 @@ Logs должны содержать `storeId`, `anchorProductId`, `placement`, 
 | Product стал unavailable | Read-time filter исключает его; async rebuild уплотняет ranks |
 | Manual target stale | Запись сохраняется, target не попадает в candidates |
 | Model version неизвестна runtime | Generation не активируется |
-| Policy version изменилась во время build | Build отклоняется как stale и запускается заново |
 
 ## Physical model
 

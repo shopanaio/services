@@ -155,23 +155,24 @@ Use Event Sourcing (Emmett + Pongo) for orders and checkout domains.
 
 ### Context
 
-The Orders service needs ordinary transactional reads and writes, optimistic concurrency,
-idempotent command replay, a complete audit trail, and durable integration delivery. Reconstructing
+The Orders service needs ordinary transactional reads and writes, idempotent command replay, a
+complete audit trail, and durable integration delivery. Reconstructing
 the aggregate from an event stream would add event-sourcing complexity without being required by
 the product. The normalized PostgreSQL state must remain directly queryable and authoritative.
 
 ### Decision
 
 Orders is a state-first mutable service. The normalized `orders` row and its normalized child state
-tables are the canonical source of truth. `orders.version` is the aggregate optimistic-concurrency
-token and is incremented once for every successfully committed order command.
+tables are the canonical source of truth. CAS and optimistic locking are forbidden: Orders must not
+expose or compare expected version,
+revision, timestamp, ETag, or hash tokens.
 
 Every state-changing command records immutable audit events sufficient to trace who performed the
 operation, what changed, when it changed, and why. Audit events are historical facts for activity,
 investigation, and integration delivery; they are not an event-sourcing stream, do not replace the
 canonical state tables, and are not used to reconstruct the aggregate.
 
-The canonical state change, its resulting version, audit records, and idempotency result commit in
+The canonical state change, audit records, and idempotency result commit in
 one DBOS transactional step. External delivery runs only in later idempotent DBOS workflow steps
 after that transaction commits. A local publish queue/table is forbidden. Emmett and Pongo are not
 runtime dependencies of the canonical implementation.
@@ -182,8 +183,8 @@ runtime dependencies of the canonical implementation.
 - A successful state-changing command cannot update canonical state without writing one or more
   audit records in the same transaction.
 - Audit history must be append-only, tenant-scoped, ordered unambiguously, and linked to the
-  resulting `orders.version`.
-- Audit payloads may contain before/after values or a versioned change description, but they are not
+  command/idempotency identity that produced it.
+- Audit payloads may contain before/after values or a format-versioned change description, but they are not
   required to be sufficient for aggregate reconstruction.
 - A workflow cannot publish an integration event before its state/audit/idempotency transactional
   step commits.
@@ -194,4 +195,5 @@ runtime dependencies of the canonical implementation.
 
 - [[architecture/overview]] — High-level architecture
 - [[architecture/request-flow]] — How decisions affect request handling
+- [[patterns/no-cas]] — Project-wide CAS and optimistic-locking prohibition
 - [[patterns/script]] — Script pattern (bounded context operations)

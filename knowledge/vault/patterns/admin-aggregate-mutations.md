@@ -9,6 +9,7 @@ tags:
   - transaction
   - events
 related:
+  - patterns/no-cas
   - patterns/admin-graphql-layer
   - packages/dbos/workflows
   - packages/dbos/transactional-steps
@@ -101,8 +102,8 @@ type ExampleUpdatePayload {
    `errors` с путём к исходному полю `operations`.
 5. `userErrors` содержит агрегированный список ошибок из `operationResults` и request-level
    ошибок.
-6. В публичный Admin GraphQL input нельзя добавлять `expectedRevision`, version или иной client
-   compare-and-swap token. Конкурентность и сериализация являются обязанностью backend workflow.
+6. В публичный Admin GraphQL input и payload нельзя добавлять `expectedRevision`, `expectedVersion`,
+   ETag или иной CAS token. Сквозной запрет CAS определён ниже.
 
 Одна публичная operation может вызывать несколько внутренних scripts. Деление на scripts — деталь
 реализации и само по себе не создаёт дополнительные элементы `operationResults`.
@@ -147,6 +148,33 @@ Admin resolver
 Workflow body должен быть replay-safe. Генерация ID, времени, случайных значений и любые другие
 недетерминированные действия выполняются внутри durable step, чтобы replay получил сохранённый
 результат.
+
+## Сквозной запрет CAS
+
+Compare-and-swap (CAS) и optimistic locking полностью запрещены на write path независимо от того,
+на каком слое скрыта проверка.
+
+Общее project-wide правило определено в [[patterns/no-cas]] и обязательно для всех сервисов.
+
+Запрет обязателен для всех слоёв:
+
+- schema/migrations не добавляют `version`, `revision`, `lock_version`, timestamp или hash column,
+  предназначенные для CAS;
+- SQL и Drizzle updates/deletes не добавляют expected version/revision/timestamp/hash в `WHERE` и
+  не выполняют предварительную read-compare-write проверку;
+- repositories, mutation builders и scripts не принимают CAS token, не создают stale-object
+  conflicts и не превращают affected-row count в optimistic-lock semantics;
+- workflows и broker contracts не передают expected state token между steps или сервисами;
+- GraphQL schema, resolvers, REST/internal API, events и clients не выставляют CAS precondition,
+  включая `expectedVersion`, `expectedRevision`, `If-Match` и ETag для writes;
+- UI не хранит и не отправляет version/revision как условие применения изменений и не предлагает
+  retry flow, основанный на обновлении CAS token.
+
+Технические sequence/revision/version identifiers допустимы только как immutable provenance,
+порядок событий, версия формата или idempotency metadata. Они не могут приниматься от caller-а или
+сравниваться с текущим mutable state как precondition для write. Проверка tenant scope, identity и
+ожидаемой кардинальности affected rows остаётся обязательной, но mismatch является not-found,
+scope или integrity error, а не CAS conflict.
 
 ## Транзакционные steps
 
@@ -267,7 +295,9 @@ await this.broker.runWorkflow(
 - broker/event emit внутри `@TransactionalStep()`;
 - event emit после возврата из недолговечного resolver без durable parent workflow;
 - один внешний side effect и database write в общей транзакционной функции;
-- client-controlled CAS/version input в Admin GraphQL;
+- CAS/optimistic locking на любом слое от database schema и repository до workflow, API и UI;
+- version/revision/timestamp/hash predicate, read-compare-write или affected-row conflict,
+  используемые как CAS precondition;
 - custom outbox table, publish queue или polling worker;
 - альтернативный внутренний endpoint, обходящий aggregate workflow для той же операции.
 
@@ -288,6 +318,8 @@ await this.broker.runWorkflow(
 10. Повторный request или workflow replay не дублирует writes и события.
 11. Новый endpoint не создаёт второй write path к тому же aggregate.
 12. Любое исключение из unified mutation rule документировано как отдельное архитектурное решение.
+13. На write path нет CAS columns, predicates, tokens, stale-object conflicts или client retry
+    protocol.
 
 ## Связанные документы
 
