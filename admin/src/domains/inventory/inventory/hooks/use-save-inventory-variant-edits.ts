@@ -13,20 +13,10 @@ import type {
   InventoryProductBulkUpdateMutationVariables,
 } from "../graphql";
 
-const IDEMPOTENCY_KEY_HEADER = "x-idempotency-key";
-
 export interface SaveInventoryVariantEditsResult {
   jobId: string | null;
   status: BulkUpdateJobStatus | null;
   userErrors: ApiBulkUpdateUserError[];
-}
-
-function createIdempotencyKey() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID();
-  }
-
-  return `inventory-${Date.now()}-${Math.random().toString(36).slice(2)}`;
 }
 
 export function useSaveInventoryVariantEdits() {
@@ -39,11 +29,6 @@ export function useSaveInventoryVariantEdits() {
     async (input: ApiProductBulkUpdateInput): Promise<SaveInventoryVariantEditsResult> => {
       const result = await mutate({
         variables: { input },
-        context: {
-          headers: {
-            [IDEMPOTENCY_KEY_HEADER]: createIdempotencyKey(),
-          },
-        },
       });
 
       const payload = result.data?.catalogMutation.productBulkUpdate;
