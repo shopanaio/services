@@ -11,7 +11,7 @@ import {
   DBOS,
   InjectBroker,
   type ServiceBroker,
-  TransactionalStep,
+  createTransactionalStep as TransactionalStep,
   Workflow,
 } from "@shopana/shared-kernel";
 import {

@@ -1,5 +1,5 @@
 import { randomUUID } from "crypto";
-import { BaseScript, type UserError } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional, type UserError } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { Variant, ProductOptionVariantLink } from "../../repositories/models/index.js";
 import { type ScriptResult, successResult, unchangedResult } from "../types/ScriptResult.js";
@@ -46,6 +46,7 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
   VariantBatchUpdateOptionsParams,
   VariantBatchUpdateOptionsResult
 > {
+  @Transactional()
   protected async execute(
     params: VariantBatchUpdateOptionsParams,
   ): Promise<VariantBatchUpdateOptionsResult> {
@@ -335,63 +336,46 @@ export class VariantBatchUpdateOptionsScript extends BaseScript<
         continue;
       }
 
-      try {
-        await this.repository.variant.update(update.variant.id, { handle: newHandle });
+      // Do not catch unique-constraint errors here. In a DBOS transaction,
+      // PostgreSQL marks the transaction aborted after such an error, so a
+      // manual rollback cannot run. The error must escape and roll back the
+      // complete transactional step.
+      await this.repository.variant.update(update.variant.id, { handle: newHandle });
 
-        results.push({
-          variantId: update.variant.id,
-          applied: true,
-          errors: [],
-          changes: update.links.map((l) => ({
-            optionId: l.optionId,
-            valueId: l.optionValueId,
-          })),
-        });
+      results.push({
+        variantId: update.variant.id,
+        applied: true,
+        errors: [],
+        changes: update.links.map((l) => ({
+          optionId: l.optionId,
+          valueId: l.optionValueId,
+        })),
+      });
 
-        this.logger.info(
-          { variantId: update.variant.id, linkCount: update.links.length, newHandle },
-          "Variant options updated successfully",
-        );
-      } catch (error) {
-        // Unique constraint violation - conflict with existing variant not in batch
-        if (isUniqueViolation(error, "variant_product_id_handle_key")) {
-          // Rollback this variant
-          await this.repository.option.clearVariantLinks(update.variant.id);
-          for (const link of update.currentLinks) {
-            if (link.optionValueId) {
-              await this.repository.option.linkVariant(
-                update.variant.id,
-                link.optionId,
-                link.optionValueId,
-              );
-            }
-          }
-          await this.repository.variant.update(update.variant.id, {
-            handle: update.variant.handle,
-          });
-
-          results.push({
-            variantId: update.variant.id,
-            applied: false,
-            errors: [
-              {
-                message: "Another variant with the same option combination already exists",
-                code: "DUPLICATE_OPTIONS",
-                field: ["links"],
-              },
-            ],
-            changes: null,
-          });
-        } else {
-          throw error;
-        }
-      }
+      this.logger.info(
+        { variantId: update.variant.id, linkCount: update.links.length, newHandle },
+        "Variant options updated successfully",
+      );
     }
 
     return successResult(results, null);
   }
 
   protected handleError(error: unknown): VariantBatchUpdateOptionsResult {
+    if (isUniqueViolation(error, "variant_product_id_handle_key")) {
+      return {
+        result: null,
+        changes: null,
+        userErrors: [
+          {
+            message: "Another variant with the same option combination already exists",
+            code: "DUPLICATE_OPTIONS",
+            field: ["links"],
+          },
+        ],
+      };
+    }
+
     const msg = error instanceof Error ? error.message : String(error);
     this.logger.error({ error, msg }, "VariantBatchUpdateOptionsScript failed");
     return {

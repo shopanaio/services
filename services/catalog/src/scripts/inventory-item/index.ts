@@ -1,4 +1,9 @@
 export {
+  InventoryItemCreateScript,
+  type InventoryItemCreateParams,
+  type InventoryItemCreateResult,
+} from "./InventoryItemCreateScript.js";
+export {
   InventoryItemUpdateDimensionsScript,
   type InventoryItemUpdateDimensionsParams,
   type InventoryItemUpdateDimensionsResult,

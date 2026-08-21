@@ -21,7 +21,7 @@ import {
   type ServiceBroker,
   Workflow,
   WorkflowStep,
-  TransactionalStep,
+  createTransactionalStep as TransactionalStep,
 } from "@shopana/shared-kernel";
 import { CheckoutMutationRepository } from "../infrastructure/mutations/CheckoutMutationRepository.js";
 import {

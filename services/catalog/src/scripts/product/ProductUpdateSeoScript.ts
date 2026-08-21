@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { ProductUpdateSeoParams, ProductUpdateSeoResult } from "./dto/ProductUpdateSeoDto.js";
 import type { SeoChanges } from "../types/index.js";
 import { singleError } from "../types/index.js";
@@ -10,6 +10,7 @@ export class ProductUpdateSeoScript extends BaseScript<
   ProductUpdateSeoParams,
   ProductUpdateSeoResult
 > {
+  @Transactional()
   protected async execute(params: ProductUpdateSeoParams): Promise<ProductUpdateSeoResult> {
     const { id, title, description, ogTitle, ogDescription, ogImageId } = params;
 

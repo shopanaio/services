@@ -5,7 +5,7 @@ import {
   InjectBroker,
   Policy,
   type ServiceBroker,
-  TransactionalStep,
+  createTransactionalStep as TransactionalStep,
   Workflow,
   WorkflowStep,
   type WorkflowExecutionContext,

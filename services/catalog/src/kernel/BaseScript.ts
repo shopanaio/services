@@ -50,6 +50,13 @@ export abstract class BaseScript<TParams, TResult> implements Authorizable {
     try {
       return await this.execute(params);
     } catch (error) {
+      // A script can run inside a DBOS-owned transactional workflow step.
+      // Converting a database exception to a result there would make the
+      // enclosing transaction appear successful and allow partial writes to
+      // commit. Let the error escape so DBOS rolls the complete step back.
+      if (this.txManager.isInTransaction()) {
+        throw error;
+      }
       if (!(error instanceof ValidationError) && !(error instanceof AuthorizationError)) {
         this.logger.error({ error }, `${this.constructor.name} failed`);
       }

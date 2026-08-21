@@ -32,7 +32,6 @@ import type {
 import type { ProductChanges, VariantChanges } from "../scripts/types/ProductChanges.js";
 import type { UserError } from "../scripts/types/ScriptResult.js";
 
-import type { Inventory } from "@shopana/broker-types";
 import { ProductUpdateScript } from "../scripts/product/ProductUpdateScript.js";
 import { ProductUpdateContentScript } from "../scripts/product/ProductUpdateContentScript.js";
 import { ProductUpdateSeoScript } from "../scripts/product/ProductUpdateSeoScript.js";
@@ -54,7 +53,10 @@ import {
   VariantBatchUpdateOptionsScript,
   type VariantOptionsUpdate,
 } from "../scripts/variant/VariantBatchUpdateOptionsScript.js";
-import { InventoryItemUpdateScript } from "../scripts/inventory-item/InventoryItemUpdateScript.js";
+import {
+  InventoryItemCreateScript,
+  InventoryItemUpdateScript,
+} from "../scripts/inventory-item/index.js";
 import type { BackRefNotifyInput } from "../sagas/index.js";
 import { OptionsSyncScript } from "../scripts/option/OptionsSyncScript.js";
 import { FeaturesSyncScript } from "../scripts/feature/FeaturesSyncScript.js";
@@ -64,6 +66,7 @@ import {
   ProductComponentOperationScript,
   type ProductComponentWorkflowOperation,
 } from "../scripts/component/index.js";
+import { TransactionalStep } from "./CatalogTransactionalStep.js";
 
 type VariantWorkflowOperation = Extract<
   ProductUpdateOperation,
@@ -122,6 +125,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     const changes: ProductChanges = { productId: input.productId };
     const hasVariantOperations = input.operations.some((op) => isVariantOperation(op));
 
+    const productExists = await this.stepProductExists(input.productId, input.context.storeId);
+    if (!productExists) {
+      return {
+        product: null,
+        operationResults: [],
+        userErrors: [{ message: "Product not found", code: "NOT_FOUND" }],
+      };
+    }
+
     const definitionValidation = await this.stepPreValidateDefinitions(input);
     if (!definitionValidation.valid) {
       return {
@@ -147,15 +159,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           userErrors: validation.userErrors,
         };
       }
-    }
-
-    const productExists = await this.stepProductExists(input.productId, input.context.storeId);
-    if (!productExists) {
-      return {
-        product: null,
-        operationResults: [],
-        userErrors: [{ message: "Product not found", code: "NOT_FOUND" }],
-      };
     }
 
     // Collect option updates for batch processing
@@ -200,7 +203,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         // Collect option updates for batch processing
         if (op.params.options) {
           optionUpdates.push({
-            index: i,
+            index: op.meta?.operationIndex ?? i,
             variantId: op.params.variantId,
             options: {
               variantId: op.params.variantId,
@@ -218,15 +221,15 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     if (optionUpdates.length > 0) {
       const batchResults = await this.stepBatchUpdateOptions(
         input.productId,
-        optionUpdates.map((u) => u.options),
+        optionUpdates.map((u) => ({ operationIndex: u.index, options: u.options })),
         changes,
         scriptCtx,
       );
 
       // Merge batch results into corresponding operation results
       for (let i = 0; i < optionUpdates.length; i++) {
-        const { index, variantId } = optionUpdates[i];
-        const batchResult = batchResults.find((r) => r.variantId === variantId);
+        const { index } = optionUpdates[i];
+        const batchResult = batchResults.find((r) => r.operationIndex === index);
         if (batchResult) {
           if (!batchResult.applied) {
             results[index].applied = false;
@@ -270,6 +273,47 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       } else if (op.type === "productFeaturesSync") {
         const validation = await validateFeatureSyncParams(this.kernel.repository, op.params);
         errors = prefixUserErrors(validation.userErrors, op);
+      } else if (op.type === "productUpdate") {
+        if (op.params.vendorId !== undefined && op.params.vendorId !== null) {
+          const vendor = await this.kernel.repository.vendor.findById(op.params.vendorId);
+          if (!vendor) {
+            errors.push({
+              message: "Vendor not found",
+              code: "MISSING_VENDOR",
+              field: fieldPath(op, "vendorId"),
+            });
+          }
+        }
+
+        if (op.params.handle !== undefined) {
+          const productWithHandle = await this.kernel.repository.product.findByHandle(
+            op.params.handle,
+          );
+          if (productWithHandle && productWithHandle.id !== op.params.id) {
+            errors.push({
+              message: "Product with this handle already exists",
+              code: "DUPLICATE_HANDLE",
+              field: fieldPath(op, "handle"),
+            });
+          }
+        }
+
+        if (op.params.status === "published") {
+          const effective = (
+            await this.kernel.repository.comparisonRead.getEffectiveProfilesByProductIds([
+              op.params.id,
+            ])
+          )[0];
+          const configured =
+            await this.kernel.repository.comparisonRead.productConfigurationProfileIds(op.params.id);
+          if (configured.some((profileId) => profileId !== effective?.profileId)) {
+            errors.push({
+              message: "Product comparison configuration does not match its effective profile",
+              code: "COMPARISON_EFFECTIVE_PROFILE_MISMATCH",
+              field: fieldPath(op, "status"),
+            });
+          }
+        }
       }
 
       if (errors.length > 0) {
@@ -389,7 +433,10 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     }
 
     const inventoryItemRequiredVariantIds = variantOps.flatMap(({ op }) =>
-      op.type === "variantUpdate" && (op.params.inventory || op.params.weight !== undefined)
+      op.type === "variantUpdate" &&
+      (op.params.inventory ||
+        op.params.weight !== undefined ||
+        op.params.dimensions !== undefined)
         ? [op.params.variantId]
         : [],
     );
@@ -401,7 +448,9 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     for (const { op, index } of variantOps) {
       if (
         op.type === "variantUpdate" &&
-        (op.params.inventory || op.params.weight !== undefined) &&
+        (op.params.inventory ||
+          op.params.weight !== undefined ||
+          op.params.dimensions !== undefined) &&
         !inventoryItemVariantIds.has(op.params.variantId)
       ) {
         addError(index, {
@@ -521,6 +570,26 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
             });
           } else {
             requestedSkus.set(params.inventory.sku, index);
+          }
+        }
+
+        if (
+          op.type === "variantUpdate" &&
+          params.inventory.warehouseId &&
+          params.inventory.onHand !== undefined
+        ) {
+          const existingStock = await this.kernel.repository.stock.findByVariantWarehouse(
+            params.variantId,
+            params.inventory.warehouseId,
+          );
+          const reservedQuantity = existingStock?.reservedQty ?? 0;
+          const unavailable = params.inventory.unavailable ?? 0;
+          if (params.inventory.onHand - reservedQuantity - unavailable < 0) {
+            addError(index, {
+              message: "Available quantity cannot be negative",
+              code: "INVALID_QUANTITY",
+              field: fieldPath(op, "inventory", "onHand"),
+            });
           }
         }
       }
@@ -695,7 +764,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
    * Execute product-level updates.
    * Runs appropriate scripts based on provided parameters.
    */
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepProductUpdate(
     params: ProductUpdateParams,
     changes: ProductChanges,
@@ -703,6 +772,23 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   ): Promise<OperationResult> {
     const errors: UserError[] = [];
     const { id, handle, title, vendorId, content, seo, status, media } = params;
+
+    // Status validation can return a business error. It must run before any
+    // other product write in this aggregate operation.
+    if (status) {
+      const r = await this.kernel.runScript(
+        ProductUpdateStatusScript,
+        {
+          id,
+          status,
+        },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        changes.product = { ...changes.product, status: r.changes.status };
+      }
+    }
 
     // Identity fields (handle, title, vendor)
     if (handle !== undefined || title !== undefined || vendorId !== undefined) {
@@ -754,22 +840,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    // Status change
-    if (status) {
-      const r = await this.kernel.runScript(
-        ProductUpdateStatusScript,
-        {
-          id,
-          status,
-        },
-        ctx,
-      );
-      errors.push(...r.userErrors);
-      if (r.changes) {
-        changes.product = { ...changes.product, status: r.changes.status };
-      }
-    }
-
     // Media
     if (media) {
       const r = await this.kernel.runScript(
@@ -793,7 +863,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepProductCategoryUpdate(
     params: ProductCategoryUpdateParams,
     changes: ProductChanges,
@@ -872,7 +942,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepProductTagUpdate(
     params: ProductTagUpdateParams,
     changes: ProductChanges,
@@ -914,7 +984,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepProductOptionsSync(
     params: ProductOptionsSyncParams,
     changes: ProductChanges,
@@ -936,7 +1006,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepProductFeaturesSync(
     params: ProductFeaturesSyncParams,
     changes: ProductChanges,
@@ -958,7 +1028,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepProductComponentOperation(
     operation: ComponentWorkflowOperation,
     ctx: RunScriptContext,
@@ -979,7 +1049,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
    * Options are always processed in batch via stepBatchUpdateOptions.
    * Inventory operations are handled by Inventory Service.
    */
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepVariantCreate(
     params: VariantCreateParams,
     changes: ProductChanges,
@@ -1025,16 +1095,74 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       })),
     });
 
-    if (params.inventory || params.weight !== undefined) {
-      await this.broker.call<Inventory.CreateItemResult, Inventory.CreateItemParams>(
-        "catalog.createInventoryItem",
+    if (params.inventory || params.weight !== undefined || params.dimensions) {
+      const inventoryItem = await this.kernel.runScript(
+        InventoryItemCreateScript,
         {
-          storeId: ctx.storeId,
           variantId,
-          trackInventory: false,
+          sku: params.inventory?.sku,
+          trackInventory: params.inventory?.trackInventory ?? false,
           requiresShipping: params.inventory?.requiresShipping ?? false,
+          continueSellingWhenOutOfStock: params.inventory?.continueSellingWhenOutOfStock,
         },
+        ctx,
       );
+      errors.push(...inventoryItem.userErrors);
+    }
+
+    if (params.inventory || params.weight !== undefined || params.dimensions) {
+      const r = await this.kernel.runScript(
+        InventoryItemUpdateScript,
+        {
+          variantId,
+          warehouseId: params.inventory?.warehouseId,
+          onHand: params.inventory?.onHand,
+          unavailable: params.inventory?.unavailable,
+          sku: params.inventory?.sku,
+          trackInventory: params.inventory?.trackInventory,
+          requiresShipping: params.inventory?.requiresShipping,
+          continueSellingWhenOutOfStock: params.inventory?.continueSellingWhenOutOfStock,
+          unitCostMinor: params.inventory?.unitCostMinor,
+          costCurrency: params.inventory?.costCurrency,
+          weight: params.weight,
+          dimensions: params.dimensions
+            ? {
+                widthMm: params.dimensions.width,
+                heightMm: params.dimensions.height,
+                lengthMm: params.dimensions.length,
+              }
+            : undefined,
+        },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        mergeVariantChanges({
+          inventory: {
+            warehouseId: r.changes.warehouseId,
+            onHand: r.changes.onHand,
+            unavailable: r.changes.unavailable,
+            sku: r.changes.sku,
+            trackInventory: r.changes.trackInventory,
+            requiresShipping: r.changes.requiresShipping,
+            continueSellingWhenOutOfStock: r.changes.continueSellingWhenOutOfStock,
+            unitCostMinor: r.changes.unitCostMinor,
+            costCurrency: r.changes.costCurrency,
+          },
+        });
+      }
+      if (r.changes?.weight !== undefined) {
+        mergeVariantChanges({ physical: { weight: r.changes.weight } });
+      }
+      if (r.changes?.dimensions) {
+        mergeVariantChanges({
+          physical: {
+            width: r.changes.dimensions.widthMm,
+            height: r.changes.dimensions.heightMm,
+            length: r.changes.dimensions.lengthMm,
+          },
+        });
+      }
     }
 
     if (params.pricing) {
@@ -1048,79 +1176,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       );
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
-    }
-
-    if (params.inventory) {
-      const r = await this.broker.call<Inventory.UpdateItemResult, Inventory.UpdateItemParams>(
-        "catalog.updateInventoryItem",
-        {
-          storeId: ctx.storeId,
-          variantId,
-          warehouseId: params.inventory.warehouseId,
-          onHand: params.inventory.onHand,
-          unavailable: params.inventory.unavailable,
-          sku: params.inventory.sku,
-          trackInventory: params.inventory.trackInventory,
-          continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
-          unitCostMinor: params.inventory.unitCostMinor,
-          costCurrency: params.inventory.costCurrency,
-        },
-      );
-      if (!r.success) {
-        errors.push(...mapBrokerErrors(r.userErrors));
-      } else {
-        mergeVariantChanges({
-          inventory: {
-            warehouseId: params.inventory.warehouseId,
-            onHand: params.inventory.onHand,
-            unavailable: params.inventory.unavailable ?? 0,
-            sku: params.inventory.sku,
-            trackInventory: params.inventory.trackInventory,
-            continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
-            unitCostMinor: params.inventory.unitCostMinor,
-            costCurrency: params.inventory.costCurrency,
-          },
-        });
-      }
-    }
-
-    if (params.weight !== undefined) {
-      const r = await this.kernel.runScript(
-        InventoryItemUpdateScript,
-        {
-          variantId,
-          weight: params.weight,
-        },
-        ctx,
-      );
-      errors.push(...r.userErrors);
-      if (r.changes?.weight !== undefined) {
-        mergeVariantChanges({ physical: { weight: r.changes.weight } });
-      }
-    }
-
-    if (params.dimensions) {
-      const r = await this.broker.call<
-        Inventory.UpdateItemDimensionsResult,
-        Inventory.UpdateItemDimensionsParams
-      >("catalog.updateInventoryItemDimensions", {
-        storeId: ctx.storeId,
-        variantId,
-        width: params.dimensions.width,
-        height: params.dimensions.height,
-        length: params.dimensions.length,
-      });
-      if (!r.success) {
-        errors.push(...mapBrokerErrors(r.userErrors));
-      } else {
-        mergeVariantChanges({
-          physical: {
-            width: params.dimensions.width,
-            height: params.dimensions.height,
-            length: params.dimensions.length,
-          },
-        });
-      }
     }
 
     if (params.media) {
@@ -1144,7 +1199,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepVariantDelete(
     params: VariantDeleteParams,
     changes: ProductChanges,
@@ -1175,7 +1230,7 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepVariantUpdate(
     params: VariantUpdateParams,
     changes: ProductChanges,
@@ -1198,6 +1253,61 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       };
     };
 
+    if (params.inventory || params.weight !== undefined || params.dimensions) {
+      const r = await this.kernel.runScript(
+        InventoryItemUpdateScript,
+        {
+          variantId,
+          warehouseId: params.inventory?.warehouseId,
+          onHand: params.inventory?.onHand,
+          unavailable: params.inventory?.unavailable,
+          sku: params.inventory?.sku,
+          trackInventory: params.inventory?.trackInventory,
+          requiresShipping: params.inventory?.requiresShipping,
+          continueSellingWhenOutOfStock: params.inventory?.continueSellingWhenOutOfStock,
+          unitCostMinor: params.inventory?.unitCostMinor,
+          costCurrency: params.inventory?.costCurrency,
+          weight: params.weight,
+          dimensions: params.dimensions
+            ? {
+                widthMm: params.dimensions.width,
+                heightMm: params.dimensions.height,
+                lengthMm: params.dimensions.length,
+              }
+            : undefined,
+        },
+        ctx,
+      );
+      errors.push(...r.userErrors);
+      if (r.changes) {
+        mergeVariantChanges({
+          inventory: {
+            warehouseId: r.changes.warehouseId,
+            onHand: r.changes.onHand,
+            unavailable: r.changes.unavailable,
+            sku: r.changes.sku,
+            trackInventory: r.changes.trackInventory,
+            requiresShipping: r.changes.requiresShipping,
+            continueSellingWhenOutOfStock: r.changes.continueSellingWhenOutOfStock,
+            unitCostMinor: r.changes.unitCostMinor,
+            costCurrency: r.changes.costCurrency,
+          },
+        });
+      }
+      if (r.changes?.weight !== undefined) {
+        mergeVariantChanges({ physical: { weight: r.changes.weight } });
+      }
+      if (r.changes?.dimensions) {
+        mergeVariantChanges({
+          physical: {
+            width: r.changes.dimensions.widthMm,
+            height: r.changes.dimensions.heightMm,
+            length: r.changes.dimensions.lengthMm,
+          },
+        });
+      }
+    }
+
     if (pricing) {
       const r = await this.kernel.runScript(
         VariantUpdatePricingScript,
@@ -1209,80 +1319,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       );
       errors.push(...r.userErrors);
       if (r.changes) mergeVariantChanges({ pricing: r.changes });
-    }
-
-    // Inventory operations are delegated to the Inventory Service via broker
-    if (params.inventory) {
-      const r = await this.broker.call<Inventory.UpdateItemResult, Inventory.UpdateItemParams>(
-        "catalog.updateInventoryItem",
-        {
-          storeId: ctx.storeId,
-          variantId,
-          warehouseId: params.inventory.warehouseId,
-          onHand: params.inventory.onHand,
-          unavailable: params.inventory.unavailable,
-          sku: params.inventory.sku,
-          trackInventory: params.inventory.trackInventory,
-          continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
-          unitCostMinor: params.inventory.unitCostMinor,
-          costCurrency: params.inventory.costCurrency,
-        },
-      );
-      if (!r.success) {
-        errors.push(...mapBrokerErrors(r.userErrors));
-      } else {
-        mergeVariantChanges({
-          inventory: {
-            warehouseId: params.inventory.warehouseId,
-            onHand: params.inventory.onHand,
-            unavailable: params.inventory.unavailable ?? 0,
-            sku: params.inventory.sku,
-            trackInventory: params.inventory.trackInventory,
-            continueSellingWhenOutOfStock: params.inventory.continueSellingWhenOutOfStock,
-            unitCostMinor: params.inventory.unitCostMinor,
-            costCurrency: params.inventory.costCurrency,
-          },
-        });
-      }
-    }
-
-    if (params.weight !== undefined) {
-      const r = await this.kernel.runScript(
-        InventoryItemUpdateScript,
-        {
-          variantId,
-          weight: params.weight,
-        },
-        ctx,
-      );
-      errors.push(...r.userErrors);
-      if (r.changes?.weight !== undefined) {
-        mergeVariantChanges({ physical: { weight: r.changes.weight } });
-      }
-    }
-
-    if (params.dimensions) {
-      const r = await this.broker.call<
-        Inventory.UpdateItemDimensionsResult,
-        Inventory.UpdateItemDimensionsParams
-      >("catalog.updateInventoryItemDimensions", {
-        storeId: ctx.storeId,
-        variantId,
-        width: params.dimensions.width,
-        height: params.dimensions.height,
-        length: params.dimensions.length,
-      });
-      if (!r.success) {
-        errors.push(...mapBrokerErrors(r.userErrors));
-      } else {
-        mergeVariantChanges({
-          physical: {
-            width: params.dimensions.width,
-            height: params.dimensions.height,
-            length: params.dimensions.length,
-          },
-        });
-      }
     }
 
     if (media) {
@@ -1309,26 +1345,29 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
    * Batch update variant options.
    * Processes all option updates in a single step to allow swapping.
    */
-  @WorkflowStep()
+  @TransactionalStep()
   private async stepBatchUpdateOptions(
     productId: string,
-    updates: VariantOptionsUpdate[],
+    updates: Array<{ operationIndex: number; options: VariantOptionsUpdate }>,
     changes: ProductChanges,
     ctx: RunScriptContext,
-  ): Promise<Array<{ variantId: string; applied: boolean; errors: UserError[] }>> {
+  ): Promise<
+    Array<{ operationIndex: number; variantId: string; applied: boolean; errors: UserError[] }>
+  > {
     const r = await this.kernel.runScript(
       VariantBatchUpdateOptionsScript,
       {
         productId,
-        updates,
+        updates: updates.map((update) => update.options),
       },
       ctx,
     );
 
     if (r.userErrors.length > 0) {
       // Script-level error
-      return updates.map((u) => ({
-        variantId: u.variantId,
+      return updates.map((update) => ({
+        operationIndex: update.operationIndex,
+        variantId: update.options.variantId,
         applied: false,
         errors: r.userErrors,
       }));
@@ -1348,7 +1387,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    return results.map((result) => ({
+    return results.map((result, index) => ({
+      operationIndex: updates[index]!.operationIndex,
       variantId: result.variantId,
       applied: result.applied,
       errors: result.errors,
@@ -1369,34 +1409,25 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       return;
     }
 
-    try {
-      await this.broker.runSaga<unknown, BackRefNotifyInput>(
-        "catalog.backRefNotify",
-        {
-          entityRef: {
-            service: "catalog",
-            entityType: "product",
-            entityId: input.productId,
-          },
-          storeId: input.context.storeId,
-          fileIds: mediaChanges.fileIds,
+    await this.broker.runSaga<unknown, BackRefNotifyInput>(
+      "catalog.backRefNotify",
+      {
+        entityRef: {
+          service: "catalog",
+          entityType: "product",
+          entityId: input.productId,
         },
-        {
-          source: "workflow",
-          workflowId: `productUpdate:${input.productId}`,
-          stepId: "notifyProductMediaBackRefs",
-        },
-      );
-    } catch (error) {
-      this.logger.error(
-        {
-          productId: input.productId,
-          error,
-          fileCount: mediaChanges.fileIds.length,
-        },
-        "Failed to start product media back-ref sync saga",
-      );
-    }
+        storeId: input.context.storeId,
+        fileIds: mediaChanges.fileIds,
+      },
+      {
+        source: "workflow",
+        workflowId: DBOS.workflowID!,
+        stepId: "notifyProductMediaBackRefs",
+        callId: input.productId,
+        organizationId: input.context.organizationId,
+      },
+    );
   }
 
   /**
@@ -1429,11 +1460,11 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         workflowId: DBOS.workflowID!,
         stepId: "emitProductUpdated",
         callId: input.productId,
+        organizationId: input.context.organizationId,
       },
     );
   }
 
-  @WorkflowStep()
   private async stepRefreshCategoryProductCounts(
     categoryIds: readonly string[],
     ctx: RunScriptContext,
@@ -1772,14 +1803,4 @@ function addDuplicateCombinationError(
     code: "VARIANT_COMBINATION_DUPLICATE",
     field: fieldPath(op, "options"),
   });
-}
-
-function mapBrokerErrors(
-  errors: Array<{ message: string; code: string; field?: string[] }>,
-): UserError[] {
-  return errors.map((error) => ({
-    message: error.message,
-    code: error.code,
-    field: error.field,
-  }));
 }

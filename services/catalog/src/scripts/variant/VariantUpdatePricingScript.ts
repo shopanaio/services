@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { ItemPricing } from "../../repositories/models/index.js";
 import {
   type ScriptResult,
@@ -25,6 +25,7 @@ export class VariantUpdatePricingScript extends BaseScript<
   VariantUpdatePricingParams,
   VariantUpdatePricingResult
 > {
+  @Transactional()
   protected async execute(params: VariantUpdatePricingParams): Promise<VariantUpdatePricingResult> {
     const { variantId, currency, amountMinor, compareAtMinor } = params;
 

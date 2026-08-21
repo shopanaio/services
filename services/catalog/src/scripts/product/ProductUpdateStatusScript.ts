@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type { ProductUpdateStatusParams, ProductUpdateStatusResult } from "./dto/index.js";
 import { singleError } from "../types/index.js";
 
@@ -9,6 +9,7 @@ export class ProductUpdateStatusScript extends BaseScript<
   ProductUpdateStatusParams,
   ProductUpdateStatusResult
 > {
+  @Transactional()
   protected async execute(params: ProductUpdateStatusParams): Promise<ProductUpdateStatusResult> {
     const { id, status } = params;
 

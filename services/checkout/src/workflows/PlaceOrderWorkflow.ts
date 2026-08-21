@@ -35,7 +35,7 @@ import {
   type ServiceBroker,
   Workflow,
   WorkflowStep,
-  TransactionalStep,
+  createTransactionalStep as TransactionalStep,
 } from "@shopana/shared-kernel";
 import {
   assertCompletePipelineResult,

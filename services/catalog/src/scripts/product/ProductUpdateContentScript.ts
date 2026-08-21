@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type {
   ProductUpdateContentParams,
   ProductUpdateContentResult,
@@ -14,6 +14,7 @@ export class ProductUpdateContentScript extends BaseScript<
   ProductUpdateContentParams,
   ProductUpdateContentResult
 > {
+  @Transactional()
   protected async execute(params: ProductUpdateContentParams): Promise<ProductUpdateContentResult> {
     const { id, description, excerpt } = params;
 

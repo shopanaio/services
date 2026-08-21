@@ -1,4 +1,4 @@
-import { BaseScript } from "../../kernel/BaseScript.js";
+import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import { isUniqueViolation } from "../../kernel/types.js";
 import type { ProductUpdateParams, ProductUpdateResult } from "./dto/index.js";
 import type { ProductIdentityChanges } from "../types/index.js";
@@ -13,6 +13,7 @@ import { singleError } from "../types/index.js";
  * For status, use ProductSetStatusScript.
  */
 export class ProductUpdateScript extends BaseScript<ProductUpdateParams, ProductUpdateResult> {
+  @Transactional()
   protected async execute(params: ProductUpdateParams): Promise<ProductUpdateResult> {
     const { id, handle, title, vendorId } = params;
 
@@ -29,13 +30,29 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
       }
     }
 
+    if (handle !== undefined && handle !== existingProduct.handle) {
+      const productWithHandle = await this.repository.product.findByHandle(handle);
+      if (productWithHandle && productWithHandle.id !== id) {
+        return singleError("Product with this handle already exists", "DUPLICATE_HANDLE", [
+          "handle",
+        ]);
+      }
+    }
+
     const locale = this.getLocale();
     const storeId = this.getProjectId();
 
     // Track what actually changed
     const changes: ProductIdentityChanges = {};
 
-    // 2. Update title if provided and different
+    // 2. Update handle before the translation write. A concurrent uniqueness
+    // conflict must escape the DBOS transaction so the whole step rolls back.
+    if (handle !== undefined && handle !== existingProduct.handle) {
+      await this.repository.product.update(id, { handle });
+      changes.handle = handle;
+    }
+
+    // 3. Update title if provided and different
     if (title !== undefined) {
       const existingTranslation = await this.repository.translation.getProductTranslation(
         id,
@@ -57,21 +74,6 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
           excerptJson: existingTranslation?.excerptJson ?? null,
         });
         changes.title = title;
-      }
-    }
-
-    // 3. Update handle if provided and different
-    if (handle !== undefined && handle !== existingProduct.handle) {
-      try {
-        await this.repository.product.update(id, { handle });
-        changes.handle = handle;
-      } catch (error) {
-        if (isUniqueViolation(error, "product_store_id_handle_key")) {
-          return singleError("Product with this handle already exists", "DUPLICATE_HANDLE", [
-            "handle",
-          ]);
-        }
-        throw error;
       }
     }
 
@@ -102,7 +104,11 @@ export class ProductUpdateScript extends BaseScript<ProductUpdateParams, Product
     };
   }
 
-  protected handleError(_error: unknown): ProductUpdateResult {
+  protected handleError(error: unknown): ProductUpdateResult {
+    if (isUniqueViolation(error, "product_store_id_handle_key")) {
+      return singleError("Product with this handle already exists", "DUPLICATE_HANDLE", ["handle"]);
+    }
+
     return {
       result: null,
       changes: null,

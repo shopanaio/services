@@ -22,7 +22,7 @@ import {
   type ServiceBroker,
   Workflow,
   WorkflowStep,
-  TransactionalStep,
+  createTransactionalStep as TransactionalStep,
 } from "@shopana/shared-kernel";
 import { CheckoutPlacementRepository } from "../infrastructure/mutations/CheckoutPlacementRepository.js";
 import { canonicalJsonSha256 } from "../application/pipeline/canonicalJson.js";

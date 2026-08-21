@@ -29,6 +29,8 @@ export interface WorkflowContext {
  */
 export interface ProductUpdateOperationMeta {
   fieldPrefix?: string[];
+  /** Internal input position used to restore batch option results deterministically. */
+  operationIndex?: number;
 }
 
 export type ProductUpdateOperation =

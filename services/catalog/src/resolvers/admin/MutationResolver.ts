@@ -865,6 +865,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         source: "workflow",
         workflowId: `productUpdate:${decodedProductId}:${idempotencyKey}`,
         stepId: "start",
+        organizationId: this.$ctx.store.organizationId,
       },
       { adminContext: this.$ctx.adminContext },
     )) as ProductUpdateWorkflowResult;
@@ -2178,6 +2179,69 @@ function mapProductUpdateInput(
       }
     }
   }
+
+  // Option-definition replacement and variant option mutations are one dependent
+  // aggregate change. They cannot be safely split into independent durable steps.
+  const optionDefinitionEntry = entries.find(
+    (entry) => entry.operation?.type === "productOptionsSync",
+  );
+  const conflictingVariantEntries = entries.filter(
+    (entry) =>
+      entry.operation?.type === "variantCreate" ||
+      (entry.operation?.type === "variantUpdate" && entry.operation.params.options !== undefined),
+  );
+  if (optionDefinitionEntry && conflictingVariantEntries.length > 0) {
+    const conflict = (entry: ProductUpdateMappedEntry) => {
+      const error: UserError = {
+        message:
+          "Option definition sync cannot be combined with variant option or create operations",
+        field: entry.operation?.meta?.fieldPrefix,
+        code: "DEPENDENT_OPERATION_CONFLICT",
+      };
+      entry.errors.push(error);
+      errors.push(error);
+      if (entry.operation) {
+        const operationIndex = result.indexOf(entry.operation);
+        if (operationIndex >= 0) result.splice(operationIndex, 1);
+        entry.operation = undefined;
+      }
+    };
+    conflict(optionDefinitionEntry);
+    conflictingVariantEntries.forEach(conflict);
+  }
+
+  // Multiple mutations of the same existing variant make the operation result
+  // ordering and transactional boundary ambiguous, so reject them at preflight.
+  const seenVariantIds = new Map<string, ProductUpdateMappedEntry>();
+  for (const entry of entries) {
+    const operation = entry.operation;
+    if (!operation || (operation.type !== "variantUpdate" && operation.type !== "variantDelete"))
+      continue;
+    const variantId = operation.params.variantId;
+    const previous = seenVariantIds.get(variantId);
+    if (!previous) {
+      seenVariantIds.set(variantId, entry);
+      continue;
+    }
+    for (const duplicate of [previous, entry]) {
+      const error: UserError = {
+        message: "A variant can be updated only once in a product update request",
+        field: duplicate.operation?.meta?.fieldPrefix,
+        code: "DUPLICATE_VARIANT_OPERATION",
+      };
+      duplicate.errors.push(error);
+      errors.push(error);
+      if (duplicate.operation) {
+        const operationIndex = result.indexOf(duplicate.operation);
+        if (operationIndex >= 0) result.splice(operationIndex, 1);
+        duplicate.operation = undefined;
+      }
+    }
+  }
+
+  result.forEach((operation, operationIndex) => {
+    operation.meta = { ...operation.meta, operationIndex };
+  });
 
   return { operations: result, entries, errors };
 }
