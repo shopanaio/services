@@ -19,6 +19,10 @@ import type {
 import type { BulkEditItem } from "../repositories/models/index.js";
 import type { ProductUpdateWorkflowResult } from "./dto/ProductUpdateWorkflowDto.js";
 import { BulkEditCreateJobScript, BulkEditFinalizeJobScript } from "../scripts/bulk-edit/index.js";
+import {
+  buildProductUpdateQueuePartitionKey,
+  CATALOG_AGGREGATE_MUTATIONS_QUEUE,
+} from "./productUpdateWorkflowQueue.js";
 
 interface ProductGroup {
   productId: string;
@@ -101,7 +105,16 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
           stepId: "productUpdate",
           callId: productId,
         },
-        { workflowContext },
+        {
+          workflowContext,
+          queueName: CATALOG_AGGREGATE_MUTATIONS_QUEUE,
+          enqueueOptions: {
+            queuePartitionKey: buildProductUpdateQueuePartitionKey({
+              storeId: context.storeId,
+              productId,
+            }),
+          },
+        },
       )) as ProductUpdateWorkflowResult;
 
       // 4. Map results back to items

@@ -42,6 +42,10 @@ async function bootstrap() {
       process.env.LISTING_INDEX_ACTIONS_WORKER_CONCURRENCY,
       1,
     );
+    const catalogAggregateMutationsWorkerConcurrency = parsePositiveInteger(
+      process.env.CATALOG_AGGREGATE_MUTATIONS_WORKER_CONCURRENCY,
+      10,
+    );
     const recommendationSnapshotWorkerConcurrency = parsePositiveInteger(
       process.env.RECOMMENDATION_SNAPSHOT_WORKER_CONCURRENCY,
       20,
@@ -61,6 +65,12 @@ async function bootstrap() {
           concurrency: listingIndexWorkerConcurrency,
           workerConcurrency: listingIndexWorkerConcurrency,
           onConflict: "update_if_latest_version",
+        },
+        {
+          name: "catalog_aggregate_mutations",
+          partitionQueue: true,
+          concurrency: catalogAggregateMutationsWorkerConcurrency,
+          workerConcurrency: catalogAggregateMutationsWorkerConcurrency,
         },
         {
           name: "recommendation_snapshot_build",

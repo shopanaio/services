@@ -149,6 +149,53 @@ Root workflow каждой Admin aggregate mutation — `<aggregate>Create`, `<a
 `<aggregate>Delete` — обязан запускаться с `time-window` idempotency context. Один и тот же semantic
 request, повторно доставленный в пределах окна, не должен запускать второй набор изменений.
 
+### Очередь и последовательность update
+
+Каждый `<aggregate>Update` root workflow запускается через partitioned DBOS queue. Partition key
+обязан однозначно определять aggregate instance: минимум `storeId`, стабильный тип aggregate и
+decoded aggregate ID. Например: `${storeId}:product:${productId}`. Одинаковый key гарантирует
+последовательное выполнение update-workflows одного aggregate; разные aggregate могут исполняться
+параллельно в пределах общей concurrency очереди.
+
+Очередь регистрируется с `partitionQueue: true`. Её `concurrency` и `workerConcurrency` задают
+общую пропускную способность очереди, а не отменяют последовательность одной partition. Нельзя
+использовать store-wide key, случайный key или key дочерней entity: они соответственно создают
+лишнюю сериализацию либо допускают одновременную запись в один aggregate.
+
+Time-window idempotency разрешается registry до постановки в очередь. Повторный semantic request
+в пределах окна присоединяется к уже существующему queued/running workflow либо получает его
+сохранённый result и **не создаёт новую queue entry**. Поэтому для root update нельзя добавлять
+`workflowId`, `deduplicationID`, локальную deduplication-проверку или отдельный mutex: identity
+целиком выводится из `time-window` context.
+
+```ts
+const result = await broker.runWorkflow(
+  "catalog.productUpdate",
+  workflowInput,
+  {
+    source: "time-window",
+    organizationId: ctx.store.organizationId,
+    resourceId: productId,
+    operation: "productUpdate",
+    content: workflowInput.operations,
+    requestTimestamp: ctx.requestTimestamp,
+    windowMs: 5_000,
+  },
+  {
+    adminContext: ctx.adminContext,
+    queueName: "catalog_aggregate_mutations",
+    enqueueOptions: {
+      queuePartitionKey: `${ctx.store.id}:product:${productId}`,
+    },
+  },
+);
+```
+
+`catalog_aggregate_mutations` в примере — имя service-level очереди; конкретное имя выбирается
+сервисом, но оно должно быть зарегистрировано как partitioned queue. Референс реализации
+partition key и queue start: `services/listing/src/handlers/listingIndexWorkflowEnqueue.ts` и
+`services/listing/src/workflows/listingIndexWorkflowHelpers.ts`.
+
 Прямой вызов write script/repository из resolver запрещён. Публикация `<aggregate>Updated`,
 `<aggregate>Created` или `<aggregate>Deleted` из resolver также запрещена: между commit и emit
 возникнет недолговечный разрыв, который невозможно надёжно восстановить после падения процесса.
@@ -323,6 +370,9 @@ group. Внутренний порядок SQL может отличаться �
 - workflow имеет единственный broker-registered `@Workflow` entry point; root Admin aggregate
   mutation запускает его только с `source: "time-window"`, tenant scope, transport-assigned
   `requestTimestamp`, `windowMs: 5_000` и semantic content без volatile metadata;
+- `<aggregate>Update` запускается в partitioned queue с key, однозначно определяющим aggregate
+  instance (`storeId:aggregateType:aggregateId`); одинаковый key выполняется последовательно, а
+  time-window duplicate не создаёт вторую queue entry;
 - body replay-safe: порядок, ветвления и аргументы steps зависят только от input и сохранённых step
   results; ID, время, random и другие nondeterministic values создаются только в durable step;
 - все значимые этапы имеют отдельную durable step boundary, а database writes выполняются только в
@@ -523,6 +573,8 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 - вычисление `requestTimestamp` внутри resolver/workflow или включение timestamp в semantic content
   hash;
 - локальный cache/mutex/status lookup вместо атомарного time-window resolution в `WorkflowRegistry`;
+- запуск `<aggregate>Update` без partitioned queue, с partition key шире или уже aggregate instance,
+  либо с повторной queue entry для time-window duplicate;
 - альтернативный внутренний endpoint, обходящий aggregate workflow для той же операции.
 
 ## Review checklist
@@ -547,12 +599,16 @@ private async emitExampleUpdated(input: Input, changes: Changes): Promise<void> 
 9. `<aggregate>Updated`, `<aggregate>Created` или `<aggregate>Deleted` публикуется durable после
    commit и только при фактическом изменении, создании или удалении.
 10. Повторный semantic request в пределах пяти секунд получает тот же result/in-flight workflow;
-    workflow replay не дублирует writes и события, а volatile request metadata не входит в hash.
-11. Новый endpoint не создаёт второй write path к тому же aggregate.
-12. Любое исключение из unified mutation rule документировано как отдельное архитектурное решение.
-13. На write path нет CAS columns, predicates, tokens, stale-object conflicts или client retry
+    workflow replay не дублирует writes и события, duplicate не создаёт новую queue entry, а
+    volatile request metadata не входит в hash.
+11. `<aggregate>Update` запускается в зарегистрированной partitioned queue с key
+    `storeId:aggregateType:aggregateId`; concurrent updates одного aggregate исполняются по
+    порядку, а разных aggregate могут исполняться параллельно.
+12. Новый endpoint не создаёт второй write path к тому же aggregate.
+13. Любое исключение из unified mutation rule документировано как отдельное архитектурное решение.
+14. На write path нет CAS columns, predicates, tokens, stale-object conflicts или client retry
     protocol.
-14. Новый workflow с operations наследует `AggregateUpdateWorkflow`; plan покрывает каждую input
+15. Новый workflow с operations наследует `AggregateUpdateWorkflow`; plan покрывает каждую input
     position ровно один раз, а batch outcomes сопоставлены по position, не по порядку ответа script.
 
 ## Связанные документы

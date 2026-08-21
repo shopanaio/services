@@ -70,6 +70,10 @@ import type {
   ProductTagOperationAction,
   WorkflowContext,
 } from "../../workflows/dto/ProductUpdateWorkflowDto.js";
+import {
+  buildProductUpdateQueuePartitionKey,
+  CATALOG_AGGREGATE_MUTATIONS_QUEUE,
+} from "../../workflows/productUpdateWorkflowQueue.js";
 import type { ProductCreateParams, ProductCreateResult } from "../../sagas/index.js";
 import { VendorCreateScript } from "../../scripts/vendor/index.js";
 import {
@@ -869,7 +873,16 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
         requestTimestamp: this.$ctx.requestTimestamp,
         windowMs: 5_000,
       },
-      { adminContext: this.$ctx.adminContext },
+      {
+        adminContext: this.$ctx.adminContext,
+        queueName: CATALOG_AGGREGATE_MUTATIONS_QUEUE,
+        enqueueOptions: {
+          queuePartitionKey: buildProductUpdateQueuePartitionKey({
+            storeId: this.$ctx.store.id,
+            productId: decodedProductId,
+          }),
+        },
+      },
     )) as ProductUpdateWorkflowResult;
 
     return {
