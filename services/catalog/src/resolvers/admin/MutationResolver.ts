@@ -857,16 +857,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       },
     };
 
-    const idempotencyKey = this.$ctx.requestId;
-
     const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
       "catalog.productUpdate",
       workflowInput,
       {
-        source: "workflow",
-        workflowId: `productUpdate:${decodedProductId}:${idempotencyKey}`,
-        stepId: "start",
+        source: "content",
         organizationId: this.$ctx.store.organizationId,
+        resourceId: decodedProductId,
+        operation: "productUpdate",
+        content: {
+          requestId: this.$ctx.requestId,
+          operations: workflowInput.operations,
+        },
       },
       { adminContext: this.$ctx.adminContext },
     )) as ProductUpdateWorkflowResult;
@@ -2023,15 +2025,18 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
 
-    const idempotencyKey = this.$ctx.requestId;
-
     const result = (await this.$ctx.kernel.getServices().broker.runWorkflow(
       "catalog.productBulkEdit",
       { products, context },
       {
-        source: "workflow",
-        workflowId: `productBulkEdit:${context.storeId}:${idempotencyKey}`,
-        stepId: "start",
+        source: "content",
+        organizationId: context.organizationId,
+        resourceId: context.storeId,
+        operation: "productBulkEdit",
+        content: {
+          requestId: context.requestId,
+          products,
+        },
       },
       { adminContext: this.$ctx.adminContext },
     )) as { jobId: string };
