@@ -1,6 +1,7 @@
 import { z } from "zod";
 import type {
   ApplyOrderIntegrationEventV1Params,
+  ApplyOrderIntegrationImportV1Params,
   CompleteOrderFulfillmentServiceOperationV1Params,
 } from "@shopana/broker-types";
 
@@ -54,4 +55,71 @@ export type FulfillmentServiceCallbackWorkflowInput = Readonly<{
 export type IntegrationEventWorkflowInput = Readonly<{
   context: TrustedOrderAppContext;
   input: ApplyOrderIntegrationEventV1Params;
+}>;
+
+export const applyOrderIntegrationImportV1Schema: z.ZodType<ApplyOrderIntegrationImportV1Params> = z
+  .object({
+    contractVersion: z.literal(1),
+    integrationLinkId: uuid,
+    providerEventId: nonEmpty,
+    import: z
+      .object({
+        schemaVersion: z.literal(1),
+        status: z.enum(["OPEN", "CLOSED"]).nullable(),
+        paymentStatus: z
+          .enum([
+            "NOT_REQUIRED",
+            "PENDING",
+            "AUTHORIZED",
+            "PARTIALLY_PAID",
+            "PAID",
+            "PARTIALLY_REFUNDED",
+            "REFUNDED",
+            "VOIDED",
+            "EXPIRED",
+            "FAILED",
+          ])
+          .nullable(),
+        fulfillmentStatus: z
+          .enum([
+            "UNFULFILLED",
+            "SCHEDULED",
+            "ON_HOLD",
+            "PARTIALLY_FULFILLED",
+            "FULFILLED",
+            "CANCELLED",
+          ])
+          .nullable(),
+        deliveryStatus: z
+          .enum([
+            "NOT_SHIPPED",
+            "PARTIALLY_SHIPPED",
+            "SHIPPED",
+            "IN_TRANSIT",
+            "OUT_FOR_DELIVERY",
+            "DELIVERED",
+            "DELIVERY_ATTEMPTED",
+            "DELAYED",
+            "EXCEPTION",
+            "RETURNED_TO_SENDER",
+            "CANCELLED",
+          ])
+          .nullable(),
+        lineQuantities: z
+          .array(z.object({ orderLineId: uuid, quantity: z.number().int().positive() }))
+          .nullable(),
+        tags: z.array(nonEmpty).nullable(),
+        externalOrderId: nonEmpty,
+        externalRevision: nonEmpty,
+        observedAt: occurredAt,
+      })
+      .strict(),
+    idempotencyKey: nonEmpty,
+    correlationId: uuid,
+  })
+  .strict();
+
+export type IntegrationImportWorkflowInput = Readonly<{
+  context: TrustedOrderAppContext;
+  input: ApplyOrderIntegrationImportV1Params;
 }>;

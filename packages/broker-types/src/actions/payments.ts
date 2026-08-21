@@ -466,6 +466,17 @@ export interface PaymentFailure {
   providerCode: string | null;
 }
 
+/**
+ * Provider-reported fee attached to a payment transaction. Orders persists
+ * these verbatim into its transaction-fee projection.
+ */
+export interface PaymentTransactionFee {
+  type: string;
+  amount: PricingCheckoutMoney;
+  taxAmount: PricingCheckoutMoney | null;
+  description: string | null;
+}
+
 /** Non-sensitive instrument details safe for receipts and Admin display. */
 export type PaymentInstrumentSummary =
   | Readonly<{

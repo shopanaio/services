@@ -97,6 +97,7 @@ export interface AdminOrderCommandPersistence {
     ): Mutation;
     createExchange(request: AdminOrderCommandInput, command: AdminOrderCommandName): Mutation;
     cancelExchange(request: AdminOrderCommandInput, command: AdminOrderCommandName): Mutation;
+    completeExchange(request: AdminOrderCommandInput, command: AdminOrderCommandName): Mutation;
   };
   readonly integration: {
     detachIntegration(request: AdminOrderCommandInput, command: AdminOrderCommandName): Mutation;

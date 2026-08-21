@@ -567,6 +567,15 @@ type OrdersMutation {
     input: OrderExchangeCancelInput!
   ): OrderExchangePayload!
   """
+  Complete an eligible exchange after inbound receipt and outbound fulfillment.
+  """
+  orderExchangeComplete(
+    """
+    Validated input value for input.
+    """
+    input: OrderExchangeCompleteInput!
+  ): OrderExchangePayload!
+  """
   Request asynchronous synchronization through a pinned integration link.
   """
   orderIntegrationSyncRequest(

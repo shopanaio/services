@@ -62,6 +62,18 @@ const line = z.object({
   duty: money,
   total: money,
   snapshot: jsonObject,
+  dutyLines: z
+    .array(
+      z.object({
+        title: nonEmpty,
+        countryCode: z
+          .string()
+          .regex(/^[A-Z]{2}$/)
+          .nullable(),
+        amount: money,
+      }),
+    )
+    .default([]),
 });
 
 const deliveryGroup = z.object({
@@ -104,6 +116,9 @@ const deliveryGroup = z.object({
       publicData: jsonObject,
     })
     .nullable(),
+  deliveryTaxLines: z
+    .array(z.object({ title: nonEmpty, rate: nonEmpty, amount: money }))
+    .default([]),
 });
 
 const snapshot = z
@@ -163,6 +178,17 @@ const snapshot = z
     customerNote: z.string().nullable(),
     customFields: jsonObject,
     loyaltyRewardEligibility: loyaltyRewardEligibility.nullable(),
+    returnPolicy: z
+      .object({
+        policyId: nonEmpty,
+        revision: nonEmpty,
+        timeframeDays: z.number().int().positive().nullable(),
+        restockingFeePercentage: z.string().nullable(),
+        allowedReasons: z.array(nonEmpty),
+        finalizedOrdersOnly: z.boolean(),
+        capturedAt: isoDateTime,
+      })
+      .nullable(),
   })
   .superRefine((value, context) => {
     const currency = value.currencyCode;
@@ -176,6 +202,11 @@ const snapshot = z
         item.tax,
         item.duty,
         item.total,
+        ...item.dutyLines.map((dutyLine) => dutyLine.amount),
+      ]),
+      ...value.deliveryGroups.flatMap((group) => [
+        ...(group.selectedMethod ? [group.selectedMethod.quotedAmount] : []),
+        ...group.deliveryTaxLines.map((taxLine) => taxLine.amount),
       ]),
     ];
     if (amounts.some((amount) => amount.currencyCode !== currency)) {

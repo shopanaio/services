@@ -15,8 +15,7 @@ import { encodeId, money, numberValue, rowsValue, stringValue, value, type Row }
 export class OrderEditSessionResolver extends OrdersType<string, Row> {
   protected async $preload(): Promise<Row> {
     const row = await this.$ctx.loaders.editSession.load(this.$props);
-    if (!row)
-      throw new PreloadNotFoundError(`Order edit session with ID ${this.$props} not found`);
+    if (!row) throw new PreloadNotFoundError(`Order edit session with ID ${this.$props} not found`);
     return row;
   }
   id() {
@@ -115,9 +114,7 @@ function projectLines(order: Row, changes: Row[], currencyCode: string) {
           weightValue: value(asRow(input.weight), "value"),
           weightUnit: value(asRow(input.weight), "unit"),
           unitCostAmount:
-            input.unitCost == null
-              ? null
-              : moneyInputMinor(asRow(input.unitCost), currencyCode),
+            input.unitCost == null ? null : moneyInputMinor(asRow(input.unitCost), currencyCode),
         },
         title: stringValue(input, "title"),
         sku: value(input, "sku"),
@@ -143,7 +140,8 @@ function projectLines(order: Row, changes: Row[], currencyCode: string) {
       const id = stringValue(payload, "lineId");
       const current = lines.get(id);
       if (!current) continue;
-      const quantity = payload.quantity == null ? numberValue(current, "quantity") : Number(payload.quantity);
+      const quantity =
+        payload.quantity == null ? numberValue(current, "quantity") : Number(payload.quantity);
       const unitPrice =
         payload.unitPrice == null
           ? BigInt(String(value(current, "unitPriceAmount") ?? 0))
@@ -151,10 +149,13 @@ function projectLines(order: Row, changes: Row[], currencyCode: string) {
       const discount = BigInt(String(value(current, "discountAmount") ?? 0));
       const tax = BigInt(String(value(current, "taxAmount") ?? 0));
       const duty = BigInt(String(value(current, "dutyAmount") ?? 0));
-      current.quantity = quantity;
-      current.unitPriceAmount = unitPrice;
-      current.subtotalAmount = unitPrice * BigInt(quantity);
-      current.totalAmount = unitPrice * BigInt(quantity) - discount + tax + duty;
+      lines.set(id, {
+        ...current,
+        quantity,
+        unitPriceAmount: unitPrice,
+        subtotalAmount: unitPrice * BigInt(quantity),
+        totalAmount: unitPrice * BigInt(quantity) - discount + tax + duty,
+      });
     } else if (kind === "orderEditLineRemove") {
       lines.delete(stringValue(payload, "lineId"));
     }
@@ -180,7 +181,5 @@ function moneyInputMinor(input: Row, currencyCode: string): bigint {
 }
 
 function asRow(input: unknown): Row {
-  return input && typeof input === "object" && !Array.isArray(input)
-    ? (input as Row)
-    : {};
+  return input && typeof input === "object" && !Array.isArray(input) ? (input as Row) : {};
 }

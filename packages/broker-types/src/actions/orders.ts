@@ -42,6 +42,12 @@ export interface OrderPlacementLineV1 {
   duty: OrderPlacementMoneyV1;
   total: OrderPlacementMoneyV1;
   snapshot: Readonly<Record<string, unknown>>;
+  /**
+   * Itemised duty breakdown captured from checkout; omitted or empty when the
+   * line carries no duty. The aggregate stays in `duty`, so Orders persists
+   * detail rows only for the titles the producer actually resolved.
+   */
+  dutyLines?: readonly OrderPlacementDutyLineV1[];
 }
 
 export interface OrderPlacementCustomerSnapshotV1 {
@@ -87,6 +93,8 @@ export interface OrderPlacementDeliveryGroupV1 {
     quotedAmount: OrderPlacementMoneyV1;
     publicData: Readonly<Record<string, unknown>>;
   }> | null;
+  /** Delivery-specific tax breakdown captured from checkout; omitted or empty when none. */
+  deliveryTaxLines?: readonly OrderPlacementTaxLineV1[];
 }
 
 export interface OrderPlacementDiscountV1 {
@@ -104,6 +112,12 @@ export interface OrderPlacementDiscountV1 {
 export interface OrderPlacementTaxLineV1 {
   title: string;
   rate: string;
+  amount: OrderPlacementMoneyV1;
+}
+
+export interface OrderPlacementDutyLineV1 {
+  title: string;
+  countryCode: string | null;
   amount: OrderPlacementMoneyV1;
 }
 
@@ -125,6 +139,34 @@ export interface OrderPlacementCostV1 {
   total: OrderPlacementMoneyV1;
 }
 
+/**
+ * Store-level return policy captured by Checkout at order placement. Orders
+ * stores the snapshot verbatim and later derives return eligibility from it,
+ * mirroring Shopify's immutable policy-snapshot model. `null` means the store
+ * has no configured policy, and Orders then applies no policy restriction.
+ */
+export interface OrderReturnPolicySnapshotV1 {
+  policyId: string;
+  revision: string;
+  /**
+   * Return window in calendar days counted from the moment the returned goods
+   * reach the customer. Orders uses the latest delivered shipment, or the
+   * successful fulfilment completion time when no shipment exists. The window
+   * does not start from placement. `null` means unlimited after receipt.
+   */
+  timeframeDays: number | null;
+  /** Restocking fee as a percentage string, e.g. "10.00"; null means none. */
+  restockingFeePercentage: string | null;
+  /**
+   * Reason codes a return request may use. An empty list means the policy does
+   * not restrict reasons.
+   */
+  allowedReasons: readonly string[];
+  /** When true, only finalized (closed) orders are returnable. */
+  finalizedOrdersOnly: boolean;
+  capturedAt: string;
+}
+
 export interface OrderPlacementSnapshotV1 {
   capturedAt: string;
   currencyCode: string;
@@ -142,6 +184,7 @@ export interface OrderPlacementSnapshotV1 {
   customerNote: string | null;
   customFields: Readonly<Record<string, unknown>>;
   loyaltyRewardEligibility: OrderLoyaltyRewardEligibilitySnapshot | null;
+  returnPolicy: OrderReturnPolicySnapshotV1 | null;
 }
 
 export interface OrderPlacementLoyaltyCommitmentV1 {
@@ -242,11 +285,13 @@ export type OrderCheckoutPlacementV1Result = Readonly<{
 export const OrderProviderActionNames = {
   completeFulfillmentServiceOperation: "completeOrderFulfillmentServiceOperationV1",
   applyIntegrationEvent: "applyOrderIntegrationEventV1",
+  applyIntegrationImport: "applyOrderIntegrationImportV1",
 } as const;
 
 export const OrderProviderActions = {
   completeFulfillmentServiceOperation: `order.${OrderProviderActionNames.completeFulfillmentServiceOperation}`,
   applyIntegrationEvent: `order.${OrderProviderActionNames.applyIntegrationEvent}`,
+  applyIntegrationImport: `order.${OrderProviderActionNames.applyIntegrationImport}`,
 } as const;
 
 export interface CompleteOrderFulfillmentServiceOperationV1Params {
@@ -285,6 +330,75 @@ export interface ApplyOrderIntegrationEventV1Result {
   orderVersion: number;
   duplicate: boolean;
   reconciliationRequired: boolean;
+}
+
+/**
+ * Canonical inbound order facts a channel app translates from its external
+ * system and pushes to Orders. Orders applies these to the local order,
+ * keeping the channel app (not a generic platform importer) as the owner of
+ * the external-to-canonical mapping — the Shopify reconciliation model.
+ *
+ * Every field is a canonical platform value, never a provider-native one, and
+ * every `null` means "the app has no fact to report", not "reset the value".
+ * Orders rejects state that requires domain side effects (cancellation,
+ * refunds, restock); those must go through the corresponding order command.
+ */
+export interface OrderIntegrationImportSnapshotV1 {
+  schemaVersion: 1;
+  /** Reconcilable lifecycle state; `CANCELLED` is rejected on purpose. */
+  status: "OPEN" | "CLOSED" | null;
+  paymentStatus: OrderIntegrationImportPaymentStatusV1 | null;
+  fulfillmentStatus: OrderIntegrationImportFulfillmentStatusV1 | null;
+  deliveryStatus: OrderIntegrationImportDeliveryStatusV1 | null;
+  lineQuantities: readonly Readonly<{ orderLineId: string; quantity: number }>[] | null;
+  tags: readonly string[] | null;
+  externalOrderId: string;
+  externalRevision: string;
+  observedAt: string;
+}
+
+export type OrderIntegrationImportPaymentStatusV1 =
+  | "NOT_REQUIRED"
+  | "PENDING"
+  | "AUTHORIZED"
+  | "PARTIALLY_PAID"
+  | "PAID"
+  | "PARTIALLY_REFUNDED"
+  | "REFUNDED"
+  | "VOIDED"
+  | "EXPIRED"
+  | "FAILED";
+
+export type OrderIntegrationImportFulfillmentStatusV1 =
+  "UNFULFILLED" | "SCHEDULED" | "ON_HOLD" | "PARTIALLY_FULFILLED" | "FULFILLED" | "CANCELLED";
+
+export type OrderIntegrationImportDeliveryStatusV1 =
+  | "NOT_SHIPPED"
+  | "PARTIALLY_SHIPPED"
+  | "SHIPPED"
+  | "IN_TRANSIT"
+  | "OUT_FOR_DELIVERY"
+  | "DELIVERED"
+  | "DELIVERY_ATTEMPTED"
+  | "DELAYED"
+  | "EXCEPTION"
+  | "RETURNED_TO_SENDER"
+  | "CANCELLED";
+
+export interface ApplyOrderIntegrationImportV1Params {
+  contractVersion: 1;
+  integrationLinkId: string;
+  providerEventId: string;
+  import: OrderIntegrationImportSnapshotV1;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface ApplyOrderIntegrationImportV1Result {
+  orderId: string;
+  integrationLinkId: string;
+  orderVersion: number;
+  duplicate: boolean;
 }
 
 export const OrderFulfillmentActionNames = {
@@ -444,3 +558,61 @@ export type VerifyReviewPurchaseResult =
         | "ORDER_LINE_PRODUCT_MISMATCH"
         | "ORDER_LINE_VARIANT_MISMATCH";
     };
+
+/**
+ * Customer-scoped post-order actions. Orders verifies ownership
+ * (order.customerId === customerId) under the same row lock as the mutation
+ * and reuses the same domain logic as the admin commands, mirroring Shopify's
+ * customer self-service model. `expectedVersion` is the revision the customer
+ * observed: the command fails with a version conflict when the order moved on.
+ */
+export const OrderStorefrontActionNames = {
+  cancel: "cancelOrderFromStorefront",
+  createReturnRequest: "createOrderReturnRequestFromStorefront",
+} as const;
+
+export const OrderStorefrontActions = {
+  cancel: `order.${OrderStorefrontActionNames.cancel}`,
+  createReturnRequest: `order.${OrderStorefrontActionNames.createReturnRequest}`,
+} as const;
+
+export interface CancelOrderFromStorefrontParams {
+  organizationId: string;
+  storeId: string;
+  customerId: string;
+  orderId: string;
+  expectedVersion: number;
+  reasonCode: string | null;
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface CancelOrderFromStorefrontResult {
+  orderId: string;
+  orderVersion: number;
+  orderStatus: "CANCELLED";
+  duplicate: boolean;
+}
+
+export interface CreateOrderReturnRequestFromStorefrontParams {
+  organizationId: string;
+  storeId: string;
+  customerId: string;
+  orderId: string;
+  expectedVersion: number;
+  lines: readonly Readonly<{
+    orderLineId: string;
+    quantity: number;
+    reasonCode: string;
+    note?: string;
+  }>[];
+  idempotencyKey: string;
+  correlationId: string;
+}
+
+export interface CreateOrderReturnRequestFromStorefrontResult {
+  orderId: string;
+  returnRequestId: string;
+  orderVersion: number;
+  duplicate: boolean;
+}

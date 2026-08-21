@@ -33,18 +33,40 @@ const stableCodes = new Set([
   "ORDER_PAYMENT_ACTION_NOT_AVAILABLE",
   "ORDER_PAYMENT_PROVIDER_UNAVAILABLE",
   "ORDER_REFUND_AMOUNT_EXCEEDED",
+  "ORDER_CUSTOMER_MISMATCH",
   "FULFILLMENT_ORDER_NOT_FOUND",
   "FULFILLMENT_ORDER_VERSION_CONFLICT",
   "FULFILLMENT_QUANTITY_EXCEEDED",
   "FULFILLMENT_SERVICE_NOT_READY",
   "FULFILLMENT_CANCELLATION_PENDING",
+  "FULFILLMENT_NOT_FOUND",
   "SHIPMENT_ACTION_NOT_AVAILABLE",
   "SHIPMENT_PROVIDER_UNAVAILABLE",
+  "SHIPMENT_NOT_FOUND",
+  "SHIPMENT_CANCEL_NOT_ACCEPTED",
   "RETURN_QUANTITY_EXCEEDED",
   "RETURN_ACTION_NOT_AVAILABLE",
+  "ORDER_RETURN_QUANTITY_EXCEEDED",
+  "ORDER_RETURN_LINES_REQUIRED",
+  "ORDER_RETURN_WINDOW_NOT_STARTED",
+  "ORDER_RETURN_WINDOW_EXPIRED",
+  "ORDER_RETURN_FINALIZED_REQUIRED",
+  "ORDER_RETURN_REASON_NOT_ALLOWED",
+  "ORDER_EXCHANGE_NOT_FOUND",
+  "ORDER_EXCHANGE_COMPLETE_NOT_ALLOWED",
+  "ORDER_EXCHANGE_INBOUND_INCOMPLETE",
+  "ORDER_EXCHANGE_OUTBOUND_INCOMPLETE",
   "INTEGRATION_LINK_NOT_FOUND",
   "INTEGRATION_SYNC_ALREADY_CURRENT",
   "INTEGRATION_PROVIDER_UNAVAILABLE",
+  "ORDER_INTEGRATION_ROUTE_MISMATCH",
+  "ORDER_INTEGRATION_EXTERNAL_ID_MISMATCH",
+  "ORDER_INTEGRATION_IMPORT_ORDER_NOT_IMPORTABLE",
+  "ORDER_INTEGRATION_IMPORT_STATUS_NOT_ALLOWED",
+  "ORDER_INTEGRATION_IMPORT_LINE_QUANTITY_INVALID",
+  "ORDER_INTEGRATION_IMPORT_LINE_FULFILLED",
+  "ORDER_INTEGRATION_IMPORT_LINE_AMOUNTS_INVALID",
+  "ORDER_INTEGRATION_IMPORT_OUT_OF_ORDER",
   "PERMISSION_DENIED",
 ]);
 
@@ -88,9 +110,19 @@ function safeMessage(code: string, original: string): string {
   if (code === "PERMISSION_DENIED") return "You do not have permission to perform this action.";
   if (code === "ORDER_NOT_FOUND") return "The order was not found.";
   if (code === "ORDER_VERSION_CONFLICT") return "The order changed after it was loaded.";
+  if (code === "ORDER_CUSTOMER_MISMATCH") return "The order belongs to another customer.";
+  if (code === "ORDER_RETURN_WINDOW_NOT_STARTED")
+    return "The return window starts after the goods are delivered.";
+  if (code === "ORDER_RETURN_WINDOW_EXPIRED")
+    return "The return window from the order return policy has expired.";
+  if (code === "ORDER_RETURN_FINALIZED_REQUIRED")
+    return "The return policy allows returns only for finalized orders.";
+  if (code === "ORDER_RETURN_REASON_NOT_ALLOWED")
+    return "The return reason is not allowed by the order return policy.";
   if (code === "ORDER_IDEMPOTENCY_CONFLICT")
     return "The idempotency key was already used with different input.";
-  if (code.endsWith("_FAILED") && original === code) return "The order command could not be completed.";
+  if (code.endsWith("_FAILED") && original === code)
+    return "The order command could not be completed.";
   return stableCodes.has(code) ? humanizeCode(code) : "The order command could not be completed.";
 }
 
@@ -113,8 +145,7 @@ function structuredErrors(error: unknown): OrderUserError[] {
         message: safeMessage(code, String(item.message ?? code)),
         code,
         retryable: item.retryable === true,
-        currentVersion:
-          typeof item.currentVersion === "number" ? item.currentVersion : null,
+        currentVersion: typeof item.currentVersion === "number" ? item.currentVersion : null,
       },
     ];
   });

@@ -12,7 +12,11 @@ import {
   type ServiceBroker,
 } from "@shopana/shared-kernel";
 import { sql } from "drizzle-orm";
+import { v5 as uuidv5 } from "uuid";
 import { Repository } from "../repositories/Repository.js";
+
+/** Fixed namespace for order payment ids derived from provider facts. */
+const ORDER_PAYMENT_ID_NAMESPACE = "8f1f1a3e-6c58-4f0a-9a5e-2f9d5a6c1b70";
 
 type PaymentEventPayload =
   | PaymentEvents.CollectionStateChanged
@@ -592,6 +596,18 @@ async function insertVoidTransaction(
     parentTransactionId,
     providerTransactionId: null,
   });
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_payment_voids" (
+      "store_id", "order_id", "currency_code", "authorization_transaction_id",
+      "void_transaction_id", "status", "amount", "idempotency_key", "processed_at"
+    ) VALUES (
+      ${event.storeId}::uuid, ${event.orderId}::uuid, ${event.voidedTotal.currencyCode},
+      ${parentTransactionId}::uuid, ${event.operationId}::uuid,
+      'SUCCEEDED'::"orders"."order_void_status", ${amountMinor.toString()}::bigint,
+      ${event.operationId}, ${event.occurredAt}::timestamptz
+    )
+    ON CONFLICT ("store_id", "order_id", "idempotency_key") DO NOTHING
+  `);
 }
 
 async function insertRefundTransactions(
@@ -624,12 +640,14 @@ async function insertRefundTransactions(
   `);
   let remaining = BigInt(event.amount.amountMinor);
   let allocationIndex = 0;
+  const allocations: Readonly<{ transactionId: string; amountMinor: string }>[] = [];
   for (const candidate of candidates) {
     const available = BigInt(candidate.remainingAmountMinor);
     if (available <= 0n || remaining <= 0n) continue;
     const allocated = available < remaining ? available : remaining;
+    const transactionId = refundAllocationTransactionId(event.operationId, allocationIndex);
     await insertTransactionRow(repository, {
-      id: allocationIndex === 0 ? event.operationId : null,
+      id: transactionId,
       event,
       kind: "REFUND",
       amountMinor: allocated.toString(),
@@ -637,11 +655,82 @@ async function insertRefundTransactions(
       parentTransactionId: candidate.transactionId,
       providerTransactionId: null,
       allocationIndex,
+      includeFees: allocationIndex === 0,
     });
+    allocations.push({ transactionId, amountMinor: allocated.toString() });
     remaining -= allocated;
     allocationIndex += 1;
   }
   if (remaining !== 0n) throw new Error("ORDER_PAYMENT_REFUND_ALLOCATION_EXCEEDED");
+  await insertRefundAggregate(repository, event, allocations);
+}
+
+/**
+ * One provider refund spreads over several captures, so each allocation needs
+ * its own transaction id. The id is derived from the refund operation and the
+ * allocation index, which keeps a re-executed projection writing the exact same
+ * rows instead of appending a second set of refund transactions.
+ */
+function refundAllocationTransactionId(operationId: string, allocationIndex: number): string {
+  return uuidv5(`refund:${operationId}:${allocationIndex}`, ORDER_PAYMENT_ID_NAMESPACE);
+}
+
+function refundAggregateAdjustmentId(operationId: string): string {
+  return uuidv5(`refund-adjustment:${operationId}`, ORDER_PAYMENT_ID_NAMESPACE);
+}
+
+async function insertRefundAggregate(
+  repository: Repository,
+  event: PaymentEvents.Refunded,
+  allocations: readonly Readonly<{ transactionId: string; amountMinor: string }>[],
+): Promise<void> {
+  if (allocations.length === 0) return;
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_refunds" (
+      "id", "store_id", "order_id", "currency_code", "status", "destination",
+      "total_amount", "idempotency_key", "created_by_type", "processed_at",
+      "created_at", "updated_at"
+    ) VALUES (
+      ${event.operationId}::uuid, ${event.storeId}::uuid, ${event.orderId}::uuid,
+      ${event.amount.currencyCode}, 'SUCCEEDED'::"orders"."order_refund_status",
+      'ORIGINAL_PAYMENT'::"orders"."order_refund_destination",
+      ${event.amount.amountMinor}::bigint, ${event.operationId},
+      'SYSTEM'::"orders"."order_actor_type", ${event.occurredAt}::timestamptz,
+      ${event.occurredAt}::timestamptz, ${event.occurredAt}::timestamptz
+    )
+    ON CONFLICT ("store_id", "order_id", "idempotency_key") DO NOTHING
+  `);
+  // Payment events carry only an aggregate refund amount. Persist that amount
+  // as an adjustment so the canonical refund is fully accounted for until a
+  // producer supplies line-level refund facts. The deterministic id keeps a
+  // retried projection from appending the same adjustment twice.
+  await repository.db.execute(sql`
+    INSERT INTO "orders"."order_refund_adjustments" (
+      "id", "store_id", "order_id", "refund_id", "type", "amount", "reason", "metadata"
+    ) VALUES (
+      ${refundAggregateAdjustmentId(event.operationId)}::uuid,
+      ${event.storeId}::uuid, ${event.orderId}::uuid, ${event.operationId}::uuid,
+      'OTHER'::"orders"."order_refund_adjustment_type", ${event.amount.amountMinor}::bigint,
+      'Provider-reported aggregate refund',
+      ${JSON.stringify({
+        source: "PAYMENT_PROVIDER",
+        paymentSessionId: event.paymentSessionId,
+        operationId: event.operationId,
+      })}::jsonb
+    )
+    ON CONFLICT ("id") DO NOTHING
+  `);
+  for (const allocation of allocations) {
+    await repository.db.execute(sql`
+      INSERT INTO "orders"."order_refund_transaction_allocations" (
+        "store_id", "order_id", "refund_id", "transaction_id", "amount"
+      ) VALUES (
+        ${event.storeId}::uuid, ${event.orderId}::uuid, ${event.operationId}::uuid,
+        ${allocation.transactionId}::uuid, ${allocation.amountMinor}::bigint
+      )
+      ON CONFLICT ("store_id", "order_id", "refund_id", "transaction_id") DO NOTHING
+    `);
+  }
 }
 
 async function requireAuthorizationTransaction(
@@ -667,7 +756,7 @@ async function requireAuthorizationTransaction(
 async function insertTransactionRow(
   repository: Repository,
   input: Readonly<{
-    id: string | null;
+    id: string;
     event:
       | PaymentEvents.Authorized
       | PaymentEvents.Captured
@@ -679,9 +768,11 @@ async function insertTransactionRow(
     parentTransactionId: string | null;
     providerTransactionId: string | null;
     allocationIndex?: number;
+    includeFees?: boolean;
   }>,
 ): Promise<void> {
   const { event } = input;
+  const transactionId = input.id;
   await repository.db.execute(sql`
     INSERT INTO "orders"."order_payment_transactions" (
       "id", "store_id", "order_id", "payment_attempt_id", "currency_code",
@@ -689,7 +780,7 @@ async function insertTransactionRow(
       "provider_transaction_id",
       "provider_data", "processed_at", "created_at", "updated_at"
     ) VALUES (
-      COALESCE(${input.id}::uuid, uuidv7()), ${event.storeId}::uuid,
+      ${transactionId}::uuid, ${event.storeId}::uuid,
       ${event.orderId}::uuid, ${event.paymentSessionId}::uuid,
       ${input.currencyCode}, ${input.parentTransactionId}::uuid,
       ${input.kind}::"orders"."order_payment_transaction_kind", 'SUCCESS',
@@ -704,8 +795,37 @@ async function insertTransactionRow(
       ${event.occurredAt}::timestamptz, ${event.occurredAt}::timestamptz,
       ${event.occurredAt}::timestamptz
     )
-    ON CONFLICT DO NOTHING
+    ON CONFLICT ("id") DO NOTHING
   `);
+  if (input.includeFees !== false) {
+    await insertTransactionFees(repository, event, transactionId);
+  }
+}
+
+async function insertTransactionFees(
+  repository: Repository,
+  event:
+    | PaymentEvents.Authorized
+    | PaymentEvents.Captured
+    | PaymentEvents.Voided
+    | PaymentEvents.Refunded,
+  transactionId: string,
+): Promise<void> {
+  const fees = event.fees;
+  if (!fees || fees.length === 0) return;
+  for (const fee of fees) {
+    await repository.db.execute(sql`
+      INSERT INTO "orders"."order_payment_transaction_fees" (
+        "store_id", "order_id", "transaction_id", "type", "amount", "tax_amount", "description"
+      ) VALUES (
+        ${event.storeId}::uuid, ${event.orderId}::uuid, ${transactionId}::uuid,
+        ${fee.type}, ${fee.amount.amountMinor}::bigint,
+        ${fee.taxAmount?.amountMinor ?? 0}::bigint,
+        ${fee.description}
+      )
+      ON CONFLICT ("store_id", "order_id", "transaction_id", "type") DO NOTHING
+    `);
+  }
 }
 
 async function projectPaymentStatus(

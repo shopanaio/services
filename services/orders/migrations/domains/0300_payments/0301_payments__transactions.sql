@@ -96,6 +96,11 @@ CREATE TABLE "orders"."order_payment_transaction_fees" (
   "tax_amount" bigint NOT NULL DEFAULT 0,
   "description" text,
   CONSTRAINT "order_payment_transaction_fees_pkey" PRIMARY KEY ("id"),
+  -- Providers report one fee of a given type per transaction. The natural key
+  -- lets the payment projection dedupe on re-execution instead of duplicating
+  -- fees when a durable step commits without recording completion.
+  CONSTRAINT "order_payment_transaction_fees_transaction_type_unique"
+    UNIQUE ("store_id", "order_id", "transaction_id", "type"),
   CONSTRAINT "order_payment_transaction_fees_transaction_fk"
     FOREIGN KEY ("store_id", "order_id", "transaction_id")
     REFERENCES "orders"."order_payment_transactions" ("store_id", "order_id", "id"),

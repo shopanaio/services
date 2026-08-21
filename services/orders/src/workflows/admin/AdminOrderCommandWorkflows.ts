@@ -20,6 +20,7 @@ import {
   type AdminOrderCommandResult,
 } from "../../domain/admin/AdminOrderCommandContracts.js";
 import { Repository } from "../../repositories/Repository.js";
+import { orderNotificationSnapshot } from "../../domain/order/customerNotification.js";
 import type { AdminOrderExternalEffect } from "../../application/admin/AdminOrderCommandPorts.js";
 import type { AdminOrderBulkTarget } from "../../application/admin/AdminOrderBulkSelection.js";
 import type { EventEmitResult } from "@shopana/events";
@@ -27,7 +28,7 @@ import { AdminOrderCommandService } from "../../application/admin/AdminOrderComm
 import { parseAdminOrderBulkSelection } from "../../application/admin/AdminOrderBulkSelection.js";
 import { executeAdminOrderOperation } from "../../application/admin/AdminOrderOperationCoordinator.js";
 
-abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
+export abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
   AdminOrderCommandInput,
   AdminOrderCommandResult
 > {
@@ -46,11 +47,12 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
     const workflowId = DBOS.workflowID;
     if (!workflowId) throw new Error("ORDER_ADMIN_WORKFLOW_CONTEXT_MISSING");
     const result = await this.commit(input, workflowId);
+    let completedResult: AdminOrderCommandResult = result;
     if (result.operationId) {
       if (this.command === "ordersBulkAction") {
         return this.executeBulk(input, result, workflowId);
       }
-      return executeAdminOrderOperation({
+      completedResult = await executeAdminOrderOperation({
         result,
         loadEffects: () => this.loadExternalEffects(input, result),
         performEffect: (effect) => this.performExternalEffect(effect),
@@ -66,12 +68,62 @@ abstract class AdminOrderCommandWorkflowBase extends BrokerWorkflows<
         applyEffect: (effect, response) =>
           this.applyExternalEffectResult(input, result, effect, response),
         finish: (succeeded, error) => this.finishOperation(input, result, succeeded, error),
-        publish: (completedResult) => this.publishCommandEvent(input, completedResult, workflowId),
+        publish: (completed) => this.publishCommandEvent(input, completed, workflowId),
       });
     } else {
       await this.publishCommandEvent(input, result, workflowId);
     }
-    return result;
+    await this.publishCustomerCancelledEvent(input, completedResult, workflowId);
+    return completedResult;
+  }
+
+  @WorkflowStep()
+  private async publishCustomerCancelledEvent(
+    input: AdminOrderCommandInput,
+    result: AdminOrderCommandResult,
+    workflowId: string,
+  ): Promise<void> {
+    if (this.command !== "orderCancel" || input.input.notifyCustomer !== true) return;
+    if (!result.orderId) return;
+    const facts = await this.repository.order.findNotificationFacts(
+      input.context.storeId,
+      result.orderId,
+    );
+    if (!facts?.customerId) return;
+    const occurredAt = new Date().toISOString();
+    await this.broker.runWorkflow<EventEmitResult>(
+      "events.emit",
+      {
+        eventType: "orderCancelled",
+        payload: {
+          schemaVersion: 1,
+          orderId: facts.orderId,
+          orderRevision: result.orderVersion ?? facts.version,
+          storeId: facts.storeId,
+          customerId: facts.customerId,
+          currencyCode: facts.currencyCode,
+          totalAmountMinor: facts.totalAmountMinor,
+          createdAt: facts.createdAt,
+          occurredAt,
+          cancelledAt: occurredAt,
+          notification: orderNotificationSnapshot(facts, { cancelledAt: occurredAt }),
+        },
+        context: {
+          organizationId: input.context.organizationId,
+          correlationId: input.context.correlationId,
+        },
+        subject: { type: "order", id: facts.orderId },
+        actor: { type: "service" },
+        emitKey: `order:${facts.orderId}`,
+      },
+      {
+        source: "workflow",
+        organizationId: input.context.organizationId,
+        workflowId,
+        stepId: "emit:orderCancelled",
+        callId: facts.orderId,
+      },
+    );
   }
 
   private async executeBulk(

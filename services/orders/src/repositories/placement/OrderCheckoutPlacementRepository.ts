@@ -94,7 +94,11 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
         ${cost.shipping.amountMinor}, ${cost.tax.amountMinor}, ${cost.duty.amountMinor},
         ${cost.adjustment.amountMinor}, ${cost.total.amountMinor},
         ${JSON.stringify(input.snapshot)}::jsonb,
-        ${JSON.stringify({ source: { code: "storefront" }, customFields: input.snapshot.customFields })}::jsonb,
+        ${JSON.stringify({
+          source: { code: "storefront" },
+          customFields: input.snapshot.customFields,
+          returnPolicy: input.snapshot.returnPolicy,
+        })}::jsonb,
         ${placedAt}, ${placedAt}, ${placedAt}
       )
     `);
@@ -118,9 +122,27 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
           '{}'::jsonb, ${placedAt}, ${placedAt}
         )
       `);
+      for (const dutyLine of line.dutyLines ?? []) {
+        await this.connection.execute(sql`
+          INSERT INTO orders.order_line_duties (
+            store_id, order_id, order_line_id, title, source, country_code, amount, metadata
+          ) VALUES (
+            ${input.storeId}, ${input.requestedOrderId}, ${line.id}, ${dutyLine.title},
+            'CHECKOUT', ${dutyLine.countryCode}, ${dutyLine.amount.amountMinor}, '{}'::jsonb
+          )
+        `);
+      }
     }
 
     for (const group of input.snapshot.deliveryGroups) {
+      const deliverySubtotalAmount = BigInt(
+        group.selectedMethod?.quotedAmount.amountMinor ?? "0",
+      );
+      const deliveryTaxAmount = (group.deliveryTaxLines ?? []).reduce(
+        (total, taxLine) => total + BigInt(taxLine.amount.amountMinor),
+        0n,
+      );
+      const deliveryTotalAmount = deliverySubtotalAmount + deliveryTaxAmount;
       if (group.address) {
         await this.connection.execute(sql`
           INSERT INTO orders.order_addresses (
@@ -154,7 +176,8 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
         ) VALUES (
           ${group.id}, ${input.storeId}, ${input.requestedOrderId}, ${input.snapshot.currencyCode},
           'ON_HOLD', ${group.address?.id ?? null}, ${group.recipient?.id ?? null}, true,
-          0, 0, 0, 0, '{}'::jsonb, ${placedAt}, ${placedAt}
+          ${deliverySubtotalAmount.toString()}, 0, ${deliveryTaxAmount.toString()},
+          ${deliveryTotalAmount.toString()}, '{}'::jsonb, ${placedAt}, ${placedAt}
         )
       `);
       for (const lineId of group.lineIds) {
@@ -177,6 +200,16 @@ export class OrderCheckoutPlacementRepository extends BaseRepository {
             ${method.code}, ${method.provider}, ${method.title}, ${method.type}, ${method.paymentModel},
             ${method.quotedAmount.amountMinor}, true, ${JSON.stringify(method.publicData)}::jsonb,
             '{}'::jsonb, ${placedAt}, ${placedAt}
+          )
+        `);
+      }
+      for (const taxLine of group.deliveryTaxLines ?? []) {
+        await this.connection.execute(sql`
+          INSERT INTO orders.order_delivery_tax_lines (
+            store_id, order_id, delivery_group_id, title, source, rate, amount, metadata
+          ) VALUES (
+            ${input.storeId}, ${input.requestedOrderId}, ${group.id}, ${taxLine.title},
+            'CHECKOUT', ${taxLine.rate}, ${taxLine.amount.amountMinor}, '{}'::jsonb
           )
         `);
       }

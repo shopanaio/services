@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { eq } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 import { Money } from "@shopana/shared-money";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { CheckoutSnapshot } from "@src/domain/order/checkoutSnapshot";
@@ -106,6 +106,22 @@ export type OrderLoyaltyRewardRecord = Readonly<{
   snapshot: CheckoutSnapshot;
 }>;
 
+export type OrderNotificationFacts = Readonly<{
+  orderId: string;
+  storeId: string;
+  orderNumber: string;
+  version: number;
+  customerId: string | null;
+  currencyCode: string;
+  totalAmountMinor: string;
+  localeCode: string | null;
+  createdAt: string;
+  email: string | null;
+  phoneE164: string | null;
+  firstName: string | null;
+  lastName: string | null;
+}>;
+
 const minor = (value: Money | null): bigint | null => (value == null ? null : value.amountMinor());
 
 const jsonSafe = (value: unknown): Record<string, unknown> =>
@@ -144,6 +160,54 @@ export class OrderRepository extends BaseRepository {
           id: row.id,
           storeId: row.storeId,
           snapshot: row.checkoutSnapshot as unknown as CheckoutSnapshot,
+        }
+      : null;
+  }
+
+  async findNotificationFacts(storeId: string, id: string): Promise<OrderNotificationFacts | null> {
+    const rows = await this.connection.execute<{
+      orderId: string;
+      storeId: string;
+      orderNumber: string;
+      version: number;
+      customerId: string | null;
+      currencyCode: string;
+      totalAmountMinor: string;
+      localeCode: string | null;
+      createdAt: string;
+      email: string | null;
+      phoneE164: string | null;
+      firstName: string | null;
+      lastName: string | null;
+    }>(sql`
+      SELECT current_order.id AS "orderId", current_order.store_id AS "storeId",
+        current_order.order_number::text AS "orderNumber", current_order.version,
+        current_order.customer_id AS "customerId", current_order.currency_code AS "currencyCode",
+        current_order.total_amount::text AS "totalAmountMinor", current_order.locale_code AS "localeCode",
+        current_order.created_at AS "createdAt", contact.email, contact.phone_e164 AS "phoneE164",
+        contact.first_name AS "firstName", contact.last_name AS "lastName"
+      FROM orders.orders current_order
+      LEFT JOIN orders.order_contacts contact
+        ON contact.store_id = current_order.store_id AND contact.order_id = current_order.id
+      WHERE current_order.store_id = ${storeId} AND current_order.id = ${id}
+      LIMIT 1
+    `);
+    const row = rows[0];
+    return row
+      ? {
+          orderId: row.orderId,
+          storeId: row.storeId,
+          orderNumber: row.orderNumber,
+          version: row.version,
+          customerId: row.customerId,
+          currencyCode: row.currencyCode,
+          totalAmountMinor: row.totalAmountMinor,
+          localeCode: row.localeCode,
+          createdAt: row.createdAt,
+          email: row.email,
+          phoneE164: row.phoneE164,
+          firstName: row.firstName,
+          lastName: row.lastName,
         }
       : null;
   }

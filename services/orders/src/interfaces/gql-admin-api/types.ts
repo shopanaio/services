@@ -2453,6 +2453,20 @@ export type ApiOrderExchangeCancelInput = {
   reasonCode: Scalars["String"]["input"];
 };
 
+/** Validated input for order exchange complete. Tenant identifiers come only from trusted context. */
+export type ApiOrderExchangeCompleteInput = {
+  /** Relay global ID identifying the exchange. */
+  exchangeId: Scalars["ID"]["input"];
+  /** Revision observed by the client; the command fails when stale. */
+  expectedVersion: Scalars["Int"]["input"];
+  /** Client-generated key that makes retries return the same result and rejects parameter mismatches. */
+  idempotencyKey: Scalars["String"]["input"];
+  /** Whether completion should enqueue a customer notification. */
+  notifyCustomer?: InputMaybe<Scalars["Boolean"]["input"]>;
+  /** Validated input value for staff note. */
+  staffNote?: InputMaybe<Scalars["String"]["input"]>;
+};
+
 /** Relay-style paginated connection of order exchange resources. */
 export type ApiOrderExchangeConnection = ApiConnection & {
   __typename?: "OrderExchangeConnection";
@@ -3879,6 +3893,8 @@ export type ApiOrdersMutation = {
   orderEditShippingUpdate: ApiOrderEditPayload;
   /** Cancel an eligible exchange. */
   orderExchangeCancel: ApiOrderExchangePayload;
+  /** Complete an eligible exchange after inbound receipt and outbound fulfillment. */
+  orderExchangeComplete: ApiOrderExchangePayload;
   /** Create an exchange from eligible inbound quantities and replacement lines. */
   orderExchangeCreate: ApiOrderExchangePayload;
   /** Detach an integration link while preserving synchronization and audit history. */
@@ -4077,6 +4093,11 @@ export type ApiOrdersMutationOrderEditShippingUpdateArgs = {
 /** Command namespace. Every command is store-scoped from trusted context. */
 export type ApiOrdersMutationOrderExchangeCancelArgs = {
   input: ApiOrderExchangeCancelInput;
+};
+
+/** Command namespace. Every command is store-scoped from trusted context. */
+export type ApiOrdersMutationOrderExchangeCompleteArgs = {
+  input: ApiOrderExchangeCompleteInput;
 };
 
 /** Command namespace. Every command is store-scoped from trusted context. */
@@ -4783,6 +4804,7 @@ export type ApiResolversTypes = {
   OrderEditShippingUpdateInput: ApiOrderEditShippingUpdateInput;
   OrderExchange: ResolverTypeWrapper<ApiOrderExchange>;
   OrderExchangeCancelInput: ApiOrderExchangeCancelInput;
+  OrderExchangeCompleteInput: ApiOrderExchangeCompleteInput;
   OrderExchangeConnection: ResolverTypeWrapper<ApiOrderExchangeConnection>;
   OrderExchangeCreateInput: ApiOrderExchangeCreateInput;
   OrderExchangeEdge: ResolverTypeWrapper<ApiOrderExchangeEdge>;
@@ -4987,6 +5009,7 @@ export type ApiResolversParentTypes = {
   OrderEditShippingUpdateInput: ApiOrderEditShippingUpdateInput;
   OrderExchange: ApiOrderExchange;
   OrderExchangeCancelInput: ApiOrderExchangeCancelInput;
+  OrderExchangeCompleteInput: ApiOrderExchangeCompleteInput;
   OrderExchangeConnection: ApiOrderExchangeConnection;
   OrderExchangeCreateInput: ApiOrderExchangeCreateInput;
   OrderExchangeEdge: ApiOrderExchangeEdge;
@@ -6345,6 +6368,12 @@ export type ApiOrdersMutationResolvers<
     ParentType,
     ContextType,
     RequireFields<ApiOrdersMutationOrderExchangeCancelArgs, "input">
+  >;
+  orderExchangeComplete?: Resolver<
+    ApiResolversTypes["OrderExchangePayload"],
+    ParentType,
+    ContextType,
+    RequireFields<ApiOrdersMutationOrderExchangeCompleteArgs, "input">
   >;
   orderExchangeCreate?: Resolver<
     ApiResolversTypes["OrderExchangePayload"],

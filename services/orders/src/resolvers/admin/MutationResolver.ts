@@ -189,6 +189,9 @@ export class OrdersMutationResolver extends OrdersType<Record<string, never>> {
   orderExchangeCancel(args: CommandArgs) {
     return this.execute("orderExchangeCancel", args.input);
   }
+  orderExchangeComplete(args: CommandArgs) {
+    return this.execute("orderExchangeComplete", args.input);
+  }
   orderIntegrationSyncRequest(args: CommandArgs) {
     return this.execute("orderIntegrationSyncRequest", args.input);
   }
@@ -258,7 +261,9 @@ export class OrdersMutationResolver extends OrdersType<Record<string, never>> {
     if (command.startsWith("orderEdit"))
       return { ...base, edit: resource ? new OrderEditSessionResolver(resource, this.$ctx) : null };
     if (command.startsWith("orderLine")) {
-      const row = order ? (await order.lines()).find((line) => decodeId(line.id) === resource) : null;
+      const row = order
+        ? (await order.lines()).find((line) => decodeId(line.id) === resource)
+        : null;
       return {
         ...base,
         line: row ?? null,
@@ -318,9 +323,7 @@ type ResolverArgs<T> = T extends (...args: infer TArgs) => unknown
     : never;
 
 type CommandArgs = ResolverArgs<
-  NonNullable<
-    ApiOrdersMutationResolvers[Exclude<keyof ApiOrdersMutationResolvers, "__isTypeOf">]
-  >
+  NonNullable<ApiOrdersMutationResolvers[Exclude<keyof ApiOrdersMutationResolvers, "__isTypeOf">]>
 >;
 
 function boundarySchema(command: AdminOrderCommandName): ZodTypeAny {
@@ -461,7 +464,8 @@ function mapActivity(row: Row) {
       type: actorType,
       id: globalActorId,
       displayName: null,
-      user: actorType === "USER" && globalActorId ? { __typename: "User", id: globalActorId } : null,
+      user:
+        actorType === "USER" && globalActorId ? { __typename: "User", id: globalActorId } : null,
       apiKey:
         actorType === "API_KEY" && globalActorId
           ? { __typename: "ApiKey", id: globalActorId }

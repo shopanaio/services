@@ -16,6 +16,7 @@ import type {
   PaymentSessionKind,
   PaymentSessionState,
   PaymentSettlementConfirmation,
+  PaymentTransactionFee,
 } from "../actions/payments.js";
 import type { PricingCheckoutMoney } from "../actions/pricing.js";
 import type {
@@ -203,6 +204,7 @@ export namespace PaymentEvents {
     amount: PricingCheckoutMoney;
     providerReference: string;
     networkTransactionId: string | null;
+    fees?: readonly PaymentTransactionFee[];
   }
 
   export interface Captured extends Base {
@@ -212,6 +214,7 @@ export namespace PaymentEvents {
     networkTransactionId: string | null;
     resultingState: "PARTIALLY_CAPTURED" | "CAPTURED";
     remainingCapturableAmount: PricingCheckoutMoney;
+    fees?: readonly PaymentTransactionFee[];
   }
 
   export interface Failed extends Base {
@@ -223,6 +226,7 @@ export namespace PaymentEvents {
     capturedTotal: PricingCheckoutMoney;
     providerReference: string;
     resultingState: "VOIDED" | "PARTIALLY_CAPTURED";
+    fees?: readonly PaymentTransactionFee[];
   }
 
   export interface Refunded extends Base {
@@ -231,6 +235,7 @@ export namespace PaymentEvents {
     providerReference: string;
     resultingState: "PARTIALLY_REFUNDED" | "REFUNDED";
     remainingRefundableAmount: PricingCheckoutMoney;
+    fees?: readonly PaymentTransactionFee[];
   }
 
   export interface Expired extends Base {

@@ -25,10 +25,15 @@ import { ApplyDeliveryShipmentUpdateWorkflow } from "./workflows/fulfillment/App
 import { adminOrderCommandWorkflowProviders } from "./workflows/admin/AdminOrderCommandWorkflows.js";
 import {
   ApplyOrderIntegrationEventWorkflow,
+  ApplyOrderIntegrationImportWorkflow,
   CompleteOrderFulfillmentServiceOperationWorkflow,
 } from "./workflows/integration/OrderProviderCallbackWorkflows.js";
 import { AdminOrderCommandService } from "./application/admin/AdminOrderCommandService.js";
 import { ADMIN_ORDER_COMMAND_PERSISTENCE } from "./application/admin/AdminOrderCommandPorts.js";
+import {
+  CancelOrderFromStorefrontWorkflow,
+  CreateOrderReturnRequestFromStorefrontWorkflow,
+} from "./workflows/storefront/StorefrontOrderWorkflows.js";
 
 @Module({
   imports: [BrokerModule.forFeature({ serviceName: "order" })],
@@ -53,12 +58,15 @@ import { ADMIN_ORDER_COMMAND_PERSISTENCE } from "./application/admin/AdminOrderC
     ApplyDeliveryShipmentUpdateWorkflow,
     CompleteOrderFulfillmentServiceOperationWorkflow,
     ApplyOrderIntegrationEventWorkflow,
+    ApplyOrderIntegrationImportWorkflow,
     {
       provide: ADMIN_ORDER_COMMAND_PERSISTENCE,
       inject: [Repository],
       useFactory: (repository: Repository) => repository.admin,
     },
     AdminOrderCommandService,
+    CancelOrderFromStorefrontWorkflow,
+    CreateOrderReturnRequestFromStorefrontWorkflow,
     ...adminOrderCommandWorkflowProviders,
   ],
   exports: [Repository],

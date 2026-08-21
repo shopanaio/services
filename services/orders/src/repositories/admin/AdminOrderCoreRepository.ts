@@ -2,8 +2,8 @@ import { sql } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import type {
+  AdminOrderAuditEventName,
   AdminOrderCommandInput,
-  AdminOrderCommandName,
 } from "../../domain/admin/AdminOrderCommandContracts.js";
 import type { MutableAdminOrderCommandResult } from "../../application/admin/AdminOrderCommandPorts.js";
 import {
@@ -32,6 +32,9 @@ export type OrderRow = Readonly<{
   fulfillment_status: string;
   delivery_status: string;
   return_status: string;
+  customer_id: string | null;
+  metadata: Record<string, unknown>;
+  placed_at: string | null;
 }>;
 
 export abstract class AdminOrderCoreRepository extends BaseRepository {
@@ -45,6 +48,13 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
   ): Promise<OrderRow> {
     const orderId = requiredUuid(request.input, "orderId" in request.input ? "orderId" : "id");
     const order = await this.lockOrderById(request.context.storeId, orderId);
+    // A customer acts only on their own order, and the check runs under the same
+    // row lock as the mutation so ownership cannot change in between.
+    if (request.context.actor.type === "CUSTOMER") {
+      if (!request.context.actor.id || order.customer_id !== request.context.actor.id) {
+        throw new Error("ORDER_CUSTOMER_MISMATCH");
+      }
+    }
     if (request.input.expectedVersion !== undefined) {
       const expectedVersion = requiredPositiveInt(request.input, "expectedVersion");
       if (order.version !== expectedVersion) throw new Error("ORDER_VERSION_CONFLICT");
@@ -58,7 +68,8 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
   protected async lockOrderById(storeId: string, orderId: string): Promise<OrderRow> {
     const rows = await this.connection.execute<OrderRow>(sql`
       SELECT id, version, status, currency_code, total_amount::text AS total_amount,
-        payment_status, fulfillment_status, delivery_status, return_status
+        payment_status, fulfillment_status, delivery_status, return_status,
+        customer_id, metadata, placed_at::text AS placed_at
       FROM orders.orders
       WHERE store_id = ${storeId} AND id = ${orderId}
       FOR UPDATE
@@ -187,7 +198,7 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
   protected async bumpAndAudit(
     request: AdminOrderCommandInput,
     order: OrderRow,
-    command: AdminOrderCommandName,
+    command: AdminOrderAuditEventName,
     payload: unknown,
     happenedAt: string,
     activityId?: string,
@@ -847,18 +858,37 @@ export abstract class AdminOrderCoreRepository extends BaseRepository {
     orderLineId: string,
   ): Promise<number> {
     const rows = await this.connection.execute<{ available: number }>(sql`
-      SELECT line.quantity - line.cancelled_quantity - COALESCE((
-        SELECT sum(return_line.requested_quantity)
-        FROM orders.order_return_request_lines return_line
-        JOIN orders.order_return_requests request
-          ON request.store_id = return_line.store_id AND request.id = return_line.return_request_id
-        WHERE return_line.store_id = line.store_id AND return_line.order_id = line.order_id
-          AND return_line.order_line_id = line.id
-          AND request.status NOT IN ('REJECTED', 'CANCELLED')
-      ), 0) AS available
+      SELECT GREATEST(
+        LEAST(
+          line.quantity - line.cancelled_quantity,
+          COALESCE((
+            SELECT sum(fulfillment_line.quantity)
+            FROM orders.order_fulfillment_lines fulfillment_line
+            JOIN orders.order_fulfillments fulfillment
+              ON fulfillment.store_id = fulfillment_line.store_id
+             AND fulfillment.order_id = fulfillment_line.order_id
+             AND fulfillment.id = fulfillment_line.fulfillment_id
+            WHERE fulfillment_line.store_id = line.store_id
+              AND fulfillment_line.order_id = line.order_id
+              AND fulfillment_line.order_line_id = line.id
+              AND fulfillment.status = 'SUCCESS'
+          ), 0)
+        ) - COALESCE((
+          SELECT sum(return_line.requested_quantity)
+          FROM orders.order_return_request_lines return_line
+          JOIN orders.order_return_requests request
+            ON request.store_id = return_line.store_id
+           AND request.order_id = return_line.order_id
+           AND request.id = return_line.return_request_id
+          WHERE return_line.store_id = line.store_id AND return_line.order_id = line.order_id
+            AND return_line.order_line_id = line.id
+            AND request.status NOT IN ('REJECTED', 'CANCELLED')
+        ), 0),
+        0
+      )::integer AS available
       FROM orders.order_lines line
       WHERE line.store_id = ${storeId} AND line.order_id = ${orderId} AND line.id = ${orderLineId}
-      FOR UPDATE
+      FOR UPDATE OF line
     `);
     if (!rows[0]) throw new Error("ORDER_LINE_NOT_FOUND");
     return rows[0].available;

@@ -19,6 +19,10 @@ import {
   value,
   type Row,
 } from "./values.js";
+import {
+  computeReturnEligibility,
+  extractReturnPolicy,
+} from "../../domain/order/returnEligibility.js";
 
 @TypePolicy<OrderResolver>({
   resource: "store.data",
@@ -86,12 +90,7 @@ export class OrderResolver extends OrdersType<string, Row> {
       status === "DRAFT"
         ? ["UPDATE_DETAILS", "EDIT_LINES", "COMPLETE_DRAFT"]
         : status === "OPEN"
-          ? [
-              "UPDATE_DETAILS",
-              "EDIT_LINES",
-              "CANCEL",
-              "CLOSE",
-            ]
+          ? ["UPDATE_DETAILS", "EDIT_LINES", "CANCEL", "CLOSE"]
           : status === "CLOSED"
             ? ["REOPEN"]
             : [];
@@ -115,8 +114,10 @@ export class OrderResolver extends OrdersType<string, Row> {
         const providerSnapshot = rowValue(item, "providerSnapshot") ?? {};
         const snapshot = rowValue(providerSnapshot, "snapshot") ?? providerSnapshot;
         const capabilities = stringArray(value(snapshot, "supportedActions"));
-        return capabilities.length === 0 ||
-          capabilities.some((action) => action === "CREATE_SHIPMENT" || action === "FULFILL");
+        return (
+          capabilities.length === 0 ||
+          capabilities.some((action) => action === "CREATE_SHIPMENT" || action === "FULFILL")
+        );
       });
       if (["PENDING", "PARTIALLY_PAID"].includes(paymentStatus)) {
         actions.push("RECORD_MANUAL_PAYMENT");
@@ -125,10 +126,7 @@ export class OrderResolver extends OrdersType<string, Row> {
         actions.push("CAPTURE_PAYMENT");
       }
       if (paymentStatus === "AUTHORIZED" && supportsPayment("VOID")) actions.push("VOID_PAYMENT");
-      if (
-        ["PAID", "PARTIALLY_REFUNDED"].includes(paymentStatus) &&
-        supportsPayment("REFUND")
-      ) {
+      if (["PAID", "PARTIALLY_REFUNDED"].includes(paymentStatus) && supportsPayment("REFUND")) {
         actions.push("REFUND");
       }
       if (paymentStatus === "FAILED" && supportsPayment("RETRY")) actions.push("RETRY_PAYMENT");
@@ -242,12 +240,60 @@ export class OrderResolver extends OrdersType<string, Row> {
   async lines() {
     const row = await this.$data;
     const currency = stringValue(row, "currencyCode");
-    const fulfilled = quantityByLine(rowsValue(row, "fulfillmentLines"), "orderLineId", "quantity");
-    const returned = quantityByLine(rowsValue(row, "returnLines"), "orderLineId", "receivedQuantity");
+    const successfulFulfillmentIds = new Set(
+      rowsValue(row, "fulfillments")
+        .filter((fulfillment) => stringValue(fulfillment, "status") === "SUCCESS")
+        .map((fulfillment) => stringValue(fulfillment, "id")),
+    );
+    const fulfilled = quantityByLine(
+      rowsValue(row, "fulfillmentLines").filter((line) =>
+        successfulFulfillmentIds.has(stringValue(line, "fulfillmentId")),
+      ),
+      "orderLineId",
+      "quantity",
+    );
+    const received = quantityByLine(
+      rowsValue(row, "returnLines"),
+      "orderLineId",
+      "receivedQuantity",
+    );
+    const openReturnIds = new Set(
+      rowsValue(row, "returns")
+        .filter((item) => !["REJECTED", "CANCELLED"].includes(stringValue(item, "status")))
+        .map((item) => stringValue(item, "id")),
+    );
+    const requested = quantityByLine(
+      rowsValue(row, "returnLines").filter((item) =>
+        openReturnIds.has(stringValue(item, "returnRequestId")),
+      ),
+      "orderLineId",
+      "requestedQuantity",
+    );
+    const eligibility = new Map(
+      computeReturnEligibility(
+        {
+          orderStatus: stringValue(row, "status"),
+          returnWindowStartedAt: returnWindowStartedAt(
+            rowsValue(row, "fulfillments"),
+            rowsValue(row, "shipments"),
+          ),
+          now: new Date().toISOString(),
+          returnPolicy: extractReturnPolicy(rowValue(row, "metadata")),
+        },
+        rowsValue(row, "lines").map((line) => ({
+          orderLineId: stringValue(line, "id"),
+          quantity: numberValue(line, "quantity"),
+          cancelledQuantity: numberValue(line, "cancelledQuantity"),
+          fulfilledQuantity: fulfilled.get(stringValue(line, "id")) ?? 0,
+          requestedQuantity: requested.get(stringValue(line, "id")) ?? 0,
+        })),
+      ).map((item) => [item.orderLineId, item] as const),
+    );
     return rowsValue(row, "lines").map((line) => {
       const mapped = mapLine(line, currency);
-      const fulfilledQuantity = fulfilled.get(stringValue(line, "id")) ?? 0;
-      const returnedQuantity = returned.get(stringValue(line, "id")) ?? 0;
+      const lineId = stringValue(line, "id");
+      const fulfilledQuantity = fulfilled.get(lineId) ?? 0;
+      const returnedQuantity = received.get(lineId) ?? 0;
       return {
         ...mapped,
         fulfilledQuantity,
@@ -256,7 +302,7 @@ export class OrderResolver extends OrdersType<string, Row> {
           0,
           mapped.quantity - mapped.cancelledQuantity - fulfilledQuantity,
         ),
-        returnableQuantity: Math.max(0, fulfilledQuantity - returnedQuantity),
+        returnableQuantity: eligibility.get(lineId)?.maxReturnableQuantity ?? 0,
       };
     });
   }
@@ -294,7 +340,8 @@ export class OrderResolver extends OrdersType<string, Row> {
         : undefined;
       const selected = methods.find(
         (method) =>
-          stringValue(method, "deliveryGroupId") === groupId && value(method, "isSelected") === true,
+          stringValue(method, "deliveryGroupId") === groupId &&
+          value(method, "isSelected") === true,
       );
       return {
         id: encodeId(groupId, GlobalIdEntity.OrderDeliveryGroup),
@@ -305,15 +352,13 @@ export class OrderResolver extends OrdersType<string, Row> {
         address: addressId
           ? new OrderAddressResolver(
               {
-                ...(recipient ?? {}),
-                ...(addresses.find((address) => stringValue(address, "id") === addressId) ?? {}),
+                ...recipient,
+                ...addresses.find((address) => stringValue(address, "id") === addressId),
               },
               this.$ctx,
             )
           : null,
-        recipient: recipientId
-          ? new OrderContactResolver(recipient ?? {}, this.$ctx)
-          : null,
+        recipient: recipientId ? new OrderContactResolver(recipient ?? {}, this.$ctx) : null,
         selectedMethod: selected
           ? {
               code: stringValue(selected, "code"),
@@ -571,9 +616,12 @@ export class OrderResolver extends OrdersType<string, Row> {
             ),
           )
           .filter((transaction) => transaction !== undefined)
-          .map((transaction) =>
-            mapPayment({ ...order, paymentTransactions: [transaction] }, stringValue(item, "currencyCode"))
-              .transactions[0],
+          .map(
+            (transaction) =>
+              mapPayment(
+                { ...order, paymentTransactions: [transaction] },
+                stringValue(item, "currencyCode"),
+              ).transactions[0],
           ),
         createdAt: stringValue(item, "createdAt"),
         processedAt: nullableString(item, "processedAt"),
@@ -662,7 +710,7 @@ export class OrderResolver extends OrdersType<string, Row> {
         )
       : undefined;
     return new OrderAddressResolver(
-      { ...(recipient ?? rowValue(order, "contact") ?? {}), ...address },
+      { ...(recipient ?? rowValue(order, "contact")), ...address },
       this.$ctx,
     );
   }
@@ -977,11 +1025,7 @@ function decodeActivityCursor(cursor?: string): number {
   return value;
 }
 
-function simpleConnection<T extends { id: string | null }>(
-  rows: T[],
-  first = 20,
-  after?: string,
-) {
+function simpleConnection<T extends { id: string | null }>(rows: T[], first = 20, after?: string) {
   const offset = decodeOffset(after);
   const nodes = rows.slice(offset, offset + Math.min(Math.max(first, 1), 100));
   const edges = nodes.map((node, index) => ({
@@ -1019,6 +1063,37 @@ function quantityByLine(rows: Row[], idField: string, quantityField: string): Ma
     result.set(id, (result.get(id) ?? 0) + numberValue(row, quantityField));
   }
   return result;
+}
+
+/** Mirrors the write path: delivery wins, with fulfilment completion for shipment-less goods. */
+function returnWindowStartedAt(fulfillments: Row[], shipments: Row[]): string | null {
+  const successfulFulfillments = fulfillments.filter(
+    (fulfillment) => stringValue(fulfillment, "status") === "SUCCESS",
+  );
+  if (successfulFulfillments.length === 0) return null;
+  let latest: string | null = null;
+  for (const fulfillment of successfulFulfillments) {
+    const fulfillmentId = stringValue(fulfillment, "id");
+    const fulfillmentShipments = shipments.filter(
+      (shipment) => stringValue(shipment, "fulfillmentId") === fulfillmentId,
+    );
+    const activeShipments = fulfillmentShipments.filter(
+      (shipment) => stringValue(shipment, "status") !== "CANCELLED",
+    );
+    if (fulfillmentShipments.length > 0 && activeShipments.length === 0) return null;
+    if (activeShipments.some((shipment) => !nullableString(shipment, "deliveredAt"))) return null;
+    const receiptAt =
+      fulfillmentShipments.length === 0
+        ? nullableString(fulfillment, "completedAt")
+        : activeShipments.reduce<string | null>((lastDeliveredAt, shipment) => {
+            const deliveredAt = nullableString(shipment, "deliveredAt")!;
+            if (lastDeliveredAt === null || deliveredAt > lastDeliveredAt) return deliveredAt;
+            return lastDeliveredAt;
+          }, null);
+    if (!receiptAt) return null;
+    if (latest === null || receiptAt > latest) latest = receiptAt;
+  }
+  return latest;
 }
 
 function stringArray(input: unknown): string[] {

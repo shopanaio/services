@@ -62,6 +62,7 @@ const commandHandler: Record<AdminOrderCommandName, string> = {
   orderReturnReceive: "integration.prepareOperation",
   orderExchangeCreate: "returns.createExchange",
   orderExchangeCancel: "returns.cancelExchange",
+  orderExchangeComplete: "returns.completeExchange",
   orderIntegrationSyncRequest: "integration.prepareOperation",
   orderIntegrationSyncRetry: "integration.prepareOperation",
   orderIntegrationLinkDetach: "integration.detachIntegration",

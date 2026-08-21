@@ -60,7 +60,10 @@ CREATE TABLE "orders"."order_shipment_provider_operations" (
   "shipment_id" uuid NOT NULL,
   "operation" varchar(64) NOT NULL,
   "status" "orders"."order_operation_status" NOT NULL DEFAULT 'PENDING',
-  "app_installation_id" uuid NOT NULL,
+  -- Shipment operations are routed through the platform delivery service
+  -- (`delivery.*`), which does not expose a provider app installation, so the
+  -- installation is recorded only for app-routed operations.
+  "app_installation_id" uuid,
   "provider_code" varchar(128) NOT NULL,
   "provider_route" varchar(255) NOT NULL,
   "idempotency_key" text NOT NULL,

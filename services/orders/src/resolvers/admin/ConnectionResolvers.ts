@@ -201,11 +201,7 @@ function decodeWhereIds(where: Record<string, unknown>): Record<string, unknown>
   return where;
 }
 
-function decodeIdFilter(
-  where: Record<string, unknown>,
-  field: string,
-  type: GlobalIdEntity,
-): void {
+function decodeIdFilter(where: Record<string, unknown>, field: string, type: GlobalIdEntity): void {
   const value = where[field];
   if (!value || typeof value !== "object" || Array.isArray(value)) return;
   const filter = { ...(value as Record<string, unknown>) };
@@ -234,11 +230,7 @@ function decodeCursor(cursor: string | null): { id: string } | null {
     >;
     if (typeof value.orderId !== "string") throw new Error("ORDER_CURSOR_INVALID");
     const id = decodeGlobalIdByType(value.orderId, GlobalIdEntity.Order);
-    if (
-      !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(
-        id,
-      )
-    ) {
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)) {
       throw new Error("ORDER_CURSOR_INVALID");
     }
     return { id };

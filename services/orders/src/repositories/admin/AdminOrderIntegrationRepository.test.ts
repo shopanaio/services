@@ -1,7 +1,7 @@
 import { describe, expect, test } from "@jest/globals";
 import type {
+  AdminOrderAuditEventName,
   AdminOrderCommandInput,
-  AdminOrderCommandName,
 } from "../../domain/admin/AdminOrderCommandContracts.js";
 import type { MutableAdminOrderCommandResult } from "../../application/admin/AdminOrderCommandPorts.js";
 import { AdminOrderIntegrationRepository } from "./AdminOrderIntegrationRepository.js";
@@ -25,13 +25,16 @@ class TestIntegrationRepository extends AdminOrderIntegrationRepository {
       fulfillment_status: "UNFULFILLED",
       delivery_status: "NOT_SHIPPED",
       return_status: "NONE",
+      customer_id: null,
+      metadata: {},
+      placed_at: null,
     };
   }
 
   protected override async bumpAndAudit(
     _request: AdminOrderCommandInput,
     order: OrderRow,
-    _command: AdminOrderCommandName,
+    _command: AdminOrderAuditEventName,
   ): Promise<MutableAdminOrderCommandResult> {
     this.auditCalls += 1;
     return {

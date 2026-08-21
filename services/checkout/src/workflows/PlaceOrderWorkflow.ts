@@ -1698,6 +1698,9 @@ function createOrdersPlacementParams(
     customerNote: checkout.customerNote,
     customFields: {},
     loyaltyRewardEligibility: placement.orderRewardEligibility,
+    // The platform has no store return-policy source of truth yet, so no
+    // policy is captured and Orders applies no policy restriction.
+    returnPolicy: null,
   };
   const commitments: CreateOrderFromCheckoutPlacementV1Params["commitments"] = {
     inventory: { reservationKey: orderId, expiresAt: placement.reservationExpiresAt },

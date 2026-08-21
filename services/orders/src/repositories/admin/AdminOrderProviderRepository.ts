@@ -1,4 +1,4 @@
-import { sql } from "drizzle-orm";
+import { sql, type SQL } from "drizzle-orm";
 import type { TransactionManager } from "@shopana/shared-kernel";
 import type { Database } from "../../infrastructure/db/database.js";
 import type {
@@ -9,9 +9,18 @@ import type {
 import type {
   FulfillmentServiceCallbackWorkflowInput,
   IntegrationEventWorkflowInput,
+  IntegrationImportWorkflowInput,
 } from "../../domain/integration/OrderProviderContracts.js";
+import {
+  assertImportableLineQuantity,
+  assertImportableOrder,
+  assertImportableSnapshot,
+  importedLineTotalMinor,
+  proratedMinorAmount,
+} from "../../domain/integration/orderIntegrationImport.js";
 import type {
   ApplyOrderIntegrationEventV1Result,
+  ApplyOrderIntegrationImportV1Result,
   CompleteOrderFulfillmentServiceOperationV1Result,
 } from "@shopana/broker-types";
 import {
@@ -386,6 +395,47 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
         },
       ];
     }
+    if (command === "fulfillmentCancel") {
+      const fulfillmentId = requiredUuid(request.input, "fulfillmentId");
+      const rows = await this.connection.execute<{
+        fulfillmentOrderId: string;
+        externalSource: string | null;
+      }>(sql`
+        SELECT fulfillment.fulfillment_order_id AS "fulfillmentOrderId",
+          fulfillment_order.external_source AS "externalSource"
+        FROM orders.order_fulfillments fulfillment
+        JOIN orders.order_fulfillment_orders fulfillment_order
+          ON fulfillment_order.store_id = fulfillment.store_id
+         AND fulfillment_order.id = fulfillment.fulfillment_order_id
+        WHERE fulfillment.store_id = ${request.context.storeId} AND fulfillment.id = ${fulfillmentId}
+        FOR UPDATE OF fulfillment_order
+      `);
+      const fulfillment = rows[0];
+      if (!fulfillment) throw new Error("FULFILLMENT_NOT_FOUND");
+      if (!fulfillment.externalSource) return [];
+      return [
+        {
+          route: "apps.executeCapability",
+          params: {
+            storeId: request.context.storeId,
+            capability: "fulfillment.service",
+            operation: "requestCancellation",
+            target: {
+              aggregate: "fulfillment-order",
+              aggregateId: fulfillment.fulfillmentOrderId,
+              domain: `store:${request.context.storeId}`,
+            },
+            correlationId: request.context.correlationId,
+            executionId: result.operationId,
+            input: {
+              ...request.input,
+              storeId: request.context.storeId,
+              fulfillmentOrderId: fulfillment.fulfillmentOrderId,
+            },
+          },
+        },
+      ];
+    }
     if (command === "orderIntegrationSyncRequest" || command === "orderIntegrationSyncRetry") {
       const link = await this.integrationRoute(request, result.orderId);
       const snapshot = await this.orderSyncSnapshot(request.context.storeId, result.orderId!);
@@ -636,6 +686,406 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
     };
   }
 
+  async applyIntegrationImport(
+    importInput: IntegrationImportWorkflowInput,
+  ): Promise<ApplyOrderIntegrationImportV1Result> {
+    const { context, input } = importInput;
+    const snapshot = input.import;
+    assertImportableSnapshot(snapshot);
+    const links = await this.connection.execute<{
+      orderId: string;
+      installationId: string;
+      externalId: string | null;
+    }>(sql`
+      SELECT order_id AS "orderId", app_installation_id AS "installationId",
+        external_id AS "externalId"
+      FROM orders.order_integration_links
+      WHERE store_id = ${context.storeId} AND id = ${input.integrationLinkId}
+      FOR UPDATE
+    `);
+    const link = links[0];
+    if (!link || link.installationId !== context.installationId) {
+      throw new Error("ORDER_INTEGRATION_ROUTE_MISMATCH");
+    }
+    if (link.externalId && link.externalId !== snapshot.externalOrderId) {
+      throw new Error("ORDER_INTEGRATION_EXTERNAL_ID_MISMATCH");
+    }
+    const replay = await this.connection.execute<{ id: string }>(sql`
+      SELECT id FROM orders.order_integration_event_inbox
+      WHERE store_id = ${context.storeId} AND app_installation_id = ${context.installationId}
+        AND provider_event_id = ${input.providerEventId}
+      LIMIT 1
+    `);
+    const revisionReplay = await this.connection.execute<{ id: string }>(sql`
+      SELECT id FROM orders.order_integration_event_inbox
+      WHERE store_id = ${context.storeId} AND order_id = ${link.orderId}
+        AND app_installation_id = ${context.installationId}
+        AND external_order_id = ${snapshot.externalOrderId}
+        AND external_revision = ${snapshot.externalRevision}
+      LIMIT 1
+    `);
+    const previousImports = await this.connection.execute<{
+      observedAt: string;
+    }>(sql`
+      SELECT payload->>'observedAt' AS "observedAt"
+      FROM orders.order_integration_event_inbox
+      WHERE store_id = ${context.storeId} AND order_id = ${link.orderId}
+        AND app_installation_id = ${context.installationId}
+        AND external_order_id = ${snapshot.externalOrderId}
+        AND status = 'APPLIED'::orders.order_inbox_status
+        AND external_revision IS NOT NULL
+        AND payload->>'observedAt' IS NOT NULL
+      ORDER BY (payload->>'observedAt')::timestamptz DESC, processed_at DESC, id DESC
+      LIMIT 1
+    `);
+    const order = await this.lockOrderById(context.storeId, link.orderId);
+    if (replay[0] || revisionReplay[0]) {
+      return {
+        orderId: order.id,
+        integrationLinkId: input.integrationLinkId,
+        orderVersion: order.version,
+        duplicate: true,
+      };
+    }
+    const previousImport = previousImports[0];
+    if (
+      previousImport &&
+      Date.parse(snapshot.observedAt) <= Date.parse(previousImport.observedAt)
+    ) {
+      throw new Error("ORDER_INTEGRATION_IMPORT_OUT_OF_ORDER");
+    }
+    assertImportableOrder(order.status);
+    // Provider-reported `observedAt` orders facts inside the external system and
+    // is kept in the inbox payload; platform bookkeeping columns stay on the
+    // server clock so they remain monotonic and cannot be backdated by an app.
+    const now = new Date().toISOString();
+    const request: AdminOrderCommandInput = {
+      context: {
+        organizationId: context.organizationId,
+        storeId: context.storeId,
+        actor: { type: "APP", id: context.installationId },
+        correlationId: context.correlationId,
+      },
+      input: { idempotencyKey: input.idempotencyKey },
+    };
+    if (
+      snapshot.status ||
+      snapshot.paymentStatus ||
+      snapshot.fulfillmentStatus ||
+      snapshot.deliveryStatus
+    ) {
+      await this.connection.execute(sql`
+        UPDATE orders.orders
+        SET status = COALESCE(${snapshot.status}::orders.order_status, status),
+            closed_at = CASE
+              WHEN ${snapshot.status}::orders.order_status = 'CLOSED'
+                THEN COALESCE(closed_at, ${now}::timestamptz)
+              WHEN ${snapshot.status}::orders.order_status = 'OPEN' THEN NULL
+              ELSE closed_at
+            END,
+            payment_status = COALESCE(
+              ${snapshot.paymentStatus}::orders.order_payment_status, payment_status
+            ),
+            fulfillment_status = COALESCE(
+              ${snapshot.fulfillmentStatus}::orders.order_fulfillment_status, fulfillment_status
+            ),
+            delivery_status = COALESCE(
+              ${snapshot.deliveryStatus}::orders.order_delivery_status, delivery_status
+            ),
+            updated_at = ${now}
+        WHERE store_id = ${context.storeId} AND id = ${order.id}
+      `);
+    }
+    if (snapshot.lineQuantities && snapshot.lineQuantities.length > 0) {
+      for (const line of snapshot.lineQuantities) {
+        await this.applyImportedLineQuantity(context.storeId, order.id, line, now);
+      }
+      await this.refreshDiscountAllocationTotals(context.storeId, order.id);
+      await this.recalculateOrder(context.storeId, order.id, now);
+    }
+    if (snapshot.tags) {
+      await this.replaceTags(request, order.id, snapshot.tags, now);
+    }
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_integration_event_inbox (
+        store_id, order_id, app_installation_id, provider_event_id, external_order_id,
+        external_revision, event_type, schema_version, status, payload,
+        received_at, processed_at
+      ) VALUES (
+        ${context.storeId}, ${order.id}, ${context.installationId}, ${input.providerEventId},
+        ${snapshot.externalOrderId}, ${snapshot.externalRevision}, 'EXTERNAL_CHANGED', 1,
+        'APPLIED'::orders.order_inbox_status, ${JSON.stringify(snapshot)}::jsonb,
+        ${now}, ${now}
+      )
+    `);
+    await this.connection.execute(sql`
+      UPDATE orders.order_integration_links
+      SET external_id = COALESCE(external_id, ${snapshot.externalOrderId}),
+          last_imported_external_version = ${snapshot.externalRevision},
+          status = 'SYNCED'::orders.order_integration_sync_status,
+          last_synced_at = ${now}::timestamptz,
+          updated_at = ${now}
+      WHERE store_id = ${context.storeId} AND id = ${input.integrationLinkId}
+    `);
+    const result = await this.bumpAndAudit(
+      request,
+      order,
+      "orderIntegrationImportApply",
+      { integrationLinkId: input.integrationLinkId, import: snapshot },
+      now,
+    );
+    return {
+      orderId: order.id,
+      integrationLinkId: input.integrationLinkId,
+      orderVersion: result.orderVersion!,
+      duplicate: false,
+    };
+  }
+
+  /**
+   * Applies an imported line quantity and keeps the money of that line
+   * proportional: detail rows are scaled first, then the line aggregates are
+   * rebuilt from them, so tax, duty and discount never describe the quantity
+   * that was originally captured.
+   */
+  private async applyImportedLineQuantity(
+    storeId: string,
+    orderId: string,
+    line: Readonly<{ orderLineId: string; quantity: number }>,
+    now: string,
+  ): Promise<void> {
+    const lines = await this.connection.execute<{
+      quantity: number;
+      cancelledQuantity: number;
+      unitPriceAmount: string;
+      discountAmount: string;
+      taxAmount: string;
+      dutyAmount: string;
+    }>(sql`
+      SELECT quantity, cancelled_quantity AS "cancelledQuantity",
+        unit_price_amount::text AS "unitPriceAmount",
+        discount_amount::text AS "discountAmount", tax_amount::text AS "taxAmount",
+        duty_amount::text AS "dutyAmount"
+      FROM orders.order_lines
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND id = ${line.orderLineId}
+      FOR UPDATE
+    `);
+    const current = lines[0];
+    if (!current) throw new Error("ORDER_LINE_NOT_FOUND");
+    const fulfilled = await this.connection.execute<{ quantity: number }>(sql`
+      SELECT COALESCE(sum(fulfillment_line.quantity), 0)::integer AS quantity
+      FROM orders.order_fulfillment_lines fulfillment_line
+      JOIN orders.order_fulfillments fulfillment
+        ON fulfillment.store_id = fulfillment_line.store_id
+       AND fulfillment.order_id = fulfillment_line.order_id
+       AND fulfillment.id = fulfillment_line.fulfillment_id
+      WHERE fulfillment_line.store_id = ${storeId} AND fulfillment_line.order_id = ${orderId}
+        AND fulfillment_line.order_line_id = ${line.orderLineId}
+        AND fulfillment.status NOT IN ('FAILURE', 'CANCELLED')
+    `);
+    assertImportableLineQuantity(line.quantity, {
+      quantity: current.quantity,
+      cancelledQuantity: current.cancelledQuantity,
+      fulfilledQuantity: fulfilled[0]?.quantity ?? 0,
+    });
+    if (line.quantity === current.quantity) return;
+    await this.reconcileImportedRouting(
+      storeId,
+      orderId,
+      line.orderLineId,
+      line.quantity - current.cancelledQuantity,
+    );
+    const scale = { next: line.quantity, previous: current.quantity };
+    const taxLines = await this.scaleLineDetailAmounts(
+      sql`orders.order_line_tax_lines`,
+      storeId,
+      orderId,
+      line.orderLineId,
+      scale,
+    );
+    const dutyLines = await this.scaleLineDetailAmounts(
+      sql`orders.order_line_duties`,
+      storeId,
+      orderId,
+      line.orderLineId,
+      scale,
+    );
+    const discountAllocations = await this.scaleLineDetailAmounts(
+      sql`orders.order_line_discount_allocations`,
+      storeId,
+      orderId,
+      line.orderLineId,
+      scale,
+    );
+    const detailTotal = (amounts: readonly string[], fallbackMinor: string): bigint =>
+      amounts.length > 0
+        ? amounts.reduce((total, amount) => total + BigInt(amount), 0n)
+        : proratedMinorAmount(fallbackMinor, scale.next, scale.previous);
+    const tax = detailTotal(taxLines, current.taxAmount);
+    const duty = detailTotal(dutyLines, current.dutyAmount);
+    const discount = detailTotal(discountAllocations, current.discountAmount);
+    const subtotal = BigInt(current.unitPriceAmount) * BigInt(line.quantity);
+    const total = importedLineTotalMinor(subtotal, discount, tax, duty);
+    const updated = await this.connection.execute<{ id: string }>(sql`
+      UPDATE orders.order_lines
+      SET quantity = ${line.quantity},
+          subtotal_amount = ${subtotal.toString()},
+          discount_amount = ${discount.toString()},
+          tax_amount = ${tax.toString()},
+          duty_amount = ${duty.toString()},
+          total_amount = ${total.toString()},
+          updated_at = ${now}
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND id = ${line.orderLineId}
+      RETURNING id
+    `);
+    if (!updated[0]) throw new Error("ORDER_LINE_NOT_FOUND");
+  }
+
+  /**
+   * Shrinks only unfulfilled routed capacity. Fulfilled quantities are hard
+   * floors; the remainder is removed deterministically by route id so the
+   * deferred order-integrity checks see the same quantity at every layer.
+   */
+  private async reconcileImportedRouting(
+    storeId: string,
+    orderId: string,
+    orderLineId: string,
+    targetQuantity: number,
+  ): Promise<void> {
+    const fulfillmentOrderLines = await this.connection.execute<{
+      id: string;
+      quantity: number;
+      deliveryGroupId: string | null;
+    }>(sql`
+      SELECT line.fulfillment_order_id AS id, line.quantity,
+        fulfillment_order.delivery_group_id AS "deliveryGroupId"
+      FROM orders.order_fulfillment_order_lines line
+      JOIN orders.order_fulfillment_orders fulfillment_order
+        ON fulfillment_order.store_id = line.store_id
+       AND fulfillment_order.order_id = line.order_id
+       AND fulfillment_order.id = line.fulfillment_order_id
+      WHERE line.store_id = ${storeId} AND line.order_id = ${orderId}
+        AND line.order_line_id = ${orderLineId}
+        AND fulfillment_order.status <> 'CANCELLED'::orders.order_fulfillment_order_status
+      ORDER BY line.fulfillment_order_id
+      FOR UPDATE OF line, fulfillment_order
+    `);
+    const routedWithFloors: RoutedQuantity[] = [];
+    for (const route of fulfillmentOrderLines) {
+      const fulfilled = await this.connection.execute<{ quantity: number }>(sql`
+        SELECT COALESCE(sum(fulfillment_line.quantity), 0)::integer AS quantity
+        FROM orders.order_fulfillment_lines fulfillment_line
+        JOIN orders.order_fulfillments fulfillment
+          ON fulfillment.store_id = fulfillment_line.store_id
+         AND fulfillment.order_id = fulfillment_line.order_id
+         AND fulfillment.id = fulfillment_line.fulfillment_id
+        WHERE fulfillment_line.store_id = ${storeId}
+          AND fulfillment_line.order_id = ${orderId}
+          AND fulfillment_line.order_line_id = ${orderLineId}
+          AND fulfillment.fulfillment_order_id = ${route.id}
+          AND fulfillment.status NOT IN ('FAILURE', 'CANCELLED')
+      `);
+      routedWithFloors.push({
+        id: route.id,
+        quantity: route.quantity,
+        floor: fulfilled[0]?.quantity ?? 0,
+        groupId: route.deliveryGroupId,
+      });
+    }
+    const nextFulfillmentRoutes = allocateRoutedQuantities(routedWithFloors, targetQuantity);
+    const groupFloors = new Map<string, number>();
+    for (const route of nextFulfillmentRoutes) {
+      if (route.groupId) {
+        groupFloors.set(route.groupId, (groupFloors.get(route.groupId) ?? 0) + route.quantity);
+      }
+      if (route.quantity === 0) {
+        await this.connection.execute(sql`
+          DELETE FROM orders.order_fulfillment_order_lines
+          WHERE store_id = ${storeId} AND order_id = ${orderId}
+            AND fulfillment_order_id = ${route.id} AND order_line_id = ${orderLineId}
+        `);
+      } else {
+        await this.connection.execute(sql`
+          UPDATE orders.order_fulfillment_order_lines SET quantity = ${route.quantity}
+          WHERE store_id = ${storeId} AND order_id = ${orderId}
+            AND fulfillment_order_id = ${route.id} AND order_line_id = ${orderLineId}
+        `);
+      }
+    }
+
+    const deliveryGroupLines = await this.connection.execute<{
+      id: string;
+      quantity: number;
+    }>(sql`
+      SELECT line.delivery_group_id AS id, line.quantity
+      FROM orders.order_delivery_group_lines line
+      JOIN orders.order_delivery_groups delivery_group
+        ON delivery_group.store_id = line.store_id
+       AND delivery_group.order_id = line.order_id
+       AND delivery_group.id = line.delivery_group_id
+      WHERE line.store_id = ${storeId} AND line.order_id = ${orderId}
+        AND line.order_line_id = ${orderLineId}
+        AND delivery_group.status <> 'CANCELLED'::orders.order_delivery_group_status
+      ORDER BY line.delivery_group_id
+      FOR UPDATE OF line, delivery_group
+    `);
+    const nextDeliveryRoutes = allocateRoutedQuantities(
+      deliveryGroupLines.map((route) => ({
+        ...route,
+        floor: groupFloors.get(route.id) ?? 0,
+        groupId: null,
+      })),
+      targetQuantity,
+    );
+    for (const route of nextDeliveryRoutes) {
+      if (route.quantity === 0) {
+        await this.connection.execute(sql`
+          DELETE FROM orders.order_delivery_group_lines
+          WHERE store_id = ${storeId} AND order_id = ${orderId}
+            AND delivery_group_id = ${route.id} AND order_line_id = ${orderLineId}
+        `);
+      } else {
+        await this.connection.execute(sql`
+          UPDATE orders.order_delivery_group_lines SET quantity = ${route.quantity}
+          WHERE store_id = ${storeId} AND order_id = ${orderId}
+            AND delivery_group_id = ${route.id} AND order_line_id = ${orderLineId}
+        `);
+      }
+    }
+  }
+
+  private async scaleLineDetailAmounts(
+    table: SQL,
+    storeId: string,
+    orderId: string,
+    orderLineId: string,
+    scale: Readonly<{ next: number; previous: number }>,
+  ): Promise<readonly string[]> {
+    const rows = await this.connection.execute<{ amount: string }>(sql`
+      UPDATE ${table}
+      SET amount = amount * ${scale.next} / ${scale.previous}
+      WHERE store_id = ${storeId} AND order_id = ${orderId} AND order_line_id = ${orderLineId}
+      RETURNING amount::text AS amount
+    `);
+    return rows.map((row) => row.amount);
+  }
+
+  /** Keeps discount applications consistent with their per-line allocations. */
+  private async refreshDiscountAllocationTotals(storeId: string, orderId: string): Promise<void> {
+    await this.connection.execute(sql`
+      UPDATE orders.order_discount_applications application
+      SET total_allocated_amount = COALESCE(allocation.amount, 0)
+      FROM (
+        SELECT discount_application_id AS id, sum(amount) AS amount
+        FROM orders.order_line_discount_allocations
+        WHERE store_id = ${storeId} AND order_id = ${orderId}
+        GROUP BY discount_application_id
+      ) allocation
+      WHERE application.store_id = ${storeId} AND application.order_id = ${orderId}
+        AND application.id = allocation.id
+    `);
+  }
+
   async applyExternalEffectResult(
     command: AdminOrderCommandName,
     request: AdminOrderCommandInput,
@@ -696,10 +1146,6 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
     }
     if (command === "fulfillmentOrderSubmit" || command === "fulfillmentOrderCancelRequest") {
       const fulfillmentOrderId = requiredUuid(request.input, "fulfillmentOrderId");
-      const installationId = optionalUuid(envelope.installationId, "installationId");
-      const appCode = optionalString(envelope.appCode);
-      const externalId = optionalString(data.externalId) ?? optionalString(data.requestId);
-      if (!installationId || !appCode) throw new Error("FULFILLMENT_PROVIDER_ROUTE_MISSING");
       const fulfillmentRows = await this.connection.execute<{ orderId: string }>(sql`
         SELECT order_id AS "orderId"
         FROM orders.order_fulfillment_orders
@@ -707,37 +1153,16 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
         FOR UPDATE
       `);
       if (!fulfillmentRows[0]) throw new Error("FULFILLMENT_ORDER_NOT_FOUND");
-      const revisionRows = await this.connection.execute<{ revision: number }>(sql`
-        SELECT COALESCE(max(request_revision), 0)::integer + 1 AS revision
-        FROM orders.order_fulfillment_service_requests
-        WHERE store_id = ${request.context.storeId} AND fulfillment_order_id = ${fulfillmentOrderId}
-      `);
-      await this.connection.execute(sql`
-        INSERT INTO orders.order_fulfillment_service_requests (
-          store_id, order_id, fulfillment_order_id, app_installation_id, app_code,
-          request_revision, status, provider_reference, provider_revision,
-          request_snapshot, response_snapshot, submitted_at, responded_at
-        ) VALUES (
-          ${request.context.storeId}, ${fulfillmentRows[0].orderId}, ${fulfillmentOrderId},
-          ${installationId}, ${appCode}, ${revisionRows[0]?.revision ?? 1},
-          ${command === "fulfillmentOrderSubmit" ? "ACCEPTED" : "CANCELLATION_ACCEPTED"}::orders.order_fulfillment_request_status,
-          ${externalId}, ${optionalString(data.externalRevision)},
-          ${JSON.stringify(request.input)}::jsonb, ${JSON.stringify(data)}::jsonb, ${now}, ${now}
-        )
-      `);
-      await this.connection.execute(sql`
-        UPDATE orders.order_fulfillment_orders
-        SET request_status = ${command === "fulfillmentOrderSubmit" ? "ACCEPTED" : "CANCELLATION_ACCEPTED"}::orders.order_fulfillment_request_status,
-          external_source = COALESCE(${appCode}, external_source),
-          external_id = COALESCE(${externalId}, external_id),
-          provider_snapshot = ${JSON.stringify({
-            installationId: installationId ?? null,
-            appCode: appCode ?? null,
-            routeRevision: optionalString(envelope.routeRevision),
-          })}::jsonb,
-          version = version + 1, updated_at = ${now}
-        WHERE store_id = ${request.context.storeId} AND id = ${fulfillmentOrderId}
-      `);
+      await this.recordFulfillmentServiceRequest({
+        request,
+        envelope,
+        data,
+        orderId: fulfillmentRows[0].orderId,
+        fulfillmentOrderId,
+        status: command === "fulfillmentOrderSubmit" ? "ACCEPTED" : "CANCELLATION_ACCEPTED",
+        adoptExternalIdentity: true,
+        now,
+      });
       return;
     }
     if (command === "shipmentCreate") {
@@ -811,7 +1236,208 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
         UPDATE orders.orders SET delivery_status = 'NOT_SHIPPED', updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND id = ${result.orderId}
       `);
+      await this.recordShipmentProviderOperation(
+        request,
+        result.orderId!,
+        shipmentId,
+        "CREATE",
+        "delivery.createDeliveryShipment",
+        optionalString(data.shipmentId),
+        data,
+        now,
+      );
     }
+    if (command === "fulfillmentCancel") {
+      const fulfillmentId = requiredUuid(request.input, "fulfillmentId");
+      const fulfillmentRows = await this.connection.execute<{ fulfillmentOrderId: string }>(sql`
+        SELECT fulfillment_order_id AS "fulfillmentOrderId"
+        FROM orders.order_fulfillments
+        WHERE store_id = ${request.context.storeId} AND id = ${fulfillmentId}
+        FOR UPDATE
+      `);
+      const fulfillmentOrderId = fulfillmentRows[0]?.fulfillmentOrderId;
+      if (!fulfillmentOrderId) throw new Error("FULFILLMENT_ORDER_NOT_FOUND");
+      await this.recordFulfillmentServiceRequest({
+        request,
+        envelope,
+        data,
+        orderId: result.orderId!,
+        fulfillmentOrderId,
+        status: "CANCELLATION_ACCEPTED",
+        adoptExternalIdentity: false,
+        now,
+      });
+    }
+    if (command === "shipmentCancel") {
+      const shipmentId = requiredUuid(request.input, "shipmentId");
+      if (optionalString(data.status) !== "ACCEPTED") {
+        throw new Error("SHIPMENT_CANCEL_NOT_ACCEPTED");
+      }
+      const updated = await this.connection.execute<{ id: string }>(sql`
+        UPDATE orders.order_shipments
+        SET status = 'CANCELLED'::orders.order_shipment_status, updated_at = ${now},
+            metadata = jsonb_set(
+              COALESCE(metadata, '{}'::jsonb),
+              '{deliveryOperationId}', to_jsonb(${optionalString(data.operationId)}::text), true
+            )
+        WHERE store_id = ${request.context.storeId} AND id = ${shipmentId}
+        RETURNING id
+      `);
+      if (!updated[0]) throw new Error("SHIPMENT_NOT_FOUND");
+      await this.connection.execute(sql`
+        INSERT INTO orders.order_shipment_tracking_events (
+          store_id, order_id, shipment_id, status, message, happened_at
+        )
+        SELECT store_id, order_id, id, 'CANCELLED'::orders.order_shipment_status,
+          'shipmentCancel', ${now}::timestamptz
+        FROM orders.order_shipments
+        WHERE store_id = ${request.context.storeId} AND id = ${shipmentId}
+      `);
+      await this.recordShipmentProviderOperation(
+        request,
+        result.orderId!,
+        shipmentId,
+        "CANCEL",
+        "delivery.cancelDeliveryShipment",
+        optionalString(data.shipmentId),
+        data,
+        now,
+      );
+    }
+    if (command === "shipmentReconcile") {
+      const shipmentId = requiredUuid(request.input, "shipmentId");
+      const mappedStatus = mapDeliveryShipmentState(optionalString(data.shipmentState));
+      if (mappedStatus) {
+        await this.connection.execute(sql`
+          UPDATE orders.order_shipments
+          SET status = ${mappedStatus}::orders.order_shipment_status,
+              metadata = jsonb_set(
+                COALESCE(metadata, '{}'::jsonb),
+                '{reconcile}', ${JSON.stringify(data)}::jsonb, true
+              ),
+              updated_at = ${now}
+          WHERE store_id = ${request.context.storeId} AND id = ${shipmentId}
+        `);
+      } else {
+        await this.connection.execute(sql`
+          UPDATE orders.order_shipments
+          SET metadata = jsonb_set(
+                COALESCE(metadata, '{}'::jsonb),
+                '{reconcile}', ${JSON.stringify(data)}::jsonb, true
+              ),
+              updated_at = ${now}
+          WHERE store_id = ${request.context.storeId} AND id = ${shipmentId}
+        `);
+      }
+      const events = Array.isArray(data.events) ? data.events.map(asRecord) : [];
+      for (const event of events) {
+        const eventStatus = mapDeliveryShipmentState(optionalString(event.state)) ?? "IN_TRANSIT";
+        await this.connection.execute(sql`
+          INSERT INTO orders.order_shipment_tracking_events (
+            store_id, order_id, shipment_id, status, message, happened_at
+          )
+          SELECT store_id, order_id, id,
+            ${eventStatus}::orders.order_shipment_status,
+            ${optionalString(event.message)}, ${optionalString(event.occurredAt) ?? now}::timestamptz
+          FROM orders.order_shipments
+          WHERE store_id = ${request.context.storeId} AND id = ${shipmentId}
+        `);
+      }
+      await this.recordShipmentProviderOperation(
+        request,
+        result.orderId!,
+        shipmentId,
+        "RECONCILE",
+        "delivery.reconcileDeliveryShipment",
+        optionalString(data.providerShipmentReference) ?? optionalString(data.shipmentId),
+        data,
+        now,
+      );
+    }
+  }
+
+  /**
+   * Records one provider round trip against a fulfillment order. Both the
+   * submit/cancel-request commands and the fulfillment-level cancellation share
+   * it so the request revision, provider snapshot and audit trail stay uniform.
+   */
+  private async recordFulfillmentServiceRequest(
+    input: Readonly<{
+      request: AdminOrderCommandInput;
+      envelope: Record<string, unknown>;
+      data: Record<string, unknown>;
+      orderId: string;
+      fulfillmentOrderId: string;
+      status: "ACCEPTED" | "CANCELLATION_ACCEPTED";
+      adoptExternalIdentity: boolean;
+      now: string;
+    }>,
+  ): Promise<void> {
+    const { request, envelope, data, fulfillmentOrderId, now } = input;
+    const storeId = request.context.storeId;
+    const installationId = optionalUuid(envelope.installationId, "installationId");
+    const appCode = optionalString(envelope.appCode);
+    if (!installationId || !appCode) throw new Error("FULFILLMENT_PROVIDER_ROUTE_MISSING");
+    const externalId = optionalString(data.externalId) ?? optionalString(data.requestId);
+    const revisionRows = await this.connection.execute<{ revision: number }>(sql`
+      SELECT COALESCE(max(request_revision), 0)::integer + 1 AS revision
+      FROM orders.order_fulfillment_service_requests
+      WHERE store_id = ${storeId} AND fulfillment_order_id = ${fulfillmentOrderId}
+    `);
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_fulfillment_service_requests (
+        store_id, order_id, fulfillment_order_id, app_installation_id, app_code,
+        request_revision, status, provider_reference, provider_revision,
+        request_snapshot, response_snapshot, submitted_at, responded_at
+      ) VALUES (
+        ${storeId}, ${input.orderId}, ${fulfillmentOrderId},
+        ${installationId}, ${appCode}, ${revisionRows[0]?.revision ?? 1},
+        ${input.status}::orders.order_fulfillment_request_status,
+        ${externalId}, ${optionalString(data.externalRevision)},
+        ${JSON.stringify(request.input)}::jsonb, ${JSON.stringify(data)}::jsonb, ${now}, ${now}
+      )
+    `);
+    const externalIdentity = input.adoptExternalIdentity
+      ? sql`external_source = COALESCE(${appCode}, external_source),
+          external_id = COALESCE(${externalId}, external_id),`
+      : sql``;
+    await this.connection.execute(sql`
+      UPDATE orders.order_fulfillment_orders
+      SET request_status = ${input.status}::orders.order_fulfillment_request_status,
+        ${externalIdentity}
+        provider_snapshot = ${JSON.stringify({
+          installationId,
+          appCode,
+          routeRevision: optionalString(envelope.routeRevision),
+        })}::jsonb,
+        version = version + 1, updated_at = ${now}
+      WHERE store_id = ${storeId} AND id = ${fulfillmentOrderId}
+    `);
+  }
+
+  private async recordShipmentProviderOperation(
+    request: AdminOrderCommandInput,
+    orderId: string,
+    shipmentId: string,
+    operation: "CREATE" | "CANCEL" | "RECONCILE",
+    route: string,
+    providerReference: string | null,
+    response: unknown,
+    now: string,
+  ): Promise<void> {
+    await this.connection.execute(sql`
+      INSERT INTO orders.order_shipment_provider_operations (
+        store_id, order_id, shipment_id, operation, status, provider_code,
+        provider_route, idempotency_key, request_hash, provider_reference,
+        response, attempts, available_at, completed_at, created_at, updated_at
+      ) VALUES (
+        ${request.context.storeId}, ${orderId}, ${shipmentId}, ${operation},
+        'SUCCEEDED'::orders.order_operation_status, 'delivery', ${route},
+        ${requiredString(request.input, "idempotencyKey")}, ${digest(request.input)},
+        ${providerReference}, ${JSON.stringify(response)}::jsonb, 1, ${now}, ${now}, ${now}, ${now}
+      )
+      ON CONFLICT ("store_id", "provider_route", "idempotency_key") DO NOTHING
+    `);
   }
 
   protected async paymentRoute(storeId: string, transactionId: string) {
@@ -924,5 +1550,56 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
     const snapshot = rows[0]?.snapshot;
     if (!snapshot || typeof snapshot !== "object") throw new Error("ORDER_NOT_FOUND");
     return snapshot as Record<string, unknown>;
+  }
+}
+
+type RoutedQuantity = Readonly<{
+  id: string;
+  quantity: number;
+  floor: number;
+  groupId: string | null;
+}>;
+
+function allocateRoutedQuantities(
+  routes: readonly RoutedQuantity[],
+  targetQuantity: number,
+): readonly RoutedQuantity[] {
+  const currentTotal = routes.reduce((total, route) => total + route.quantity, 0);
+  const desiredTotal = Math.min(currentTotal, targetQuantity);
+  const floorTotal = routes.reduce((total, route) => total + route.floor, 0);
+  if (floorTotal > desiredTotal) {
+    throw new Error("ORDER_INTEGRATION_IMPORT_LINE_FULFILLED");
+  }
+  let remaining = desiredTotal - floorTotal;
+  return routes.map((route) => {
+    const available = route.quantity - route.floor;
+    if (available < 0) throw new Error("ORDER_INTEGRATION_IMPORT_LINE_FULFILLED");
+    const retained = Math.min(available, remaining);
+    remaining -= retained;
+    return { ...route, quantity: route.floor + retained };
+  });
+}
+
+function mapDeliveryShipmentState(state: string | null): string | null {
+  switch (state) {
+    case "PENDING":
+      return "LABEL_CREATED";
+    case "ACCEPTED":
+      return "READY_FOR_PICKUP";
+    case "IN_TRANSIT":
+      return "IN_TRANSIT";
+    case "OUT_FOR_DELIVERY":
+      return "OUT_FOR_DELIVERY";
+    case "DELIVERED":
+      return "DELIVERED";
+    case "DELIVERY_FAILED":
+      return "EXCEPTION";
+    case "RETURNING":
+    case "RETURNED":
+      return "RETURNED_TO_SENDER";
+    case "CANCELLED":
+      return "CANCELLED";
+    default:
+      return null;
   }
 }

@@ -155,6 +155,8 @@ export class AdminOrderCommandService {
         return returns.createExchange(request, command);
       case "orderExchangeCancel":
         return returns.cancelExchange(request, command);
+      case "orderExchangeComplete":
+        return returns.completeExchange(request, command);
       case "orderIntegrationLinkDetach":
         return integration.detachIntegration(request, command);
       default:

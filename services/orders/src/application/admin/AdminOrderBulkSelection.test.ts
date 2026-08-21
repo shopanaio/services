@@ -1,8 +1,5 @@
 import { describe, expect, test } from "@jest/globals";
-import {
-  parseAdminOrderBulkSelection,
-  parseAdminOrderWhere,
-} from "./AdminOrderBulkSelection.js";
+import { parseAdminOrderBulkSelection, parseAdminOrderWhere } from "./AdminOrderBulkSelection.js";
 
 const id = "018f3f8d-0e6d-7a74-8f80-123456789abc";
 

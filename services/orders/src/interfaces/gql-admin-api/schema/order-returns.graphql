@@ -763,6 +763,32 @@ input OrderExchangeCancelInput {
 }
 
 """
+Validated input for order exchange complete. Tenant identifiers come only from trusted context.
+"""
+input OrderExchangeCompleteInput {
+  """
+  Relay global ID identifying the exchange.
+  """
+  exchangeId: ID!
+  """
+  Revision observed by the client; the command fails when stale.
+  """
+  expectedVersion: Int!
+  """
+  Client-generated key that makes retries return the same result and rejects parameter mismatches.
+  """
+  idempotencyKey: String!
+  """
+  Whether completion should enqueue a customer notification.
+  """
+  notifyCustomer: Boolean = false
+  """
+  Validated input value for staff note.
+  """
+  staffNote: String
+}
+
+"""
 Mutation result for order return; expected failures are returned in userErrors.
 """
 type OrderReturnPayload {

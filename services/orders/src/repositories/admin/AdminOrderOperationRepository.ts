@@ -253,6 +253,25 @@ export class AdminOrderOperationRepository extends AdminOrderCoreRepository {
           updated_at = ${now}
         WHERE store_id = ${request.context.storeId} AND id = ${order.id}
       `);
+      if (requestComplete) {
+        const returnShipments = await this.connection.execute<{ id: string }>(sql`
+          UPDATE orders.order_return_shipments
+          SET status = 'DELIVERED'::orders.order_shipment_status, received_at = ${now}, updated_at = ${now}
+          WHERE store_id = ${request.context.storeId} AND order_id = ${order.id}
+            AND return_request_id = ${returnId} AND received_at IS NULL
+          RETURNING id
+        `);
+        for (const shipment of returnShipments) {
+          await this.connection.execute(sql`
+            INSERT INTO orders.order_return_tracking_events (
+              store_id, order_id, return_shipment_id, status, message, happened_at
+            ) VALUES (
+              ${request.context.storeId}, ${order.id}, ${shipment.id},
+              'DELIVERED'::orders.order_shipment_status, 'Return shipment received', ${now}
+            )
+          `);
+        }
+      }
       changed = true;
     }
     if (changed) {

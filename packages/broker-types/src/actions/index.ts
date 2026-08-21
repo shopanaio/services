@@ -218,6 +218,8 @@ export {
   OrderReviewActions,
   OrderProviderActionNames,
   OrderProviderActions,
+  OrderStorefrontActionNames,
+  OrderStorefrontActions,
 } from "./orders.js";
 export type {
   OrderPlacementMoneyV1,
@@ -227,11 +229,13 @@ export type {
   OrderPlacementDeliveryGroupV1,
   OrderPlacementDiscountV1,
   OrderPlacementTaxLineV1,
+  OrderPlacementDutyLineV1,
   OrderPlacementPaymentMethodV1,
   OrderPlacementCostV1,
   OrderPlacementSnapshotV1,
   OrderPlacementLoyaltyCommitmentV1,
   OrderPlacementCommitmentsV1,
+  OrderReturnPolicySnapshotV1,
   CreateOrderFromCheckoutPlacementV1Params,
   CreateOrderFromCheckoutPlacementV1Result,
   ConfirmOrderFromCheckoutPlacementV1Params,
@@ -242,6 +246,12 @@ export type {
   CompleteOrderFulfillmentServiceOperationV1Result,
   ApplyOrderIntegrationEventV1Params,
   ApplyOrderIntegrationEventV1Result,
+  ApplyOrderIntegrationImportV1Params,
+  ApplyOrderIntegrationImportV1Result,
+  OrderIntegrationImportSnapshotV1,
+  OrderIntegrationImportPaymentStatusV1,
+  OrderIntegrationImportFulfillmentStatusV1,
+  OrderIntegrationImportDeliveryStatusV1,
 } from "./orders.js";
 export type {
   GetOrderDeliveryShipmentPlanParams,
@@ -257,6 +267,10 @@ export type {
   PublishOrderLoyaltyRewardReversedResult,
   VerifyReviewPurchaseParams,
   VerifyReviewPurchaseResult,
+  CancelOrderFromStorefrontParams,
+  CancelOrderFromStorefrontResult,
+  CreateOrderReturnRequestFromStorefrontParams,
+  CreateOrderReturnRequestFromStorefrontResult,
 } from "./orders.js";
 
 // Delivery service checkout actions
@@ -372,6 +386,7 @@ export type {
   PaymentSessionSnapshot,
   PaymentSessionState,
   PaymentSettlementConfirmation,
+  PaymentTransactionFee,
   PaymentsCheckoutDeliveryGroupSnapshot,
   PaymentsCheckoutDeliverySnapshot,
   PaymentsCheckoutDestinationSnapshot,

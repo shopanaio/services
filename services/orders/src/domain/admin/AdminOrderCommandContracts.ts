@@ -54,6 +54,7 @@ export const adminOrderCommandNames = [
   "orderReturnReceive",
   "orderExchangeCreate",
   "orderExchangeCancel",
+  "orderExchangeComplete",
   "orderIntegrationSyncRequest",
   "orderIntegrationSyncRetry",
   "orderIntegrationLinkDetach",
@@ -62,8 +63,19 @@ export const adminOrderCommandNames = [
 
 export type AdminOrderCommandName = (typeof adminOrderCommandNames)[number];
 
+/**
+ * Audited order changes that are not Admin commands: a channel-app import
+ * mutates the order too, and the revision log names the actual event instead
+ * of borrowing an unrelated command name.
+ */
+export const adminOrderInternalEventNames = ["orderIntegrationImportApply"] as const;
+
+export type AdminOrderInternalEventName = (typeof adminOrderInternalEventNames)[number];
+
+export type AdminOrderAuditEventName = AdminOrderCommandName | AdminOrderInternalEventName;
+
 export type AdminOrderActor = Readonly<{
-  type: "STAFF" | "API_KEY" | "APP" | "SYSTEM";
+  type: "STAFF" | "API_KEY" | "APP" | "SYSTEM" | "CUSTOMER";
   id: string | null;
 }>;
 
@@ -238,6 +250,10 @@ const commandRequirements: Partial<Record<AdminOrderCommandName, CommandRequirem
     ids: ["exchangeId"],
     positiveInts: ["expectedVersion"],
     strings: ["reasonCode"],
+  },
+  orderExchangeComplete: {
+    ids: ["exchangeId"],
+    positiveInts: ["expectedVersion"],
   },
   orderIntegrationSyncRequest: { ...orderByOrderId, ids: ["orderId", "integrationLinkId"] },
   orderIntegrationSyncRetry: { ...orderByOrderId, ids: ["orderId", "operationId"] },
@@ -493,7 +509,7 @@ export const adminOrderCommandInputSchema: z.ZodType<AdminOrderCommandInput> = z
     organizationId: uuid,
     storeId: uuid,
     actor: z.object({
-      type: z.enum(["STAFF", "API_KEY", "APP", "SYSTEM"]),
+      type: z.enum(["STAFF", "API_KEY", "APP", "SYSTEM", "CUSTOMER"]),
       id: uuid.nullable(),
     }),
     correlationId: uuid,

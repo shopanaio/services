@@ -52,6 +52,7 @@ import {
   ApiOrderEditLineUpdateInput,
   ApiOrderEditShippingUpdateInput,
   ApiOrderExchangeCancelInput,
+  ApiOrderExchangeCompleteInput,
   ApiOrderExchangeCreateInput,
   ApiOrderExchangeStatus,
   ApiOrderFulfillmentStatus,
@@ -649,6 +650,18 @@ export function ApiOrderExchangeCancelInputSchema(): z.ZodObject<
     expectedVersion: z.number(),
     idempotencyKey: z.string(),
     reasonCode: z.string(),
+  });
+}
+
+export function ApiOrderExchangeCompleteInputSchema(): z.ZodObject<
+  Properties<ApiOrderExchangeCompleteInput>
+> {
+  return z.object({
+    exchangeId: z.string(),
+    expectedVersion: z.number(),
+    idempotencyKey: z.string(),
+    notifyCustomer: z.boolean().default(false).nullish(),
+    staffNote: z.string().nullish(),
   });
 }
 

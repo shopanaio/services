@@ -13,6 +13,7 @@ import {
   OrderReviewActionNames,
   OrderProviderActionNames,
   OrderProviderActions,
+  OrderStorefrontActionNames,
   type PublishOrderLoyaltyRewardEligibleParams,
   type PublishOrderLoyaltyRewardEligibleResult,
   type PublishOrderLoyaltyRewardReversedParams,
@@ -33,8 +34,14 @@ import {
   type OrderCheckoutPlacementV1Result,
   type ApplyOrderIntegrationEventV1Params,
   type ApplyOrderIntegrationEventV1Result,
+  type ApplyOrderIntegrationImportV1Params,
+  type ApplyOrderIntegrationImportV1Result,
   type CompleteOrderFulfillmentServiceOperationV1Params,
   type CompleteOrderFulfillmentServiceOperationV1Result,
+  type CancelOrderFromStorefrontParams,
+  type CancelOrderFromStorefrontResult,
+  type CreateOrderReturnRequestFromStorefrontParams,
+  type CreateOrderReturnRequestFromStorefrontResult,
 } from "@shopana/broker-types";
 import type { BrokerCallContext } from "@shopana/shared-kernel";
 import {
@@ -51,6 +58,7 @@ import {
 } from "./domain/admin/AdminOrderCommandContracts.js";
 import {
   applyOrderIntegrationEventV1Schema,
+  applyOrderIntegrationImportV1Schema,
   completeOrderFulfillmentServiceOperationV1Schema,
   type TrustedOrderAppContext,
 } from "./domain/integration/OrderProviderContracts.js";
@@ -230,6 +238,28 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
     );
 
     this.broker.register(
+      OrderProviderActionNames.applyIntegrationImport,
+      async (
+        params: ApplyOrderIntegrationImportV1Params | undefined,
+        context: BrokerCallContext,
+      ): Promise<ApplyOrderIntegrationImportV1Result> => {
+        const input = applyOrderIntegrationImportV1Schema.parse(requireParams(params));
+        const app = trustedOrderAppContext(context, OrderProviderActions.applyIntegrationImport);
+        return this.broker.runWorkflow(
+          "order.applyOrderIntegrationImportV1",
+          { context: app, input },
+          {
+            source: "content",
+            organizationId: app.organizationId,
+            resourceId: input.integrationLinkId,
+            operation: "applyOrderIntegrationImportV1",
+            content: { installationId: app.installationId, input },
+          },
+        );
+      },
+    );
+
+    this.broker.register(
       OrderFulfillmentActionNames.listForOrder,
       (
         params: ListOrderDeliveryFulfillmentOrdersParams | undefined,
@@ -331,6 +361,91 @@ export class OrdersNestService implements OnModuleInit, OnModuleDestroy {
           return { eligible: false, code: "ORDER_LINE_PRODUCT_MISMATCH" };
         }
         return { eligible: true, verificationMethod: "ORDER_LINE" };
+      },
+    );
+
+    this.broker.register(
+      OrderStorefrontActionNames.cancel,
+      async (
+        params: CancelOrderFromStorefrontParams | undefined,
+      ): Promise<CancelOrderFromStorefrontResult> => {
+        const input = requireParams(params);
+        const workflowInput: AdminOrderCommandInput = {
+          context: {
+            organizationId: input.organizationId,
+            storeId: input.storeId,
+            actor: { type: "CUSTOMER", id: input.customerId },
+            correlationId: input.correlationId,
+          },
+          input: {
+            id: input.orderId,
+            expectedVersion: input.expectedVersion,
+            idempotencyKey: input.idempotencyKey,
+            reasonCode: input.reasonCode ?? "CUSTOMER_REQUEST",
+            restock: true,
+            notifyCustomer: true,
+          },
+        };
+        const result = await this.broker.runWorkflow<
+          AdminOrderCommandResult,
+          AdminOrderCommandInput
+        >("order.cancelOrderFromStorefront", workflowInput, {
+          source: "content",
+          organizationId: input.organizationId,
+          resourceId: input.orderId,
+          operation: "cancelOrderFromStorefront",
+          content: workflowInput,
+        });
+        return {
+          orderId: result.orderId ?? input.orderId,
+          orderVersion: result.orderVersion ?? 0,
+          orderStatus: "CANCELLED",
+          duplicate: result.duplicate,
+        };
+      },
+    );
+
+    this.broker.register(
+      OrderStorefrontActionNames.createReturnRequest,
+      async (
+        params: CreateOrderReturnRequestFromStorefrontParams | undefined,
+      ): Promise<CreateOrderReturnRequestFromStorefrontResult> => {
+        const input = requireParams(params);
+        const workflowInput: AdminOrderCommandInput = {
+          context: {
+            organizationId: input.organizationId,
+            storeId: input.storeId,
+            actor: { type: "CUSTOMER", id: input.customerId },
+            correlationId: input.correlationId,
+          },
+          input: {
+            orderId: input.orderId,
+            expectedVersion: input.expectedVersion,
+            idempotencyKey: input.idempotencyKey,
+            lines: input.lines.map((line) => ({
+              orderLineId: line.orderLineId,
+              quantity: line.quantity,
+              reasonCode: line.reasonCode,
+              ...(line.note ? { note: line.note } : {}),
+            })),
+          },
+        };
+        const result = await this.broker.runWorkflow<
+          AdminOrderCommandResult,
+          AdminOrderCommandInput
+        >("order.createOrderReturnRequestFromStorefront", workflowInput, {
+          source: "content",
+          organizationId: input.organizationId,
+          resourceId: input.orderId,
+          operation: "createOrderReturnRequestFromStorefront",
+          content: workflowInput,
+        });
+        return {
+          orderId: result.orderId ?? input.orderId,
+          returnRequestId: result.resourceId ?? "",
+          orderVersion: result.orderVersion ?? 0,
+          duplicate: result.duplicate,
+        };
       },
     );
 
