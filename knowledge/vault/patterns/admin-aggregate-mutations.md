@@ -55,10 +55,11 @@ related:
 aggregate и может быть представлено его update operation.
 
 `<aggregate>Create` допускается только как bootstrap-команда, потому что aggregate root ещё не
-существует. Иное отдельное имя мутации допускается только для самостоятельной semantic command,
-которая не является изменением одного существующего aggregate. Такое исключение должно быть
-явно обосновано в архитектурном документе bounded context. Удобство UI или исторически
-существующий CRUD endpoint не являются обоснованием.
+существует. Она также обязана запускать зарегистрированный durable workflow; после успешного
+transactional commit workflow публикует `<aggregate>Created`. Иное отдельное имя мутации
+допускается только для самостоятельной semantic command, которая не является изменением одного
+существующего aggregate. Такое исключение должно быть явно обосновано в архитектурном документе
+bounded context. Удобство UI или исторически существующий CRUD endpoint не являются обоснованием.
 
 ## GraphQL-контракт
 
@@ -130,6 +131,8 @@ resolver также запрещена: между commit и emit возникн
 
 Каждая `<aggregate>Update` реализуется как зарегистрированный DBOS `@Workflow` и запускается через
 service broker. Workflow является единственным orchestration write path для aggregate.
+Отдельная bootstrap-мутация `<aggregate>Create>` следует тем же правилам durable execution,
+transactional steps и публикации события `<aggregate>Created`.
 
 Типовой порядок выполнения:
 
@@ -160,12 +163,12 @@ Workflow body должен быть replay-safe. Генерация ID, врем
   в `@TransactionalStep()`;
 - transactional step атомарно коммитит local domain writes и DBOS checkpoint, содержит только
   local database work и выпускает exception наружу;
-- broker calls, S3, HTTP, email и прочие external side effects выполняются в отдельных durable
-  steps только после local commit; каждый вызов имеет стабильный idempotency context
-  (`parentWorkflowId`, `stepId`, `callId`);
+- direct broker calls, S3, HTTP, email и прочие external side effects выполняются в отдельных
+  `@WorkflowStep()` только после local commit; каждый вызов имеет стабильный idempotency context,
+  если это поддерживает target;
 - `broker.runWorkflow()` и `broker.runSaga()` нельзя вызывать из `@WorkflowStep()` или
   `@TransactionalStep()`; child workflow/saga запускается непосредственно из workflow body после
-  завершения нужного step;
+  завершения нужного step со стабильными `parentWorkflowId`, `stepId` и `callId`;
 - retry policy применяется только к transient errors и ограничена backoff/attempts; business,
   validation и timeout errors не retry-ятся как transient; критичные ошибки delivery нельзя
   логировать и проглатывать;
@@ -174,8 +177,9 @@ Workflow body должен быть replay-safe. Генерация ID, врем
   распределённые изменения с необходимой отменой реализуются durable saga с compensation;
 - `operationResults` и errors стабильны: сохраняют порядок input, machine-readable code и исходный
   GraphQL field path;
-- event публикуется отдельным durable delivery step только после фактического commit, включает
-  tenant, actor и subject и не отправляется для no-op или полностью неуспешного request;
+- event запускается как durable child workflow непосредственно из workflow body только после
+  фактического commit, включает tenant, actor и subject и не отправляется для no-op или полностью
+  неуспешного request;
 - в workflow и его write path отсутствуют CAS/optimistic-lock preconditions;
 - workflow ID, step ID, aggregate ID и tenant доступны в logs/traces; изменения кода не должны
   менять смысл уже сохранённых steps при replay существующих executions.
@@ -265,9 +269,9 @@ Infrastructure exception не маскируется под `userErrors`: он �
 
 ## Публикация aggregate event
 
-После фактического изменения aggregate workflow обязан публиковать доменное событие
-`<aggregate>Updated`. Публикация выполняется после завершения всех соответствующих database
-transactions и отдельно от них.
+После фактического изменения aggregate update-workflow обязан публиковать доменное событие
+`<aggregate>Updated`; create-workflow после создания публикует `<aggregate>Created`. Публикация
+выполняется после завершения всех соответствующих database transactions и отдельно от них.
 
 Предпочтительный путь соответствует `ProductUpdateWorkflow`:
 
@@ -302,7 +306,8 @@ await this.broker.runWorkflow(
 
 Требования к событию:
 
-- emit запускается как durable child workflow или отдельный durable external step;
+- emit запускается как durable child workflow непосредственно из parent workflow body, после
+  завершения соответствующих transactional steps;
 - idempotency context выводится из parent `DBOS.workflowID`, стабильного `stepId` и `callId`;
 - событие содержит tenant/store context, aggregate ID, actor и subject;
 - payload содержит только контрактно необходимые change hints/reasons или partial deltas;
@@ -322,7 +327,11 @@ await this.broker.runWorkflow(
 - отдельные `publish`, `unpublish`, `move`, `attach`, `detach`, `setMedia` mutations вместо
   operations;
 - resolver, последовательно вызывающий несколько write scripts или repositories;
+- `<aggregate>Create`, который пишет напрямую, не запускает durable workflow или не публикует
+  `<aggregate>Created` после commit;
 - DB write в обычном `@WorkflowStep()`;
+- `broker.runWorkflow()` или `broker.runSaga()` внутри `@WorkflowStep()` или
+  `@TransactionalStep()`;
 - broker/event emit внутри `@TransactionalStep()`;
 - event emit после возврата из недолговечного resolver без durable parent workflow;
 - один внешний side effect и database write в общей транзакционной функции;
@@ -338,14 +347,16 @@ await this.broker.runWorkflow(
 
 1. Все writes существующего aggregate доступны через одну `<aggregate>Update` с `operations`.
 2. Owned entity CRUD и lifecycle changes представлены operations, а не отдельными mutations.
-3. Resolver только декодирует/map-ит input и запускает durable workflow.
-4. Workflow зарегистрирован как `<service>.<aggregate>Update` и имеет детерминированную
-   idempotency identity.
+3. Resolver только декодирует/map-ит input и запускает durable workflow, включая bootstrap
+   `<aggregate>Create>`.
+4. Каждый workflow зарегистрирован как `<service>.<aggregate>Update` или
+   `<service>.<aggregate>Create` и имеет детерминированную idempotency identity.
 5. Каждая database operation выполняется в `@TransactionalStep()`.
 6. Aggregate-wide инварианты проверены до несовместимых writes.
 7. `operationResults` сохраняют порядок input и точные GraphQL error paths.
 8. External calls отсутствуют внутри transactional steps.
-9. `<aggregate>Updated` публикуется durable после commit и только при реальных изменениях.
+9. `<aggregate>Updated` или `<aggregate>Created` публикуется durable после commit и только при
+   фактическом изменении или создании.
 10. Повторный request или workflow replay не дублирует writes и события.
 11. Новый endpoint не создаёт второй write path к тому же aggregate.
 12. Любое исключение из unified mutation rule документировано как отдельное архитектурное решение.
