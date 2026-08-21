@@ -107,7 +107,7 @@ SKU/code-like classification входят в immutable profile revision. Обн�
     `PLACE_LAST` использует только derived product ordering bucket. Оба режима имеют приоритет над
     boost.
 11. Settings, synonym groups и product boosts изменяются отдельными mutations и workflows.
-    Update/delete выполняют CAS по version конкретного resource; изменение одного resource не
+    Update/delete выполняют versioned update конкретного resource; изменение одного resource не
     конфликтует с другим. Cache инвалидируется отдельным replay-safe DBOS step соответствующего
     workflow.
 12. Listing не раскрывает SQL, AST, internal weights, `ts_rank_cd`, trigram similarity или edit
@@ -1229,8 +1229,8 @@ variant/category data исчезает.
 1. Создать settings, synonym и boost tables; configuration state, revision, apply job и persisted
    runtime snapshot не создавать.
 2. Реализовать repositories через `this.connection` и context store.
-3. Реализовать resource-scoped CAS в settings, synonym и boost repositories.
-4. Добавить normalization/validation до resource CAS.
+3. Реализовать resource-scoped writes в settings, synonym и boost repositories.
+4. Добавить normalization/validation до resource write.
 5. Опубликовать отдельные GraphQL mutations и durable workflows.
 
 ### Этап 5. Normalization pipeline, PRIMARY planner и PostgreSQL FTS compiler
@@ -1297,7 +1297,7 @@ PRIMARY не запускает FUZZY; technical error — нет.
 
 1. Создать synonym authoring/value/claim tables.
 2. Реализовать Scripts с локальными transactions/resource versions; глобальную concurrency
-   обеспечивать aggregate settings CAS.
+   обеспечивать через coordinated aggregate settings writes.
 3. Собирать locale trie при cache fill из prepared synonym rows.
 4. Добавить longest-match-left-to-right и phrase semantics.
 5. Публиковать write operations через единую GraphQL `settingsUpdate` mutation.
@@ -1401,7 +1401,7 @@ PRIMARY не запускает FUZZY; technical error — нет.
   и expanded FTS по canonical `search_vector` без hidden top-K или отдельного product mapping;
 - runtime search tables не partitioned, а storefront plans подтверждают tenant-scoped composite GIN
   scan по bound `store_id`;
-- отдельные configuration mutations используют resource-scoped validation/CAS, а cache invalidation
+- отдельные configuration mutations используют resource-scoped validation, а cache invalidation
   выполняется replay-safe DBOS step соответствующего workflow;
 - persisted global configuration snapshot/apply state отсутствует; document sync использует
   canonical Listing item workflow без дублирующего freshness state;

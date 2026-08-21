@@ -9,7 +9,7 @@
 ## Executive summary
 
 Checkout has a substantial implementation rather than a skeleton. The service has a canonical
-recalculation pipeline, versioned snapshots, compare-and-swap mutation commits, delivery and payment
+recalculation pipeline, versioned snapshots, mutation commits, delivery and payment
 selection, loyalty, durable order placement, compensations, payment monitoring, retention, and
 tenant/visitor isolation. Both declared queries and all declared mutations are wired to resolvers.
 
@@ -57,7 +57,7 @@ instructions in the root `AGENTS.md`. Consequently:
 | Area                                 |  Weight |  Score | Assessment                                                                      |
 | ------------------------------------ | ------: | -----: | ------------------------------------------------------------------------------- |
 | Public operation wiring              |      10 |     10 | Both queries and all 26 mutations are registered                                |
-| Mutation correctness and concurrency |      15 |     12 | Strong coordinator/CAS model; create retry semantics are incomplete             |
+| Mutation correctness and concurrency |      15 |     12 | Strong coordinator model; create retry semantics are incomplete                 |
 | Canonical recalculation pipeline     |      15 |     13 | Six stages and strict boundary parsing are implemented                          |
 | Public read-model fidelity           |      15 |      7 | Several declared fields are empty, hardcoded, or semantically inaccurate        |
 | Delivery, payments, and loyalty      |      15 |     12 | Substantial integration and selection logic; runtime verification pending       |
@@ -90,10 +90,10 @@ individual lines are correct.
 | `checkoutLinesDelete`              | Implemented        | Full recalculation | Batch validation and removal                                         |
 | `checkoutLinesClear`               | Implemented        | Full recalculation | Clears lines and affected references                                 |
 | `checkoutCustomerIdentityUpdate`   | Implemented        | Full recalculation | Authenticated customer ownership comes from trusted context          |
-| `checkoutCustomerNoteUpdate`       | Implemented        | CAS-only           | Does not change pipeline result revision                             |
+| `checkoutCustomerNoteUpdate`       | Implemented        | Direct mutation    | Does not change pipeline result revision                             |
 | `checkoutLanguageCodeUpdate`       | Implemented        | Full recalculation | Recalculates localized outputs                                       |
 | `checkoutCurrencyCodeUpdate`       | Implemented        | Full recalculation | Actual support depends on Pricing/Catalog data                       |
-| `checkoutBillingAddressUpdate`     | Partially complete | CAS-only           | Stored and passed at placement; not part of recalculation/validation |
+| `checkoutBillingAddressUpdate`     | Partially complete | Direct mutation    | Stored and passed at placement; not part of recalculation/validation |
 | `checkoutDeliveryAddressesAdd`     | Implemented        | Full recalculation | Multi-destination batch mutation                                     |
 | `checkoutDeliveryAddressesUpdate`  | Implemented        | Full recalculation | Batch update                                                         |
 | `checkoutDeliveryAddressesRemove`  | Implemented        | Full recalculation | Resets dependent selections                                          |
@@ -103,9 +103,9 @@ individual lines are correct.
 | `checkoutDeliveryRecipientsRemove` | Implemented        | Full recalculation | Batch removal                                                        |
 | `checkoutPromoCodeAdd`             | Implemented        | Full recalculation | Public promo projection has semantic defects                         |
 | `checkoutPromoCodeRemove`          | Implemented        | Full recalculation | Normalized/idempotent removal                                        |
-| `checkoutTagCreate`                | Implemented        | CAS-only           | Per-tag timestamps are not persisted                                 |
-| `checkoutTagUpdate`                | Implemented        | CAS-only           | Uniqueness validation exists; timestamp projection is inaccurate     |
-| `checkoutTagDelete`                | Implemented        | CAS-only           | Assignment cleanup is atomic                                         |
+| `checkoutTagCreate`                | Implemented        | Direct mutation    | Per-tag timestamps are not persisted                                 |
+| `checkoutTagUpdate`                | Implemented        | Direct mutation    | Uniqueness validation exists; timestamp projection is inaccurate     |
+| `checkoutTagDelete`                | Implemented        | Direct mutation    | Assignment cleanup is atomic                                         |
 | `checkoutPaymentMethodUpdate`      | Implemented        | Full recalculation | Opaque handle and private customer input                             |
 | `checkoutLoyaltyRedemptionUpdate`  | Implemented        | Full recalculation | Supports points and reward entitlements internally                   |
 | `checkoutLoyaltyRedemptionRemove`  | Implemented        | Full recalculation | No-op semantics for absent selection                                 |
@@ -273,7 +273,7 @@ Effects:
 - updating one tag cannot be distinguished from updating another.
 
 Required completion: persist tag-level `createdAt` and `updatedAt`, update only the affected tag,
-and preserve timestamps through snapshot serialization and CAS-only commits.
+and preserve timestamps through snapshot serialization and direct commits.
 
 ### H-04 — Address name fields are codes, not localized names
 
@@ -286,7 +286,7 @@ snapshot or rename/remove the misleading fields and leave only codes.
 
 ### H-05 — Billing address does not participate in recalculation validation
 
-The schema says billing address is used by payment providers. It is stored via a CAS-only mutation
+The schema says billing address is used by payment providers. It is stored via a direct mutation
 and later passed when creating a payment session, but it does not enter payment-method discovery or
 native checkout validation.
 
@@ -329,10 +329,10 @@ service complete, choose one of two approaches for each item:
 
 ### Concurrency and persistence
 
-- Existing checkout mutation commits use expected-version CAS.
+- Existing checkout mutation commits use an expected checkout version.
 - A conflict returns a retryable checkout version error without automatic pipeline replay.
 - Batch operations apply to a cloned draft and commit once.
-- Metadata-only operations use versioned CAS without changing the pipeline result revision.
+- Metadata-only operations use the same versioned commit path without changing the pipeline result revision.
 - Store and visitor ownership are enforced on public reads and mutation snapshot loading.
 - Current snapshots and checkout rows are linked by store/checkout/version constraints.
 - Snapshot quarantine exists for malformed persisted data.

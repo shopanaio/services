@@ -234,7 +234,7 @@ test("returns related products in published display order", () => {
 
 Следовательно, текущая suite не проверяет:
 
-- policy CRUD и CAS conflicts;
+- policy CRUD и version conflicts;
 - manual recommendation validation и scheduling;
 - tenant isolation и authorization;
 - revision-aware order facts;
@@ -503,8 +503,8 @@ committed states между response branches.
 | SKU exact/prefix                  | Есть               | UNVERIFIED                   |
 | Phrase/same-element               | Есть               | UNVERIFIED                   |
 | Typo fallback                     | Есть               | Preview scenario существует  | IMPLEMENTED/UNVERIFIED |
-| Synonym CRUD/CAS                  | Есть               | Частичное e2e/UI evidence    | IMPLEMENTED/UNVERIFIED |
-| Product boost CRUD/CAS            | Есть               | Частичное evidence           | IMPLEMENTED/UNVERIFIED |
+| Synonym CRUD                      | Есть               | Частичное e2e/UI evidence    | IMPLEMENTED/UNVERIFIED |
+| Product boost CRUD                | Есть               | Частичное evidence           | IMPLEMENTED/UNVERIFIED |
 | Search settings                   | Есть               | Partial evidence             | IMPLEMENTED/UNVERIFIED |
 | Explain/Preview                   | Есть               | Targeted scenario существует | IMPLEMENTED/UNVERIFIED |
 | Operational status                | Нет                | MISSING                      |
@@ -518,7 +518,7 @@ committed states между response branches.
 | -------------------------------- | ------------------------------- | -------------------------------- | ---------- |
 | Placement policy query/mutations | Есть                            | Placeholder tests                | UNVERIFIED |
 | Manual recommendation CRUD       | Есть                            | Placeholder tests                | UNVERIFIED |
-| CAS/version conflicts            | Есть в repository/scripts       | Placeholder tests                | UNVERIFIED |
+| Version conflicts                | Есть в repository/scripts       | Placeholder tests                | UNVERIFIED |
 | Draft preview                    | Есть                            | Placeholder tests                | UNVERIFIED |
 | Order fact ingestion             | Есть                            | Placeholder tests                | UNVERIFIED |
 | Revision/reversal handling       | Есть в workflows                | Placeholder tests                | UNVERIFIED |
@@ -622,7 +622,7 @@ Gate:
 
 Минимальные обязательные specs:
 
-1. policy lifecycle и CAS;
+1. policy lifecycle и version conflicts;
 2. manual CRUD/validation/scheduling;
 3. authorization и cross-store isolation;
 4. order committed/reversed ingestion;

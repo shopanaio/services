@@ -1568,7 +1568,7 @@ terminal row с encrypted result и `terminal_result_available_until > now`.
 атомарно создает уже consumed interaction вместе с encrypted terminal result и recovery TTL. Start
 response возвращает его credential один раз; повторный `GET current` только читает тот же result.
 
-`claimAction`, `completeAction` и `completeTerminalAction` являются atomic compare-and-set по:
+`claimAction`, `completeAction` и `completeTerminalAction` атомарно обновляют:
 
 - application ID;
 - interaction ID;

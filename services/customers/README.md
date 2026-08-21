@@ -188,7 +188,7 @@ administrative action явно возвращает число invalidated membe
 
 ## Контракт обновления Admin
 
-`customerUpdate` принимает один `customerId` и набор секций без CAS-предусловий. Помимо
+`customerUpdate` принимает один `customerId` и набор секций без version-предусловий. Помимо
 профиля, контактов, компании, состояния, заметки и модерации, операция поддерживает адреса, переходы
 согласий, налоговые идентификаторы, налоговые освобождения, участие в группах, назначения тегов и
 ручное участие в сегментах.
@@ -203,7 +203,7 @@ administrative action явно возвращает число invalidated membe
 заменить ручной состав покупателей без expected revision/version token. Изменение только
 состава выполняется через `customerSegmentUpdate.operations.memberships.setCustomerIds`.
 
-`customerGroupUpdate` изменяет определение, состояние и состав участников без CAS token.
+`customerGroupUpdate` изменяет определение, состояние и состав участников без caller-provided version token.
 
 Revision-поля используются только для диагностики, порядка проекций и provenance. Они не
 принимаются от caller-а и не сравниваются с mutable state как условие записи.

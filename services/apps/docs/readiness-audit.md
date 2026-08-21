@@ -82,7 +82,7 @@ bundled Apps и Apps Admin API e2e-спецификации
 | -------------- | ---------------------------------------- | ------------------------------------------------ | ------------------------------ |
 | `appInstall`   | Установить bundled App                   | GraphQL → `apps.installApp` → lifecycle workflow | Частично готово                |
 | `appUpdate`    | Обновить App/config/scopes/secrets       | GraphQL → `apps.updateApp` → lifecycle workflow  | Частично готово                |
-| `appConfigure` | CAS-замена configuration и scopes        | Direct control-plane transaction                 | Частично готово                |
+| `appConfigure` | Versioned replacement configuration и scopes | Direct control-plane transaction              | Частично готово                |
 | `appSuspend`   | Приостановить installation               | GraphQL → lifecycle action/workflow              | Реализовано с оговорками       |
 | `appResume`    | Возобновить installation                 | GraphQL → lifecycle action/workflow              | Реализовано с оговорками       |
 | `appUninstall` | Выполнить cleanup и удалить installation | GraphQL → lifecycle workflow                     | Не готово для provider cleanup |
@@ -121,7 +121,7 @@ bundled Apps и Apps Admin API e2e-спецификации
 | GraphQL mutation wiring         |    85% | Все операции подключены, но часть бизнес-инвариантов нарушена              |
 | Lifecycle happy path            |    70% | Install/update/suspend/resume/uninstall проходят через durable operation   |
 | Persistence и store isolation   |    75% | GraphQL reads хорошо изолированы, internal control-plane API менее строгий |
-| Configuration/scopes/secrets    |    50% | Есть CAS и encryption, отсутствуют state guards и rollback                 |
+| Configuration/scopes/secrets    |    50% | Есть versioned update и encryption, отсутствуют state guards и rollback    |
 | Capability routing              |    40% | Manifest routing mode игнорируется                                         |
 | Permissions boundary            |    40% | Fully-qualified permission расширяется до service-wide доступа             |
 | Installation health             |    40% | Поле и manifest contract существуют, execution отсутствует                 |
@@ -297,7 +297,7 @@ scheduled check или broker action, сохраняющего результа�
 
 ### APP-READY-005 — P1 — `appConfigure` не ограничен lifecycle state
 
-`appConfigure` выполняет store-scoped CAS update, но repository условие содержит только:
+`appConfigure` выполняет versioned store-scoped update, но repository условие содержит только:
 
 - текущий store;
 - installation id;
@@ -321,7 +321,7 @@ scheduled check или broker action, сохраняющего результа�
 **Требуемое завершение**
 
 - определить разрешённые состояния, вероятно `ACTIVE` и `SUSPENDED`;
-- выполнять status check и CAS в одном SQL/transaction boundary;
+- выполнять status check и version precondition в одном SQL/transaction boundary;
 - запретить re-grant scopes терминальной installation;
 - добавить negative e2e для каждого transitional/terminal status.
 
@@ -525,7 +525,7 @@ resolver/control-plane layer. Основной дефицит находится
 - install retry;
 - idempotency и часть concurrency;
 - store isolation и RBAC;
-- configuration CAS;
+- versioned configuration update;
 - scope replacement;
 - secret rotation и redaction;
 - capability synchronization для одной App;

@@ -289,7 +289,7 @@ generation каждого anchor и placement; `generation > 0`, а `trigger_key
    текущей завершённой minute boundary;
 2. отдельный deterministic bootstrap workflow paginated reconcile-ит все anchors с manual rows по
    состоянию на этот cutoff;
-3. только после успешного enqueue всех pages CAS-переходом устанавливает `status = ACTIVE` и
+3. только после успешного enqueue всех pages устанавливает `status = ACTIVE` и
    `last_manual_boundary_at = bootstrap_cutoff_at`;
 4. interval workflows не обрабатывают store, пока cursor не стал `ACTIVE`;
 5. после activation читаются boundaries строго после сохранённого watermark.
@@ -1676,12 +1676,12 @@ Store-scoped workflow:
 5. каждый page step сначала идемпотентно получает build-request generations, затем после commit
    enqueue-ит children с deterministic workflow IDs, включающими store, anchor, placement и
    generation;
-6. после успешного enqueue всех pages отдельная короткая transaction выполняет compare-and-set
-   advance `fromBoundary -> toBoundary`;
+6. после успешного enqueue всех pages отдельная короткая transaction переводит cursor
+   от `fromBoundary` к `toBoundary`;
 7. retry page использует тот же trigger key: если он остаётся current, получает ту же generation;
    после intervening request он может coalesce новую generation, которая строит current
    authoritative state; duplicate child starts являются successful no-op;
-8. если CAS не прошёл и current watermark уже `>= toBoundary`, workflow завершается successful
+8. если advance не применился и current watermark уже `>= toBoundary`, workflow завершается successful
    no-op; иначе повторно начинает fixed interval от нового watermark.
 
 Cursor нельзя advance-ить до child enqueue: crash не должен терять boundary. PostgreSQL transaction
@@ -1693,7 +1693,7 @@ recommendation-manual-boundary:<storeId>:<utc-minute>
 
 Следующая minute generation может начаться до завершения предыдущей. Они могут безопасно обработать
 overlapping fixed intervals: idempotent trigger keys и deterministic child IDs coalesce duplicate
-work, а CAS не позволяет перезаписать более свежий watermark.
+work, а более свежий watermark сохраняется.
 
 Done when:
 
@@ -1856,7 +1856,7 @@ Logs не содержат customer identity или order lines.
 - две deterministic store lanes не допускают более двух concurrent builds;
 - повторные manual mutations при неизменных policy/run создают разные anchor-specific builds;
 - scheduler multi-replica idempotency;
-- overlapping manual minute workflows and maintenance cursor CAS;
+- overlapping manual minute workflows and maintenance cursor handling;
 - manual scheduler не удерживает PostgreSQL transaction во время child enqueue;
 - bootstrap cursor не становится `ACTIVE` до enqueue всех reconciliation pages;
 - manual boundary retry before/after cursor advance;
@@ -1872,7 +1872,7 @@ Logs не содержат customer identity или order lines.
 - cursor generation change;
 - disable/activation visibility across separate Listing replicas;
 - empty connection;
-- Admin optimistic concurrency;
+- Admin concurrency behavior;
 - write permission не может вызвать policy disable;
 - draft preview;
 - preview `INSUFFICIENT_SUPPORT` соблюдает FBT source budget;
@@ -1947,7 +1947,7 @@ Orders producer integration ←────────────────�
 - Policy, build request, calculation run и snapshot activation используют единый lock order; manual
   configuration имеет explicit per-anchor limit.
 - Initial manual reconciliation завершается до activation maintenance cursor.
-- Maintenance cursor защищён lock/CAS от overlapping minute workflows.
+- Maintenance cursor защищён lock от overlapping minute workflows.
 - PostgreSQL locks не удерживаются во время DBOS/broker enqueue.
 - Ranking formula полностью определяется model version.
 - Category popularity использует Listing category postings.
