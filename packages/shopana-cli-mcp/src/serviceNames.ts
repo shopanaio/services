@@ -1,5 +1,6 @@
 export const BUILD_SERVICE_NAMES = [
   "apps",
+  "audit",
   "bootstrap",
   "catalog",
   "checkout",
@@ -19,6 +20,7 @@ export const BUILD_SERVICE_NAMES = [
 
 export const CODEGEN_SERVICE_NAMES = [
   "apps",
+  "audit",
   "catalog",
   "checkout",
   "customers",
@@ -34,6 +36,7 @@ export const CODEGEN_SERVICE_NAMES = [
 
 export const MIGRATION_SERVICE_NAMES = [
   "apps",
+  "audit",
   "catalog",
   "customers",
   "delivery",

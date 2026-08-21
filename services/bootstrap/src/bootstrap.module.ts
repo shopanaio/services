@@ -24,6 +24,7 @@ import { LoyaltyModule } from "@shopana/loyalty-service";
 import { CustomersModule } from "@shopana/customers-service";
 import { ReviewsModule } from "@shopana/reviews-service";
 import { NotificationsModule } from "@shopana/notifications-service";
+import { AuditModule } from "@shopana/audit-service";
 import { TestActionProxyService } from "./test-action-proxy.service.js";
 
 export interface BootstrapModuleOptions extends BrokerCoreModuleOptions {
@@ -70,6 +71,7 @@ export class BootstrapModule {
       CustomersModule,
       ReviewsModule,
       NotificationsModule,
+      AuditModule,
     ];
 
     // Add WorkflowModule if workflows config is provided

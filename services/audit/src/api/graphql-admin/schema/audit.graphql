@@ -1,0 +1,134 @@
+extend schema @link(url: "https://specs.apollo.dev/federation/v2.7", import: ["@key", "@shareable"])
+
+scalar DateTime
+scalar JSON
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo @shareable {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}
+
+type Query {
+  auditQuery: AuditQuery!
+}
+
+"""
+Store-scoped, read-only access to the aggregate mutation audit trail.
+"""
+type AuditQuery {
+  entry(id: ID!): AuditEntry
+  entries(first: Int = 50, after: String, where: AuditEntryWhereInput): AuditEntryConnection!
+  timeline(targetId: ID!, first: Int = 50, after: String): AuditEntryConnection!
+}
+
+input AuditEntryWhereInput {
+  aggregateId: ID
+  targetId: ID
+  actorId: ID
+  actions: [AuditAction!]
+  commands: [String!]
+  occurredFrom: DateTime
+  occurredTo: DateTime
+}
+
+type AuditEntry implements Node @key(fields: "id") {
+  id: ID!
+  eventId: String!
+  sequence: Int!
+  eventType: String!
+  occurredAt: DateTime!
+  recordedAt: DateTime!
+  action: AuditAction!
+  command: String!
+  aggregate: AuditTarget!
+  actor: AuditActor!
+  operations: [AuditOperation!]!
+  source: AuditSource!
+}
+
+type AuditEntryConnection {
+  edges: [AuditEntryEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type AuditEntryEdge {
+  node: AuditEntry!
+  cursor: String!
+}
+
+enum AuditAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+type AuditTarget {
+  type: String!
+  id: ID!
+}
+
+enum AuditActorType {
+  USER
+  SERVICE
+  SYSTEM
+}
+
+type AuditActor {
+  type: AuditActorType!
+  id: ID
+}
+
+type AuditSource {
+  service: String!
+  workflowId: String
+  correlationId: String!
+}
+
+type AuditOperation {
+  position: Int!
+  type: String!
+  action: AuditOperationAction!
+  target: AuditTarget
+  changes: [AuditChange!]!
+}
+
+enum AuditOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+  MOVE
+  LINK
+  UNLINK
+}
+
+type AuditChange {
+  path: String!
+  kind: AuditChangeKind!
+  before: AuditValue
+  after: AuditValue
+}
+
+enum AuditChangeKind {
+  SET
+  ADD
+  REMOVE
+  MOVE
+}
+
+type AuditValue {
+  state: AuditValueState!
+  value: JSON
+}
+
+enum AuditValueState {
+  VISIBLE
+  MASKED
+  OMITTED
+}

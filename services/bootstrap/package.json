@@ -9,6 +9,7 @@
     "@nestjs/core": "^10.0.0",
     "@nestjs/platform-fastify": "^10.0.0",
     "@shopana/apps-service": "0.0.1",
+    "@shopana/audit-service": "0.0.1",
     "@shopana/catalog-service": "0.0.1",
     "@shopana/checkout-service": "0.0.1",
     "@shopana/customers-service": "0.0.1",
