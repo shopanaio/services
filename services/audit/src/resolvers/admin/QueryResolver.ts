@@ -1,27 +1,21 @@
 import { ApolloQuery, TypePolicy } from "@shopana/type-resolver";
+import type { AuditEntryWhere } from "../../repositories/AuditEntryRepository.js";
+import type { AuditEntryRecord, AuditOperationRecord } from "../../repositories/models/index.js";
 import { AuditType } from "./AuditType.js";
 
-interface EmptyConnection {
-  readonly edges: readonly never[];
-  readonly pageInfo: {
-    readonly hasNextPage: false;
-    readonly hasPreviousPage: false;
-    readonly startCursor: null;
-    readonly endCursor: null;
-  };
-  readonly totalCount: 0;
+interface EntryArgs {
+  id: string;
 }
-
-const EMPTY_CONNECTION: EmptyConnection = Object.freeze({
-  edges: Object.freeze([]),
-  pageInfo: Object.freeze({
-    hasNextPage: false,
-    hasPreviousPage: false,
-    startCursor: null,
-    endCursor: null,
-  }),
-  totalCount: 0,
-});
+interface ConnectionArgs {
+  first?: number;
+  after?: string;
+  where?: AuditEntryWhere;
+}
+interface TimelineArgs {
+  targetId: string;
+  first?: number;
+  after?: string;
+}
 
 @ApolloQuery
 export class QueryResolver extends AuditType<Record<string, never>> {
@@ -37,15 +31,74 @@ export class QueryResolver extends AuditType<Record<string, never>> {
   domain: (resolver) => `store:${resolver.$ctx.store.id}`,
 })
 export class AuditQueryResolver extends AuditType<Record<string, never>> {
-  entry(): null {
-    return null;
+  async entry(args: EntryArgs) {
+    const entry = await this.$ctx.kernel.repository.entries.findByEventId(
+      args.id,
+      this.$ctx.store.organizationId,
+      this.$ctx.store.id,
+    );
+    return entry ? this.resolveEntry(entry) : null;
   }
 
-  entries(): EmptyConnection {
-    return EMPTY_CONNECTION;
+  async entries(args: ConnectionArgs) {
+    return this.connection(args);
   }
 
-  timeline(): EmptyConnection {
-    return EMPTY_CONNECTION;
+  async timeline(args: TimelineArgs) {
+    return this.connection({ first: args.first, after: args.after, targetId: args.targetId });
+  }
+
+  private async connection(args: ConnectionArgs & { targetId?: string }) {
+    const result = await this.$ctx.kernel.repository.entries.getConnection({
+      ...args,
+      organizationId: this.$ctx.store.organizationId,
+      storeId: this.$ctx.store.id,
+    });
+    const operations = await this.$ctx.kernel.repository.entries.findOperationsByEventIds(
+      result.edges.map((edge) => edge.node.eventId),
+    );
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        node: this.resolveEntry(edge.node, operations.get(edge.node.eventId) ?? []),
+      })),
+      pageInfo: result.pageInfo,
+      totalCount: result.totalCount,
+    };
+  }
+
+  private async resolveEntry(
+    entry: AuditEntryRecord,
+    operations?: readonly AuditOperationRecord[],
+  ) {
+    const entryOperations =
+      operations ?? (await this.$ctx.kernel.repository.entries.findOperations(entry.eventId));
+    return {
+      id: entry.eventId,
+      eventId: entry.eventId,
+      sequence: entry.eventSequence,
+      eventType: entry.eventType,
+      occurredAt: entry.occurredAt,
+      recordedAt: entry.recordedAt,
+      action: entry.action,
+      command: entry.command,
+      aggregate: { type: entry.aggregateType, id: entry.aggregateId },
+      actor: { type: entry.actorType, id: entry.actorId },
+      operations: entryOperations.map((operation) => ({
+        position: operation.position,
+        type: operation.operationType,
+        action: operation.action,
+        target:
+          operation.targetType && operation.targetId
+            ? { type: operation.targetType, id: operation.targetId }
+            : null,
+        changes: operation.changes,
+      })),
+      source: {
+        service: entry.sourceService,
+        workflowId: entry.parentWorkflowId,
+        correlationId: entry.correlationId,
+      },
+    };
   }
 }
