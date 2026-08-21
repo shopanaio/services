@@ -1,4 +1,4 @@
-import { and, eq, inArray, count } from "drizzle-orm";
+import { and, eq, inArray, count, or } from "drizzle-orm";
 import {
   createQuery,
   createRelayQuery,
@@ -107,6 +107,29 @@ export class StockRepository extends BaseRepository {
       .limit(1);
 
     return result[0] ?? null;
+  }
+
+  async findByVariantWarehousePairs(
+    pairs: readonly Array<{ variantId: string; warehouseId: string }>,
+  ): Promise<WarehouseStock[]> {
+    if (pairs.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(warehouseStock)
+      .where(
+        and(
+          eq(warehouseStock.storeId, this.storeId),
+          or(
+            ...pairs.map((pair) =>
+              and(
+                eq(warehouseStock.variantId, pair.variantId),
+                eq(warehouseStock.warehouseId, pair.warehouseId),
+              ),
+            ),
+          ),
+        ),
+      );
   }
 
   /**

@@ -10,9 +10,9 @@ export type { RichTextInput };
  * Input for ProductUpdateWorkflow.
  */
 export interface ProductUpdateWorkflowInput {
-  productId: string;
-  operations: ProductUpdateOperation[];
-  context: WorkflowContext;
+  readonly productId: string;
+  readonly operations: readonly ProductUpdateOperation[];
+  readonly context: WorkflowContext;
 }
 
 /**
@@ -30,92 +30,49 @@ export interface WorkflowContext extends DurableWorkflowContext {
  * Operation types - product or variant level updates.
  */
 export interface ProductUpdateOperationMeta {
-  fieldPrefix?: string[];
+  readonly fieldPrefix?: readonly string[];
   /** Internal input position used to restore batch option results deterministically. */
-  operationIndex?: number;
+  readonly operationIndex?: number;
 }
 
+type ProductUpdateOperationEntry<TType extends string, TParams> = Readonly<{
+  type: TType;
+  params: TParams;
+  meta?: ProductUpdateOperationMeta;
+}>;
+
 export type ProductUpdateOperation =
-  | {
-      type: "productUpdate";
-      params: ProductUpdateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productCategoryUpdate";
-      params: ProductCategoryUpdateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productTagUpdate";
-      params: ProductTagUpdateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productOptionsSync";
-      params: ProductOptionsSyncParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productFeaturesSync";
-      params: ProductFeaturesSyncParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentSettingsUpdate";
-      params: ProductComponentSettingsUpdateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentRemove";
-      params: ProductComponentRemoveParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentConfigurationCreate";
-      params: ProductComponentConfigurationCreateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentConfigurationUpdate";
-      params: ProductComponentConfigurationUpdateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentConfigurationDelete";
-      params: ProductComponentConfigurationDeleteParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentGroupsSync";
-      params: ProductComponentGroupsSyncParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentPricingTemplatesSync";
-      params: ProductComponentPricingTemplatesSyncParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "productComponentDependencyRulesSync";
-      params: ProductComponentDependencyRulesSyncParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "variantCreate";
-      params: VariantCreateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "variantUpdate";
-      params: VariantUpdateParams;
-      meta?: ProductUpdateOperationMeta;
-    }
-  | {
-      type: "variantDelete";
-      params: VariantDeleteParams;
-      meta?: ProductUpdateOperationMeta;
-    };
+  | ProductUpdateOperationEntry<"productUpdate", ProductUpdateParams>
+  | ProductUpdateOperationEntry<"productCategoryUpdate", ProductCategoryUpdateParams>
+  | ProductUpdateOperationEntry<"productTagUpdate", ProductTagUpdateParams>
+  | ProductUpdateOperationEntry<"productOptionsSync", ProductOptionsSyncParams>
+  | ProductUpdateOperationEntry<"productFeaturesSync", ProductFeaturesSyncParams>
+  | ProductUpdateOperationEntry<"productComponentSettingsUpdate", ProductComponentSettingsUpdateParams>
+  | ProductUpdateOperationEntry<"productComponentRemove", ProductComponentRemoveParams>
+  | ProductUpdateOperationEntry<
+      "productComponentConfigurationCreate",
+      ProductComponentConfigurationCreateParams
+    >
+  | ProductUpdateOperationEntry<
+      "productComponentConfigurationUpdate",
+      ProductComponentConfigurationUpdateParams
+    >
+  | ProductUpdateOperationEntry<
+      "productComponentConfigurationDelete",
+      ProductComponentConfigurationDeleteParams
+    >
+  | ProductUpdateOperationEntry<"productComponentGroupsSync", ProductComponentGroupsSyncParams>
+  | ProductUpdateOperationEntry<
+      "productComponentPricingTemplatesSync",
+      ProductComponentPricingTemplatesSyncParams
+    >
+  | ProductUpdateOperationEntry<
+      "productComponentDependencyRulesSync",
+      ProductComponentDependencyRulesSyncParams
+    >
+  | ProductUpdateOperationEntry<"variantCreate", VariantCreateParams>
+  | ProductUpdateOperationEntry<"variantUpdate", VariantUpdateParams>
+  | ProductUpdateOperationEntry<"variantDelete", VariantDeleteParams>;
 
 /**
  * Product-level update parameters.
@@ -395,18 +352,18 @@ export interface VariantOptionLink {
  */
 export interface ProductUpdateWorkflowResult {
   /** Updated product, or null if failed */
-  product: { id: string } | null;
+  readonly product: { readonly id: string } | null;
   /** Results for each operation */
-  operationResults: OperationResult[];
+  readonly operationResults: readonly OperationResult[];
   /** Aggregated errors from all operations */
-  userErrors: UserError[];
+  readonly userErrors: readonly UserError[];
 }
 
 /**
  * Result of a single operation within the workflow.
  */
 export interface OperationResult {
-  type:
+  readonly type:
     | "productUpdate"
     | "productCategoryUpdate"
     | "productTagUpdate"
@@ -423,7 +380,7 @@ export interface OperationResult {
     | "variantCreate"
     | "variantDelete"
     | "variantUpdate";
-  applied: boolean;
-  entityId?: string;
-  errors: UserError[];
+  readonly applied: boolean;
+  readonly entityId?: string;
+  readonly errors: readonly UserError[];
 }

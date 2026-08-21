@@ -312,6 +312,15 @@ export class InventoryItemRepository extends BaseRepository {
     return result[0] ?? null;
   }
 
+  async findBySkus(skus: readonly string[]): Promise<InventoryItem[]> {
+    if (skus.length === 0) return [];
+
+    return this.connection
+      .select()
+      .from(inventoryItem)
+      .where(and(eq(inventoryItem.storeId, this.storeId), inArray(inventoryItem.sku, [...skus])));
+  }
+
   // ============ Connection ============
 
   async getConnection(args: InventoryItemConnectionInput): Promise<InventoryItemConnectionResult> {

@@ -2094,7 +2094,7 @@ interface ProductUpdateMappedEntry {
 }
 
 interface ProductUpdateInputMappingResult {
-  operations: ProductUpdateOperation[];
+  operations: readonly ProductUpdateOperation[];
   entries: ProductUpdateMappedEntry[];
   errors: UserError[];
 }
@@ -2259,11 +2259,14 @@ function mapProductUpdateInput(
     }
   }
 
-  result.forEach((operation, operationIndex) => {
-    operation.meta = { ...operation.meta, operationIndex };
-  });
+  const immutableOperations: readonly ProductUpdateOperation[] = result.map(
+    (operation, operationIndex) => ({
+      ...operation,
+      meta: { ...operation.meta, operationIndex },
+    }),
+  );
 
-  return { operations: result, entries, errors };
+  return { operations: immutableOperations, entries, errors };
 }
 
 function mapProductLevelOperation(

@@ -69,7 +69,10 @@ import { OptionsSyncScript } from "../scripts/option/OptionsSyncScript.js";
 import { FeaturesSyncScript } from "../scripts/feature/FeaturesSyncScript.js";
 import {
   ProductUpdateReadScript,
-  type ProductUpdateReadQuery,
+  isProductUpdateReadResponseFor,
+  type ProductUpdateReadQueryMap,
+  type ProductUpdateReadResponse,
+  type ProductUpdateReadResponseFor,
 } from "../scripts/product/ProductUpdateReadScript.js";
 import {
   ProductComponentOperationScript,
@@ -128,12 +131,15 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
   ProductChanges,
   ProductUpdateWorkflowResult
 > {
-  constructor(@InjectBroker("catalog") broker: ServiceBroker) {
+  constructor(
+    @InjectBroker("catalog") broker: ServiceBroker,
+    private readonly kernel: Kernel,
+  ) {
     super(broker);
   }
 
-  private get kernel(): Kernel {
-    return Kernel.getInstance();
+  get transactionKernel(): Kernel {
+    return this.kernel;
   }
 
   /**
@@ -149,8 +155,19 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     };
   }
 
-  private read<T>(query: ProductUpdateReadQuery, context: RunScriptContext): Promise<T> {
-    return this.kernel.runScript(ProductUpdateReadScript, query, context) as Promise<T>;
+  private async read<TType extends keyof ProductUpdateReadQueryMap>(
+    query: ProductUpdateReadQueryMap[TType],
+    context: RunScriptContext,
+  ): Promise<ProductUpdateReadResponseFor<TType>["result"]> {
+    const response: ProductUpdateReadResponse = await this.kernel.runScript(
+      ProductUpdateReadScript,
+      query,
+      context,
+    );
+    if (!isProductUpdateReadResponseFor(response, query)) {
+      throw new Error(`Product update read result type mismatch for ${query.type}`);
+    }
+    return response.result;
   }
 
   @Workflow("productUpdate")
@@ -366,27 +383,44 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     scriptCtx: RunScriptContext,
   ): Promise<ProductOperationStepResult> {
     const operation = input.operations[position]!;
-    let step: ProductOperationStepResult;
-    if (operation.type === "productUpdate") {
-      step = await this.stepProductUpdate(operation.params, scriptCtx);
-    } else if (operation.type === "productCategoryUpdate") {
-      step = await this.stepProductCategoryUpdate(operation.params, scriptCtx);
-    } else if (operation.type === "productTagUpdate") {
-      step = await this.stepProductTagUpdate(operation.params, scriptCtx);
-    } else if (operation.type === "productOptionsSync") {
-      step = await this.stepProductOptionsSync(operation.params, scriptCtx);
-    } else if (operation.type === "productFeaturesSync") {
-      step = await this.stepProductFeaturesSync(operation.params, scriptCtx);
-    } else if (isComponentOperation(operation)) {
-      step = await this.stepProductComponentOperation(operation, scriptCtx);
-    } else if (operation.type === "variantCreate") {
-      step = await this.stepVariantCreate(operation.params, scriptCtx);
-    } else if (operation.type === "variantDelete") {
-      step = await this.stepVariantDelete(input.productId, operation.params, scriptCtx);
-    } else {
-      step = await this.stepVariantUpdate(input.productId, operation.params, scriptCtx);
-    }
+    const step = await this.applyOperationStep(operation, input.productId, scriptCtx);
     return { ...step, result: prefixOperationResultErrors(step.result, operation) };
+  }
+
+  private async applyOperationStep(
+    operation: ProductUpdateOperation,
+    productId: string,
+    scriptCtx: RunScriptContext,
+  ): Promise<ProductOperationStepResult> {
+    switch (operation.type) {
+      case "productUpdate":
+        return this.stepProductUpdate(operation.params, scriptCtx);
+      case "productCategoryUpdate":
+        return this.stepProductCategoryUpdate(operation.params, scriptCtx);
+      case "productTagUpdate":
+        return this.stepProductTagUpdate(operation.params, scriptCtx);
+      case "productOptionsSync":
+        return this.stepProductOptionsSync(operation.params, scriptCtx);
+      case "productFeaturesSync":
+        return this.stepProductFeaturesSync(operation.params, scriptCtx);
+      case "productComponentSettingsUpdate":
+      case "productComponentRemove":
+      case "productComponentConfigurationCreate":
+      case "productComponentConfigurationUpdate":
+      case "productComponentConfigurationDelete":
+      case "productComponentGroupsSync":
+      case "productComponentPricingTemplatesSync":
+      case "productComponentDependencyRulesSync":
+        return this.stepProductComponentOperation(operation, scriptCtx);
+      case "variantCreate":
+        return this.stepVariantCreate(operation.params, scriptCtx);
+      case "variantUpdate":
+        return this.stepVariantUpdate(productId, operation.params, scriptCtx);
+      case "variantDelete":
+        return this.stepVariantDelete(productId, operation.params, scriptCtx);
+      default:
+        return assertNever(operation);
+    }
   }
 
   @WorkflowStep()
@@ -400,20 +434,20 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     for (const [index, op] of input.operations.entries()) {
       let errors: UserError[] = [];
       if (op.type === "productOptionsSync") {
-        const validation = await this.read<VariantBatchValidationResult>(
+        const validation = await this.read(
           { type: "optionSyncValidation", params: op.params },
           context,
         );
         errors = prefixUserErrors(validation.userErrors, op);
       } else if (op.type === "productFeaturesSync") {
-        const validation = await this.read<VariantBatchValidationResult>(
+        const validation = await this.read(
           { type: "featureSyncValidation", params: op.params },
           context,
         );
         errors = prefixUserErrors(validation.userErrors, op);
       } else if (op.type === "productUpdate") {
         if (op.params.vendorId !== undefined && op.params.vendorId !== null) {
-          const vendor = await this.read<{ id: string } | null>(
+          const vendor = await this.read(
             { type: "vendor", vendorId: op.params.vendorId },
             context,
           );
@@ -427,7 +461,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
         }
 
         if (op.params.handle !== undefined) {
-          const productWithHandle = await this.read<{ id: string } | null>(
+          const productWithHandle = await this.read(
             { type: "productByHandle", handle: op.params.handle },
             context,
           );
@@ -442,12 +476,12 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
 
         if (op.params.status === "published") {
           const effective = (
-            await this.read<Array<{ profileId: string | null }>>(
+            await this.read(
               { type: "effectiveProfiles", productId: op.params.id },
               context,
             )
           )[0];
-          const configured = await this.read<string[]>(
+          const configured = await this.read(
             { type: "configurationProfileIds", productId: op.params.id },
             context,
           );
@@ -476,7 +510,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
 
   @WorkflowStep()
   private async stepProductExists(productId: string, context: RunScriptContext): Promise<boolean> {
-    return this.read<boolean>({ type: "productExists", productId }, context);
+    return this.read({ type: "productExists", productId }, context);
   }
 
   @WorkflowStep()
@@ -503,7 +537,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       addError(firstVariantIndex, error);
     };
 
-    const currentProduct = await this.read<boolean>(
+    const currentProduct = await this.read(
       { type: "productExists", productId: input.productId },
       context,
     );
@@ -521,7 +555,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       };
     }
 
-    const allProductVariants = await this.read<Array<{ id: string; isDefault: boolean }>>(
+    const allProductVariants = await this.read(
       { type: "variants", productId: input.productId },
       context,
     );
@@ -532,7 +566,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     );
     const storedProductOptions = optionsSyncOperation
       ? undefined
-      : await this.read<Array<{ id: string }>>(
+      : await this.read(
           { type: "options", productId: input.productId },
           context,
         );
@@ -555,7 +589,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
             ];
           }),
         )
-      : await this.read<Map<string, Array<{ id: string }>>>(
+      : await this.read(
           { type: "optionValues", optionIds: productOptionIds },
           context,
         );
@@ -582,7 +616,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
         ? [op.params.variantId]
         : [],
     );
-    const existingInventoryItems = await this.read<Array<{ variantId: string }>>(
+    const existingInventoryItems = await this.read(
       { type: "inventoryItems", variantIds: inventoryItemRequiredVariantIds },
       context,
     );
@@ -603,9 +637,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       }
     }
 
-    const storedCurrentLinksMap = await this.read<
-      Map<string, Array<{ optionId: string; optionValueId: string | null }>>
-    >(
+    const storedCurrentLinksMap = await this.read(
       { type: "variantLinks", variantIds: allProductVariants.map((variant) => variant.id) },
       context,
     );
@@ -625,6 +657,32 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     const warehouseIds = new Set<string>();
     const mediaFileIds = new Set<string>();
     const requestedSkus = new Map<string, number>();
+    const requestedStockPairs = new Map<string, { variantId: string; warehouseId: string }>();
+
+    for (const { op } of variantOps) {
+      if (
+        op.type === "variantUpdate" &&
+        op.params.inventory?.warehouseId &&
+        op.params.inventory.onHand !== undefined
+      ) {
+        const pair = {
+          variantId: op.params.variantId,
+          warehouseId: op.params.inventory.warehouseId,
+        };
+        requestedStockPairs.set(stockPairKey(pair.variantId, pair.warehouseId), pair);
+      }
+    }
+
+    const stocks =
+      requestedStockPairs.size === 0
+        ? []
+        : await this.read(
+            { type: "stocks", pairs: [...requestedStockPairs.values()] },
+            context,
+          );
+    const stockByPair = new Map(
+      stocks.map((stock) => [stockPairKey(stock.variantId, stock.warehouseId), stock]),
+    );
 
     for (const { op, index } of variantOps) {
       if (op.type === "variantDelete") continue;
@@ -734,13 +792,8 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
           params.inventory.warehouseId &&
           params.inventory.onHand !== undefined
         ) {
-          const existingStock = await this.read<{ reservedQty: number } | null>(
-            {
-              type: "stock",
-              variantId: params.variantId,
-              warehouseId: params.inventory.warehouseId,
-            },
-            context,
+          const existingStock = stockByPair.get(
+            stockPairKey(params.variantId, params.inventory.warehouseId),
           );
           const reservedQuantity = existingStock?.reservedQty ?? 0;
           const unavailable = params.inventory.unavailable ?? 0;
@@ -793,8 +846,21 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       }
     }
 
+    const inventoryItemsBySku =
+      requestedSkus.size === 0
+        ? []
+        : await this.read(
+            { type: "inventoryItemsBySku", skus: [...requestedSkus.keys()] },
+            context,
+          );
+    const inventoryItemBySku = new Map(
+      inventoryItemsBySku.flatMap((item) =>
+        item.sku === null ? [] : [[item.sku, item] as const],
+      ),
+    );
+
     if (warehouseIds.size > 0) {
-      const warehouses = await this.read<Array<{ id: string }>>(
+      const warehouses = await this.read(
         { type: "warehouses", warehouseIds: [...warehouseIds] },
         context,
       );
@@ -816,7 +882,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     }
 
     if (mediaFileIds.size > 0) {
-      const registeredMedia = await this.read<Array<{ fileId: string }>>(
+      const registeredMedia = await this.read(
         { type: "productMedia", productId: input.productId, fileIds: [...mediaFileIds] },
         context,
       );
@@ -837,10 +903,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     }
 
     for (const [sku, index] of requestedSkus) {
-      const existingItem = await this.read<{ variantId: string } | null>(
-        { type: "inventoryItemBySku", sku },
-        context,
-      );
+      const existingItem = inventoryItemBySku.get(sku);
       if (!existingItem) continue;
       const op = input.operations[index];
       const allowedVariantId = op.type === "variantUpdate" ? op.params.variantId : undefined;
@@ -906,24 +969,23 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
               field: op.meta?.fieldPrefix,
             },
           ];
-    const result: OperationResult = {
+    const entityId =
+      op.type === "variantDelete"
+        ? op.params.variantId
+        : op.type === "productComponentConfigurationUpdate" ||
+            op.type === "productComponentConfigurationDelete" ||
+            op.type === "productComponentGroupsSync" ||
+            op.type === "productComponentPricingTemplatesSync" ||
+            op.type === "productComponentDependencyRulesSync"
+          ? op.params.configurationId
+          : undefined;
+
+    return {
       type: op.type,
       applied: false,
       errors,
+      ...(entityId !== undefined && { entityId }),
     };
-
-    if (
-      op.type === "variantDelete" ||
-      op.type === "productComponentConfigurationUpdate" ||
-      op.type === "productComponentConfigurationDelete" ||
-      op.type === "productComponentGroupsSync" ||
-      op.type === "productComponentPricingTemplatesSync" ||
-      op.type === "productComponentDependencyRulesSync"
-    ) {
-      result.entityId =
-        op.type === "variantDelete" ? op.params.variantId : op.params.configurationId;
-    }
-    return result;
   }
 
   /**
@@ -1801,10 +1863,6 @@ function isVariantOperation(op: ProductUpdateOperation): op is VariantWorkflowOp
   return op.type === "variantCreate" || op.type === "variantUpdate" || op.type === "variantDelete";
 }
 
-function isComponentOperation(op: ProductUpdateOperation): op is ComponentWorkflowOperation {
-  return op.type.startsWith("productComponent");
-}
-
 /** Every operation in a product aggregate workflow must target its root. */
 function validateOperationAggregateScope(
   input: ProductUpdateWorkflowInput,
@@ -2200,6 +2258,14 @@ function variantCombinationKey(
     })
     .map((link) => `${link.optionId}:${link.optionValueId}`)
     .join("|");
+}
+
+function stockPairKey(variantId: string, warehouseId: string): string {
+  return JSON.stringify([variantId, warehouseId]);
+}
+
+function assertNever(value: never): never {
+  throw new Error(`Unsupported product update operation: ${JSON.stringify(value)}`);
 }
 
 function addDuplicateCombinationError(
