@@ -8,7 +8,6 @@ export const ProductBulkUpdateInputSchema = () =>
         .array(
           z.object({
             productId: z.string(),
-            expectedRevision: z.number().int().optional(),
             operations: ProductUpdateInputSchema().optional(),
           }),
         )

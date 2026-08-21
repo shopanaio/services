@@ -314,7 +314,6 @@ export class CustomerSegmentRepository extends BaseRepository {
   async update(
     id: string,
     patch: CustomerSegmentPatch,
-    expectedRevision?: number,
     definitionChanged = false,
     materializationChanged = definitionChanged,
     merchantRevisionChanged = true,
@@ -324,9 +323,6 @@ export class CustomerSegmentRepository extends BaseRepository {
       eq(customerSegment.id, id),
       isNull(customerSegment.deletedAt),
     ];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(customerSegment.revision, expectedRevision));
-    }
     const rows = await this.connection
       .update(customerSegment)
       .set({
@@ -356,14 +352,12 @@ export class CustomerSegmentRepository extends BaseRepository {
     id: string,
     patch: CustomerSegmentPatch,
     memberships: CustomerSegmentMembershipRelationsPatch | undefined,
-    expectedRevision?: number,
     definitionChanged = false,
     materializationChanged = definitionChanged,
   ): Promise<CustomerSegmentUpdateResult | null> {
     const segment = await this.update(
       id,
       patch,
-      expectedRevision,
       definitionChanged,
       materializationChanged,
     );
@@ -471,15 +465,12 @@ export class CustomerSegmentRepository extends BaseRepository {
     return { segment, affectedCustomerIds: [...affectedCustomerIds] };
   }
 
-  async softDelete(id: string, expectedRevision?: number): Promise<boolean> {
+  async softDelete(id: string): Promise<boolean> {
     const conditions = [
       eq(customerSegment.storeId, this.storeId),
       eq(customerSegment.id, id),
       isNull(customerSegment.deletedAt),
     ];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(customerSegment.revision, expectedRevision));
-    }
     const now = new Date().toISOString();
     const rows = await this.connection
       .update(customerSegment)
@@ -511,10 +502,9 @@ export class CustomerSegmentRepository extends BaseRepository {
   async addCustomers(
     segmentId: string,
     customerIds: readonly string[],
-    expectedRevision?: number,
     source: CustomerSegmentMembership["source"] = "MANUAL",
   ): Promise<SegmentMembershipMutationResult | null> {
-    const segment = await this.bumpRevision(segmentId, expectedRevision, source);
+    const segment = await this.bumpRevision(segmentId, source);
     if (!segment) return null;
     const uniqueIds = [...new Set(customerIds)];
     if (uniqueIds.length === 0) return { segment, memberships: [] };
@@ -582,9 +572,8 @@ export class CustomerSegmentRepository extends BaseRepository {
   async removeCustomers(
     segmentId: string,
     customerIds: readonly string[],
-    expectedRevision?: number,
   ): Promise<CustomerSegment | null> {
-    const segment = await this.bumpRevision(segmentId, expectedRevision);
+    const segment = await this.bumpRevision(segmentId);
     if (!segment) return null;
     const uniqueIds = [...new Set(customerIds)];
     if (uniqueIds.length > 0) {
@@ -606,9 +595,8 @@ export class CustomerSegmentRepository extends BaseRepository {
   async replaceCustomers(
     segmentId: string,
     customerIds: readonly string[],
-    expectedRevision?: number,
   ): Promise<SegmentMembershipMutationResult | null> {
-    const segment = await this.bumpRevision(segmentId, expectedRevision);
+    const segment = await this.bumpRevision(segmentId);
     if (!segment) return null;
     await this.connection
       .delete(customerSegmentMembership)
@@ -789,7 +777,6 @@ export class CustomerSegmentRepository extends BaseRepository {
 
   private async bumpRevision(
     segmentId: string,
-    expectedRevision?: number,
     source: CustomerSegmentMembership["source"] = "MANUAL",
   ): Promise<CustomerSegment | null> {
     const conditions = [
@@ -798,9 +785,6 @@ export class CustomerSegmentRepository extends BaseRepository {
       eq(customerSegment.type, source === "RULE" ? "DYNAMIC" : "MANUAL"),
       isNull(customerSegment.deletedAt),
     ];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(customerSegment.revision, expectedRevision));
-    }
     const rows = await this.connection
       .update(customerSegment)
       .set({

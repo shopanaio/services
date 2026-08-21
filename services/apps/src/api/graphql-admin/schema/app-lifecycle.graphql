@@ -113,7 +113,6 @@ type AppLifecyclePayload {
   """
   Whether an earlier request with the same client mutation ID was reused.
   """
-  duplicate: Boolean!
 
   userErrors: [GenericUserError!]!
 }

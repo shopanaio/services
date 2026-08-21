@@ -14,7 +14,6 @@ export interface ProductBulkEditInput {
  */
 export interface ProductBulkUpdateItem {
   productId: string;
-  expectedRevision?: number;
   operations: ProductUpdateOperation[];
 }
 

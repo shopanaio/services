@@ -206,7 +206,7 @@ export class CustomerSegmentUpdateWorkflow extends CustomerEntityUpdateWorkflow 
         source: "workflow",
         workflowId: DBOS.workflowID!,
         stepId: "startCustomerSegmentMaterialization",
-        callId: `${segmentId}:${input.params.expectedRevision}`,
+        callId: `${segmentId}:materialize`,
       },
     );
   }

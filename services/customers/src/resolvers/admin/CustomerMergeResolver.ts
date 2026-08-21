@@ -40,10 +40,6 @@ export class CustomerMergeResolver extends CustomersType<string, CustomerMerge> 
     return this.$get("requestedById");
   }
 
-  idempotencyKey() {
-    return this.$get("idempotencyKey");
-  }
-
   resolution() {
     return this.$get("resolution");
   }

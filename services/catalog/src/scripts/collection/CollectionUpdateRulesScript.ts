@@ -21,18 +21,6 @@ export class CollectionUpdateRulesScript extends BaseScript<
         ],
       };
     }
-    if (collection.revision !== params.expectedRevision) {
-      return {
-        collection: undefined,
-        userErrors: [
-          {
-            message: "Collection revision does not match",
-            field: ["expectedRevision"],
-            code: "REVISION_CONFLICT",
-          },
-        ],
-      };
-    }
 
     if (collection.type !== "rule") {
       return {
@@ -130,11 +118,10 @@ export class CollectionUpdateRulesScript extends BaseScript<
     await this.repository.collectionRule.replaceRules(params.collectionId, rules);
     const refreshed = await this.repository.collection.bumpRevision(
       params.collectionId,
-      params.expectedRevision,
       { listingChanged },
     );
     if (!refreshed) {
-      throw new Error("Collection rule compare-and-swap failed after row lock");
+      throw new Error("Collection disappeared while updating rules");
     }
     return { collection: refreshed, userErrors: [] };
   }

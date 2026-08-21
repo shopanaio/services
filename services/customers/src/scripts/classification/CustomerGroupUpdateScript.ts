@@ -4,7 +4,6 @@ import { isUniqueViolation } from "../../kernel/types.js";
 
 export interface CustomerGroupUpdateParams {
   id: string;
-  expectedRevision: number;
   operations: {
     definition?: {
       code?: string | null;
@@ -45,8 +44,6 @@ export class CustomerGroupUpdateScript extends BaseScript<
   protected async execute(params: CustomerGroupUpdateParams): Promise<CustomerGroupUpdateResult> {
     const current = await this.repository.group.findById(params.id);
     if (!current) return notFound();
-    if (current.revision !== params.expectedRevision) return updateConflict();
-
     const errors = validateGroup(current, params.operations);
     const code = params.operations.definition?.code?.trim().toLowerCase();
     if (code) {
@@ -163,9 +160,8 @@ export class CustomerGroupUpdateScript extends BaseScript<
       const group = await this.repository.group.update(
         params.id,
         groupPatch(params.operations),
-        params.expectedRevision,
       );
-      if (!group) return updateConflict();
+      if (!group) return notFound();
 
       if (memberships) {
         for (const input of memberships.create) {
@@ -341,20 +337,6 @@ function notFound(): CustomerGroupUpdateResult {
         message: "Customer group not found",
         field: ["groupId"],
         code: "NOT_FOUND",
-      },
-    ],
-  };
-}
-
-function updateConflict(): CustomerGroupUpdateResult {
-  return {
-    group: undefined,
-    affectedCustomerIds: [],
-    userErrors: [
-      {
-        message: "Customer group was modified by another user",
-        field: ["expectedRevision"],
-        code: "REVISION_CONFLICT",
       },
     ],
   };

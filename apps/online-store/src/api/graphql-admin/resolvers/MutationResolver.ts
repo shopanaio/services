@@ -83,7 +83,6 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
 
   pageUpdate(args: {
     readonly pageId: string;
-    readonly expectedRevision?: number | null;
     readonly operations: PageUpdateInput;
   }) {
     return this.entityPayload("page", async () => {
@@ -110,10 +109,9 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
                 publishedAt: args.operations.status === "PUBLISHED" ? now() : null,
               }
             : {}),
-          expectedRevision: args.expectedRevision ?? undefined,
         });
         if (!updated) {
-          throw operationError("ONLINE_STORE_PAGE_REVISION_CONFLICT");
+          throw operationError("ONLINE_STORE_PAGE_NOT_FOUND");
         }
 
         const title = hasOwn(args.operations, "title")
@@ -164,16 +162,12 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
   }
 
   pageDelete(args: {
-    readonly input: { readonly id: string; readonly expectedRevision?: number | null };
+    readonly input: { readonly id: string };
   }) {
     return this.deletePayload("deletedPageId", async () => {
       const pageId = this.requiredId(args.input.id, GlobalIdEntity.OnlineStorePage, "input.id");
-      const deleted = await this.$ctx.repository.page.softDelete(
-        this.scope,
-        pageId,
-        args.input.expectedRevision ?? undefined,
-      );
-      if (!deleted) throw operationError("ONLINE_STORE_PAGE_REVISION_CONFLICT");
+      const deleted = await this.$ctx.repository.page.softDelete(this.scope, pageId);
+      if (!deleted) throw operationError("ONLINE_STORE_PAGE_NOT_FOUND");
       return this.encodeId(pageId, GlobalIdEntity.OnlineStorePage);
     });
   }
@@ -194,7 +188,6 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
       readonly id: string;
       readonly handle?: string | null;
       readonly name?: string | null;
-      readonly expectedRevision?: number | null;
     };
   }) {
     return this.entityPayload("navigationMenu", async () => {
@@ -212,17 +205,16 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
       const menu = await this.$ctx.repository.navigationMenu.update(this.scope, menuId, {
         handle: args.input.handle ?? undefined,
         name: args.input.name ?? undefined,
-        expectedRevision: args.input.expectedRevision ?? undefined,
       });
       if (!menu) {
-        throw operationError("ONLINE_STORE_NAVIGATION_MENU_REVISION_CONFLICT");
+        throw operationError("ONLINE_STORE_NAVIGATION_MENU_NOT_FOUND");
       }
       return new NavigationMenuResolver(menu.id, this.$ctx);
     });
   }
 
   navigationMenuDelete(args: {
-    readonly input: { readonly id: string; readonly expectedRevision?: number | null };
+    readonly input: { readonly id: string };
   }) {
     return this.deletePayload("deletedNavigationMenuId", async () => {
       const menuId = this.requiredId(
@@ -230,13 +222,9 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
         GlobalIdEntity.OnlineStoreNavigationMenu,
         "input.id",
       );
-      const deleted = await this.$ctx.repository.navigationMenu.softDelete(
-        this.scope,
-        menuId,
-        args.input.expectedRevision ?? undefined,
-      );
+      const deleted = await this.$ctx.repository.navigationMenu.softDelete(this.scope, menuId);
       if (!deleted) {
-        throw operationError("ONLINE_STORE_NAVIGATION_MENU_REVISION_CONFLICT");
+        throw operationError("ONLINE_STORE_NAVIGATION_MENU_NOT_FOUND");
       }
       return this.encodeId(menuId, GlobalIdEntity.OnlineStoreNavigationMenu);
     });
@@ -308,7 +296,6 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
       readonly beforeItemId?: string | null;
       readonly target?: NavigationTargetInput | null;
       readonly openInNewTab?: boolean | null;
-      readonly expectedRevision?: number | null;
     };
   }) {
     return this.entityPayload("navigationMenuItem", async () => {
@@ -356,10 +343,9 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
           ...(hasOwn(args.input, "openInNewTab")
             ? { openInNewTab: args.input.openInNewTab ?? false }
             : {}),
-          expectedRevision: args.input.expectedRevision ?? undefined,
         });
         if (!updated) {
-          throw operationError("ONLINE_STORE_NAVIGATION_ITEM_REVISION_CONFLICT");
+          throw operationError("ONLINE_STORE_NAVIGATION_ITEM_NOT_FOUND");
         }
         if (hasOwn(args.input, "label")) {
           const translation = await this.$ctx.repository.translation.upsertMenuItemTranslation(
@@ -378,7 +364,7 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
   }
 
   navigationMenuItemDelete(args: {
-    readonly input: { readonly id: string; readonly expectedRevision?: number | null };
+    readonly input: { readonly id: string };
   }) {
     return this.deletePayload("deletedNavigationMenuItemId", async () => {
       const itemId = this.requiredId(
@@ -386,13 +372,9 @@ export class OnlineStoreAppMutationResolver extends OnlineStoreType<Record<strin
         GlobalIdEntity.OnlineStoreNavigationMenuItem,
         "input.id",
       );
-      const deleted = await this.$ctx.repository.navigationMenuItem.deleteSubtree(
-        this.scope,
-        itemId,
-        args.input.expectedRevision ?? undefined,
-      );
+      const deleted = await this.$ctx.repository.navigationMenuItem.deleteSubtree(this.scope, itemId);
       if (!deleted) {
-        throw operationError("ONLINE_STORE_NAVIGATION_ITEM_REVISION_CONFLICT");
+        throw operationError("ONLINE_STORE_NAVIGATION_ITEM_NOT_FOUND");
       }
       return this.encodeId(itemId, GlobalIdEntity.OnlineStoreNavigationMenuItem);
     });
@@ -510,12 +492,6 @@ function userMessage(code: string): string {
       return "The value is required and cannot be empty";
     case "ONLINE_STORE_PAGE_NOT_FOUND":
       return "The page was not found";
-    case "ONLINE_STORE_PAGE_REVISION_CONFLICT":
-      return "The page changed; reload and try again";
-    case "ONLINE_STORE_NAVIGATION_MENU_REVISION_CONFLICT":
-      return "The navigation menu changed; reload and try again";
-    case "ONLINE_STORE_NAVIGATION_ITEM_REVISION_CONFLICT":
-      return "The navigation item changed; reload and try again";
     case "ONLINE_STORE_NAVIGATION_ITEM_HANDLE_TAKEN":
       return "The navigation item handle is already used under this parent";
     case "ONLINE_STORE_NAVIGATION_PARENT_INVALID":

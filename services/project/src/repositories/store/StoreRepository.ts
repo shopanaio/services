@@ -357,14 +357,11 @@ export class StoreRepository extends BaseRepository {
     return this.loadIntegrations(result);
   }
 
-  /**
-   * Atomically reserves the next store revision for a unified update.
-   */
+  /** Reserves the next internal store revision for a unified update. */
   @Transactional()
   async acquireRevision(
     id: string,
     organizationId: string,
-    expectedRevision: number,
   ): Promise<number | null> {
     const [result] = await this.connection
       .update(store)
@@ -376,7 +373,6 @@ export class StoreRepository extends BaseRepository {
         and(
           eq(store.id, id),
           eq(store.organizationId, organizationId),
-          eq(store.revision, expectedRevision),
           isNull(store.deletedAt),
         ),
       )

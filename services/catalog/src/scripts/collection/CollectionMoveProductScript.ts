@@ -17,18 +17,6 @@ export class CollectionMoveProductScript extends BaseScript<
         ],
       };
     }
-    if (collection.revision !== params.expectedRevision) {
-      return {
-        collection: undefined,
-        userErrors: [
-          {
-            message: "Collection revision does not match",
-            field: ["expectedRevision"],
-            code: "REVISION_CONFLICT",
-          },
-        ],
-      };
-    }
     if (collection.revision >= 2_147_483_646) {
       return {
         collection: undefined,
@@ -63,11 +51,10 @@ export class CollectionMoveProductScript extends BaseScript<
     if (changedProductIds.length === 0) return { collection, userErrors: [] };
     const refreshed = await this.repository.collection.bumpRevision(
       params.collectionId,
-      params.expectedRevision,
       { listingChanged: false },
     );
     if (!refreshed) {
-      throw new Error("Collection rank compare-and-swap failed after row lock");
+      throw new Error("Collection disappeared while moving a product");
     }
     const operation = await this.repository.collectionSync.createOperation({
       workflowId: `${this.context.requestId}:collection:move`,

@@ -3,7 +3,6 @@ import type { UserError } from "../../kernel/BaseScript.js";
 
 export interface CustomerSegmentDeleteParams {
   id: string;
-  expectedRevision?: number;
 }
 
 export interface CustomerSegmentDeleteResult {
@@ -23,13 +22,9 @@ export class CustomerSegmentDeleteScript extends BaseScript<
     if (!segment) {
       return notFound();
     }
-    if (params.expectedRevision !== undefined && segment.revision !== params.expectedRevision) {
-      return revisionConflict();
-    }
-
-    const deleted = await this.repository.segment.softDelete(params.id, params.expectedRevision);
+    const deleted = await this.repository.segment.softDelete(params.id);
     if (!deleted) {
-      return revisionConflict();
+      return notFound();
     }
     await this.repository.segment.deleteMembershipsBySegmentId(params.id);
 
@@ -52,18 +47,5 @@ function notFound(): CustomerSegmentDeleteResult {
   return {
     deletedSegmentId: undefined,
     userErrors: [{ message: "Customer segment not found", field: ["id"], code: "NOT_FOUND" }],
-  };
-}
-
-function revisionConflict(): CustomerSegmentDeleteResult {
-  return {
-    deletedSegmentId: undefined,
-    userErrors: [
-      {
-        message: "Customer segment was modified by another user",
-        field: ["expectedRevision"],
-        code: "REVISION_CONFLICT",
-      },
-    ],
   };
 }

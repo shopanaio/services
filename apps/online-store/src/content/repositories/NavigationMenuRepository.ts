@@ -44,7 +44,6 @@ export interface CreateNavigationMenuInput {
 export interface UpdateNavigationMenuInput {
   readonly handle?: string;
   readonly name?: string;
-  readonly expectedRevision?: number;
 }
 
 export class NavigationMenuRepository extends BaseRepository {
@@ -160,23 +159,12 @@ export class NavigationMenuRepository extends BaseRepository {
         updatedAt: now(),
         revision: sql`${navigationMenus.revision} + 1`,
       })
-      .where(
-        and(
-          this.menuOwnership(scope, menuId),
-          input.expectedRevision === undefined
-            ? undefined
-            : eq(navigationMenus.revision, input.expectedRevision),
-        ),
-      )
+      .where(this.menuOwnership(scope, menuId))
       .returning();
     return rows[0] ? mapMenu(rows[0]) : null;
   }
 
-  async softDelete(
-    scope: OnlineStoreScope,
-    menuId: string,
-    expectedRevision?: number,
-  ): Promise<boolean> {
+  async softDelete(scope: OnlineStoreScope, menuId: string): Promise<boolean> {
     const timestamp = now();
     const rows = await this.connection
       .update(navigationMenus)
@@ -185,14 +173,7 @@ export class NavigationMenuRepository extends BaseRepository {
         updatedAt: timestamp,
         revision: sql`${navigationMenus.revision} + 1`,
       })
-      .where(
-        and(
-          this.menuOwnership(scope, menuId),
-          expectedRevision === undefined
-            ? undefined
-            : eq(navigationMenus.revision, expectedRevision),
-        ),
-      )
+      .where(this.menuOwnership(scope, menuId))
       .returning({ id: navigationMenus.id });
     return rows.length > 0;
   }

@@ -63,7 +63,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
         userErrors: rejectedResults.flatMap((result) => result.errors),
       };
     }
-    const acquired = await this.stepAcquireRevision(input.customerId, input.expectedRevision);
+    const acquired = await this.stepAcquireRevision(input.customerId);
     if ("error" in acquired) {
       return {
         customer: null,
@@ -174,28 +174,18 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async stepAcquireRevision(
-    customerId: string,
-    expectedRevision?: number,
-  ): Promise<
+  private async stepAcquireRevision(customerId: string): Promise<
     { revision: number } | { error: { message: string; code: string; field?: string[] } }
   > {
-    const customer = await this.kernel.repository.customer.update(customerId, {}, expectedRevision);
+    const customer = await this.kernel.repository.customer.update(customerId, {});
     if (customer) return { revision: customer.revision };
 
-    const exists = await this.kernel.repository.customer.exists(customerId);
     return {
-      error: exists
-        ? {
-            message: "Customer was modified by another user",
-            code: "REVISION_CONFLICT",
-            field: ["expectedRevision"],
-          }
-        : {
-            message: "Customer not found",
-            code: "NOT_FOUND",
-            field: ["customerId"],
-          },
+      error: {
+        message: "Customer not found",
+        code: "NOT_FOUND",
+        field: ["customerId"],
+      },
     };
   }
 

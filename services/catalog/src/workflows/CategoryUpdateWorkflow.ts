@@ -60,7 +60,6 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
     const acquired = await this.stepAcquireRevision(
       input.categoryId,
       input.context.storeId,
-      input.expectedRevision,
     );
 
     if ("error" in acquired) {
@@ -108,17 +107,12 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
   private async stepAcquireRevision(
     categoryId: string,
     storeId: string,
-    expectedRevision?: number,
   ): Promise<{ revision: number } | { error: UserError }> {
     const conditions = [
       eq(category.storeId, storeId),
       eq(category.id, categoryId),
       isNull(category.deletedAt),
     ];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(category.revision, expectedRevision));
-    }
-
     const rows = await this.kernel.db
       .update(category)
       .set({
@@ -132,27 +126,12 @@ export class CategoryUpdateWorkflow extends BrokerWorkflows {
       return { revision: rows[0].revision };
     }
 
-    const exists = await this.kernel.db
-      .select({ id: category.id })
-      .from(category)
-      .where(
-        and(eq(category.storeId, storeId), eq(category.id, categoryId), isNull(category.deletedAt)),
-      )
-      .limit(1)
-      .then((result) => result.length > 0);
-
     return {
-      error: exists
-        ? {
-            message: "Category was modified by another user",
-            code: "REVISION_CONFLICT",
-            field: ["expectedRevision"],
-          }
-        : {
-            message: "Category not found",
-            code: "NOT_FOUND",
-            field: ["categoryId"],
-          },
+      error: {
+        message: "Category not found",
+        code: "NOT_FOUND",
+        field: ["categoryId"],
+      },
     };
   }
 

@@ -5,10 +5,6 @@ import { HeadlessStorefrontConnectionResolver } from "./HeadlessStorefrontConnec
 import { StorefrontAccessPolicyResolver } from "./StorefrontAccessPolicyResolver.js";
 import { StorefrontCredentialResolver } from "./StorefrontCredentialResolver.js";
 
-interface ClientMutationInput {
-  readonly clientMutationId: string;
-}
-
 export class MutationResolver extends HeadlessType<Record<string, never>> {
   headlessAppMutation() {
     return new HeadlessAppMutationResolver({}, this.$ctx);
@@ -17,7 +13,7 @@ export class MutationResolver extends HeadlessType<Record<string, never>> {
 
 export class HeadlessAppMutationResolver extends HeadlessType<Record<string, never>> {
   async headlessStorefrontCreate(args: {
-    input: ClientMutationInput & {
+    input: {
       displayName: string;
       permissions?: string[];
     };
@@ -27,12 +23,10 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
         const created = await this.$ctx.connections.createConnection(this.scope, {
           displayName: args.input.displayName,
           permissions: parseStorefrontPermissions(args.input.permissions),
-          clientMutationId: args.input.clientMutationId,
           createdById: this.$ctx.app.actor?.id,
         });
         return {
           connection: new HeadlessStorefrontConnectionResolver(created.connection.id, this.$ctx),
-          duplicate: created.duplicate,
           initialStorefrontCredentials: created.initialCredentials
             ? {
                 publicAccessToken: created.initialCredentials.publicAccessToken,
@@ -41,12 +35,12 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
             : null,
         };
       },
-      { connection: null, duplicate: false, initialStorefrontCredentials: null },
+      { connection: null, initialStorefrontCredentials: null },
     );
   }
 
   async headlessStorefrontUpdate(args: {
-    input: ClientMutationInput & {
+    input: {
       connectionId: string;
       displayName: string;
     };
@@ -60,7 +54,7 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
     );
   }
 
-  async headlessStorefrontSuspend(args: { input: ClientMutationInput & { connectionId: string } }) {
+  async headlessStorefrontSuspend(args: { input: { connectionId: string } }) {
     return this.connectionPayload(async () =>
       this.$ctx.connections.suspendConnection(
         this.scope,
@@ -69,18 +63,17 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
     );
   }
 
-  async headlessStorefrontResume(args: { input: ClientMutationInput & { connectionId: string } }) {
+  async headlessStorefrontResume(args: { input: { connectionId: string } }) {
     return this.connectionPayload(async () =>
       this.$ctx.connections.resumeConnection(
         this.scope,
         this.connectionId(args.input.connectionId),
-        args.input.clientMutationId,
       ),
     );
   }
 
   async headlessStorefrontDisconnect(args: {
-    input: ClientMutationInput & { connectionId: string };
+    input: { connectionId: string };
   }) {
     return this.connectionPayload(async () =>
       this.$ctx.connections.disconnectConnection(
@@ -92,7 +85,7 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
   }
 
   async storefrontPrivateCredentialCreate(args: {
-    input: ClientMutationInput & {
+    input: {
       connectionId: string;
       label: string;
     };
@@ -102,7 +95,6 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
         const result = await this.$ctx.credentials.createPrivateCredential(this.scope, {
           connectionId: this.connectionId(args.input.connectionId),
           label: args.input.label.trim(),
-          clientMutationId: args.input.clientMutationId,
           actor: this.actor,
         });
         return {
@@ -115,30 +107,27 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
   }
 
   async storefrontCredentialRevoke(args: {
-    input: ClientMutationInput & { credentialId: string };
+    input: { credentialId: string };
   }) {
     return this.payload(
       async () => {
         const id = this.decodeId(args.input.credentialId, GlobalIdEntity.StorefrontCredential);
-        const before = await this.$ctx.repository.credential.findById(this.scope, id);
         const credential = await this.$ctx.credentials.revokePrivate(this.scope, {
           credentialId: id,
           actor: this.actor,
         });
         return {
           credential: new StorefrontCredentialResolver(credential.id, this.$ctx),
-          duplicate: before?.status === "REVOKED",
         };
       },
-      { credential: null, duplicate: false },
+      { credential: null },
     );
   }
 
   async storefrontAccessPolicyUpdate(args: {
-    input: ClientMutationInput & {
+    input: {
       connectionId: string;
       permissions: string[];
-      expectedRevision: number;
     };
   }) {
     return this.payload(
@@ -147,7 +136,6 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
         await this.$ctx.policies.replace(this.scope, {
           connectionId,
           permissions: args.input.permissions,
-          expectedRevision: args.input.expectedRevision,
         });
         return {
           policy: new StorefrontAccessPolicyResolver(connectionId, this.$ctx),
@@ -163,10 +151,9 @@ export class HeadlessAppMutationResolver extends HeadlessType<Record<string, nev
         const connection = await operation();
         return {
           connection: new HeadlessStorefrontConnectionResolver(connection.id, this.$ctx),
-          duplicate: false,
         };
       },
-      { connection: null, duplicate: false },
+      { connection: null },
     );
   }
 
@@ -215,8 +202,6 @@ function userMessage(code: string): string {
     case "STOREFRONT_NOT_FOUND":
     case "STOREFRONT_CREDENTIAL_NOT_FOUND":
       return "Storefront resource was not found";
-    case "STOREFRONT_POLICY_REVISION_CONFLICT":
-      return "The access policy changed; reload and try again";
     case "STOREFRONT_PERMISSION_INVALID":
       return "The permission list contains an unsupported value";
     case "STOREFRONT_DISPLAY_NAME_INVALID":

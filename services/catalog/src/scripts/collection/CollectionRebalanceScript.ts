@@ -16,18 +16,6 @@ export class CollectionRebalanceScript extends BaseScript<
         ],
       };
     }
-    if (collection.revision !== params.expectedRevision) {
-      return {
-        collection: undefined,
-        userErrors: [
-          {
-            message: "Collection revision does not match",
-            field: ["expectedRevision"],
-            code: "REVISION_CONFLICT",
-          },
-        ],
-      };
-    }
     if (collection.revision >= 2_147_483_646) {
       return {
         collection: undefined,
@@ -53,11 +41,10 @@ export class CollectionRebalanceScript extends BaseScript<
     }
     const refreshed = await this.repository.collection.bumpRevision(
       params.collectionId,
-      params.expectedRevision,
       { listingChanged: false },
     );
     if (!refreshed) {
-      throw new Error("Collection rebalance compare-and-swap failed after row lock");
+      throw new Error("Collection disappeared while rebalancing");
     }
     if (!syncOperation.operationId) {
       throw new Error("Collection rebalance sync operation was not created");

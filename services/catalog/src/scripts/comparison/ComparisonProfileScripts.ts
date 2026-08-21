@@ -81,16 +81,14 @@ export class ComparisonProfileCreateScript extends ProfileScript<
   }
 }
 export class ComparisonProfileUpdateScript extends ProfileScript<
-  { id: string; expectedRevision: number; input: ComparisonProfileNestedInput },
+  { id: string; input: ComparisonProfileNestedInput },
   ComparisonProfileMutationResult
 > {
   @Transactional() protected async execute({
     id,
-    expectedRevision,
     input,
   }: {
     id: string;
-    expectedRevision: number;
     input: ComparisonProfileNestedInput;
   }) {
     if (!(await this.repository.comparisonRead.findById(id)))
@@ -143,20 +141,7 @@ export class ComparisonProfileUpdateScript extends ProfileScript<
           },
         ],
       };
-    const profile = await this.repository.comparison.updateProfile(
-      await this.aggregate(id, input),
-      expectedRevision,
-    );
-    if (!profile)
-      return {
-        userErrors: [
-          {
-            message: "Comparison profile revision conflict",
-            field: ["expectedRevision"],
-            code: "COMPARISON_PROFILE_REVISION_CONFLICT",
-          },
-        ],
-      };
+    const profile = await this.repository.comparison.updateProfile(await this.aggregate(id, input));
     this.logger.info({ profileId: id, revision: profile.revision }, "comparison.profile.updated");
     return { profile, userErrors: [] };
   }

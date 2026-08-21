@@ -183,7 +183,6 @@ export class CollectionRepository extends BaseRepository {
 
   async update(
     id: string,
-    expectedRevision: number,
     data: {
       handle?: string | null;
       defaultSort?: string;
@@ -225,7 +224,6 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collection.storeId, this.storeId),
           eq(collection.id, id),
-          eq(collection.revision, expectedRevision),
           isNull(collection.deletedAt),
           sql`${collection.revision} < 2147483646`,
           options.listingChanged ? sql`${collection.listingRevision} < 2147483646` : sql`true`,
@@ -237,13 +235,12 @@ export class CollectionRepository extends BaseRepository {
 
   async bumpRevision(
     id: string,
-    expectedRevision: number,
     options: { listingChanged: boolean },
   ): Promise<Collection | null> {
-    return this.update(id, expectedRevision, {}, options);
+    return this.update(id, {}, options);
   }
 
-  async softDelete(id: string, expectedRevision: number): Promise<Collection | null> {
+  async softDelete(id: string): Promise<Collection | null> {
     const rows = await this.connection
       .update(collection)
       .set({
@@ -257,7 +254,6 @@ export class CollectionRepository extends BaseRepository {
         and(
           eq(collection.storeId, this.storeId),
           eq(collection.id, id),
-          eq(collection.revision, expectedRevision),
           sql`${collection.revision} < 2147483646`,
           sql`${collection.listingRevision} < 2147483646`,
           isNull(collection.deletedAt),

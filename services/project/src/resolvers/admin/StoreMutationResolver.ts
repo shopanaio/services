@@ -385,25 +385,6 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
       return { store: null, operationResults: [], userErrors: [error] };
     }
 
-    const clientMutationId = args.clientMutationId.trim();
-    if (clientMutationId.length === 0 || clientMutationId.length > 128) {
-      const error = {
-        message: "Client mutation ID must contain between 1 and 128 characters",
-        field: ["clientMutationId"],
-        code: "INVALID_CLIENT_MUTATION_ID",
-      };
-      return { store: null, operationResults: [], userErrors: [error] };
-    }
-
-    if (!Number.isSafeInteger(args.expectedRevision) || args.expectedRevision < 0) {
-      const error = {
-        message: "Expected revision must be a non-negative integer",
-        field: ["expectedRevision"],
-        code: "INVALID_EXPECTED_REVISION",
-      };
-      return { store: null, operationResults: [], userErrors: [error] };
-    }
-
     const store = await this.$ctx.kernel.repository.store.findById(storeId);
     if (!store) {
       const error = {
@@ -437,7 +418,6 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
 
     const sagaInput: StoreUpdateSagaInput = {
       storeId,
-      expectedRevision: args.expectedRevision,
       operations: mapped.operations,
       context: {
         organizationId: store.organizationId,
@@ -459,8 +439,6 @@ export class StoreMutationResolver extends BaseResolver<Record<string, never>> {
             resourceId: storeId,
             operation: "storeUpdate",
             content: {
-              clientMutationId,
-              expectedRevision: sagaInput.expectedRevision,
               operations: sagaInput.operations,
               userId: sagaInput.context.userId ?? null,
             },

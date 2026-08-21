@@ -77,7 +77,6 @@ export class AppLifecycleService {
       actor: actorFromContext(context, params.userId),
       correlationId: params.correlationId,
       configuration: params.configuration,
-      expectedConfigurationVersion: params.expectedConfigurationVersion,
       grantedScopes,
       snapshot: snapshotManifest(manifest),
     });

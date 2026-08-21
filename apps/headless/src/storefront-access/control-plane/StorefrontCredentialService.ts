@@ -65,7 +65,6 @@ export class StorefrontCredentialService {
     input: {
       readonly connectionId: string;
       readonly label: string;
-      readonly clientMutationId: string;
       readonly actor: { readonly type: string; readonly id?: string };
     },
   ) {
@@ -74,19 +73,6 @@ export class StorefrontCredentialService {
       throw new Error("STOREFRONT_CREDENTIAL_LABEL_INVALID");
     }
     return this.repository.runInTransaction(async () => {
-      const existingId = await this.repository.idempotency.lockAndFind(
-        scope,
-        "PRIVATE_CREDENTIAL_CREATE",
-        input.clientMutationId,
-      );
-      if (existingId) {
-        const credential = await this.repository.credential.findById(scope, existingId);
-        if (!credential) throw new Error("STOREFRONT_CREDENTIAL_NOT_FOUND");
-        return Object.freeze({
-          credential,
-          privateAccessToken: null,
-        });
-      }
       const connection = await this.repository.connection.lockById(scope, input.connectionId);
       if (!connection) {
         throw new Error("STOREFRONT_CREDENTIAL_NOT_FOUND");
@@ -102,12 +88,6 @@ export class StorefrontCredentialService {
         "PRIVATE",
         input.actor,
         label,
-      );
-      await this.repository.idempotency.record(
-        scope,
-        "PRIVATE_CREDENTIAL_CREATE",
-        input.clientMutationId,
-        credential.id,
       );
       return Object.freeze({
         credential,

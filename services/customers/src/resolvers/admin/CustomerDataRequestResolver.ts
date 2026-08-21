@@ -36,10 +36,6 @@ export class CustomerDataRequestResolver extends CustomersType<string, CustomerD
     return this.$get("requestedById");
   }
 
-  idempotencyKey() {
-    return this.$get("idempotencyKey");
-  }
-
   legalBasis() {
     return this.$get("legalBasis");
   }

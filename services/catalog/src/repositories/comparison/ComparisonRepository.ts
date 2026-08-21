@@ -60,7 +60,7 @@ export class ComparisonRepository extends BaseRepository {
     return created;
   }
 
-  async updateProfile(input: ComparisonProfileAggregateInput, expectedRevision: number) {
+  async updateProfile(input: ComparisonProfileAggregateInput) {
     const now = new Date().toISOString();
     const [updated] = await this.connection
       .update(comparisonProfile)
@@ -74,7 +74,6 @@ export class ComparisonRepository extends BaseRepository {
         and(
           eq(comparisonProfile.storeId, this.storeId),
           eq(comparisonProfile.id, input.id),
-          eq(comparisonProfile.revision, expectedRevision),
         ),
       )
       .returning();

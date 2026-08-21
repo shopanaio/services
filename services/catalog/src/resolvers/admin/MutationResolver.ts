@@ -212,7 +212,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     const result = await this.$ctx.kernel.runScript(ComparisonProfileUpdateScript, {
       id,
-      expectedRevision: args.input.expectedRevision,
       input: decoded.input!,
     });
     return {
@@ -804,11 +803,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   /**
-   * Unified product update with optimistic locking.
+   * Unified product update.
    * Supports product, category, tag, and variant operations in a single request.
    */
   async productUpdate(args: CatalogMutationProductUpdateArgs) {
-    const { productId, expectedRevision, operations } = args;
+    const { productId, operations } = args;
     const decodedProductId = safeDecodeGlobalId(productId, GlobalIdEntity.Product);
     if (!decodedProductId) {
       const error = {
@@ -832,7 +831,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     const mapped = mapProductUpdateInput({
       productId: decodedProductId,
       operations,
-      expectedRevision: expectedRevision ?? undefined,
     });
 
     if (mapped.errors.length > 0) {
@@ -849,7 +847,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     const workflowInput: ProductUpdateWorkflowInput = {
       productId: decodedProductId,
-      expectedRevision: expectedRevision ?? undefined,
       operations: mapped.operations,
       context: {
         organizationId: this.$ctx.store.organizationId,
@@ -877,7 +874,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       operationResults: result.operationResults.map((r) => ({
         type: toGraphqlOperationType(r.type),
         applied: r.applied,
-        clientMutationId: r.clientMutationId,
         entityId: r.entityId
           ? encodeGlobalIdByType(r.entityId, operationResultEntityType(r.type))
           : undefined,
@@ -1005,7 +1001,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
     const workflowInput: CategoryUpdateWorkflowInput = {
       categoryId,
-      expectedRevision: args.expectedRevision ?? undefined,
       operations: mapped.operations,
       context: {
         organizationId: this.$ctx.store.organizationId,
@@ -1128,7 +1123,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionCreate(args: {
     input: {
-      clientMutationId: string;
       handle: string;
       type: "MANUAL" | "RULE";
       name: string;
@@ -1154,7 +1148,6 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
     );
 
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "create",
         params: {
@@ -1207,9 +1200,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionUpdate(args: {
     input: {
-      clientMutationId: string;
       id: string;
-      expectedRevision: number;
       handle?: string | null;
       name?: string | null;
       description?: { text?: string | null; html?: string | null; json?: unknown | null } | null;
@@ -1245,12 +1236,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       : undefined;
 
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "update",
         params: {
           id,
-          expectedRevision: args.input.expectedRevision,
           handle: args.input.handle ?? undefined,
           name: args.input.name ?? undefined,
           description:
@@ -1308,9 +1297,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionDelete(args: {
     input: {
-      clientMutationId: string;
       id: string;
-      expectedRevision: number;
     };
   }) {
     const id = safeDecodeGlobalId(args.input.id, GlobalIdEntity.Collection);
@@ -1323,10 +1310,9 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "delete",
-        params: { id, expectedRevision: args.input.expectedRevision },
+        params: { id },
       },
       ["publication"],
     );
@@ -1338,9 +1324,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionAddProducts(args: {
     input: {
-      clientMutationId: string;
       collectionId: string;
-      expectedRevision: number;
       productIds: string[];
     };
   }) {
@@ -1358,12 +1342,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "addProducts",
         params: {
           collectionId,
-          expectedRevision: args.input.expectedRevision,
           productIds,
         },
       },
@@ -1377,9 +1359,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionRemoveProducts(args: {
     input: {
-      clientMutationId: string;
       collectionId: string;
-      expectedRevision: number;
       productIds: string[];
     };
   }) {
@@ -1397,12 +1377,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "removeProducts",
         params: {
           collectionId,
-          expectedRevision: args.input.expectedRevision,
           productIds,
         },
       },
@@ -1416,9 +1394,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionMoveProduct(args: {
     input: {
-      clientMutationId: string;
       collectionId: string;
-      expectedRevision: number;
       productId: string;
       afterProductId?: string | null;
       beforeProductId?: string | null;
@@ -1444,12 +1420,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "moveProduct",
         params: {
           collectionId,
-          expectedRevision: args.input.expectedRevision,
           productId,
           afterProductId,
           beforeProductId,
@@ -1465,9 +1439,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionUpdateRules(args: {
     input: {
-      clientMutationId: string;
       collectionId: string;
-      expectedRevision: number;
       rules: CollectionRuleInput[];
     };
   }) {
@@ -1489,12 +1461,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       return { collection: null, userErrors: normalized.userErrors };
     }
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "updateRules",
         params: {
           collectionId,
-          expectedRevision: args.input.expectedRevision,
           rules: normalized.rules,
         },
       },
@@ -1508,9 +1478,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionRebalance(args: {
     input: {
-      clientMutationId: string;
       collectionId: string;
-      expectedRevision: number;
     };
   }) {
     const collectionId = safeDecodeGlobalId(args.input.collectionId, GlobalIdEntity.Collection);
@@ -1527,12 +1495,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "rebalance",
         params: {
           collectionId,
-          expectedRevision: args.input.expectedRevision,
         },
       },
       ["rank"],
@@ -1626,9 +1592,7 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
 
   async collectionClearProducts(args: {
     input: {
-      clientMutationId: string;
       collectionId: string;
-      expectedRevision: number;
     };
   }) {
     const collectionId = safeDecodeGlobalId(args.input.collectionId, GlobalIdEntity.Collection);
@@ -1645,12 +1609,10 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       };
     }
     const result = await this.runCollectionMutation(
-      args.input.clientMutationId,
       {
         kind: "clearProducts",
         params: {
           collectionId,
-          expectedRevision: args.input.expectedRevision,
         },
       },
       ["items"],
@@ -1662,44 +1624,17 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
   }
 
   private runCollectionMutation(
-    clientMutationId: string,
     operation: Exclude<CollectionMutationOperation, { kind: "delete" }>,
     reasons: CollectionUpdatedReason[],
   ): Promise<CollectionResult>;
   private runCollectionMutation(
-    clientMutationId: string,
     operation: Extract<CollectionMutationOperation, { kind: "delete" }>,
     reasons: CollectionUpdatedReason[],
   ): Promise<CollectionDeleteResult>;
   private async runCollectionMutation(
-    clientMutationId: string,
     operation: CollectionMutationOperation,
     reasons: CollectionUpdatedReason[],
   ): Promise<CollectionMutationDispatchResult> {
-    const clientKey = clientMutationId.trim();
-    if (clientKey.length === 0 || Buffer.byteLength(clientKey, "utf8") > 128) {
-      return operation.kind === "delete"
-        ? {
-            deletedCollectionId: undefined,
-            userErrors: [
-              {
-                message: "clientMutationId must contain 1..128 UTF-8 bytes",
-                field: ["clientMutationId"],
-                code: "INVALID_IDEMPOTENCY_KEY",
-              },
-            ],
-          }
-        : {
-            collection: undefined,
-            userErrors: [
-              {
-                message: "clientMutationId must contain 1..128 UTF-8 bytes",
-                field: ["clientMutationId"],
-                code: "INVALID_IDEMPOTENCY_KEY",
-              },
-            ],
-          };
-    }
     const requestHash = hashCanonicalJsonV1({
       operation: operation.kind,
       params: operation.params,
@@ -1728,28 +1663,19 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
           "catalog.collectionMutate",
           input,
           {
-            source: "client",
-            clientKey: `${this.$ctx.store.id}:${clientKey}`,
-            organizationId: this.$ctx.store.organizationId,
-            apiKeyId: this.$ctx.hasUser ? this.$ctx.user.id : this.$ctx.store.id,
-            requestHash,
+            source: "workflow",
+            workflowId: `collectionMutate:${this.$ctx.store.id}:${this.$ctx.requestId}`,
+            stepId: "start",
           },
           {
             adminContext: this.$ctx.adminContext,
           },
         );
     } catch (error) {
-      const conflict =
-        error instanceof Error &&
-        (error.name === "IdempotencyConflictError" ||
-          /idempotency.*conflict|different request/i.test(error.message));
       const userErrors = [
         {
-          message: conflict
-            ? "clientMutationId was reused with different input"
-            : "Collection mutation is temporarily unavailable",
-          field: ["clientMutationId"],
-          code: conflict ? "IDEMPOTENCY_KEY_REUSED" : "MUTATION_UNAVAILABLE",
+          message: "Collection mutation is temporarily unavailable",
+          code: "MUTATION_UNAVAILABLE",
         },
       ];
       return operation.kind === "delete"
@@ -2077,13 +2003,11 @@ export class CatalogMutationResolver extends CatalogType<Record<string, never>> 
       const mapped = mapProductUpdateInput({
         productId: decodedProductId,
         operations: item.operations,
-        expectedRevision: item.expectedRevision ?? undefined,
         productIndex: index,
       });
       inputErrors.push(...mapped.errors);
       products.push({
         productId: decodedProductId,
-        expectedRevision: item.expectedRevision ?? undefined,
         operations: mapped.operations,
       });
     }
@@ -2138,7 +2062,6 @@ function mapRichTextInput(input?: RichTextInput | null): RichTextInput | null | 
 interface ProductUpdateInputMappingArgs {
   productId: string;
   operations?: ProductUpdateInput | null;
-  expectedRevision?: number;
   productIndex?: number;
 }
 
@@ -2146,7 +2069,6 @@ interface ProductUpdateMappedEntry {
   type: ProductUpdateOperation["type"];
   operation?: ProductUpdateOperation;
   errors: UserError[];
-  clientMutationId?: string;
   entityId?: string;
 }
 
@@ -2159,7 +2081,7 @@ interface ProductUpdateInputMappingResult {
 function mapProductUpdateInput(
   args: ProductUpdateInputMappingArgs,
 ): ProductUpdateInputMappingResult {
-  const { productId, operations, expectedRevision, productIndex } = args;
+  const { productId, operations, productIndex } = args;
   const result: ProductUpdateOperation[] = [];
   const entries: ProductUpdateMappedEntry[] = [];
   const errors: UserError[] = [];
@@ -2236,18 +2158,6 @@ function mapProductUpdateInput(
   }
 
   if (components) {
-    if (expectedRevision === undefined) {
-      const field =
-        productIndex === undefined
-          ? ["expectedRevision"]
-          : ["input", "products", String(productIndex), "expectedRevision"];
-      errors.push({
-        message: "Expected revision is required for product component operations",
-        field,
-        code: "EXPECTED_REVISION_REQUIRED",
-      });
-    }
-
     for (const [componentIndex, input] of components.entries()) {
       const fieldPrefix = [...operationsFieldPrefix, "components", String(componentIndex)];
       const entry = mapProductComponentOperationInput(productId, input, fieldPrefix);
@@ -2258,18 +2168,6 @@ function mapProductUpdateInput(
   }
 
   if (variants) {
-    if (expectedRevision === undefined) {
-      const field =
-        productIndex === undefined
-          ? ["expectedRevision"]
-          : ["input", "products", String(productIndex), "expectedRevision"];
-      errors.push({
-        message: "Expected revision is required for variant operations",
-        field,
-        code: "EXPECTED_REVISION_REQUIRED",
-      });
-    }
-
     for (const [variantIndex, input] of variants.entries()) {
       const fieldPrefix = [...operationsFieldPrefix, "variants", String(variantIndex)];
       const entry = mapVariantOperationInput(productId, input, fieldPrefix);
@@ -2375,8 +2273,6 @@ function mapProductComponentOperationInput(
         errors,
       )
     : undefined;
-  const clientMutationId =
-    typeof input.clientMutationId === "string" ? input.clientMutationId.trim() : undefined;
   const name = typeof input.name === "string" ? input.name.trim() : undefined;
 
   const requireConfigurationId = () => {
@@ -2392,7 +2288,6 @@ function mapProductComponentOperationInput(
     const allowedSet = new Set<keyof ProductComponentOperationInput>(["action", ...allowed]);
     for (const key of [
       "configurationId",
-      "clientMutationId",
       "displayStyle",
       "name",
       "groups",
@@ -2442,14 +2337,7 @@ function mapProductComponentOperationInput(
       return { type: "productComponentRemove", operation, errors };
     }
     case "CONFIGURATION_CREATE": {
-      forbid(["clientMutationId", "name"]);
-      if (!clientMutationId) {
-        errors.push({
-          message: "Client mutation ID is required for configuration create",
-          field: [...fieldPrefix, "clientMutationId"],
-          code: "REQUIRED",
-        });
-      }
+      forbid(["name"]);
       if (!name) {
         errors.push({
           message: "Configuration name is required",
@@ -2458,10 +2346,10 @@ function mapProductComponentOperationInput(
         });
       }
       const operation =
-        errors.length === 0 && clientMutationId && name
+        errors.length === 0 && name
           ? ({
               type: "productComponentConfigurationCreate",
-              params: { productId, clientMutationId, name },
+              params: { productId, name },
               meta: { fieldPrefix },
             } satisfies ProductUpdateOperation)
           : undefined;
@@ -2469,7 +2357,6 @@ function mapProductComponentOperationInput(
         type: "productComponentConfigurationCreate",
         operation,
         errors,
-        clientMutationId,
       };
     }
     case "CONFIGURATION_UPDATE": {
@@ -2943,8 +2830,6 @@ function mapVariantOperationInput(
   fieldPrefix: string[],
 ): ProductUpdateMappedEntry {
   const errors: UserError[] = [];
-  const clientMutationId =
-    typeof input.clientMutationId === "string" ? input.clientMutationId.trim() : undefined;
   const variantId = input.variantId
     ? decodeInputId(input.variantId, GlobalIdEntity.Variant, [...fieldPrefix, "variantId"], errors)
     : undefined;
@@ -2958,13 +2843,6 @@ function mapVariantOperationInput(
           code: "FIELD_NOT_ALLOWED",
         });
       }
-      if (!clientMutationId) {
-        errors.push({
-          message: "Client mutation ID is required for variant create operations",
-          field: [...fieldPrefix, "clientMutationId"],
-          code: "REQUIRED",
-        });
-      }
       if (!input.options) {
         errors.push({
           message: "Options are required for variant create operations",
@@ -2975,12 +2853,11 @@ function mapVariantOperationInput(
 
       const params = mapVariantPayloadParams(input, fieldPrefix, errors);
       const operation =
-        errors.length === 0 && clientMutationId && params.options
+        errors.length === 0 && params.options
           ? ({
               type: "variantCreate",
               params: {
                 productId,
-                clientMutationId,
                 options: params.options,
                 pricing: params.pricing,
                 inventory: params.inventory,
@@ -2996,7 +2873,6 @@ function mapVariantOperationInput(
         type: "variantCreate",
         operation,
         errors,
-        clientMutationId,
       };
     }
 
@@ -3044,7 +2920,6 @@ function mapVariantOperationInput(
       }
 
       const forbiddenFields: Array<keyof VariantOperationInput> = [
-        "clientMutationId",
         "options",
         "pricing",
         "inventory",
@@ -3360,7 +3235,6 @@ function mapPreflightEntryToGraphqlResult(
   return {
     type: toGraphqlOperationType(entry.type),
     applied: false,
-    clientMutationId: entry.clientMutationId,
     entityId: entry.entityId
       ? encodeGlobalIdByType(entry.entityId, operationResultEntityType(entry.type))
       : undefined,
@@ -3771,7 +3645,6 @@ function decodeConfigurationInput(input: ProductComparisonConfigurationSyncInput
     params: {
       productId: productId!,
       profileId: profileId!,
-      expectedProductRevision: input.expectedProductRevision,
       mappings,
     },
     userErrors,

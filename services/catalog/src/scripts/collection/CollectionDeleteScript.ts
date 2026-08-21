@@ -14,18 +14,6 @@ export class CollectionDeleteScript extends BaseScript<
         userErrors: [{ message: "Collection not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
-    if (existing.revision !== params.expectedRevision) {
-      return {
-        deletedCollectionId: undefined,
-        userErrors: [
-          {
-            message: "Collection revision does not match",
-            field: ["expectedRevision"],
-            code: "REVISION_CONFLICT",
-          },
-        ],
-      };
-    }
     if (existing.revision >= 2_147_483_646 || existing.listingRevision >= 2_147_483_646) {
       return {
         deletedCollectionId: undefined,
@@ -42,9 +30,9 @@ export class CollectionDeleteScript extends BaseScript<
             collectionRevision: existing.revision + 1,
           })
         : null;
-    const deleted = await this.repository.collection.softDelete(params.id, params.expectedRevision);
+    const deleted = await this.repository.collection.softDelete(params.id);
     if (!deleted) {
-      throw new Error("Collection delete compare-and-swap failed after row lock");
+      throw new Error("Collection disappeared while deleting");
     }
     return {
       deletedCollectionId: params.id,

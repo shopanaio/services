@@ -388,9 +388,5 @@ function mutationChanged(
   result: CollectionMutationDispatchResult,
 ): boolean {
   if (operation.kind === "create" || operation.kind === "delete") return true;
-  return (
-    "collection" in result &&
-    !!result.collection &&
-    result.collection.revision > operation.params.expectedRevision
-  );
+  return "collection" in result && !!result.collection;
 }

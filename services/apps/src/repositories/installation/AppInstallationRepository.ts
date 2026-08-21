@@ -251,45 +251,21 @@ export class AppInstallationRepository extends BaseRepository {
     return rows[0] ? mapInstallation(rows[0]) : null;
   }
 
-  async updateConfiguration(input: {
-    readonly id: string;
-    readonly expectedVersion: number;
-    readonly configuration: Readonly<Record<string, unknown>>;
-  }): Promise<AppInstallationRecord | null> {
-    const rows = await this.connection
-      .update(appInstallations)
-      .set({
-        configuration: { ...input.configuration },
-        configurationVersion: input.expectedVersion + 1,
-        updatedAt: new Date().toISOString(),
-      })
-      .where(
-        and(
-          eq(appInstallations.id, input.id),
-          eq(appInstallations.configurationVersion, input.expectedVersion),
-        ),
-      )
-      .returning();
-    return rows[0] ? mapInstallation(rows[0]) : null;
-  }
-
   async updateConfigurationForStore(input: {
     readonly id: string;
-    readonly expectedVersion: number;
     readonly configuration: Readonly<Record<string, unknown>>;
   }): Promise<AppInstallationRecord | null> {
     const rows = await this.connection
       .update(appInstallations)
       .set({
         configuration: { ...input.configuration },
-        configurationVersion: input.expectedVersion + 1,
+        configurationVersion: sql`${appInstallations.configurationVersion} + 1`,
         updatedAt: new Date().toISOString(),
       })
       .where(
         and(
           eq(appInstallations.storeId, this.storeId),
           eq(appInstallations.id, input.id),
-          eq(appInstallations.configurationVersion, input.expectedVersion),
         ),
       )
       .returning();

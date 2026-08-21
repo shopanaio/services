@@ -7,7 +7,6 @@ export type { RichTextInput, WorkflowContext };
 
 export interface CategoryUpdateWorkflowInput {
   categoryId: string;
-  expectedRevision?: number;
   operations?: CategoryUpdateParams | null;
   context: WorkflowContext;
 }

@@ -10,7 +10,6 @@ export type { RichTextInput };
  */
 export interface ProductUpdateWorkflowInput {
   productId: string;
-  expectedRevision?: number;
   operations: ProductUpdateOperation[];
   context: WorkflowContext;
 }
@@ -187,7 +186,6 @@ export interface ProductComponentRemoveParams {
 
 export interface ProductComponentConfigurationCreateParams {
   productId: string;
-  clientMutationId: string;
   name: string;
 }
 
@@ -325,7 +323,6 @@ export interface ProductComponentDependencyActionSyncItem {
 
 export interface VariantCreateParams {
   productId: string;
-  clientMutationId: string;
   options: VariantOptionsParams;
   pricing?: VariantPricingParams;
   inventory?: VariantInventoryParams;
@@ -423,7 +420,6 @@ export interface OperationResult {
     | "variantDelete"
     | "variantUpdate";
   applied: boolean;
-  clientMutationId?: string;
   entityId?: string;
   errors: UserError[];
 }

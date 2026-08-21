@@ -149,8 +149,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       }
     }
 
-    // 1. Acquire revision (atomic compare-and-swap)
-    const acquired = await this.stepAcquireRevision(input.productId, input.expectedRevision);
+    // 1. Advance the internal revision for the accepted mutation.
+    const acquired = await this.stepAcquireRevision(input.productId);
     if ("error" in acquired) {
       return {
         product: null,
@@ -263,7 +263,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
   ): Promise<VariantBatchValidationResult> {
     const errorsByOperationIndex: Record<number, UserError[]> = {};
     const userErrors: UserError[] = [];
-    const componentCreateIds = new Map<string, number>();
 
     for (const [index, op] of input.operations.entries()) {
       let errors: UserError[] = [];
@@ -273,37 +272,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       } else if (op.type === "productFeaturesSync") {
         const validation = await validateFeatureSyncParams(this.kernel.repository, op.params);
         errors = prefixUserErrors(validation.userErrors, op);
-      } else if (isComponentOperation(op) && input.expectedRevision === undefined) {
-        errors = [
-          {
-            message: "Expected revision is required for product component operations",
-            code: "EXPECTED_REVISION_REQUIRED",
-            field: ["expectedRevision"],
-          },
-        ];
-      } else if (op.type === "productComponentConfigurationCreate") {
-        const previousIndex = componentCreateIds.get(op.params.clientMutationId);
-        if (previousIndex === undefined) {
-          componentCreateIds.set(op.params.clientMutationId, index);
-        } else {
-          errors = [
-            {
-              message: "Client mutation ID must be unique within the request",
-              code: "DUPLICATE_CLIENT_MUTATION_ID",
-              field: fieldPath(op, "clientMutationId"),
-            },
-          ];
-          const previousOp = input.operations[previousIndex];
-          const previousError = {
-            ...errors[0],
-            field: fieldPath(previousOp, "clientMutationId"),
-          };
-          errorsByOperationIndex[previousIndex] = [
-            ...(errorsByOperationIndex[previousIndex] ?? []),
-            previousError,
-          ];
-          userErrors.push(previousError);
-        }
       }
 
       if (errors.length > 0) {
@@ -319,46 +287,22 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     };
   }
 
-  /**
-   * Atomic compare-and-swap for optimistic locking.
-   * Increments revision BEFORE any operations to prevent race conditions.
-   */
+  /** Increment the internal revision before applying operations. */
   @WorkflowStep()
   private async stepAcquireRevision(
     productId: string,
-    expectedRevision?: number,
   ): Promise<{ revision: number } | { error: UserError }> {
     const db = this.kernel.db;
 
-    // Build WHERE clause
-    const conditions = [eq(product.id, productId)];
-    if (expectedRevision !== undefined) {
-      conditions.push(eq(product.revision, expectedRevision));
-    }
-
-    // Atomic increment with compare-and-swap
     const result = await db
       .update(product)
       .set({ revision: sql`${product.revision} + 1` })
-      .where(and(...conditions))
+      .where(eq(product.id, productId))
       .returning({ revision: product.revision });
 
     if (result.length === 0) {
-      // Check if product exists at all
-      const exists = await db
-        .select({ id: product.id })
-        .from(product)
-        .where(eq(product.id, productId))
-        .then((rows) => rows.length > 0);
-
       return {
-        error: exists
-          ? {
-              message: "Product was modified by another user",
-              code: "REVISION_CONFLICT",
-              field: ["expectedRevision"],
-            }
-          : { message: "Product not found", code: "NOT_FOUND" },
+        error: { message: "Product not found", code: "NOT_FOUND" },
       };
     }
 
@@ -388,16 +332,8 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       addError(firstVariantIndex, error);
     };
 
-    if (input.expectedRevision === undefined) {
-      addRequestError({
-        message: "Expected revision is required for variant operations",
-        code: "EXPECTED_REVISION_REQUIRED",
-        field: ["expectedRevision"],
-      });
-    }
-
     const currentProduct = await this.kernel.db
-      .select({ id: product.id, revision: product.revision })
+      .select({ id: product.id })
       .from(product)
       .where(eq(product.id, input.productId))
       .limit(1)
@@ -414,17 +350,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
         errorsByOperationIndex,
         userErrors,
       };
-    }
-
-    if (
-      input.expectedRevision !== undefined &&
-      currentProduct.revision !== input.expectedRevision
-    ) {
-      addRequestError({
-        message: "Product was modified by another user",
-        code: "REVISION_CONFLICT",
-        field: ["expectedRevision"],
-      });
     }
 
     const allProductVariants = await this.kernel.repository.variant.findByProductId(
@@ -514,26 +439,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
           ]),
         )
       : storedCurrentLinksMap;
-
-    const createClientMutationIds = new Map<string, number>();
-    for (const { op, index } of variantOps) {
-      if (op.type !== "variantCreate") continue;
-      const previousIndex = createClientMutationIds.get(op.params.clientMutationId);
-      if (previousIndex !== undefined) {
-        const error: UserError = {
-          message: "Client mutation ID must be unique within the request",
-          code: "DUPLICATE_CLIENT_MUTATION_ID",
-          field: fieldPath(op, "clientMutationId"),
-        };
-        addError(index, error);
-        addError(previousIndex, {
-          ...error,
-          field: fieldPath(input.operations[previousIndex], "clientMutationId"),
-        });
-      } else {
-        createClientMutationIds.set(op.params.clientMutationId, index);
-      }
-    }
 
     const warehouseIds = new Set<string>();
     const mediaFileIds = new Set<string>();
@@ -784,12 +689,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       errors,
     };
 
-    if (op.type === "variantCreate") {
-      result.clientMutationId = op.params.clientMutationId;
-    }
-    if (op.type === "productComponentConfigurationCreate") {
-      result.clientMutationId = op.params.clientMutationId;
-    }
     if (
       op.type === "variantDelete" ||
       op.type === "productComponentConfigurationUpdate" ||
@@ -1084,9 +983,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       entityId: result.entityId,
       errors: result.userErrors,
     };
-    if (operation.type === "productComponentConfigurationCreate") {
-      operationResult.clientMutationId = operation.params.clientMutationId;
-    }
     return operationResult;
   }
 
@@ -1116,7 +1012,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
       return {
         type: "variantCreate",
         applied: false,
-        clientMutationId: params.clientMutationId,
         errors,
       };
     }
@@ -1256,7 +1151,6 @@ export class ProductUpdateWorkflow extends BrokerWorkflows {
     return {
       type: "variantCreate",
       applied: errors.length === 0,
-      clientMutationId: params.clientMutationId,
       entityId: variantId,
       errors,
     };

@@ -1,4 +1,4 @@
-import { and, asc, eq } from "drizzle-orm";
+import { and, asc, eq, sql } from "drizzle-orm";
 import { BaseRepository } from "./BaseRepository.js";
 import {
   headlessStorefrontConnections,
@@ -91,7 +91,6 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
   replaceGrants(
     scope: HeadlessStorefrontScope,
     connectionId: string,
-    expectedRevision: number,
     permissions: readonly string[],
   ): Promise<StorefrontAccessPolicyRecord | null> {
     return this.txManager.run(async () => {
@@ -99,13 +98,12 @@ export class StorefrontAccessPolicyRepository extends BaseRepository {
       const rows = await this.connection
         .update(storefrontAccessPolicies)
         .set({
-          revision: expectedRevision + 1,
+          revision: sql`${storefrontAccessPolicies.revision} + 1`,
           updatedAt: timestamp,
         })
         .where(
           and(
             this.policyOwnership(scope, connectionId),
-            eq(storefrontAccessPolicies.revision, expectedRevision),
             this.ownedConnectionExists(scope, connectionId),
           ),
         )

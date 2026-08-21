@@ -182,7 +182,6 @@ export interface CreateManagedApplicationOAuthClientInput {
 export interface UpdateManagedApplicationOAuthClientInput {
   applicationId: string;
   clientId: string;
-  expectedRevision: number;
   actorId: string;
   patch: {
     name?: string;
@@ -568,7 +567,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         and(
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
-          eq(applicationOauthClient.revision, input.expectedRevision),
           isNull(applicationOauthClient.deletedAt),
         ),
       )
@@ -581,7 +579,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
     applicationId: string;
     clientId: string;
     enabled: boolean;
-    expectedRevision: number;
     actorId: string;
   }): Promise<ManagedApplicationOAuthClient | null> {
     const [updated] = await this.connection
@@ -596,7 +593,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         and(
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
-          eq(applicationOauthClient.revision, input.expectedRevision),
           isNull(applicationOauthClient.deletedAt),
         ),
       )
@@ -609,7 +605,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
     applicationId: string;
     clientId: string;
     skipConsent: boolean;
-    expectedRevision: number;
     actorId: string;
   }): Promise<ManagedApplicationOAuthClient | null> {
     const [updated] = await this.connection
@@ -624,7 +619,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         and(
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
-          eq(applicationOauthClient.revision, input.expectedRevision),
           isNull(applicationOauthClient.deletedAt),
         ),
       )
@@ -637,7 +631,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
     applicationId: string;
     clientId: string;
     clientSecretHash: string;
-    expectedRevision: number;
     actorId: string;
   }): Promise<ManagedApplicationOAuthClient | null> {
     const [updated] = await this.connection
@@ -652,7 +645,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         and(
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
-          eq(applicationOauthClient.revision, input.expectedRevision),
           eq(applicationOauthClient.public, false),
           isNull(applicationOauthClient.deletedAt),
         ),
@@ -665,7 +657,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
   async archiveManaged(input: {
     applicationId: string;
     clientId: string;
-    expectedRevision: number;
     actorId: string;
   }): Promise<ManagedApplicationOAuthClient | null> {
     const now = new Date().toISOString();
@@ -682,7 +673,6 @@ export class ApplicationOAuthClientRepository extends BaseRepository {
         and(
           eq(applicationOauthClient.applicationId, input.applicationId),
           eq(applicationOauthClient.clientId, input.clientId),
-          eq(applicationOauthClient.revision, input.expectedRevision),
           isNull(applicationOauthClient.deletedAt),
         ),
       )

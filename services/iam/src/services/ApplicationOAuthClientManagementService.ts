@@ -136,7 +136,6 @@ export interface UpdateOAuthClientInput {
   redirectUris?: readonly string[];
   postLogoutRedirectUris?: readonly string[];
   enableEndSession?: boolean;
-  expectedRevision: number;
 }
 
 export interface SetOAuthClientEnabledInput {
@@ -144,7 +143,6 @@ export interface SetOAuthClientEnabledInput {
   applicationId: string;
   clientId: string;
   enabled: boolean;
-  expectedRevision: number;
 }
 
 export interface SetOAuthClientSkipConsentInput {
@@ -152,14 +150,12 @@ export interface SetOAuthClientSkipConsentInput {
   applicationId: string;
   clientId: string;
   skipConsent: boolean;
-  expectedRevision: number;
 }
 
 export interface RotateOAuthClientSecretInput {
   organizationId: string;
   applicationId: string;
   clientId: string;
-  expectedRevision: number;
 }
 
 export interface RotateSecretResult {
@@ -172,7 +168,6 @@ export interface ArchiveOAuthClientInput {
   organizationId: string;
   applicationId: string;
   clientId: string;
-  expectedRevision: number;
 }
 
 export interface ApplicationOAuthClientTransactionRunner {
@@ -295,7 +290,6 @@ const updateSchema = getSchema
     redirectUris: uriListSchema.min(1).optional(),
     postLogoutRedirectUris: uriListSchema.optional(),
     enableEndSession: z.boolean().optional(),
-    expectedRevision: revisionSchema,
   })
   .strict()
   .refine(
@@ -311,18 +305,16 @@ const updateSchema = getSchema
 const enabledSchema = getSchema
   .extend({
     enabled: z.boolean(),
-    expectedRevision: revisionSchema,
   })
   .strict();
 
 const skipConsentSchema = getSchema
   .extend({
     skipConsent: z.boolean(),
-    expectedRevision: revisionSchema,
   })
   .strict();
 
-const revisionedClientSchema = getSchema.extend({ expectedRevision: revisionSchema }).strict();
+const revisionedClientSchema = getSchema;
 
 interface WriteExecution<TResult> {
   result: TResult;
@@ -549,7 +541,6 @@ export class ApplicationOAuthClientManagementService {
       failureSafeDiff,
       execute: async (scope, currentActor) => {
         const current = await this.requireMutableClient(scope, value.clientId);
-        this.assertRevision(current, value.expectedRevision);
         const environment = value.environment ?? current.environment;
         const redirectUris = this.normalizeUris(
           value.redirectUris ?? current.redirectUris,
@@ -564,7 +555,6 @@ export class ApplicationOAuthClientManagementService {
         const updated = await this.clients.updateManaged({
           applicationId: scope.applicationId,
           clientId: current.clientId,
-          expectedRevision: value.expectedRevision,
           actorId: currentActor.id,
           patch: {
             ...(value.name !== undefined ? { name: value.name } : {}),
@@ -576,7 +566,7 @@ export class ApplicationOAuthClientManagementService {
               : {}),
           },
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw oauthClientNotFound();
         this.assertProtocolPolicy(scope, updated);
         return {
           result: this.project(scope, updated),
@@ -613,15 +603,13 @@ export class ApplicationOAuthClientManagementService {
       failureSafeDiff: safeDiff,
       execute: async (scope, currentActor) => {
         const current = await this.requireMutableClient(scope, value.clientId);
-        this.assertRevision(current, value.expectedRevision);
         const updated = await this.clients.setManagedEnabled({
           applicationId: scope.applicationId,
           clientId: current.clientId,
           enabled: value.enabled,
-          expectedRevision: value.expectedRevision,
           actorId: currentActor.id,
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw oauthClientNotFound();
         this.assertProtocolPolicy(scope, updated);
         return {
           result: this.project(scope, updated),
@@ -658,7 +646,6 @@ export class ApplicationOAuthClientManagementService {
       failureSafeDiff: safeDiff,
       execute: async (scope, currentActor) => {
         const current = await this.requireMutableClient(scope, value.clientId);
-        this.assertRevision(current, value.expectedRevision);
         if (value.skipConsent) {
           await this.assertFirstParty(scope, current.clientId, currentActor);
         }
@@ -666,10 +653,9 @@ export class ApplicationOAuthClientManagementService {
           applicationId: scope.applicationId,
           clientId: current.clientId,
           skipConsent: value.skipConsent,
-          expectedRevision: value.expectedRevision,
           actorId: currentActor.id,
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw oauthClientNotFound();
         this.assertProtocolPolicy(scope, updated);
         return {
           result: this.project(scope, updated),
@@ -705,7 +691,6 @@ export class ApplicationOAuthClientManagementService {
       failureSafeDiff: safeDiff,
       execute: async (scope, currentActor) => {
         const current = await this.requireMutableClient(scope, value.clientId);
-        this.assertRevision(current, value.expectedRevision);
         if (current.clientType === "public") {
           throw new ApplicationOAuthClientManagementError(
             "Public OAuth clients do not have a client secret",
@@ -723,10 +708,9 @@ export class ApplicationOAuthClientManagementService {
           applicationId: scope.applicationId,
           clientId: current.clientId,
           clientSecretHash: this.secretCodec.hash(clientSecret),
-          expectedRevision: value.expectedRevision,
           actorId: currentActor.id,
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw oauthClientNotFound();
         this.assertProtocolPolicy(scope, updated);
         return {
           result: {
@@ -766,14 +750,12 @@ export class ApplicationOAuthClientManagementService {
       failureSafeDiff: safeDiff,
       execute: async (scope, currentActor) => {
         const current = await this.requireMutableClient(scope, value.clientId);
-        this.assertRevision(current, value.expectedRevision);
         const archived = await this.clients.archiveManaged({
           applicationId: scope.applicationId,
           clientId: current.clientId,
-          expectedRevision: value.expectedRevision,
           actorId: currentActor.id,
         });
-        if (!archived) throw revisionConflict();
+        if (!archived) throw oauthClientNotFound();
         this.assertProtocolPolicy(scope, archived);
         return {
           result: this.project(scope, archived),
@@ -963,10 +945,6 @@ export class ApplicationOAuthClientManagementService {
       );
     }
     return client;
-  }
-
-  private assertRevision(client: ManagedApplicationOAuthClient, expectedRevision: number): void {
-    if (client.revision !== expectedRevision) throw revisionConflict();
   }
 
   private assertProtocolPolicy(

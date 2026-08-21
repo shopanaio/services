@@ -24,7 +24,6 @@ export interface UpdateNavigationMenuItemInput {
   readonly beforeItemId?: string | null;
   readonly target?: NavigationItemTarget;
   readonly openInNewTab?: boolean;
-  readonly expectedRevision?: number;
 }
 
 export class NavigationMenuItemRepository extends BaseRepository {
@@ -101,12 +100,8 @@ export class NavigationMenuItemRepository extends BaseRepository {
     return this.txManager.run(() => this.updateInTransaction(scope, itemId, input));
   }
 
-  deleteSubtree(
-    scope: OnlineStoreScope,
-    itemId: string,
-    expectedRevision?: number,
-  ): Promise<boolean> {
-    return this.txManager.run(() => this.deleteInTransaction(scope, itemId, expectedRevision));
+  deleteSubtree(scope: OnlineStoreScope, itemId: string): Promise<boolean> {
+    return this.txManager.run(() => this.deleteInTransaction(scope, itemId));
   }
 
   private async createInTransaction(
@@ -191,14 +186,7 @@ export class NavigationMenuItemRepository extends BaseRepository {
         updatedAt: now(),
         revision: sql`${navigationMenuItems.revision} + 1`,
       })
-      .where(
-        and(
-          this.itemOwnership(scope, itemId),
-          input.expectedRevision === undefined
-            ? undefined
-            : eq(navigationMenuItems.revision, input.expectedRevision),
-        ),
-      )
+      .where(this.itemOwnership(scope, itemId))
       .returning();
     if (!rows[0]) return null;
     if (!shouldReorder) return this.findById(scope, itemId);
@@ -215,25 +203,14 @@ export class NavigationMenuItemRepository extends BaseRepository {
     return this.findById(scope, itemId);
   }
 
-  private async deleteInTransaction(
-    scope: OnlineStoreScope,
-    itemId: string,
-    expectedRevision?: number,
-  ): Promise<boolean> {
+  private async deleteInTransaction(scope: OnlineStoreScope, itemId: string): Promise<boolean> {
     const item = await this.findById(scope, itemId);
     if (!item) return false;
     if (!(await this.lockOwnedMenu(scope, item.menuId))) return false;
 
     const rows = await this.connection
       .delete(navigationMenuItems)
-      .where(
-        and(
-          this.itemOwnership(scope, itemId),
-          expectedRevision === undefined
-            ? undefined
-            : eq(navigationMenuItems.revision, expectedRevision),
-        ),
-      )
+      .where(this.itemOwnership(scope, itemId))
       .returning({ id: navigationMenuItems.id });
     if (rows.length === 0) return false;
     await this.rebalanceSiblings(scope, item.menuId, item.parentId);

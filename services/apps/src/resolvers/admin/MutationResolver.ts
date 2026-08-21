@@ -47,7 +47,7 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
           grantedScopes: input.grantedScopes ?? undefined,
           secrets: secretsToRecord(input.secrets),
           installedByUserId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
-          idempotencyKey: input.clientMutationId,
+          idempotencyKey: this.$ctx.requestId,
           correlationId: this.$ctx.requestId,
         },
         { adminContext: this.$ctx.adminContext },
@@ -59,19 +59,15 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
     return this.lifecyclePayload("APP_UPDATE_FAILED", async () => {
       await this.authorize("configure");
       const input = AppUpdateInputSchema().parse(args.input);
-      if (input.configuration != null && input.expectedConfigurationVersion == null) {
-        throw new Error("expectedConfigurationVersion is required when configuration is changed");
-      }
       return this.$ctx.broker.call<Apps.AppLifecycleAcceptedResult, Apps.UpdateAppParams>(
         "apps.updateApp",
         {
           installationId: this.decodeInstallationId(input.installationId),
           storeId: this.$ctx.store.id,
           configuration: input.configuration ?? undefined,
-          expectedConfigurationVersion: input.expectedConfigurationVersion ?? undefined,
           grantedScopes: input.grantedScopes ?? undefined,
           secrets: secretsToRecord(input.secrets),
-          idempotencyKey: input.clientMutationId,
+          idempotencyKey: this.$ctx.requestId,
           userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
           correlationId: this.$ctx.requestId,
         },
@@ -88,7 +84,6 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
       await this.validateGrantedScopes(installationId, input.grantedScopes ?? undefined);
       const installation = await this.$ctx.installations.configure({
         installationId,
-        expectedConfigurationVersion: input.expectedConfigurationVersion,
         configuration: input.configuration,
         grantedScopes: input.grantedScopes ?? undefined,
       });
@@ -144,7 +139,7 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
       const params = {
         installationId: this.decodeInstallationId(input.installationId),
         storeId: this.$ctx.store.id,
-        idempotencyKey: input.clientMutationId,
+        idempotencyKey: this.$ctx.requestId,
         userId: this.$ctx.hasUser ? this.$ctx.user.id : undefined,
         correlationId: this.$ctx.requestId,
       };
@@ -168,14 +163,12 @@ export class AppsMutationResolver extends AppsType<Record<string, never>> {
       return {
         installation,
         operation,
-        duplicate: accepted.duplicate,
         userErrors: [],
       };
     } catch (error) {
       return {
         installation: null,
         operation: null,
-        duplicate: false,
         userErrors: toAppsUserErrors(error, fallbackCode),
       };
     }

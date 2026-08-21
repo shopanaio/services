@@ -19,18 +19,6 @@ export class CollectionUpdateScript extends BaseScript<CollectionUpdateParams, C
         userErrors: [{ message: "Collection not found", field: ["id"], code: "NOT_FOUND" }],
       };
     }
-    if (existing.revision !== params.expectedRevision) {
-      return {
-        collection: undefined,
-        userErrors: [
-          {
-            message: "Collection revision does not match",
-            field: ["expectedRevision"],
-            code: "REVISION_CONFLICT",
-          },
-        ],
-      };
-    }
     if (existing.revision >= 2_147_483_646) {
       return {
         collection: undefined,
@@ -212,7 +200,6 @@ export class CollectionUpdateScript extends BaseScript<CollectionUpdateParams, C
 
     const collection = await this.repository.collection.update(
       params.id,
-      params.expectedRevision,
       {
         handle: normalizedHandle,
         defaultSort: params.defaultSort,

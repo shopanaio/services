@@ -141,7 +141,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
           name: args.input.name ?? undefined,
           displayName: args.input.displayName ?? undefined,
           description: args.input.description === undefined ? undefined : args.input.description,
-          expectedRevision: args.input.expectedRevision,
         },
         this.adminActor(),
       );
@@ -167,7 +166,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
         {
           organizationId: decodeOrganizationId(args.input.organizationId),
           applicationId: decodeApplicationId(args.input.applicationId),
-          expectedRevision: args.input.expectedRevision,
         },
         this.adminActor(),
       );
@@ -220,7 +218,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
           defaultLocale: input.defaultLocale == null ? undefined : (input.defaultLocale as "en"),
           trustedOrigins: input.trustedOrigins ?? undefined,
           emailDelivery: input.emailDelivery ?? undefined,
-          expectedRevision: input.expectedRevision,
         },
         this.adminActor(),
       );
@@ -247,7 +244,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
           organizationId: decodeOrganizationId(args.input.organizationId),
           applicationId: decodeApplicationId(args.input.applicationId),
           enabled: args.input.enabled,
-          expectedRevision: args.input.expectedRevision,
         },
         this.adminActor(),
       );
@@ -278,7 +274,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
           enabledCapabilities: input.enabledCapabilities.map((capability) =>
             enumLower(capability),
           ) as ("sign_in" | "sign_up" | "password_reset")[],
-          expectedRevision: input.expectedRevision,
         },
         this.adminActor(),
       );
@@ -330,7 +325,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
           organizationId: decodeOrganizationId(args.input.organizationId),
           applicationId: decodeApplicationId(args.input.applicationId),
           provider: enumLower(args.input.provider),
-          expectedRevision: args.input.expectedRevision,
         },
         this.adminActor(),
       );
@@ -398,7 +392,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
           redirectUris: input.redirectUris ?? undefined,
           postLogoutRedirectUris: input.postLogoutRedirectUris ?? undefined,
           enableEndSession: input.enableEndSession ?? undefined,
-          expectedRevision: input.expectedRevision,
         },
         this.adminActor(),
       );
@@ -564,7 +557,6 @@ export class ApplicationMutationResolver extends IAMType<Record<string, never>> 
         organizationId: decodeOrganizationId(input.organizationId),
         applicationId: decodeApplicationId(input.applicationId),
         provider: enumLower(input.provider),
-        expectedRevision: input.expectedRevision,
       };
       const management = this.$ctx.kernel.applicationAuthAdminManagement;
       const result =
@@ -851,13 +843,11 @@ function decodeOAuthClientRevisionInput(input: {
   organizationId: string;
   applicationId: string;
   clientId: string;
-  expectedRevision: number;
 }) {
   return {
     organizationId: decodeOrganizationId(input.organizationId),
     applicationId: decodeApplicationId(input.applicationId),
     clientId: input.clientId,
-    expectedRevision: input.expectedRevision,
   };
 }
 
@@ -981,7 +971,6 @@ function mapManagementUserError(error: unknown): UserError {
 }
 
 function errorField(code: string): string[] | null {
-  if (code.includes("REVISION_CONFLICT")) return ["expectedRevision"];
   if (code === "DUPLICATE_VALUE") return ["name"];
   if (code.includes("APPLICATION_USER_ACCOUNT")) return ["accountId"];
   if (code.includes("APPLICATION_USER")) return ["userId"];

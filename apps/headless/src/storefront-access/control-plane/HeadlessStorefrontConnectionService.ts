@@ -20,26 +20,11 @@ export class HeadlessStorefrontConnectionService {
     input: {
       readonly displayName: string;
       readonly permissions?: readonly StorefrontPermission[];
-      readonly clientMutationId: string;
       readonly createdById?: string;
     },
   ) {
     const displayName = normalizeDisplayName(input.displayName);
     return this.repository.runInTransaction(async () => {
-      const existingId = await this.repository.idempotency.lockAndFind(
-        scope,
-        "CONNECTION_CREATE",
-        input.clientMutationId,
-      );
-      if (existingId) {
-        const existing = await this.repository.connection.findById(scope, existingId);
-        if (!existing) throw new Error("STOREFRONT_NOT_FOUND");
-        return Object.freeze({
-          connection: existing,
-          initialCredentials: null,
-          duplicate: true,
-        });
-      }
       const connection = await this.repository.connection.create(scope, {
         displayName,
         createdById: input.createdById,
@@ -55,16 +40,9 @@ export class HeadlessStorefrontConnectionService {
         connection.id,
         { type: "USER", id: input.createdById },
       );
-      await this.repository.idempotency.record(
-        scope,
-        "CONNECTION_CREATE",
-        input.clientMutationId,
-        connection.id,
-      );
       return Object.freeze({
         connection,
         initialCredentials,
-        duplicate: false,
       });
     });
   }
@@ -103,34 +81,14 @@ export class HeadlessStorefrontConnectionService {
     });
   }
 
-  async resumeConnection(
-    scope: HeadlessStorefrontScope,
-    connectionId: string,
-    clientMutationId: string,
-  ) {
+  async resumeConnection(scope: HeadlessStorefrontScope, connectionId: string) {
     return this.repository.runInTransaction(async () => {
-      const existingId = await this.repository.idempotency.lockAndFind(
-        scope,
-        "CONNECTION_RESUME",
-        clientMutationId,
-      );
-      if (existingId) {
-        const existing = await this.repository.connection.findById(scope, existingId);
-        if (!existing) throw new Error("STOREFRONT_NOT_FOUND");
-        return existing;
-      }
       const current = await this.repository.connection.lockById(scope, connectionId);
       if (!current) throw new Error("STOREFRONT_NOT_FOUND");
       if (current.status !== "SUSPENDED") {
         throw new Error("STOREFRONT_INVALID_STATE");
       }
       const resumed = required(await this.repository.connection.resume(scope, connectionId));
-      await this.repository.idempotency.record(
-        scope,
-        "CONNECTION_RESUME",
-        clientMutationId,
-        connectionId,
-      );
       return resumed;
     });
   }

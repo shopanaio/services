@@ -9,7 +9,6 @@ export interface CustomerUpdateOperationMeta {
 
 export interface CustomerUpdateWorkflowInput {
   customerId: string;
-  expectedRevision: number;
   operations: CustomerUpdateOperation[];
   context: CustomerUpdateWorkflowContext;
 }

@@ -178,7 +178,6 @@ export class CustomerGroupRepository extends BaseRepository {
     patch: Partial<
       Pick<NewCustomerGroup, "code" | "name" | "description" | "isDefault" | "isActive">
     >,
-    expectedRevision: number,
   ): Promise<CustomerGroup | null> {
     const currentRows = await this.connection
       .select()
@@ -187,7 +186,6 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
-          eq(customerGroup.revision, expectedRevision),
           isNull(customerGroup.deletedAt),
         ),
       )
@@ -212,7 +210,6 @@ export class CustomerGroupRepository extends BaseRepository {
         and(
           eq(customerGroup.storeId, this.storeId),
           eq(customerGroup.id, id),
-          eq(customerGroup.revision, expectedRevision),
           isNull(customerGroup.deletedAt),
         ),
       )

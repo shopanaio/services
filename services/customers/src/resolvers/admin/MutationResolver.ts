@@ -136,18 +136,6 @@ export class CustomersMutationResolver extends CustomersType<Record<string, neve
         ],
       };
     }
-    if (!Number.isSafeInteger(args.input.expectedRevision) || args.input.expectedRevision < 1) {
-      return {
-        settings: null,
-        userErrors: [
-          userError("INVALID_INPUT", "Expected revision must be a positive integer", [
-            "input",
-            "expectedRevision",
-          ]),
-        ],
-      };
-    }
-
     const configuration = await this.$ctx.kernel.repository.storefrontAuth.findByStoreId(store.id);
     if (!configuration || configuration.organizationId !== store.organizationId) {
       return {
@@ -166,7 +154,6 @@ export class CustomersMutationResolver extends CustomersType<Record<string, neve
         organizationId: store.organizationId,
         userId: this.$ctx.user.id,
         enabledMethods,
-        expectedRevision: args.input.expectedRevision,
         linkedOwner: {
           linkedOwnerType: "store",
           linkedOwnerId: store.id,
@@ -249,7 +236,6 @@ export class CustomersMutationResolver extends CustomersType<Record<string, neve
 
     const workflowInput: CustomerUpdateWorkflowInput = {
       customerId,
-      expectedRevision: args.expectedRevision,
       operations: mapped.operations,
       context: this.mutationWorkflowContext(),
     };
@@ -296,7 +282,6 @@ export class CustomersMutationResolver extends CustomersType<Record<string, neve
     const workflowInput: CustomerDeleteWorkflowInput = {
       params: {
         id: customerId,
-        expectedRevision: args.input.expectedRevision ?? undefined,
       },
       context: this.mutationWorkflowContext(),
     };
@@ -423,7 +408,6 @@ export class CustomersMutationResolver extends CustomersType<Record<string, neve
     const workflowInput: CustomerGroupUpdateWorkflowInput = {
       params: {
         id: groupId,
-        expectedRevision: args.expectedRevision,
         operations,
       },
       context: this.mutationWorkflowContext(),
@@ -647,7 +631,6 @@ export class CustomersMutationResolver extends CustomersType<Record<string, neve
     const workflowInput: CustomerSegmentUpdateWorkflowInput = {
       params: {
         id: segmentId,
-        expectedRevision: args.expectedRevision,
         operations,
       },
       context: this.mutationWorkflowContext(),
@@ -676,7 +659,6 @@ export class CustomersMutationResolver extends CustomersType<Record<string, neve
     const workflowInput: CustomerSegmentDeleteWorkflowInput = {
       params: {
         id: segmentId,
-        expectedRevision: args.input.expectedRevision ?? undefined,
       },
       context: this.mutationWorkflowContext(),
     };

@@ -12,14 +12,15 @@ export class CustomerDeleteScript extends BaseScript<CustomerDeleteParams, Custo
       };
     }
 
-    if (params.expectedRevision !== undefined && customer.revision !== params.expectedRevision) {
-      return revisionConflict();
-    }
-
     await this.repository.segmentMaterialization.cleanupCustomer(params.id);
     await this.repository.customer.deleteCascadeOwnedEntities(params.id);
-    const deleted = await this.repository.customer.softDelete(params.id, params.expectedRevision);
-    if (!deleted || !deleted.deletedAt) return revisionConflict();
+    const deleted = await this.repository.customer.softDelete(params.id);
+    if (!deleted || !deleted.deletedAt) {
+      return {
+        deletedCustomerId: undefined,
+        userErrors: [{ message: "Customer not found", field: ["id"], code: "NOT_FOUND" }],
+      };
+    }
 
     this.logger.info({ customerId: deleted.id, revision: deleted.revision }, "Customer deleted");
 
@@ -37,17 +38,4 @@ export class CustomerDeleteScript extends BaseScript<CustomerDeleteParams, Custo
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }
-}
-
-function revisionConflict(): CustomerDeleteResult {
-  return {
-    deletedCustomerId: undefined,
-    userErrors: [
-      {
-        message: "Customer was modified by another user",
-        field: ["expectedRevision"],
-        code: "REVISION_CONFLICT",
-      },
-    ],
-  };
 }

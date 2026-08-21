@@ -17,7 +17,6 @@ import {
 
 export interface CustomerSegmentUpdateParams {
   id: string;
-  expectedRevision: number;
   operations: {
     details?: {
       name?: string | null;
@@ -55,10 +54,6 @@ export class CustomerSegmentUpdateScript extends BaseScript<
   ): Promise<CustomerSegmentUpdateResult> {
     const current = await this.repository.segment.findById(params.id);
     if (!current) return notFound();
-    if (current.revision !== params.expectedRevision) {
-      return revisionConflict();
-    }
-
     const errors = validateSegment(current, params.operations);
     const memberships = params.operations.memberships;
     const affectedCustomerIds = new Set<string>();
@@ -273,11 +268,10 @@ export class CustomerSegmentUpdateScript extends BaseScript<
         params.id,
         patch,
         memberships ? membershipPatch(memberships) : undefined,
-        params.expectedRevision,
         definitionChanged,
         materializationChanged,
       );
-      if (!result) return revisionConflict();
+      if (!result) return notFound();
       if (materializationChanged) {
         await this.repository.segmentMaterialization.schedule(
           result.segment,
@@ -494,20 +488,6 @@ function notFound(): CustomerSegmentUpdateResult {
         message: "Customer segment not found",
         field: ["segmentId"],
         code: "NOT_FOUND",
-      },
-    ],
-  };
-}
-
-function revisionConflict(): CustomerSegmentUpdateResult {
-  return {
-    segment: undefined,
-    affectedCustomerIds: [],
-    userErrors: [
-      {
-        message: "Customer segment was modified by another user",
-        field: ["expectedRevision"],
-        code: "REVISION_CONFLICT",
       },
     ],
   };

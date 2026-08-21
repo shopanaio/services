@@ -90,7 +90,6 @@ export type StoreUpdateOperation =
 
 export interface StoreUpdateSagaInput {
   storeId: string;
-  expectedRevision: number;
   operations: StoreUpdateOperation[];
   context: {
     organizationId: string;
@@ -396,26 +395,15 @@ export class StoreUpdateSaga extends BrokerSaga<StoreUpdateSagaInput, StoreUpdat
     const revision = await this.kernel.repository.store.acquireRevision(
       input.storeId,
       input.context.organizationId,
-      input.expectedRevision,
     );
     if (revision !== null) return { revision };
 
-    const store = await this.kernel.repository.store.findById(
-      input.storeId,
-      input.context.organizationId,
-    );
     return {
-      error: store
-        ? {
-            message: "Store was modified by another user",
-            code: "REVISION_CONFLICT",
-            field: ["expectedRevision"],
-          }
-        : {
-            message: "Store not found",
-            code: "NOT_FOUND",
-            field: ["storeId"],
-          },
+      error: {
+        message: "Store not found",
+        code: "NOT_FOUND",
+        field: ["storeId"],
+      },
     };
   }
 

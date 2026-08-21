@@ -54,7 +54,7 @@ function inferCode(message: string, fallbackCode: string): string {
 
 function inferField(message: string, fieldPrefix: readonly string[]): readonly string[] | null {
   const match = message.match(
-    /^(appCode|installationId|connectionId|specificationId|clientMutationId|expectedConfigurationVersion) is (?:required|invalid)(?: .*)?$/,
+    /^(appCode|installationId|connectionId|specificationId) is (?:required|invalid)(?: .*)?$/,
   );
   return match?.[1] ? [...fieldPrefix, match[1]] : null;
 }

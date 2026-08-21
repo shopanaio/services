@@ -24,22 +24,17 @@ export class StorefrontAccessPolicyService {
     scope: HeadlessStorefrontScope,
     input: {
       readonly connectionId: string;
-      readonly expectedRevision: number;
       readonly permissions: readonly string[];
     },
   ): Promise<StorefrontAccessPolicyRecord> {
     const current = await this.get(scope, input.connectionId);
     if (!current) throw new Error("STOREFRONT_NOT_FOUND");
-    if (current.revision !== input.expectedRevision) {
-      throw new Error("STOREFRONT_POLICY_REVISION_CONFLICT");
-    }
     const result = await this.repository.accessPolicy.replaceGrants(
       scope,
       input.connectionId,
-      input.expectedRevision,
       this.validate(input.permissions),
     );
-    if (!result) throw new Error("STOREFRONT_POLICY_REVISION_CONFLICT");
+    if (!result) throw new Error("STOREFRONT_NOT_FOUND");
     return result;
   }
 

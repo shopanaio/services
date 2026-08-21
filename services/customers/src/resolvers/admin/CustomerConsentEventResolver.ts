@@ -72,10 +72,6 @@ export class CustomerConsentEventResolver extends CustomersType<string, Customer
     return this.$get("requestId");
   }
 
-  idempotencyKey() {
-    return this.$get("idempotencyKey");
-  }
-
   evidence() {
     return this.$get("evidence");
   }

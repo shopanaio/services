@@ -48,7 +48,6 @@ interface BeginExistingOperationInput {
   readonly actor: ActorInput;
   readonly correlationId?: string;
   readonly configuration?: Readonly<Record<string, unknown>>;
-  readonly expectedConfigurationVersion?: number;
   readonly grantedScopes?: readonly string[];
   readonly snapshot?: AppManifestSnapshot;
 }
@@ -171,15 +170,6 @@ export class AppInstallationStore {
         `Cannot ${input.type.toLowerCase()} App installation "${input.installationId}" from status "${installation.status}"`,
       );
     }
-    if (
-      input.expectedConfigurationVersion !== undefined &&
-      installation.configurationVersion !== input.expectedConfigurationVersion
-    ) {
-      throw new Error(
-        `App installation configuration version conflict: expected ${input.expectedConfigurationVersion}, received ${installation.configurationVersion}`,
-      );
-    }
-
     let previousStatus = installation.status;
     if (input.type === "UPDATE" && installation.status === "UPDATE_FAILED") {
       previousStatus =
@@ -283,19 +273,15 @@ export class AppInstallationStore {
   @Transactional()
   async configure(input: {
     readonly installationId: string;
-    readonly expectedConfigurationVersion: number;
     readonly configuration: Readonly<Record<string, unknown>>;
     readonly grantedScopes?: readonly string[];
   }): Promise<AppInstallationRecord> {
     const installation = await this.repository.installation.updateConfigurationForStore({
       id: input.installationId,
-      expectedVersion: input.expectedConfigurationVersion,
       configuration: input.configuration,
     });
     if (!installation) {
-      throw new Error(
-        `App installation configuration version conflict: expected ${input.expectedConfigurationVersion}`,
-      );
+      throw new Error(`App installation "${input.installationId}" not found`);
     }
     if (input.grantedScopes) {
       await this.repository.scope.replace(input.installationId, input.grantedScopes);

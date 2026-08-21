@@ -41,7 +41,6 @@ export interface UpdatePageInput {
   readonly handle?: string;
   readonly templateSuffix?: string | null;
   readonly publishedAt?: string | null;
-  readonly expectedRevision?: number;
 }
 
 export class PageRepository extends BaseRepository {
@@ -174,23 +173,12 @@ export class PageRepository extends BaseRepository {
         updatedAt: now(),
         revision: sql`${pages.revision} + 1`,
       })
-      .where(
-        and(
-          this.pageOwnership(scope, pageId),
-          input.expectedRevision === undefined
-            ? undefined
-            : eq(pages.revision, input.expectedRevision),
-        ),
-      )
+      .where(this.pageOwnership(scope, pageId))
       .returning();
     return rows[0] ? mapPage(rows[0]) : null;
   }
 
-  async softDelete(
-    scope: OnlineStoreScope,
-    pageId: string,
-    expectedRevision?: number,
-  ): Promise<boolean> {
+  async softDelete(scope: OnlineStoreScope, pageId: string): Promise<boolean> {
     const timestamp = now();
     const rows = await this.connection
       .update(pages)
@@ -199,12 +187,7 @@ export class PageRepository extends BaseRepository {
         updatedAt: timestamp,
         revision: sql`${pages.revision} + 1`,
       })
-      .where(
-        and(
-          this.pageOwnership(scope, pageId),
-          expectedRevision === undefined ? undefined : eq(pages.revision, expectedRevision),
-        ),
-      )
+      .where(this.pageOwnership(scope, pageId))
       .returning({ id: pages.id });
     return rows.length > 0;
   }

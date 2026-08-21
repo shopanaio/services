@@ -30,7 +30,6 @@ export interface CollectionCreateParams {
 
 export interface CollectionUpdateParams {
   id: string;
-  expectedRevision: number;
   handle?: string | null;
   name?: string;
   description?: RichTextInput | null;
@@ -46,42 +45,35 @@ export interface CollectionUpdateParams {
 
 export interface CollectionDeleteParams {
   id: string;
-  expectedRevision: number;
 }
 
 export interface CollectionAddProductsParams {
   collectionId: string;
   productIds: string[];
-  expectedRevision: number;
 }
 
 export interface CollectionRemoveProductsParams {
   collectionId: string;
   productIds: string[];
-  expectedRevision: number;
 }
 
 export interface CollectionMoveProductParams {
   collectionId: string;
   productId: string;
-  expectedRevision: number;
   afterProductId?: string | null;
   beforeProductId?: string | null;
 }
 
 export interface CollectionRebalanceParams {
   collectionId: string;
-  expectedRevision: number;
 }
 
 export interface CollectionClearProductsParams {
   collectionId: string;
-  expectedRevision: number;
 }
 
 export interface CollectionUpdateRulesParams {
   collectionId: string;
-  expectedRevision: number;
   rules: CanonicalCollectionRule[];
 }
 

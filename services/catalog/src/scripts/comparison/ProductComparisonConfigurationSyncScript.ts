@@ -9,7 +9,6 @@ import type { ProductConfigurationMappingInput } from "./dto.js";
 import { mapComparisonDatabaseError } from "./validation.js";
 interface Params {
   productId: string;
-  expectedProductRevision: number;
   profileId: string;
   mappings: ProductConfigurationMappingInput[];
 }
@@ -23,16 +22,6 @@ export class ProductComparisonConfigurationSyncScript extends BaseScript<Params,
     if (!product)
       return {
         userErrors: [{ message: "Product not found", field: ["productId"], code: "INVALID_ID" }],
-      };
-    if (product.revision !== params.expectedProductRevision)
-      return {
-        userErrors: [
-          {
-            message: `Product revision conflict; actual revision is ${product.revision}`,
-            field: ["expectedProductRevision"],
-            code: "PRODUCT_REVISION_CONFLICT",
-          },
-        ],
       };
     const effective = (
       await this.repository.comparisonRead.getEffectiveProfilesByProductIds([params.productId])

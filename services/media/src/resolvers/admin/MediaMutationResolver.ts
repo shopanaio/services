@@ -280,7 +280,6 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     input: {
       file: Promise<FileUpload>;
       altText?: string;
-      idempotencyKey?: string;
     };
   }) {
     const { kernel } = this.$ctx;
@@ -288,7 +287,6 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const result = await kernel.runScript(FileUploadMultipartScript, {
       file: input.file,
       altText: input.altText,
-      idempotencyKey: input.idempotencyKey,
     });
 
     return {
@@ -307,7 +305,6 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     input: {
       sourceUrl: string;
       altText?: string;
-      idempotencyKey?: string;
     };
   }) {
     const { kernel } = this.$ctx;
@@ -315,7 +312,6 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
     const result = await kernel.runScript(FileUploadFromUrlScript, {
       sourceUrl: input.sourceUrl,
       altText: input.altText,
-      idempotencyKey: input.idempotencyKey,
     });
 
     return {
@@ -342,7 +338,6 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       durationMs?: number;
       altText?: string;
       providerMeta?: Record<string, unknown>;
-      idempotencyKey?: string;
     };
   }) {
     const { kernel } = this.$ctx;
@@ -358,7 +353,6 @@ export class MediaMutationResolver extends MediaType<Record<string, never>> {
       durationMs: input.durationMs,
       altText: input.altText,
       providerMeta: input.providerMeta,
-      idempotencyKey: input.idempotencyKey,
     });
 
     return {

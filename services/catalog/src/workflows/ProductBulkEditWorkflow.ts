@@ -22,7 +22,6 @@ import { BulkEditCreateJobScript, BulkEditFinalizeJobScript } from "../scripts/b
 
 interface ProductGroup {
   productId: string;
-  expectedRevision?: number;
   items: BulkEditItem[];
 }
 
@@ -79,7 +78,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
     context: ProductBulkEditInput["context"],
     workflowContext: WorkflowExecutionContext,
   ): Promise<void> {
-    const { productId, expectedRevision, items } = group;
+    const { productId, items } = group;
 
     // 1. Mark all items as RUNNING
     await Promise.all(items.map((item) => this.stepTryMarkItemRunning(item.id)));
@@ -93,7 +92,6 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
         "catalog.productUpdate",
         {
           productId,
-          expectedRevision,
           operations,
           context,
         },
@@ -167,7 +165,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
     }
 
     // Group items by productId
-    const productGroups = groupItemsByProduct(result.items, products);
+    const productGroups = groupItemsByProduct(result.items);
 
     return {
       jobId: result.jobId,
@@ -211,11 +209,7 @@ export class ProductBulkEditWorkflow extends BrokerWorkflows {
 
 function groupItemsByProduct(
   items: BulkEditItem[],
-  originalProducts: ProductBulkUpdateItem[],
 ): ProductGroup[] {
-  // Create lookup for expectedRevision by productId
-  const revisionLookup = new Map(originalProducts.map((p) => [p.productId, p.expectedRevision]));
-
   // Group items by productId
   const groupMap = new Map<string, BulkEditItem[]>();
   for (const item of items) {
@@ -231,7 +225,6 @@ function groupItemsByProduct(
     groupItems.sort((a, b) => a.opIndex - b.opIndex);
     groups.push({
       productId,
-      expectedRevision: revisionLookup.get(productId),
       items: groupItems,
     });
   }
