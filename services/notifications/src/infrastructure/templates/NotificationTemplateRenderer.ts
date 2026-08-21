@@ -277,7 +277,6 @@ export class NotificationTemplateRenderer {
           plainTextTemplate: selected.plainTextTemplate,
           revisionId: selected.templateRevisionId,
           revision: selected.templateRevision,
-          pointerVersion: selected.pointerVersion,
           sourceVersion: selected.templateSourceVersion,
         };
       } catch (error) {
@@ -373,7 +372,6 @@ export class NotificationTemplateRenderer {
           cachePrefix: `revision:${active.revision.id}:${active.revision.sourceHash}`,
           templateRevisionId: active.revision.id,
           templateRevision: active.revision.revision,
-          pointerVersion: active.pointerVersion,
         };
       }
     }

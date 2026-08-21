@@ -298,7 +298,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(and(eq(applicationAuthConfiguration.applicationId, applicationId)))
       .returning();
     if (!updated) {
-      throw new Error("Application auth configuration revision conflict");
+      throw new Error("Application auth configuration does not exist");
     }
     return updated;
   }
@@ -317,7 +317,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(and(eq(applicationAuthConfiguration.applicationId, applicationId)))
       .returning();
     if (!updated) {
-      throw new Error("Application auth configuration revision conflict");
+      throw new Error("Application auth configuration does not exist");
     }
     return updated;
   }
@@ -366,7 +366,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
       .where(and(eq(applicationAuthConfiguration.applicationId, applicationId)))
       .returning();
     if (!updated) {
-      throw new Error("Application auth configuration revision conflict");
+      throw new Error("Application auth configuration does not exist");
     }
 
     await this.connection
@@ -701,7 +701,7 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
   }
 
   /**
-   * Idempotent, optimistic batch used by the root-key re-encryption runbook.
+   * Idempotent batch used by the root-key re-encryption runbook.
    * Plaintext exists only inside this method and is never returned or logged.
    */
   @Transactional()
@@ -756,14 +756,11 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
           and(
             eq(applicationAuthProvider.id, provider.id),
             eq(applicationAuthProvider.applicationId, provider.applicationId),
-            eq(applicationAuthProvider.secretKeyVersion, sourceVersion),
-            eq(applicationAuthProvider.encryptedClientId, provider.encryptedClientId),
-            eq(applicationAuthProvider.encryptedClientSecret, provider.encryptedClientSecret),
           ),
         )
         .returning({ id: applicationAuthProvider.id });
       if (rows.length !== 1) {
-        throw new Error("Application auth provider re-encryption conflict");
+        throw new Error("Application auth provider could not be re-encrypted");
       }
       providerCount += 1;
     }
@@ -793,13 +790,11 @@ export class ApplicationAuthConfigurationRepository extends BaseRepository {
           and(
             eq(applicationJwks.applicationId, signingKey.applicationId),
             eq(applicationJwks.id, signingKey.id),
-            eq(applicationJwks.privateKeyKeyVersion, sourceVersion),
-            eq(applicationJwks.privateKey, signingKey.privateKey),
           ),
         )
         .returning({ id: applicationJwks.id });
       if (rows.length !== 1) {
-        throw new Error("Application signing key re-encryption conflict");
+        throw new Error("Application signing key could not be re-encrypted");
       }
       signingKeyCount += 1;
     }

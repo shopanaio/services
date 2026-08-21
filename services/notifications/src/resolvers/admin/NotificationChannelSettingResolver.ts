@@ -52,10 +52,6 @@ export class NotificationChannelSettingResolver extends NotificationsType<
     return (await this.$get("setting"))?.replyTo ?? null;
   }
 
-  async version() {
-    return (await this.$get("setting"))?.version ?? 0;
-  }
-
   async updatedAt() {
     return (await this.$get("setting"))?.updatedAt ?? null;
   }

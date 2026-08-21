@@ -252,7 +252,6 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         params: {
           storeId: input.storeId,
           paymentSessionId: session.paymentSessionId,
-          expectedSessionRevision: session.revision,
           idempotencyKey: `${input.idempotencyKey}:payment-reconcile:${session.revision}`,
           correlationId: input.correlationId,
         },
@@ -282,7 +281,6 @@ export class MonitorPlacedPaymentWorkflow extends BrokerWorkflows<
         organizationId: input.organizationId,
         storeId: input.storeId,
         paymentSessionId: session.paymentSessionId,
-        expectedSessionRevision: session.revision,
         reason: "Checkout payment was not completed before its deadline.",
         idempotencyKey: `${input.idempotencyKey}:payment-expire`,
         correlationId: input.correlationId,

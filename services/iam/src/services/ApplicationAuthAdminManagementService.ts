@@ -86,7 +86,6 @@ type ManagementErrorCode =
   | "LAST_LOGIN_METHOD"
   | "INVALID_INPUT"
   | "INVALID_REALM_STATE"
-  | "REVISION_CONFLICT"
   | "DUPLICATE_VALUE"
   | "ADMIN_AUDIT_UNAVAILABLE"
   | "INTERNAL_ERROR";
@@ -126,7 +125,6 @@ const scopeSchema = z
     applicationId: z.string().uuid(),
   })
   .strict();
-const revisionSchema = z.number().int().positive();
 const applicationNameSchema = z
   .string()
   .trim()
@@ -491,7 +489,6 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.applicationId,
       failureSafeDiff: { changedFields },
       execute: async (scope) => {
-        this.assertRevision(scope);
         const revision = await this.repository.updateApplication({
           organizationId: scope.organizationId,
           applicationId: scope.applicationId,
@@ -502,7 +499,7 @@ export class ApplicationAuthAdminManagementService {
             ...(value.description !== undefined ? { description: value.description } : {}),
           },
         });
-        if (revision === null) throw revisionConflict();
+        if (revision === null) throw new Error("Application could not be updated");
         return {
           result: {
             organizationId: scope.organizationId,
@@ -539,12 +536,11 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.applicationId,
       failureSafeDiff: { status: "archived", enabled: false },
       execute: async (scope) => {
-        this.assertRevision(scope);
         const revision = await this.repository.archiveApplication({
           organizationId: scope.organizationId,
           applicationId: scope.applicationId,
         });
-        if (revision === null) throw revisionConflict();
+        if (revision === null) throw new Error("Application could not be archived");
         return {
           result: {
             organizationId: scope.organizationId,
@@ -587,7 +583,6 @@ export class ApplicationAuthAdminManagementService {
         ...(value.trustedOrigins ? { trustedOriginCount: value.trustedOrigins.length } : {}),
       },
       execute: async (scope, currentActor) => {
-        this.assertRevision(scope);
         const branding = value.branding
           ? mergeBranding(scope.configuration.brandingJson, value.branding)
           : undefined;
@@ -637,7 +632,7 @@ export class ApplicationAuthAdminManagementService {
             ? { ...value.emailDelivery, updatedBy: currentActor.id }
             : undefined,
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw new Error("Application auth configuration could not be updated");
         return {
           result: {
             organizationId: scope.organizationId,
@@ -679,13 +674,12 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.applicationId,
       failureSafeDiff: { enabled: value.enabled, changedFields: ["realmEnabled"] },
       execute: async (scope) => {
-        this.assertRevision(scope);
         if (value.enabled) await this.assertRealmCanBeEnabled(scope);
         const updated = await this.repository.setRealmEnabled({
           applicationId: scope.applicationId,
           enabled: value.enabled,
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw new Error("Application auth realm could not be updated");
         return {
           result: {
             organizationId: scope.organizationId,
@@ -728,7 +722,6 @@ export class ApplicationAuthAdminManagementService {
         enabledCapabilities: capabilities,
       },
       execute: async (scope) => {
-        this.assertRevision(scope);
         const needsEmailDelivery =
           value.methodId === "email_otp"
             ? capabilities.length > 0
@@ -773,7 +766,7 @@ export class ApplicationAuthAdminManagementService {
           methodId: value.methodId,
           enabledCapabilities: capabilities,
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw new Error("Application auth method could not be updated");
         return {
           result: {
             organizationId: scope.organizationId,
@@ -818,7 +811,6 @@ export class ApplicationAuthAdminManagementService {
       failureSafeDiff: { enabledMethods },
       skipAuthorization: options.authorization === "trusted_boundary",
       execute: async (scope) => {
-        this.assertRevision(scope);
         const requiresDelivery =
           enabledMethods.includes("email_otp") ||
           (enabledMethods.includes("password") && scope.configuration.emailVerificationRequired);
@@ -837,7 +829,7 @@ export class ApplicationAuthAdminManagementService {
           applicationId: scope.applicationId,
           enabledMethods,
         });
-        if (!updated) throw revisionConflict();
+        if (!updated) throw new Error("Application auth methods could not be updated");
         return {
           result: {
             organizationId: scope.organizationId,
@@ -884,7 +876,7 @@ export class ApplicationAuthAdminManagementService {
             "PROVIDER_ALREADY_CONFIGURED",
           );
         }
-        if (!configured) throw revisionConflict();
+        if (!configured) throw new Error("Application auth provider could not be configured");
       },
     });
   }
@@ -933,7 +925,7 @@ export class ApplicationAuthAdminManagementService {
           actorId: currentActor.id,
         });
         if (updated === "not_configured") throw providerNotConfigured();
-        if (!updated) throw revisionConflict();
+        if (!updated) throw new Error("Application auth provider could not be updated");
       },
     });
   }
@@ -964,7 +956,7 @@ export class ApplicationAuthAdminManagementService {
           actorId: currentActor.id,
         });
         if (updated === "not_configured") throw providerNotConfigured();
-        if (!updated) throw revisionConflict();
+        if (!updated) throw new Error("Application auth provider credentials could not be rotated");
       },
     });
   }
@@ -1001,7 +993,6 @@ export class ApplicationAuthAdminManagementService {
             "PROVIDER_MUST_BE_DISABLED",
           );
         }
-        if (status === "conflict") throw revisionConflict();
       },
     });
   }
@@ -1033,7 +1024,6 @@ export class ApplicationAuthAdminManagementService {
           provider: value.provider,
         });
         if (prepared.status === "not_configured") throw providerNotConfigured();
-        if (prepared.status === "conflict") throw revisionConflict();
         const validation =
           prepared.status === "invalid"
             ? prepared
@@ -1231,7 +1221,6 @@ export class ApplicationAuthAdminManagementService {
       targetId: value.provider,
       failureSafeDiff: input.safeDiff,
       execute: async (scope, actor) => {
-        this.assertRevision(scope);
         await input.execute(scope, actor);
         return {
           result: {
@@ -1412,8 +1401,6 @@ export class ApplicationAuthAdminManagementService {
     return scope;
   }
 
-  private assertRevision(scope: ApplicationAuthAdminMutationScope): void {}
-
   private async assertRealmCanBeEnabled(scope: ApplicationAuthAdminMutationScope): Promise<void> {
     const configuration = scope.configuration;
     const hasEnabledSignIn =
@@ -1568,13 +1555,6 @@ function invalidRealmState(message: string): ApplicationAuthAdminManagementError
   return new ApplicationAuthAdminManagementError(message, "INVALID_REALM_STATE");
 }
 
-function revisionConflict(): ApplicationAuthAdminManagementError {
-  return new ApplicationAuthAdminManagementError(
-    "Application revision conflict",
-    "REVISION_CONFLICT",
-  );
-}
-
 function providerNotConfigured(): ApplicationAuthAdminManagementError {
   return new ApplicationAuthAdminManagementError(
     "Application auth provider is not configured",
@@ -1649,8 +1629,6 @@ function auditReason(
     case "LAST_LOGIN_METHOD":
     case "INVALID_REALM_STATE":
       return "invalid_target_state";
-    case "REVISION_CONFLICT":
-      return "revision_conflict";
     case "ADMIN_AUDIT_UNAVAILABLE":
       return "audit_unavailable";
     case "INTERNAL_ERROR":

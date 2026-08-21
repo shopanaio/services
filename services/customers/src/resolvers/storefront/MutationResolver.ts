@@ -364,7 +364,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const input: StorefrontCustomerDataRequestCancelWorkflowInput = {
       params: {
         dataRequestId,
-        expectedUpdatedAt: args.input.expectedUpdatedAt,
       },
       context: preflight.context,
     };
@@ -545,7 +544,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
       params: {
         wishlistId,
         name: args.input.name,
-        expectedUpdatedAt: args.input.expectedUpdatedAt,
       },
       context: preflight.context,
     };
@@ -580,7 +578,6 @@ export class MutationResolver extends StorefrontCustomersType<Record<string, nev
     const input: WishlistDeleteWorkflowInput = {
       params: {
         wishlistId,
-        expectedUpdatedAt: args.input.expectedUpdatedAt,
       },
       context: preflight.context,
     };

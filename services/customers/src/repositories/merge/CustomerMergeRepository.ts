@@ -934,7 +934,6 @@ export class CustomerMergeRepository extends BaseRepository {
         and(
           eq(customer.storeId, this.storeId),
           eq(customer.id, locked.target.id),
-          eq(customer.revision, locked.target.revision),
           isNull(customer.deletedAt),
         ),
       )
@@ -953,7 +952,6 @@ export class CustomerMergeRepository extends BaseRepository {
         and(
           eq(customer.storeId, this.storeId),
           eq(customer.id, locked.source.id),
-          eq(customer.revision, locked.source.revision),
           isNull(customer.deletedAt),
         ),
       )
@@ -961,7 +959,7 @@ export class CustomerMergeRepository extends BaseRepository {
     const sourceRevisionAfter = sourceRows[0]?.revision;
     const targetRevisionAfter = targetRows[0]?.revision;
     if (sourceRevisionAfter === undefined || targetRevisionAfter === undefined) {
-      throw new Error("Customer merge revisions changed while rows were locked");
+      throw new Error("Customer merge could not finalize the locked customer rows");
     }
     return {
       sourceRevisionBefore: locked.source.revision,

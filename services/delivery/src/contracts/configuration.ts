@@ -11,39 +11,20 @@ export interface DeliveryProfilesPort {
   saveInactiveProfile(
     input: Readonly<{
       profile: Delivery.DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
-      expectedProfileRevision: number | null;
     }>,
   ): Promise<
-    | Readonly<{
-        status: "SAVED";
-        profile: Delivery.DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
-      }>
-    | Readonly<{
-        status: "PROFILE_REVISION_CONFLICT";
-        current: Delivery.DeliveryProfileSnapshot;
-      }>
+    Readonly<{
+      status: "SAVED";
+      profile: Delivery.DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
+    }>
   >;
-  /**
-   * Replaces the complete active graph in one CAS-protected transaction.
-   * The transaction must verify every referenced assignment set revision and reject
-   * variant or selling-plan membership shared by multiple active profiles.
-   */
+  /** Replaces the complete active graph in one transaction. */
   replaceActiveProfileSet(
     input: Readonly<{
       profileSet: Delivery.DeliveryProfileSetSnapshot;
-      expectedProfileSetRevision: string | null;
       memberships: readonly Delivery.DeliveryProfileAssignmentMembershipInput[];
     }>,
-  ): Promise<
-    | Readonly<{
-        status: "SAVED";
-        profileSet: Delivery.DeliveryProfileSetSnapshot;
-      }>
-    | Readonly<{
-        status: "PROFILE_SET_REVISION_CONFLICT";
-        current: Delivery.DeliveryProfileSetSnapshot;
-      }>
-  >;
+  ): Promise<Readonly<{ status: "SAVED"; profileSet: Delivery.DeliveryProfileSetSnapshot }>>;
 }
 
 /** Indexed lookup boundary for assignment sets that may contain millions of variants. */

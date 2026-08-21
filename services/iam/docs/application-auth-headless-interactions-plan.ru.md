@@ -262,7 +262,7 @@ UI adapters над `auth-core`, которые:
 - application-scoped lookup;
 - credential hash comparison;
 - TTL;
-- optimistic state transition;
+- server-owned state transition;
 - session binding;
 - terminal consumption;
 - cleanup.
@@ -509,8 +509,7 @@ Any non-terminal
 10. выполнить rate limit до Better Auth;
 11. вызвать Better Auth только с server-owned callback/query fields;
 12. определить следующий шаг;
-13. для mutation атомарно claim action по `actionId + expectedRevision` до любого Better
-    Auth/delivery side effect;
+13. для mutation атомарно claim action по `actionId` до любого Better Auth/delivery side effect;
 14. выполнить side effect с тем же server-generated `operationId`;
 15. атомарно сохранить safe result и завершить transition;
 16. consuming terminal transition выполнить атомарно вместе с encrypted terminal recovery result;
@@ -524,7 +523,6 @@ lookup, который допускает terminal consumed row только п�
 ```typescript
 interface InteractionMutationMeta {
   actionId: string; // random UUID/128-bit value, новый для намерения пользователя
-  expectedRevision: number;
 }
 ```
 
@@ -533,12 +531,11 @@ interface InteractionMutationMeta {
 effect. Тот же `actionId` с другим payload отклоняется. Другой action при незавершенном claim
 возвращает conflict.
 
-Одного optimistic CAS после вызова Better Auth недостаточно: parallel requests могут оба создать
-session, отправить OTP или выпустить code до проигравшего CAS. Поэтому adapter operation обязан быть
-idempotent по `operationId`. Phase 0 должна доказать это для каждой Better Auth operation. Если
-installed plugin не принимает idempotency key, IAM вводит version-locked operation ledger/unique
-persistence guard перед публикацией route. Операция без доказуемой idempotency или безопасной
-reconciliation не входит в public headless contract.
+Parallel requests могут оба создать session, отправить OTP или выпустить code, поэтому adapter
+operation обязан быть idempotent по `operationId`. Phase 0 должна доказать это для каждой Better
+Auth operation. Если installed plugin не принимает idempotency key, IAM вводит version-locked
+operation ledger/unique persistence guard перед публикацией route. Операция без доказуемой
+idempotency или безопасной reconciliation не входит в public headless contract.
 
 Ни одна команда не принимает из browser:
 
@@ -829,7 +826,6 @@ Content-Type: application/json
 
 {
   "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193832",
-  "expectedRevision": 1,
   "email": "user@example.com",
   "password": "..."
 }
@@ -858,7 +854,6 @@ Public ошибка не сообщает:
 ```json
 {
   "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193833",
-  "expectedRevision": 1,
   "name": "Alex",
   "email": "user@example.com",
   "password": "..."
@@ -915,7 +910,6 @@ Request:
 ```json
 {
   "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193834",
-  "expectedRevision": 1,
   "email": "user@example.com"
 }
 ```
@@ -925,7 +919,6 @@ Verify:
 ```json
 {
   "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193835",
-  "expectedRevision": 2,
   "email": "user@example.com",
   "otp": "123456"
 }
@@ -951,7 +944,6 @@ SDK может помнить email только в локальном React sta
 ```json
 {
   "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193836",
-  "expectedRevision": 2,
   "target": "SIGN_UP"
 }
 ```
@@ -1002,8 +994,7 @@ Command:
 ```json
 {
   "decision": "ALLOW",
-  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193837",
-  "expectedRevision": 4
+  "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193837"
 }
 ```
 
@@ -1162,7 +1153,7 @@ type ApplicationAuthInteractionErrorCode =
   | "INTERACTION_NOT_FOUND"
   | "INTERACTION_EXPIRED"
   | "INTERACTION_CONSUMED"
-  | "INTERACTION_STATE_CONFLICT"
+  | "INTERACTION_STATE_NOT_ALLOWED"
   | "ACTION_IN_PROGRESS"
   | "ACTION_NOT_ALLOWED"
   | "AUTHENTICATION_FAILED"
@@ -1176,15 +1167,15 @@ type ApplicationAuthInteractionErrorCode =
 
 HTTP mapping:
 
-| HTTP  | Code                                               | Значение                                                           |
-| ----- | -------------------------------------------------- | ------------------------------------------------------------------ |
-| `400` | `INVALID_REQUEST`                                  | malformed strict input                                             |
-| `401` | `INTERACTION_NOT_FOUND`                            | absent/invalid credential                                          |
-| `403` | `ORIGIN_NOT_ALLOWED`, `ACTION_NOT_ALLOWED`         | policy rejection                                                   |
-| `409` | `INTERACTION_STATE_CONFLICT`, `ACTION_IN_PROGRESS` | stale revision/invalid transition или незавершенный claimed action |
-| `410` | `INTERACTION_EXPIRED`, `INTERACTION_CONSUMED`      | expired либо terminal recovery TTL закончился                      |
-| `429` | `RATE_LIMITED`                                     | retry-after                                                        |
-| `503` | `TEMPORARILY_UNAVAILABLE`                          | dependency unavailable                                             |
+| HTTP  | Code                                                  | Значение                                            |
+| ----- | ----------------------------------------------------- | --------------------------------------------------- |
+| `400` | `INVALID_REQUEST`                                     | malformed strict input                              |
+| `401` | `INTERACTION_NOT_FOUND`                               | absent/invalid credential                           |
+| `403` | `ORIGIN_NOT_ALLOWED`, `ACTION_NOT_ALLOWED`            | policy rejection                                    |
+| `409` | `INTERACTION_STATE_NOT_ALLOWED`, `ACTION_IN_PROGRESS` | invalid transition или незавершенный claimed action |
+| `410` | `INTERACTION_EXPIRED`, `INTERACTION_CONSUMED`         | expired либо terminal recovery TTL закончился       |
+| `429` | `RATE_LIMITED`                                        | retry-after                                         |
+| `503` | `TEMPORARILY_UNAVAILABLE`                             | dependency unavailable                              |
 
 Чтобы не создавать credential oracle, invalid public ID, invalid secret и foreign application
 возвращают одинаковый `INTERACTION_NOT_FOUND`.
@@ -1462,7 +1453,6 @@ Mutation side effects координируются отдельным `applicati
 interaction_id             required
 application_id             required
 action_id                  random UUID/128-bit, required
-expected_revision          required
 action                     closed enum
 command_hash               HMAC canonical validated input
 operation_id               server-generated, unique
@@ -1519,7 +1509,6 @@ interface ApplicationAuthInteractionRepository {
       actionId: string;
       action: ApplicationAuthInteractionAction;
       commandHash: string;
-      expectedRevision: number;
       expectedStep: ApplicationAuthInteractionStep;
     },
   ): Promise<ClaimActionResult>;
@@ -1530,7 +1519,6 @@ interface ApplicationAuthInteractionRepository {
       interactionId: string;
       actionId: string;
       operationId: string;
-      expectedRevision: number;
       expectedStep: ApplicationAuthInteractionStep;
       nextStep: ApplicationAuthInteractionStep;
       sessionId?: string | null;
@@ -1544,7 +1532,6 @@ interface ApplicationAuthInteractionRepository {
       interactionId: string;
       actionId: string;
       operationId: string;
-      expectedRevision: number;
       expectedStep: ApplicationAuthInteractionStep;
       terminalStep: "COMPLETE" | "DENIED" | "FAILED";
       terminalReason: ApplicationAuthInteractionTerminalReason;
@@ -1758,7 +1745,6 @@ Origin: https://store.example.com
 
 {
   "actionId": "6cf5d921-82bd-42f2-8d2d-5d542c193838",
-  "expectedRevision": 1,
   "provider": "google",
   "mode": "popup"
 }
@@ -1948,7 +1934,7 @@ action-specific CSRF.
 - starts по application/client/origin/IP;
 - current reads по interaction/IP;
 - invalid credential attempts по application/IP;
-- state conflicts по interaction/IP;
+- rejected state transitions по interaction/IP;
 - social starts по interaction/provider/IP;
 - consent submissions по interaction/IP.
 
@@ -2090,8 +2076,7 @@ Credential не включается в public serializable `AuthState`.
 - `Authorization: Interaction`;
 - abort signals;
 - timeout;
-- каждая mutation генерирует `actionId`, добавляет текущий `expectedRevision` и сохраняет их до
-  определенного ответа;
+- каждая mutation генерирует и сохраняет `actionId` до определенного ответа;
 - автоматический network retry mutation по умолчанию выключен, но явный retry использует тот же
   `actionId` и поэтому не повторяет side effect;
 - safe retry для `GET current`;
@@ -2529,9 +2514,9 @@ Better Auth session:
 
 ### 28.7. Replay
 
-- каждый mutation имеет `actionId + expectedRevision`;
+- каждый mutation имеет `actionId`;
 - action claim записывается до side effect, completed retry возвращает сохраненный safe result;
-- terminal interaction consumed atomic CAS вместе с encrypted recovery result;
+- terminal interaction сохраняет encrypted recovery result в той же транзакции;
 - social continuation one-time;
 - consent и остальные mutations требуют current revision;
 - authorization code lifecycle остается Better Auth-owned one-time flow;
@@ -2781,7 +2766,7 @@ credential/provider token.
 - disabled realm отклоняется;
 - invalid credential indistinguishable от foreign credential;
 - expired interaction недоступен; consumed terminal interaction readable только в recovery TTL;
-- stale revision дает conflict;
+- invalid transition отклоняется;
 - terminal transition one-time;
 - parallel mutations допускают только один action claim;
 - retry с тем же action ID возвращает тот же safe result;

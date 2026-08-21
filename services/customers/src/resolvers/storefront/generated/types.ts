@@ -671,7 +671,7 @@ export type Customer = {
   /** Customer-selected BCP 47 locale. */
   preferredLocale: Maybe<Scalars['String']['output']>;
   prefix: Maybe<Scalars['String']['output']>;
-  /** Revision used for optimistic concurrency on customer-owned writes. */
+  /** Monotonic aggregate revision for diagnostics and change tracking. */
   revision: Scalars['Int']['output'];
   suffix: Maybe<Scalars['String']['output']>;
   /** Merchant-approved tax exemptions visible to this customer. */
@@ -988,7 +988,6 @@ export type CustomerDataRequest = Node & {
 
 export type CustomerDataRequestCancelInput = {
   dataRequestId: Scalars['ID']['input'];
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   idempotencyKey: Scalars['String']['input'];
 };
 
@@ -1254,8 +1253,6 @@ export type CustomerUpdatePayload = {
 /** A customer-facing validation, ownership, dependency, or business error. */
 export type CustomerUserError = DisplayableError & {
   __typename?: 'CustomerUserError';
-  /** Current comparison revision when code is REVISION_CONFLICT. */
-  actualRevision: Maybe<Scalars['Int']['output']>;
   code: Scalars['String']['output'];
   field: Maybe<Array<Scalars['String']['output']>>;
   message: Scalars['String']['output'];
@@ -1923,7 +1920,6 @@ export type WishlistCreatePayload = {
 };
 
 export type WishlistDeleteInput = {
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   id: Scalars['ID']['input'];
   idempotencyKey: Scalars['String']['input'];
 };
@@ -1974,8 +1970,6 @@ export type WishlistProductRemovePayload = {
 
 /** Values used to rename a customer wishlist. */
 export type WishlistUpdateInput = {
-  /** Timestamp observed by the client before editing the wishlist. */
-  expectedUpdatedAt: Scalars['DateTime']['input'];
   /** Global ID of the wishlist to rename. */
   id: Scalars['ID']['input'];
   idempotencyKey: Scalars['String']['input'];
@@ -2577,7 +2571,6 @@ export type CustomerUpdatePayloadResolvers<ContextType = ServiceContext, ParentT
 }>;
 
 export type CustomerUserErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerUserError'] = ResolversParentTypes['CustomerUserError']> = ResolversObject<{
-  actualRevision?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   field?: Resolver<Maybe<Array<ResolversTypes['String']>>, ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;

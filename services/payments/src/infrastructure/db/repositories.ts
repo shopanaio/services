@@ -107,10 +107,7 @@ export class PaymentProviderAccountRepository
     )[0];
     return row ? account(row) : null;
   }
-  async save(
-    value: Payments.PaymentProviderAccountSnapshot,
-    expectedConfigurationRevision: string | null,
-  ) {
+  async save(value: Payments.PaymentProviderAccountSnapshot) {
     try {
       return await this.tx.run(async () => {
         const currentRow = (
@@ -127,8 +124,6 @@ export class PaymentProviderAccountRepository
             .for("update")
         )[0];
         const current = currentRow ? account(currentRow) : null;
-        if (current && current.configurationRevision !== expectedConfigurationRevision)
-          return { status: "REVISION_CONFLICT" as const, current };
         const values = {
           id: value.providerAccountId,
           organizationId: value.organizationId,
@@ -166,8 +161,6 @@ export class PaymentProviderAccountRepository
         return { status: "SAVED" as const, account: account(row!) };
       });
     } catch (error) {
-      const current = await this.getByInstallation(value.storeId, value.installationId);
-      if (current) return { status: "REVISION_CONFLICT" as const, current };
       throw error;
     }
   }

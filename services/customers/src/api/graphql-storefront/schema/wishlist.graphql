@@ -210,16 +210,11 @@ input WishlistUpdateInput {
   locale-independent lowercase conversion.
   """
   name: String!
-  """
-  Timestamp observed by the client before editing the wishlist.
-  """
-  expectedUpdatedAt: DateTime!
   idempotencyKey: String!
 }
 
 input WishlistDeleteInput {
   id: ID!
-  expectedUpdatedAt: DateTime!
   idempotencyKey: String!
 }
 

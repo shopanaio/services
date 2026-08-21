@@ -3,7 +3,6 @@ SELECT
   "store_id",
   "definition_key",
   "enabled",
-  "version",
   "updated_at"
 FROM "notifications"."notification_definition_settings";
 

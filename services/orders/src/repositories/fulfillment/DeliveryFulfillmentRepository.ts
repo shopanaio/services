@@ -104,13 +104,6 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
     const row = await this.getRow(params.storeId, params.fulfillmentOrderId);
     if (!row) throw new Error("FULFILLMENT_ORDER_NOT_FOUND");
     const { snapshot, source } = row.payload;
-    if (snapshot.revision !== params.expectedFulfillmentOrderRevision)
-      return notReady(
-        "REVISION_CONFLICT",
-        snapshot,
-        "FULFILLMENT_ORDER_REVISION_CONFLICT",
-        "The fulfillment order changed.",
-      );
     if (snapshot.status === "SCHEDULED")
       return notReady(
         "SCHEDULED",
@@ -280,8 +273,6 @@ export class DeliveryFulfillmentRepository extends BaseRepository {
           throw new Error("FULFILLMENT_SHIPMENT_UPDATE_CONFLICT");
         return { status: "DUPLICATE", fulfillmentOrderRevision: row.revision };
       }
-      if (row.revision !== params.update.expectedFulfillmentOrderRevision)
-        return { status: "REVISION_CONFLICT", fulfillmentOrderRevision: row.revision };
       const payload = row.payload;
       let lineItems = [...payload.snapshot.lineItems];
       const history = await this.connection

@@ -56,7 +56,7 @@ export class MonitorPaymentOperationWorkflow extends BrokerWorkflows<
       }
 
       try {
-        await this.reconcile(input, current.session.revision, operation.revision);
+        await this.reconcile(input, operation.revision);
       } catch {
         // Provider callbacks may still win the race. The persisted state is
         // reloaded below before deciding whether this operation timed out.
@@ -84,11 +84,7 @@ export class MonitorPaymentOperationWorkflow extends BrokerWorkflows<
     return this.lifecycle.getSession({ storeId, paymentSessionId });
   }
 
-  private reconcile(
-    input: MonitorPaymentOperationInput,
-    expectedSessionRevision: number,
-    operationRevision: number,
-  ) {
+  private reconcile(input: MonitorPaymentOperationInput, operationRevision: number) {
     return this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
       "payments.executeOperation",
       {
@@ -96,8 +92,7 @@ export class MonitorPaymentOperationWorkflow extends BrokerWorkflows<
         params: {
           storeId: input.storeId,
           paymentSessionId: input.paymentSessionId,
-          expectedSessionRevision,
-          idempotencyKey: `${input.idempotencyKey}:reconcile:${operationRevision}:${expectedSessionRevision}`,
+          idempotencyKey: `${input.idempotencyKey}:reconcile:${operationRevision}`,
           correlationId: input.correlationId,
         },
       },
@@ -106,7 +101,7 @@ export class MonitorPaymentOperationWorkflow extends BrokerWorkflows<
         organizationId: input.organizationId,
         workflowId: DBOS.workflowID!,
         stepId: "reconcilePendingOperation",
-        callId: `${input.operationId}:${operationRevision}:${expectedSessionRevision}`,
+        callId: `${input.operationId}:${operationRevision}`,
       },
     );
   }

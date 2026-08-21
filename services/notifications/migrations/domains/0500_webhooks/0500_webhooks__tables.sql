@@ -6,7 +6,6 @@ CREATE TABLE "notifications"."webhook_subscriptions" (
   "url" text NOT NULL,
   "api_version" varchar(32) NOT NULL,
   "status" "notifications"."webhook_status" NOT NULL DEFAULT 'ACTIVE',
-  "version" integer NOT NULL DEFAULT 1 CHECK ("version" >= 1),
   "created_at" timestamptz NOT NULL DEFAULT now(),
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT "webhook_subscription_store_event_url"

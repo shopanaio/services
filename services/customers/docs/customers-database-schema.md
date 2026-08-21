@@ -53,8 +53,8 @@ currency code.
 ### Product comparisons
 
 `customer_comparison` is the authenticated customer's single persisted, store-scoped comparison
-selection. Its `revision` is aggregate optimistic concurrency state for atomic add, remove and
-category-clear mutations. Guest selections remain client-owned URL or local-storage state and do not
+selection. Its `revision` is diagnostic change-order metadata and is never accepted or compared as
+a write precondition. Guest selections remain client-owned URL or local-storage state and do not
 create customer rows.
 
 `customer_comparison_item` stores one flat ordered selection of concrete Catalog variants.

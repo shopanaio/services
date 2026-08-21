@@ -2,7 +2,6 @@ import { Transactional } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import {
   internalWishlistError,
-  isValidExpectedTimestamp,
   normalizeWishlistName,
   wishlistError,
   type WishlistReference,
@@ -13,7 +12,6 @@ export interface WishlistUpdateParams {
   customerId: string;
   wishlistId: string;
   name: string;
-  expectedUpdatedAt: string;
 }
 
 export interface WishlistUpdateResult {
@@ -24,16 +22,6 @@ export interface WishlistUpdateResult {
 export class WishlistUpdateScript extends BaseScript<WishlistUpdateParams, WishlistUpdateResult> {
   @Transactional()
   protected async execute(params: WishlistUpdateParams): Promise<WishlistUpdateResult> {
-    if (!isValidExpectedTimestamp(params.expectedUpdatedAt)) {
-      return {
-        wishlist: null,
-        userErrors: [
-          wishlistError("INVALID_UPDATED_AT", "Expected update timestamp is invalid", [
-            "expectedUpdatedAt",
-          ]),
-        ],
-      };
-    }
     const normalized = normalizeWishlistName(params.name);
     if (normalized.name === null) {
       return { wishlist: null, userErrors: normalized.userErrors };
@@ -42,7 +30,6 @@ export class WishlistUpdateScript extends BaseScript<WishlistUpdateParams, Wishl
     const result = await this.repository.wishlist.updateName({
       customerId: params.customerId,
       wishlistId: params.wishlistId,
-      expectedUpdatedAt: params.expectedUpdatedAt,
       name: normalized.name,
       normalizedName: normalized.normalizedName,
     });
@@ -58,16 +45,6 @@ export class WishlistUpdateScript extends BaseScript<WishlistUpdateParams, Wishl
         userErrors: [
           wishlistError("WISHLIST_NAME_TAKEN", "A wishlist with this name already exists", [
             "name",
-          ]),
-        ],
-      };
-    }
-    if (result.status === "conflict") {
-      return {
-        wishlist: null,
-        userErrors: [
-          wishlistError("UPDATED_AT_CONFLICT", "Wishlist was modified by another request", [
-            "expectedUpdatedAt",
           ]),
         ],
       };

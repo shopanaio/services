@@ -29,7 +29,6 @@ export class PricingCheckoutQuoteRepository {
           and(
             eq(checkoutPreliminaryQuote.storeId, input.storeId),
             eq(checkoutPreliminaryQuote.checkoutId, input.checkoutId),
-            eq(checkoutPreliminaryQuote.basedOnCheckoutVersion, input.basedOnCheckoutVersion),
             eq(checkoutPreliminaryQuote.executionId, input.executionId),
           ),
         )
@@ -60,7 +59,6 @@ export class PricingCheckoutQuoteRepository {
         target: [
           checkoutPreliminaryQuote.storeId,
           checkoutPreliminaryQuote.checkoutId,
-          checkoutPreliminaryQuote.basedOnCheckoutVersion,
           checkoutPreliminaryQuote.executionId,
         ],
       });
@@ -83,7 +81,6 @@ export class PricingCheckoutQuoteRepository {
           and(
             eq(checkoutFinalQuote.storeId, input.storeId),
             eq(checkoutFinalQuote.checkoutId, input.checkoutId),
-            eq(checkoutFinalQuote.basedOnCheckoutVersion, input.basedOnCheckoutVersion),
             eq(checkoutFinalQuote.executionId, input.executionId),
           ),
         )
@@ -116,7 +113,6 @@ export class PricingCheckoutQuoteRepository {
         target: [
           checkoutFinalQuote.storeId,
           checkoutFinalQuote.checkoutId,
-          checkoutFinalQuote.basedOnCheckoutVersion,
           checkoutFinalQuote.executionId,
         ],
       });

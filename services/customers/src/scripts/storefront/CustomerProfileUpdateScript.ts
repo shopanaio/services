@@ -6,9 +6,8 @@ import {
   failedCustomerMutation,
   hasOwn,
   internalStorefrontError,
-  revisionAcquireError,
+  customerAvailabilityError,
   storefrontError,
-  validateStorefrontExpectedRevision,
   type StorefrontCustomerMutationResult,
   type StorefrontCustomerUserError,
 } from "./types.js";
@@ -57,9 +56,6 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerUpdateParams,
   ): Promise<StorefrontCustomerUpdateResult> {
-    const revisionError = validateStorefrontExpectedRevision();
-    if (revisionError) return failedCustomerMutation(revisionError);
-
     const current = await this.repository.customer.findById(params.customerId);
     if (!current || current.lifecycleStatus !== "ACTIVE") {
       return failedCustomerMutation(
@@ -74,13 +70,13 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
     }
 
     const changed = changedProfilePatch(current, patch);
-    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
-    if (acquired.status !== "acquired") {
-      return failedCustomerMutation(revisionAcquireError(acquired));
+    const revisionUpdate = await this.repository.customer.bumpActiveRevision(params.customerId);
+    if (revisionUpdate.status !== "updated") {
+      return failedCustomerMutation(customerAvailabilityError(revisionUpdate));
     }
 
     if (Object.keys(changed).length > 0) {
-      const updated = await this.repository.customer.patchWithinRevision(
+      const updated = await this.repository.customer.patchWithoutRevisionBump(
         params.customerId,
         changed,
       );
@@ -94,8 +90,8 @@ export class StorefrontCustomerUpdateScript extends BaseScript<
 
     return {
       customer: {
-        id: acquired.customer.id,
-        revision: acquired.customer.revision,
+        id: revisionUpdate.customer.id,
+        revision: revisionUpdate.customer.revision,
       },
       updatedReasons: updatedReasons(changed),
       userErrors: [],

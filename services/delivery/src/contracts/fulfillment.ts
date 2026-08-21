@@ -6,7 +6,6 @@ export interface DeliveryFulfillmentPort {
     input: Readonly<{
       storeId: string;
       fulfillmentOrderId: string;
-      expectedFulfillmentOrderRevision: number;
       /** Null selects every remaining physical line; an explicit subset enables partial fulfillment. */
       lineItems:
         | readonly [
@@ -25,10 +24,6 @@ export interface DeliveryFulfillmentPort {
   ): Promise<
     | Readonly<{ status: "APPLIED"; fulfillmentOrderRevision: number }>
     | Readonly<{ status: "DUPLICATE"; fulfillmentOrderRevision: number }>
-    | Readonly<{
-        status: "REVISION_CONFLICT";
-        fulfillmentOrderRevision: number;
-      }>
   >;
 }
 

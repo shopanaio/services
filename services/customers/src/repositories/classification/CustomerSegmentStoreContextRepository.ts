@@ -1,5 +1,5 @@
 import { ReadOnly } from "@shopana/shared-kernel";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { BaseRepository } from "../BaseRepository.js";
 import { customerSegmentStoreContext, type CustomerSegmentStoreContext } from "../models/index.js";
 
@@ -79,7 +79,7 @@ export class CustomerSegmentStoreContextRepository extends BaseRepository {
     if (input.configurationRevision === existing.configurationRevision) {
       if (existing.timeZone !== input.timeZone || existing.updatedAt !== input.occurredAt) {
         throw new Error(
-          `Store segment context revision ${input.configurationRevision} has conflicting payloads`,
+          `Store segment context revision ${input.configurationRevision} has inconsistent payloads`,
         );
       }
       return {
@@ -97,15 +97,10 @@ export class CustomerSegmentStoreContextRepository extends BaseRepository {
         configurationRevision: input.configurationRevision,
         updatedAt: input.occurredAt,
       })
-      .where(
-        and(
-          eq(customerSegmentStoreContext.id, existing.id),
-          eq(customerSegmentStoreContext.configurationRevision, existing.configurationRevision),
-        ),
-      )
+      .where(eq(customerSegmentStoreContext.id, existing.id))
       .returning();
     if (!rows[0]) {
-      throw new Error("Concurrent Store segment context update");
+      throw new Error("Store segment context was not found during update");
     }
     return {
       context: rows[0],

@@ -75,7 +75,6 @@ export class DeliveryShipmentService {
     const account = await this.requiredActiveAccount(
       params.storeId,
       plan.shipmentProvider.providerAccountId,
-      plan.shipmentProvider.configurationRevision,
       "createShipment",
     );
     const route = await this.requiredRoute(account, "createShipment");
@@ -131,7 +130,6 @@ export class DeliveryShipmentService {
       mutation(
         await this.deps.repository.generateUuidV7(),
         "COMMAND",
-        null,
         shipment,
         operation,
         [],
@@ -142,8 +140,6 @@ export class DeliveryShipmentService {
     );
     if (committed.status === "IDEMPOTENCY_CONFLICT")
       throw new Error("DELIVERY_IDEMPOTENCY_CONFLICT");
-    if (committed.status === "REVISION_CONFLICT")
-      throw new Error("DELIVERY_SHIPMENT_REVISION_CONFLICT");
 
     const reservedShipment = await this.ensureFulfillmentReserved(
       shipment,
@@ -349,7 +345,6 @@ export class DeliveryShipmentService {
       mutation(
         await this.deps.repository.generateUuidV7(),
         "PROVIDER_COMPLETION",
-        current.revision,
         next,
         operation,
         normalized.events,
@@ -548,7 +543,6 @@ export class DeliveryShipmentService {
       mutationId: await this.deps.repository.generateUuidV7(),
       cause: "PROVIDER_EVENT",
       storeId: context.storeId,
-      expectedShipmentRevision: shipment.revision,
       idempotency,
       shipment: next,
       operation: null,
@@ -565,8 +559,6 @@ export class DeliveryShipmentService {
     });
     if (result.status === "IDEMPOTENCY_CONFLICT")
       throw new Error("DELIVERY_PROVIDER_EVENT_CONFLICT");
-    if (result.status === "REVISION_CONFLICT")
-      throw new Error("DELIVERY_SHIPMENT_REVISION_CONFLICT");
     if (result.status === "APPLIED" || result.status === "DUPLICATE") {
       await this.propagateState(
         await this.requiredShipment(context.storeId, shipment.shipmentId),
@@ -606,8 +598,6 @@ export class DeliveryShipmentService {
         duplicate: true,
       };
     }
-    if (shipment.revision !== params.expectedShipmentRevision)
-      throw new Error("DELIVERY_SHIPMENT_REVISION_CONFLICT");
     if (!shipment.providerShipmentReference)
       throw new Error("DELIVERY_PROVIDER_SHIPMENT_REFERENCE_MISSING");
     if (
@@ -624,7 +614,6 @@ export class DeliveryShipmentService {
         ? await this.requiredActiveAccount(
             params.storeId,
             shipment.providerAccountId,
-            null,
             "cancelShipment",
           )
         : await this.requiredReconciliationAccount(params.storeId, shipment.providerAccountId);
@@ -659,7 +648,6 @@ export class DeliveryShipmentService {
       mutation(
         await this.deps.repository.generateUuidV7(),
         "COMMAND",
-        shipment.revision,
         next,
         operation,
         [],
@@ -681,7 +669,6 @@ export class DeliveryShipmentService {
   private async requiredActiveAccount(
     storeId: string,
     providerAccountId: string,
-    configurationRevision: string | null,
     operation: Delivery.DeliveryShipmentProviderOperation,
   ) {
     const account = await this.deps.repository.providerAccounts.getById(storeId, providerAccountId);
@@ -692,11 +679,6 @@ export class DeliveryShipmentService {
       !account.supportedOperations.includes(operation)
     )
       throw new Error("DELIVERY_SHIPMENT_PROVIDER_INACTIVE");
-    if (
-      configurationRevision !== null &&
-      capability.configurationRevision !== configurationRevision
-    )
-      throw new Error("DELIVERY_SHIPMENT_CONFIGURATION_REVISION_CONFLICT");
     return account;
   }
 
@@ -751,7 +733,6 @@ export class DeliveryShipmentService {
       storeId: shipment.storeId,
       update: {
         fulfillmentOrderId: shipment.fulfillmentOrderId,
-        expectedFulfillmentOrderRevision: params.expectedFulfillmentOrderRevision,
         shipmentId: shipment.shipmentId,
         shipmentRevision: shipment.revision,
         lineItems: fulfillmentLines(shipment),
@@ -759,22 +740,6 @@ export class DeliveryShipmentService {
         occurredAt: now,
       },
     });
-    if (reserved.status === "REVISION_CONFLICT") {
-      await this.failPrepared(
-        shipment,
-        operation,
-        route,
-        params.correlationId,
-        now,
-        failure(
-          "CONFLICT",
-          "FULFILLMENT_REVISION_CONFLICT",
-          "The fulfillment allocation changed before shipment reservation",
-          false,
-        ),
-      );
-      throw new Error("FULFILLMENT_ORDER_REVISION_CONFLICT");
-    }
     const next = {
       ...shipment,
       fulfillmentOrderRevision: reserved.fulfillmentOrderRevision,
@@ -791,7 +756,6 @@ export class DeliveryShipmentService {
       mutation(
         await this.deps.repository.generateUuidV7(),
         "COMMAND",
-        1,
         next,
         operation,
         [],
@@ -890,7 +854,6 @@ export class DeliveryShipmentService {
       mutation(
         await this.deps.repository.generateUuidV7(),
         "PROVIDER_COMPLETION",
-        current.revision,
         next,
         failedOperation,
         [],
@@ -914,7 +877,6 @@ export class DeliveryShipmentService {
       storeId: current.storeId,
       update: {
         fulfillmentOrderId: current.fulfillmentOrderId,
-        expectedFulfillmentOrderRevision: current.fulfillmentOrderRevision,
         shipmentId: current.shipmentId,
         shipmentRevision: shipment.revision + 1,
         lineItems: fulfillmentLines(current),
@@ -922,8 +884,6 @@ export class DeliveryShipmentService {
         occurredAt,
       },
     });
-    if (released.status === "REVISION_CONFLICT")
-      throw new Error("FULFILLMENT_ORDER_REVISION_CONFLICT");
     const next = {
       ...current,
       fulfillmentOrderRevision: released.fulfillmentOrderRevision,
@@ -940,7 +900,6 @@ export class DeliveryShipmentService {
       mutation(
         await this.deps.repository.generateUuidV7(),
         "COMMAND",
-        current.revision,
         next,
         null,
         [],
@@ -961,7 +920,6 @@ export class DeliveryShipmentService {
       storeId: shipment.storeId,
       update: {
         fulfillmentOrderId: shipment.fulfillmentOrderId,
-        expectedFulfillmentOrderRevision: shipment.fulfillmentOrderRevision,
         shipmentId: shipment.shipmentId,
         shipmentRevision: shipment.revision,
         lineItems: fulfillmentLines(shipment),
@@ -969,8 +927,6 @@ export class DeliveryShipmentService {
         occurredAt,
       },
     });
-    if (result.status === "REVISION_CONFLICT")
-      throw new Error("FULFILLMENT_ORDER_REVISION_CONFLICT");
     if (
       result.fulfillmentOrderRevision !== shipment.fulfillmentOrderRevision ||
       shipment.lastFulfillmentState !== state
@@ -991,7 +947,6 @@ export class DeliveryShipmentService {
         mutation(
           await this.deps.repository.generateUuidV7(),
           "COMMAND",
-          shipment.revision,
           next,
           null,
           [],
@@ -1174,7 +1129,6 @@ function existingRequest(
 function mutation(
   mutationId: string,
   cause: DeliveryAtomicMutationRecord["cause"],
-  expectedShipmentRevision: number | null,
   shipment: Delivery.DeliveryShipmentSnapshot,
   operation: Delivery.DeliveryShipmentOperationSnapshot | null,
   trackingEvents: readonly Delivery.DeliveryTrackingEventSnapshot[],
@@ -1186,7 +1140,6 @@ function mutation(
     mutationId,
     cause,
     storeId: shipment.storeId,
-    expectedShipmentRevision,
     idempotency,
     shipment,
     operation,

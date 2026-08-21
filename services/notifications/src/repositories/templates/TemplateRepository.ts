@@ -106,21 +106,18 @@ export class TemplateRepository extends BaseRepository {
       .update(notificationTemplateActiveRevisions)
       .set({
         revisionId: revision.id,
-        version: current.version + 1,
         updatedBy: input.updatedBy,
         updatedAt: new Date().toISOString(),
       })
       .where(and(identity))
       .returning();
-    if (!rows[0]) throw new Error("VERSION_CONFLICT");
-    return rows[0];
+    return rows[0]!;
   }
 
   async findActive(key: NotificationDefinitionKey, channel: NotificationChannel, locale: string) {
     const rows = await this.connection
       .select({
         revision: notificationTemplateRevisions,
-        pointerVersion: notificationTemplateActiveRevisions.version,
       })
       .from(notificationTemplateActiveRevisions)
       .innerJoin(
@@ -149,7 +146,6 @@ export class TemplateRepository extends BaseRepository {
     return this.connection
       .select({
         revision: notificationTemplateRevisions,
-        pointerVersion: notificationTemplateActiveRevisions.version,
       })
       .from(notificationTemplateActiveRevisions)
       .innerJoin(

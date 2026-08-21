@@ -158,7 +158,6 @@ const paymentProviderCustomerSchema = z
 
 const idempotencyKeySchema = z.string().trim().min(1).max(255);
 const correlationIdSchema = z.string().trim().min(1).max(255);
-const expectedRevisionSchema = z.number().int().nonnegative();
 const uuidSchema = z.string().uuid();
 const paymentCustomizationStatusSchema = z.enum(["ACTIVE", "DISABLED"]);
 
@@ -180,7 +179,6 @@ export const PaymentLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       providerAccountId: identifierSchema,
-      expectedConfigurationRevision: identifierSchema,
       status: z.enum(["ACTIVE", "INACTIVE"]),
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
@@ -247,7 +245,6 @@ export const PaymentLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       paymentSessionId: identifierSchema,
-      expectedSessionRevision: expectedRevisionSchema,
       amount: PaymentMoneySchema,
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
@@ -257,7 +254,6 @@ export const PaymentLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       paymentSessionId: identifierSchema,
-      expectedSessionRevision: expectedRevisionSchema,
       reason: z.string().trim().min(1).max(1_000).nullable(),
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
@@ -267,7 +263,6 @@ export const PaymentLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       paymentSessionId: identifierSchema,
-      expectedSessionRevision: expectedRevisionSchema,
       reason: z.string().trim().min(1).max(1_000).nullable(),
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
@@ -277,7 +272,6 @@ export const PaymentLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       paymentSessionId: identifierSchema,
-      expectedSessionRevision: expectedRevisionSchema,
       amount: PaymentMoneySchema,
       reason: z.string().trim().min(1).max(1_000).nullable(),
       idempotencyKey: idempotencyKeySchema,
@@ -288,7 +282,6 @@ export const PaymentLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       paymentSessionId: identifierSchema,
-      expectedSessionRevision: expectedRevisionSchema,
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
     })
@@ -298,7 +291,6 @@ export const PaymentLifecycleActionSchemas = {
       organizationId: identifierSchema,
       storeId: identifierSchema,
       paymentSessionId: identifierSchema,
-      expectedSessionRevision: expectedRevisionSchema,
       reason: z.string().trim().min(1).max(1_000),
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,

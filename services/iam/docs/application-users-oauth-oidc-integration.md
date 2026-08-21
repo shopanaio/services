@@ -204,7 +204,7 @@ refresh-token families, remove opaque access-token rows, commit, then invalidate
 instance. The old root version remains available until all replicas consume the later distributed
 invalidation contract.
 
-Encryption-key rotation is an idempotent optimistic batch:
+Encryption-key rotation is an idempotent batch:
 
 1. add the target version to the keyring without removing the source;
 2. call `reencryptStoredSecrets` repeatedly;
@@ -213,8 +213,8 @@ Encryption-key rotation is an idempotent optimistic batch:
 5. confirm no configuration/provider/JWKS row references the source version;
 6. remove the source from the active keyring in a separate operational change.
 
-An optimistic conflict aborts the batch. Re-read and retry; never overwrite a concurrently rotated
-secret.
+The batch updates the selected source-version rows and stops on an operational failure; it does not
+use caller-supplied state tokens or state preconditions.
 
 ## Cleanup
 

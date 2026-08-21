@@ -158,11 +158,10 @@ export type CustomerPrivacyCorrection = Partial<
   >
 >;
 
-export type CustomerRevisionAcquireResult =
-  | { status: "acquired"; customer: Customer }
+export type CustomerRevisionBumpResult =
+  | { status: "updated"; customer: Customer }
   | { status: "not_found" }
-  | { status: "inactive" }
-  | { status: "conflict"; actualRevision: number };
+  | { status: "inactive" };
 
 export class CustomerRepository extends BaseRepository {
   @ReadOnly()
@@ -535,11 +534,8 @@ export class CustomerRepository extends BaseRepository {
     return rows[0] ?? null;
   }
 
-  /**
-   * Atomically acquires the aggregate revision for an authenticated customer
-   * command. Storefront writes are deliberately restricted to ACTIVE rows.
-   */
-  async acquireActiveRevision(id: string): Promise<CustomerRevisionAcquireResult> {
+  /** Increment the diagnostic aggregate revision for an active customer write. */
+  async bumpActiveRevision(id: string): Promise<CustomerRevisionBumpResult> {
     const rows = await this.connection
       .update(customer)
       .set({
@@ -555,19 +551,15 @@ export class CustomerRepository extends BaseRepository {
         ),
       )
       .returning();
-    if (rows[0]) return { status: "acquired", customer: rows[0] };
+    if (rows[0]) return { status: "updated", customer: rows[0] };
 
     const current = await this.findById(id);
     if (!current) return { status: "not_found" };
-    if (current.lifecycleStatus !== "ACTIVE") return { status: "inactive" };
-    return { status: "conflict", actualRevision: current.revision };
+    return { status: "inactive" };
   }
 
-  /**
-   * Apply fields after the aggregate revision has already been acquired by a
-   * customer-scoped command. This deliberately does not increment revision.
-   */
-  async patchWithinRevision(id: string, patch: CustomerPatch): Promise<Customer | null> {
+  /** Apply fields without incrementing the diagnostic revision a second time. */
+  async patchWithoutRevisionBump(id: string, patch: CustomerPatch): Promise<Customer | null> {
     const update: Record<string, unknown> = {
       ...patch,
       ...customerPatchNormalizationProjection(patch),
@@ -598,23 +590,6 @@ export class CustomerRepository extends BaseRepository {
       )
       .returning();
     return rows[0] ?? null;
-  }
-
-  /** Release a revision reservation only when no later command acquired it. */
-  async releaseRevision(id: string, acquiredRevision: number): Promise<boolean> {
-    const rows = await this.connection
-      .update(customer)
-      .set({ revision: sql`${customer.revision} - 1` })
-      .where(
-        and(
-          eq(customer.storeId, this.storeId),
-          eq(customer.id, id),
-          eq(customer.revision, acquiredRevision),
-          isNull(customer.deletedAt),
-        ),
-      )
-      .returning({ id: customer.id });
-    return rows.length === 1;
   }
 
   async softDelete(id: string): Promise<Customer | null> {

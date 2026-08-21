@@ -266,7 +266,7 @@ Revision payload содержит все причинно значимые sourc
 attempt и переиспользуются по idempotency identity:
 
 ```text
-storeId + checkoutId + basedOnCheckoutVersion + executionId + stage
+storeId + checkoutId + executionId + stage
 ```
 
 Повтор одного broker call не создаёт другой snapshot. Новая pipeline attempt с
@@ -410,7 +410,6 @@ pricing.checkout_preliminary_quote
   id uuid primary key
   store_id uuid not null
   checkout_id uuid not null
-  based_on_checkout_version integer not null
   execution_id text not null
   request_digest text not null
   revision text not null
@@ -424,7 +423,6 @@ pricing.checkout_final_quote
   id uuid primary key
   store_id uuid not null
   checkout_id uuid not null
-  based_on_checkout_version integer not null
   execution_id text not null
   preliminary_quote_id uuid not null
   based_on_preliminary_revision text not null
@@ -438,13 +436,11 @@ pricing.checkout_final_quote
 
 Constraints:
 
-- unique `(store_id, checkout_id, based_on_checkout_version, execution_id)` на
-  каждой stage table;
+- unique `(store_id, checkout_id, execution_id)` на каждой stage table;
 - unique `(store_id, id)`;
 - local FK final `preliminary_quote_id`;
 - `jsonb_typeof(payload) = 'object'`;
 - non-empty revision/digest checks;
-- `based_on_checkout_version >= 0`;
 - indexes по `(store_id, checkout_id, created_at desc)` и revision.
 
 Payload после чтения всегда повторно проходит provider result parser. JSONB не

@@ -93,7 +93,7 @@ service через application-scoped repository, а не прямой запи�
 - управлять trusted origins;
 - обновлять branding и localization.
 
-Update принимает ожидаемую `revision` для optimistic concurrency.
+`revision` служит только для cache/runtime generation и не принимается write mutations.
 
 Auth configuration не содержит `googleEnabled`, `facebookEnabled` или будущих provider-specific
 enable fields. Состояние social provider читается и изменяется только через отдельный generic
@@ -533,13 +533,11 @@ input ApplicationUpdateInput {
   name: String
   displayName: String
   description: String
-  expectedRevision: Int!
 }
 
 input ApplicationArchiveInput {
   organizationId: ID!
   applicationId: ID!
-  expectedRevision: Int!
 }
 
 input ApplicationAuthUpdateInput {
@@ -555,14 +553,12 @@ input ApplicationAuthUpdateInput {
   defaultLocale: LocaleCode
   trustedOrigins: [String!]
   emailDelivery: ApplicationAuthEmailDeliveryInput
-  expectedRevision: Int!
 }
 
 input ApplicationAuthRealmEnabledSetInput {
   organizationId: ID!
   applicationId: ID!
   enabled: Boolean!
-  expectedRevision: Int!
 }
 
 input ApplicationAuthMethodUpdateInput {
@@ -570,7 +566,6 @@ input ApplicationAuthMethodUpdateInput {
   applicationId: ID!
   methodId: ApplicationAuthMethodId!
   enabledCapabilities: [ApplicationAuthMethodCapability!]!
-  expectedRevision: Int!
 }
 
 input ApplicationAuthBrandingInput {
@@ -596,7 +591,6 @@ input ApplicationAuthProviderConfigureInput {
   clientId: String!
   clientSecret: String!
   scopes: [String!]!
-  expectedRevision: Int!
 }
 
 input ApplicationAuthProviderUpdateInput {
@@ -605,7 +599,6 @@ input ApplicationAuthProviderUpdateInput {
   provider: ApplicationAuthProviderName!
   enabled: Boolean
   scopes: [String!]
-  expectedRevision: Int!
 }
 
 input ApplicationAuthProviderCredentialsRotateInput {
@@ -614,21 +607,18 @@ input ApplicationAuthProviderCredentialsRotateInput {
   provider: ApplicationAuthProviderName!
   clientId: String!
   clientSecret: String!
-  expectedRevision: Int!
 }
 
 input ApplicationAuthProviderCredentialsDeleteInput {
   organizationId: ID!
   applicationId: ID!
   provider: ApplicationAuthProviderName!
-  expectedRevision: Int!
 }
 
 input ApplicationAuthProviderValidateInput {
   organizationId: ID!
   applicationId: ID!
   provider: ApplicationAuthProviderName!
-  expectedRevision: Int!
 }
 
 input ApplicationOAuthClientCreateInput {
@@ -652,7 +642,6 @@ input ApplicationOAuthClientUpdateInput {
   redirectUris: [String!]
   postLogoutRedirectUris: [String!]
   enableEndSession: Boolean
-  expectedRevision: Int!
 }
 
 input ApplicationOAuthClientEnabledSetInput {
@@ -660,7 +649,6 @@ input ApplicationOAuthClientEnabledSetInput {
   applicationId: ID!
   clientId: String!
   enabled: Boolean!
-  expectedRevision: Int!
 }
 
 input ApplicationOAuthClientSkipConsentSetInput {
@@ -668,21 +656,18 @@ input ApplicationOAuthClientSkipConsentSetInput {
   applicationId: ID!
   clientId: String!
   skipConsent: Boolean!
-  expectedRevision: Int!
 }
 
 input ApplicationOAuthClientSecretRotateInput {
   organizationId: ID!
   applicationId: ID!
   clientId: String!
-  expectedRevision: Int!
 }
 
 input ApplicationOAuthClientArchiveInput {
   organizationId: ID!
   applicationId: ID!
   clientId: String!
-  expectedRevision: Int!
 }
 
 input ApplicationUserStatusSetInput {
@@ -993,7 +978,8 @@ URI/query, email, secret, credential, token, code, OTP, provider response и н�
   логируются.
 - URI проверяются exact match policy: HTTPS в production, localhost HTTP только для development, без
   wildcard/fragment/userinfo; mobile schemes — только по отдельной allowlist policy.
-- Revision conflict предотвращает lost update.
+- Write mutations применяют изменения к текущему состоянию после проверки tenant scope и domain
+  invariants.
 
 ## 8. Этапы реализации
 
@@ -1063,7 +1049,7 @@ enforcement и explicit durable audit через `ApplicationAuthAdminAuditPort`
 
 1. Выполнить negative tenant/authorization/secret lifecycle scenarios.
 2. Проверить redaction logs/traces/metrics/audit.
-3. Проверить optimistic concurrency и cache rebuild после mutations.
+3. Проверить cache rebuild после mutations.
 4. Подготовить документацию organization admin и operations runbooks.
 
 Критерий выхода: organization admin полностью управляет realm без DB/manual config в пределах

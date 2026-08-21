@@ -92,15 +92,14 @@ export class CustomerExternalReferenceUpsertScript extends BaseScript<
         },
         {
           existingReferenceId: currentByExternalKey?.id,
-          expectedCustomerId: currentByExternalKey?.customerId,
         },
       );
       if (!externalReference) {
         return {
           userErrors: [
             {
-              message: "External reference changed during synchronization",
-              code: "EXTERNAL_REFERENCE_CONFLICT",
+              message: "External reference was not found during synchronization",
+              code: "EXTERNAL_REFERENCE_NOT_FOUND",
               field: ["externalId"],
             },
           ],

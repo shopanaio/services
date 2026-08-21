@@ -1814,8 +1814,8 @@ match     -> upsert current RULE membership
 not match -> delete RULE membership for customer + segment
 ```
 
-Derived RULE reevaluation не увеличивает merchant-facing `customer_segment.revision`, иначе фоновые
-события будут создавать постоянные optimistic concurrency conflicts в Admin.
+Derived RULE reevaluation не увеличивает merchant-facing `customer_segment.revision`, чтобы
+revision отражала только merchant-facing изменения, а не фоновые перерасчёты.
 
 ### 21.5 Counts и reads
 

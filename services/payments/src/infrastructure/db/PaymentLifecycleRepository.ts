@@ -573,9 +573,6 @@ export class PaymentLifecycleRepository {
           operation: currentOperation,
         };
       }
-      if (currentSession.revision !== params.expectedSessionRevision) {
-        throw new Error("PAYMENT_SESSION_REVISION_CONFLICT");
-      }
       if (currentSession.state === "PROCESSING") {
         throw new Error("PAYMENT_OUTCOME_UNCERTAIN");
       }
@@ -731,7 +728,6 @@ export class PaymentLifecycleRepository {
         type: input.type,
         storeId: params.storeId,
         paymentSessionId: params.paymentSessionId,
-        expectedSessionRevision: params.expectedSessionRevision,
         amount: "amount" in params ? params.amount : null,
         reason: "reason" in params ? params.reason : null,
       };
@@ -765,9 +761,6 @@ export class PaymentLifecycleRepository {
         )
         .orderBy(asc(paymentOperation.createdAt));
       assertNoConflictingOperation(operationRows.map(operationSnapshot), input.type);
-      if (session.revision !== params.expectedSessionRevision) {
-        throw new Error("PAYMENT_SESSION_REVISION_CONFLICT");
-      }
       if (!session.providerReference) throw new Error("PAYMENT_PROVIDER_REFERENCE_MISSING");
       assertOperationAllowed(session, input.type, "amount" in params ? params.amount : null);
       const [idRow] = await this.connection.execute<{ id: string }>(sql`SELECT uuidv7() AS id`);

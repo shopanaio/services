@@ -9,7 +9,6 @@ export const NOTIFICATION_SETTINGS_QUERY = gql`
         audience
         optional
         enabled
-        version
         allowedChannels
         activeChannels
         variables {
@@ -55,7 +54,6 @@ export const NOTIFICATION_TEMPLATE_QUERY = gql`
         plainTextTemplate
         revisionId
         revision
-        pointerVersion
         sourceVersion
       }
     }
@@ -83,7 +81,6 @@ export const NOTIFICATION_WEBHOOKS_QUERY = gql`
         url
         apiVersion
         status
-        version
         createdAt
         updatedAt
       }

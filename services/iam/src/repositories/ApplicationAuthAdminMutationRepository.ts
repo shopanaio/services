@@ -128,9 +128,8 @@ export interface AdminApplicationProviderRecord {
 /**
  * Transaction-aware write repository for the Admin GraphQL application realm.
  *
- * Every existing-realm mutation claims the shared configuration revision before
- * changing dependent rows. A failed claim therefore cannot partially update
- * application metadata, origins, delivery settings, or provider credentials.
+ * Every existing-realm mutation advances the shared configuration revision
+ * before changing dependent rows so runtime caches observe the new generation.
  */
 export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   constructor(
@@ -679,13 +678,13 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
   async deleteProviderCredentials(input: {
     applicationId: string;
     provider: ApplicationAuthProviderName;
-  }): Promise<"deleted" | "not_configured" | "enabled" | "conflict"> {
+  }): Promise<"deleted" | "not_configured" | "enabled"> {
     const provider = parseApplicationAuthProviderName(input.provider);
     const current = await this.findProvider(input.applicationId, provider);
     if (!current) return "not_configured";
     if (current.enabled) return "enabled";
     const revision = await this.claimRevision(input.applicationId);
-    if (revision === null) return "conflict";
+    if (revision === null) throw new Error("Application auth configuration does not exist");
     const rows = await this.connection
       .delete(applicationAuthProvider)
       .where(
@@ -716,11 +715,10 @@ export class ApplicationAuthAdminMutationRepository extends BaseRepository {
       }
     | { status: "invalid"; reasonCode: string; revision: number }
     | { status: "not_configured"; revision: number }
-    | { status: "conflict"; revision: number }
   > {
     const configuration = await this.findConfiguration(input.applicationId);
     if (!configuration) {
-      return { status: "not_configured", revision: input.expectedRevision };
+      return { status: "not_configured", revision: 0 };
     }
     const provider = parseApplicationAuthProviderName(input.provider);
     const current = await this.findProvider(input.applicationId, provider);

@@ -600,7 +600,6 @@ export interface ConfigurePaymentProviderAccountResult {
 export interface SetPaymentProviderAccountStatusParams {
   storeId: string;
   providerAccountId: string;
-  expectedConfigurationRevision: string;
   status: "ACTIVE" | "INACTIVE";
   idempotencyKey: string;
   correlationId: string;
@@ -740,7 +739,6 @@ export interface GetPaymentSessionResult {
 export interface CapturePaymentParams {
   storeId: string;
   paymentSessionId: string;
-  expectedSessionRevision: number;
   amount: PricingCheckoutMoney;
   idempotencyKey: string;
   correlationId: string;
@@ -749,7 +747,6 @@ export interface CapturePaymentParams {
 export interface CancelPaymentParams {
   storeId: string;
   paymentSessionId: string;
-  expectedSessionRevision: number;
   reason: string | null;
   idempotencyKey: string;
   correlationId: string;
@@ -758,7 +755,6 @@ export interface CancelPaymentParams {
 export interface VoidPaymentParams {
   storeId: string;
   paymentSessionId: string;
-  expectedSessionRevision: number;
   reason: string | null;
   idempotencyKey: string;
   correlationId: string;
@@ -767,7 +763,6 @@ export interface VoidPaymentParams {
 export interface RefundPaymentParams {
   storeId: string;
   paymentSessionId: string;
-  expectedSessionRevision: number;
   amount: PricingCheckoutMoney;
   reason: string | null;
   idempotencyKey: string;
@@ -777,7 +772,6 @@ export interface RefundPaymentParams {
 export interface ReconcilePaymentParams {
   storeId: string;
   paymentSessionId: string;
-  expectedSessionRevision: number;
   idempotencyKey: string;
   correlationId: string;
 }
@@ -786,7 +780,6 @@ export interface ExpirePaymentParams {
   organizationId: string;
   storeId: string;
   paymentSessionId: string;
-  expectedSessionRevision: number;
   reason: string;
   idempotencyKey: string;
   correlationId: string;

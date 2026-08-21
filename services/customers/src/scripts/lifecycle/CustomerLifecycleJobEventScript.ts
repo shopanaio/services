@@ -74,7 +74,6 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
         },
         transitionedAt: params.occurredAt,
         expectedStatuses: ["REQUESTED"],
-        expectedUpdatedAt: current.updatedAt,
       });
       return changed(params, updated !== null);
     }
@@ -93,7 +92,6 @@ export class CustomerLifecycleJobEventScript extends BaseScript<
       errorMessage: params.errorMessage ?? null,
       transitionedAt: params.occurredAt,
       expectedStatuses: ["IN_PROGRESS"],
-      expectedUpdatedAt: current.updatedAt,
     });
     return changed(params, updated !== null);
   }

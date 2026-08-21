@@ -61,7 +61,6 @@ export class CustomerSegmentMaterializationPageScript extends BaseScript<
             run.causeSequence,
             null,
             null,
-            null,
           );
           if (Date.now() >= renewAt) {
             const renewed = await this.repository.segmentMaterialization.renewRunLease(
@@ -212,7 +211,6 @@ async function evaluateQueueItem(
     item.sequence,
     item.sourceEventId,
     item.sequence,
-    null,
   );
 }
 
@@ -229,7 +227,7 @@ async function evaluateTemporalItem(
     segment.evaluationGeneration !== item.evaluationGeneration ||
     segment.status !== "ACTIVE"
   ) {
-    await repository.segmentMaterialization.deleteTemporal(item.id, item.scheduleToken);
+    await repository.segmentMaterialization.deleteTemporal(item.id);
     return;
   }
   const effectiveAt = fixedEffectiveAt ?? new Date().toISOString();
@@ -248,7 +246,6 @@ async function evaluateTemporalItem(
     await repository.segmentMaterialization.allocateCauseSequence(),
     `temporal:${item.scheduleToken}`,
     null,
-    item.scheduleToken,
   );
 }
 
@@ -284,7 +281,6 @@ async function evaluatePair(
   causeSequence: bigint,
   sourceEventId: string | null,
   queueSequence: bigint | null,
-  expectedScheduleToken: string | null,
 ): Promise<void> {
   await repository.segmentMaterialization.applyEvaluation({
     segment,
@@ -295,7 +291,6 @@ async function evaluatePair(
     causeSequence,
     sourceEventId,
     queueSequence,
-    expectedScheduleToken,
   });
 }
 

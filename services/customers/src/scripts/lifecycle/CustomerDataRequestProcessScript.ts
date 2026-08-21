@@ -106,7 +106,6 @@ export class CustomerDataRequestProcessScript extends BaseScript<
       },
       transitionedAt: now,
       expectedStatuses: ["PENDING"],
-      expectedUpdatedAt: request.updatedAt,
     });
     if (!updated) throw persistenceError(dataRequestId);
     return toResult(updated);
@@ -137,7 +136,6 @@ export class CustomerDataRequestProcessScript extends BaseScript<
       },
       transitionedAt: completedAt,
       expectedStatuses: ["PROCESSING"],
-      expectedUpdatedAt: request.updatedAt,
     });
     if (!completed) throw persistenceError(dataRequestId);
     return toResult(completed);
@@ -177,7 +175,6 @@ export class CustomerDataRequestProcessScript extends BaseScript<
       },
       transitionedAt: completedAt,
       expectedStatuses: ["PROCESSING"],
-      expectedUpdatedAt: request.updatedAt,
     });
     if (!completed) throw persistenceError(dataRequestId);
     return toResult(completed);
@@ -301,7 +298,6 @@ export class CustomerDataRequestProcessScript extends BaseScript<
       },
       transitionedAt: rejectedAt,
       expectedStatuses: ["PENDING", "PROCESSING"],
-      expectedUpdatedAt: request.updatedAt,
     });
     if (!rejected) throw persistenceError(dataRequestId);
     return { ...toResult(rejected), rejectionReason: reason };

@@ -53,7 +53,6 @@ export class NotificationTemplateUpdateScript extends BaseScript<
         channel: params.channel,
         locale: params.locale,
         revision: revision.revision,
-        pointerVersion: pointer.version,
       },
     );
     return {

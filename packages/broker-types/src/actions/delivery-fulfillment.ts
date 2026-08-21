@@ -272,7 +272,6 @@ export type DeliveryMergeFulfillmentOrdersResult =
 
 export interface DeliveryFulfillmentShipmentUpdate {
   fulfillmentOrderId: string;
-  expectedFulfillmentOrderRevision: number;
   shipmentId: string;
   shipmentRevision: number;
   /** Immutable shipment allocation; state determines whether Orders consumes or releases it. */

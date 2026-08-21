@@ -674,7 +674,6 @@ export type NotificationChannelSetting = {
   senderEmail: Maybe<Scalars['String']['output']>;
   senderName: Maybe<Scalars['String']['output']>;
   updatedAt: Maybe<Scalars['DateTime']['output']>;
-  version: Scalars['Int']['output'];
 };
 
 export type NotificationChannelSettingInput = {
@@ -697,7 +696,6 @@ export type NotificationDefinition = {
   optional: Scalars['Boolean']['output'];
   title: Scalars['String']['output'];
   variables: Array<NotificationTemplateVariable>;
-  version: Scalars['Int']['output'];
 };
 
 export type NotificationDefinitionSetEnabledInput = {
@@ -716,7 +714,6 @@ export type NotificationDefinitionSetting = {
   definitionKey: Scalars['String']['output'];
   enabled: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type NotificationEffectiveTemplate = {
@@ -726,7 +723,6 @@ export type NotificationEffectiveTemplate = {
   key: Scalars['String']['output'];
   locale: Scalars['String']['output'];
   plainTextTemplate: Maybe<Scalars['String']['output']>;
-  pointerVersion: Maybe<Scalars['Int']['output']>;
   revision: Maybe<Scalars['Int']['output']>;
   revisionId: Maybe<Scalars['ID']['output']>;
   source: Scalars['String']['output'];
@@ -884,7 +880,6 @@ export type NotificationWebhookSubscription = {
   status: NotificationWebhookStatus;
   updatedAt: Scalars['DateTime']['output'];
   url: Scalars['String']['output'];
-  version: Scalars['Int']['output'];
 };
 
 export type NotificationWebhookUpdateInput = {
@@ -1165,13 +1160,13 @@ export type ResolversTypes = ResolversObject<{
   NotificationChannelSetEnabledPayload: ResolverTypeWrapper<NotificationChannelSetEnabledPayload>;
   NotificationChannelSetting: ResolverTypeWrapper<NotificationChannelSetting>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
-  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   NotificationChannelSettingInput: NotificationChannelSettingInput;
   NotificationDefinition: ResolverTypeWrapper<NotificationDefinition>;
   NotificationDefinitionSetEnabledInput: NotificationDefinitionSetEnabledInput;
   NotificationDefinitionSetEnabledPayload: ResolverTypeWrapper<NotificationDefinitionSetEnabledPayload>;
   NotificationDefinitionSetting: ResolverTypeWrapper<NotificationDefinitionSetting>;
   NotificationEffectiveTemplate: ResolverTypeWrapper<NotificationEffectiveTemplate>;
+  Int: ResolverTypeWrapper<Scalars['Int']['output']>;
   ID: ResolverTypeWrapper<Scalars['ID']['output']>;
   NotificationPreview: ResolverTypeWrapper<NotificationPreview>;
   NotificationPreviewInput: NotificationPreviewInput;
@@ -1221,13 +1216,13 @@ export type ResolversParentTypes = ResolversObject<{
   NotificationChannelSetEnabledPayload: NotificationChannelSetEnabledPayload;
   NotificationChannelSetting: NotificationChannelSetting;
   Boolean: Scalars['Boolean']['output'];
-  Int: Scalars['Int']['output'];
   NotificationChannelSettingInput: NotificationChannelSettingInput;
   NotificationDefinition: NotificationDefinition;
   NotificationDefinitionSetEnabledInput: NotificationDefinitionSetEnabledInput;
   NotificationDefinitionSetEnabledPayload: NotificationDefinitionSetEnabledPayload;
   NotificationDefinitionSetting: NotificationDefinitionSetting;
   NotificationEffectiveTemplate: NotificationEffectiveTemplate;
+  Int: Scalars['Int']['output'];
   ID: Scalars['ID']['output'];
   NotificationPreview: NotificationPreview;
   NotificationPreviewInput: NotificationPreviewInput;
@@ -1294,7 +1289,6 @@ export type NotificationChannelSettingResolvers<ContextType = ServiceContext, Pa
   senderEmail?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   senderName?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   updatedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1308,7 +1302,6 @@ export type NotificationDefinitionResolvers<ContextType = ServiceContext, Parent
   optional?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   title?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   variables?: Resolver<Array<ResolversTypes['NotificationTemplateVariable']>, ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1322,7 +1315,6 @@ export type NotificationDefinitionSettingResolvers<ContextType = ServiceContext,
   definitionKey?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   enabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1332,7 +1324,6 @@ export type NotificationEffectiveTemplateResolvers<ContextType = ServiceContext,
   key?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   locale?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   plainTextTemplate?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
-  pointerVersion?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   revision?: Resolver<Maybe<ResolversTypes['Int']>, ParentType, ContextType>;
   revisionId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   source?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1431,7 +1422,6 @@ export type NotificationWebhookSubscriptionResolvers<ContextType = ServiceContex
   status?: Resolver<ResolversTypes['NotificationWebhookStatus'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   url?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  version?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 

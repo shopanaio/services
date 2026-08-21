@@ -207,7 +207,6 @@ type ManagementErrorCode =
   | "OAUTH_CLIENT_ARCHIVED"
   | "OAUTH_CLIENT_DISABLED"
   | "PUBLIC_CLIENT_SECRET_ROTATION_FORBIDDEN"
-  | "OAUTH_CLIENT_REVISION_CONFLICT"
   | "ADMIN_AUDIT_UNAVAILABLE"
   | "OAUTH_CLIENT_INTERNAL_ERROR";
 
@@ -1123,13 +1122,6 @@ function uriError(
   );
 }
 
-function revisionConflict(): ApplicationOAuthClientManagementError {
-  return new ApplicationOAuthClientManagementError(
-    "OAuth client revision conflict",
-    "OAUTH_CLIENT_REVISION_CONFLICT",
-  );
-}
-
 function hasExactValues(values: readonly string[], expected: readonly string[]): boolean {
   return (
     values.length === expected.length && values.every((value, index) => value === expected[index])
@@ -1215,8 +1207,6 @@ function auditReason(
     case "OAUTH_CLIENT_DISABLED":
     case "PUBLIC_CLIENT_SECRET_ROTATION_FORBIDDEN":
       return "invalid_client_state";
-    case "OAUTH_CLIENT_REVISION_CONFLICT":
-      return "revision_conflict";
     case "ADMIN_AUDIT_UNAVAILABLE":
       return "audit_unavailable";
     case "OAUTH_CLIENT_INTERNAL_ERROR":

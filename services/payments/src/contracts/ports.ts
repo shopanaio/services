@@ -63,17 +63,7 @@ export interface PaymentProviderAccountsPort {
   ): Promise<Payments.PaymentProviderAccountSnapshot | null>;
   save(
     account: Payments.PaymentProviderAccountSnapshot,
-    expectedConfigurationRevision: string | null,
-  ): Promise<
-    | Readonly<{
-        status: "SAVED";
-        account: Payments.PaymentProviderAccountSnapshot;
-      }>
-    | Readonly<{
-        status: "REVISION_CONFLICT";
-        current: Payments.PaymentProviderAccountSnapshot;
-      }>
-  >;
+  ): Promise<Readonly<{ status: "SAVED"; account: Payments.PaymentProviderAccountSnapshot }>>;
 }
 
 export interface PaymentFunctionRoutesPort {
@@ -172,8 +162,6 @@ export interface CreatePaymentSessionRecord {
 
 export interface CompletePaymentOperationRecord {
   storeId: string;
-  expectedCollectionRevision: number;
-  expectedSessionRevision: number;
   collection: Payments.PaymentCollectionSnapshot;
   operation: Payments.PaymentOperationSnapshot;
   session: Payments.PaymentSessionSnapshot;
@@ -238,16 +226,12 @@ export interface PaymentDisputesPort {
     providerAccountId: string,
     providerDisputeReference: string,
   ): Promise<Payments.PaymentDisputeSnapshot | null>;
-  save(dispute: Payments.PaymentDisputeSnapshot): Promise<
-    | Readonly<{ status: "SAVED"; dispute: Payments.PaymentDisputeSnapshot }>
-    | Readonly<{
-        status: "REVISION_CONFLICT";
-        current: Payments.PaymentDisputeSnapshot;
-      }>
-  >;
+  save(
+    dispute: Payments.PaymentDisputeSnapshot,
+  ): Promise<Readonly<{ status: "SAVED"; dispute: Payments.PaymentDisputeSnapshot }>>;
 }
 
-/** Persistence port must enforce uniqueness and optimistic session revisions. */
+/** Persistence port must enforce uniqueness and transactional session updates. */
 export interface PaymentSessionsPort {
   createIdempotently(
     record: CreatePaymentSessionRecord,
@@ -265,8 +249,6 @@ export interface PaymentSessionsPort {
   appendOperationAtomically(
     input: Readonly<{
       storeId: string;
-      expectedCollectionRevision: number;
-      expectedSessionRevision: number;
       collection: Payments.PaymentCollectionSnapshot;
       session: Payments.PaymentSessionSnapshot;
       operation: Payments.PaymentOperationSnapshot;
@@ -362,7 +344,6 @@ export interface PaymentWorkflowPort {
     input: Readonly<{
       storeId: string;
       paymentSessionId: string;
-      expectedSessionRevision: number;
       triggeringOperationId: string;
       idempotency: Payments.PaymentIdempotencySnapshot;
       correlationId: string;

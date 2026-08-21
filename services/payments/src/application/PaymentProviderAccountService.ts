@@ -87,9 +87,7 @@ export class PaymentProviderAccountService {
       createdAt: current?.createdAt ?? now,
       updatedAt: now,
     };
-    const saved = await this.accounts.save(account, current?.configurationRevision ?? null);
-    if (saved.status === "REVISION_CONFLICT")
-      throw new Error("PAYMENT_PROVIDER_CONFIGURATION_CONFLICT");
+    const saved = await this.accounts.save(account);
     return {
       providerAccountId: account.providerAccountId,
       workflowId: `payment-provider-configuration:${account.providerAccountId}:${account.configurationRevision}`,
@@ -113,16 +111,13 @@ export class PaymentProviderAccountService {
   ): Promise<Payments.SetPaymentProviderAccountStatusResult> {
     const current = await this.accounts.getById(params.storeId, params.providerAccountId);
     if (!current) throw new Error("PAYMENT_PROVIDER_ACCOUNT_NOT_FOUND");
-    if (current.configurationRevision !== params.expectedConfigurationRevision)
-      throw new Error("PAYMENT_PROVIDER_CONFIGURATION_CONFLICT");
     if (params.status === "ACTIVE" && current.status !== "READY" && current.status !== "INACTIVE")
       throw new Error("PAYMENT_PROVIDER_ACCOUNT_NOT_READY");
-    const saved = await this.accounts.save(
-      { ...current, status: params.status, updatedAt: new Date().toISOString() },
-      current.configurationRevision,
-    );
-    if (saved.status === "REVISION_CONFLICT")
-      throw new Error("PAYMENT_PROVIDER_CONFIGURATION_CONFLICT");
+    const saved = await this.accounts.save({
+      ...current,
+      status: params.status,
+      updatedAt: new Date().toISOString(),
+    });
     return { account: saved.account };
   }
 }

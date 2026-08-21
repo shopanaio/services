@@ -26,7 +26,6 @@ export interface NotificationSettingsQueryData {
         | "audience"
         | "optional"
         | "enabled"
-        | "version"
         | "allowedChannels"
         | "activeChannels"
         | "variables"

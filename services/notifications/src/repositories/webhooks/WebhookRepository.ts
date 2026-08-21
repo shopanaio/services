@@ -89,15 +89,13 @@ export class WebhookRepository extends BaseRepository {
         url: input.url,
         apiVersion: input.apiVersion,
         status: input.status,
-        version: input.expectedVersion + 1,
         updatedAt: new Date().toISOString(),
       })
       .where(
         and(eq(webhookSubscriptions.storeId, this.storeId), eq(webhookSubscriptions.id, input.id)),
       )
       .returning();
-    if (!rows[0]) throw new Error("VERSION_CONFLICT");
-    return rows[0];
+    return rows[0]!;
   }
 
   async delete(id: string): Promise<boolean> {

@@ -16,7 +16,6 @@ export interface NotificationDefinitionView {
   defaultChannels: readonly NotificationChannel[];
   activeChannels: readonly NotificationChannel[];
   variables: readonly NotificationTemplateVariable[];
-  version: number;
 }
 
 export interface NotificationChannelSettingView {
@@ -26,7 +25,6 @@ export interface NotificationChannelSettingView {
   senderName: string | null;
   senderEmail: string | null;
   replyTo: string | null;
-  version: number;
   updatedAt: string | null;
 }
 

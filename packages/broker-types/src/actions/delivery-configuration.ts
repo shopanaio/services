@@ -256,25 +256,22 @@ export interface DeliveryProfileAssignmentMembershipInput {
 
 export interface SaveInactiveDeliveryProfileParams {
   profile: DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
-  expectedProfileRevision: number | null;
 }
 
-export type SaveInactiveDeliveryProfileResult =
-  | Readonly<{
-      status: "SAVED";
-      profile: DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
-    }>
-  | Readonly<{ status: "PROFILE_REVISION_CONFLICT"; current: DeliveryProfileSnapshot }>;
+export type SaveInactiveDeliveryProfileResult = Readonly<{
+  status: "SAVED";
+  profile: DeliveryProfileSnapshot & Readonly<{ status: "INACTIVE" }>;
+}>;
 
 export interface ActivateDeliveryProfileSetParams {
   profileSet: DeliveryProfileSetSnapshot;
-  expectedProfileSetRevision: string | null;
   memberships: readonly DeliveryProfileAssignmentMembershipInput[];
 }
 
-export type ActivateDeliveryProfileSetResult =
-  | Readonly<{ status: "SAVED"; profileSet: DeliveryProfileSetSnapshot }>
-  | Readonly<{ status: "PROFILE_SET_REVISION_CONFLICT"; current: DeliveryProfileSetSnapshot }>;
+export type ActivateDeliveryProfileSetResult = Readonly<{
+  status: "SAVED";
+  profileSet: DeliveryProfileSetSnapshot;
+}>;
 
 export interface ConfigureDeliveryCustomizationParams {
   storeId: string;

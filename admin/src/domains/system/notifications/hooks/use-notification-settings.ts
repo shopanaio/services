@@ -13,15 +13,12 @@ import type {
   NotificationSettingsQueryData,
 } from "../graphql/operation-types";
 
-type ToggleableNotificationDefinition = Pick<
-  ApiNotificationDefinition,
-  "key" | "enabled" | "version"
->;
+type ToggleableNotificationDefinition = Pick<ApiNotificationDefinition, "key" | "enabled">;
 
 export function useNotificationSettings() {
   const [updatingKeys, setUpdatingKeys] = useState<ReadonlySet<string>>(() => new Set());
   const [definitionOverrides, setDefinitionOverrides] = useState<
-    ReadonlyMap<string, Pick<ApiNotificationDefinition, "enabled" | "version">>
+    ReadonlyMap<string, Pick<ApiNotificationDefinition, "enabled">>
   >(() => new Map());
   const query = useQuery<NotificationSettingsQueryData>(NOTIFICATION_SETTINGS_QUERY, {
     fetchPolicy: "cache-and-network",
@@ -38,7 +35,6 @@ export function useNotificationSettings() {
         const next = new Map(current);
         next.set(definition.key, {
           enabled,
-          version: definition.version + 1,
         });
         return next;
       });
@@ -57,7 +53,6 @@ export function useNotificationSettings() {
                 setting: {
                   definitionKey: definition.key,
                   enabled,
-                  version: definition.version + 1,
                   updatedAt: new Date().toISOString(),
                 },
                 userErrors: [],
@@ -84,7 +79,6 @@ export function useNotificationSettings() {
                       ? {
                           ...item,
                           enabled: setting.enabled,
-                          version: setting.version,
                         }
                       : item,
                   ),
@@ -106,7 +100,6 @@ export function useNotificationSettings() {
             const next = new Map(current);
             next.set(definition.key, {
               enabled: payload.setting.enabled,
-              version: payload.setting.version,
             });
             return next;
           });

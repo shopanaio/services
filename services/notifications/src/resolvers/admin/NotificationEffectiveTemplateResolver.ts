@@ -49,10 +49,6 @@ export class NotificationEffectiveTemplateResolver extends NotificationsType<
     return (await this.$get("revision")) ?? null;
   }
 
-  async pointerVersion() {
-    return (await this.$get("pointerVersion")) ?? null;
-  }
-
   async sourceVersion() {
     return (await this.$get("sourceVersion")) ?? null;
   }

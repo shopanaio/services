@@ -423,7 +423,6 @@ export interface ListOrderDeliveryFulfillmentOrdersResult {
 export interface GetOrderDeliveryShipmentPlanParams {
   storeId: string;
   fulfillmentOrderId: string;
-  expectedFulfillmentOrderRevision: number;
   lineItems:
     | readonly Readonly<{
         fulfillmentOrderLineItemId: string;

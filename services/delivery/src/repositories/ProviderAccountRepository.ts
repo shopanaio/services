@@ -47,10 +47,7 @@ export class ProviderAccountRepository
     return row?.snapshot ?? null;
   }
 
-  async save(
-    account: Delivery.DeliveryProviderAccountSnapshot,
-    expectedAccountRevision: number | null,
-  ) {
+  async save(account: Delivery.DeliveryProviderAccountSnapshot) {
     const values = {
       id: account.providerAccountId,
       organizationId: account.organizationId,
@@ -67,36 +64,20 @@ export class ProviderAccountRepository
       createdAt: account.createdAt,
       updatedAt: account.updatedAt,
     };
-    if (expectedAccountRevision === null) {
-      const inserted = await this.connection
-        .insert(providerAccounts)
-        .values(values)
-        .onConflictDoNothing()
-        .returning({ snapshot: providerAccounts.snapshot });
-      if (inserted.length > 0) return { status: "SAVED" as const, account };
-    } else {
-      const updated = await this.connection
-        .update(providerAccounts)
-        .set({
+    await this.connection
+      .insert(providerAccounts)
+      .values(values)
+      .onConflictDoUpdate({
+        target: providerAccounts.id,
+        set: {
           accountRevision: account.revision,
           supportedCountryCodes: account.supportedCountryCodes,
           supportedCurrencyCodes: account.supportedCurrencyCodes,
           supportedOperations: account.supportedOperations,
           snapshot: account,
           updatedAt: account.updatedAt,
-        })
-        .where(
-          and(
-            eq(providerAccounts.storeId, account.storeId),
-            eq(providerAccounts.id, account.providerAccountId),
-            eq(providerAccounts.accountRevision, expectedAccountRevision),
-          ),
-        )
-        .returning({ snapshot: providerAccounts.snapshot });
-      if (updated.length > 0) return { status: "SAVED" as const, account };
-    }
-    const current = await this.getById(account.storeId, account.providerAccountId);
-    if (!current) throw new Error("Provider account revision conflict without a current snapshot");
-    return { status: "REVISION_CONFLICT" as const, current };
+        },
+      });
+    return { status: "SAVED" as const, account };
   }
 }

@@ -121,7 +121,6 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
     data: CustomerExternalReferenceUpsertData,
     options: {
       existingReferenceId?: string;
-      expectedCustomerId?: string;
     } = {},
   ): Promise<CustomerExternalReference | null> {
     const now = new Date().toISOString();
@@ -150,9 +149,6 @@ export class CustomerExternalReferenceRepository extends BaseRepository {
             and(
               eq(customerExternalReference.storeId, this.storeId),
               eq(customerExternalReference.id, options.existingReferenceId),
-              options.expectedCustomerId
-                ? eq(customerExternalReference.customerId, options.expectedCustomerId)
-                : undefined,
               isNull(customerExternalReference.deletedAt),
             ),
           )

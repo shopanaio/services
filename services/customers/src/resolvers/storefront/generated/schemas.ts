@@ -120,7 +120,6 @@ export function CustomerComparisonVariantRemoveInputSchema(): z.ZodObject<Proper
 export function CustomerDataRequestCancelInputSchema(): z.ZodObject<Properties<CustomerDataRequestCancelInput>> {
   return z.object({
     dataRequestId: z.string(),
-    expectedUpdatedAt: z.string(),
     idempotencyKey: z.string()
   })
 }
@@ -194,7 +193,6 @@ export function WishlistCreateInputSchema(): z.ZodObject<Properties<WishlistCrea
 
 export function WishlistDeleteInputSchema(): z.ZodObject<Properties<WishlistDeleteInput>> {
   return z.object({
-    expectedUpdatedAt: z.string(),
     id: z.string(),
     idempotencyKey: z.string()
   })
@@ -217,7 +215,6 @@ export function WishlistProductRemoveInputSchema(): z.ZodObject<Properties<Wishl
 
 export function WishlistUpdateInputSchema(): z.ZodObject<Properties<WishlistUpdateInput>> {
   return z.object({
-    expectedUpdatedAt: z.string(),
     id: z.string(),
     idempotencyKey: z.string(),
     name: z.string()

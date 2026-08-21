@@ -1008,8 +1008,8 @@ inactive для отозванной session/token family. Dual-key grace period
 
 Root key material никогда не хранится в application database. Startup валидирует наличие текущей и
 всех еще используемых encryption key versions до открытия listener. Ротация root encryption key
-выполняется re-encryption job с optimistic locking; после нулевого count старого `key_version` он
-удаляется из active keyring отдельной операционной процедурой.
+выполняется re-encryption job; после нулевого count старого `key_version` он удаляется из active
+keyring отдельной операционной процедурой.
 
 ### 11.2. Cache invalidation
 

@@ -3,9 +3,8 @@ import type { Customer, CustomerConsent } from "../../repositories/models/index.
 import {
   failedCustomerMutation,
   internalStorefrontError,
-  revisionAcquireError,
+  customerAvailabilityError,
   storefrontError,
-  validateStorefrontExpectedRevision,
   type StorefrontCustomerMutationResult,
 } from "./types.js";
 
@@ -33,8 +32,6 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerMarketingConsentUpdateParams,
   ): Promise<StorefrontCustomerMarketingConsentUpdateResult> {
-    const revisionError = validateStorefrontExpectedRevision();
-    if (revisionError) return failed(revisionError);
     if (!isChannel(params.channel)) {
       return failed(storefrontError("INVALID_CHANNEL", "Unknown marketing channel", ["channel"]));
     }
@@ -63,9 +60,9 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
       );
     }
 
-    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
-    if (acquired.status !== "acquired") {
-      return failed(revisionAcquireError(acquired));
+    const revisionUpdate = await this.repository.customer.bumpActiveRevision(params.customerId);
+    if (revisionUpdate.status !== "updated") {
+      return failed(customerAvailabilityError(revisionUpdate));
     }
 
     const result = await this.repository.consent.set({
@@ -90,8 +87,8 @@ export class StorefrontCustomerMarketingConsentUpdateScript extends BaseScript<
     return {
       marketingConsent: { id: result.consent.id },
       customer: {
-        id: acquired.customer.id,
-        revision: acquired.customer.revision,
+        id: revisionUpdate.customer.id,
+        revision: revisionUpdate.customer.revision,
       },
       updatedReasons: ["consent"],
       userErrors: [],

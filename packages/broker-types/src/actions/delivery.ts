@@ -975,7 +975,6 @@ export interface ConfigureDeliveryProviderAccountResult {
 export interface SetDeliveryProviderCapabilityStatusParams {
   storeId: string;
   providerAccountId: string;
-  expectedAccountRevision: number;
   capability:
     typeof DELIVERY_CARRIER_SERVICE_CAPABILITY | typeof DELIVERY_SHIPMENT_PROVIDER_CAPABILITY;
   status: "ACTIVE" | "INACTIVE";
@@ -1047,7 +1046,6 @@ export interface ReleaseCheckoutDeliverySelectionsResult {
 export interface CreateDeliveryShipmentParams {
   storeId: string;
   fulfillmentOrderId: string;
-  expectedFulfillmentOrderRevision: number;
   /** Null means every currently remaining physical line; a subset creates a partial shipment. */
   lineItems:
     | readonly [DeliveryFulfillmentOrderLineItemInput, ...DeliveryFulfillmentOrderLineItemInput[]]
@@ -1076,7 +1074,6 @@ export type CreateDeliveryShipmentResult =
 export interface CancelDeliveryShipmentParams {
   storeId: string;
   shipmentId: string;
-  expectedShipmentRevision: number;
   reason: string | null;
   idempotencyKey: string;
   correlationId: string;
@@ -1085,7 +1082,6 @@ export interface CancelDeliveryShipmentParams {
 export interface ReconcileDeliveryShipmentParams {
   storeId: string;
   shipmentId: string;
-  expectedShipmentRevision: number;
   idempotencyKey: string;
   correlationId: string;
 }

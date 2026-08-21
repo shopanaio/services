@@ -66,8 +66,4 @@ export class NotificationDefinitionResolver extends NotificationsType<
   async variables() {
     return (await this.$get("definition")).variables.map(toGraphQLTemplateVariable);
   }
-
-  async version() {
-    return (await this.$get("setting"))?.version ?? 0;
-  }
 }

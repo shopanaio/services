@@ -1,6 +1,6 @@
 import type { CustomerUpdatedReason } from "@shopana/events";
 import type { UserError } from "../../kernel/BaseScript.js";
-import type { CustomerRevisionAcquireResult } from "../../repositories/customer/CustomerRepository.js";
+import type { CustomerRevisionBumpResult } from "../../repositories/customer/CustomerRepository.js";
 
 export interface StorefrontCustomerUserError extends UserError {
   code: string;
@@ -36,27 +36,10 @@ export function internalStorefrontError(): StorefrontCustomerUserError {
   );
 }
 
-export function validateStorefrontExpectedRevision(
-  value: number,
-): StorefrontCustomerUserError | null {
-  return Number.isSafeInteger(value) && value >= 1
-    ? null
-    : storefrontError("INVALID_REVISION", "Expected revision must be a positive safe integer", [
-        "expectedRevision",
-      ]);
-}
-
-export function revisionAcquireError(
-  result: Exclude<CustomerRevisionAcquireResult, { status: "acquired" }>,
+export function customerAvailabilityError(
+  result: Exclude<CustomerRevisionBumpResult, { status: "updated" }>,
 ): StorefrontCustomerUserError {
   switch (result.status) {
-    case "conflict":
-      return storefrontError(
-        "REVISION_CONFLICT",
-        "Customer was modified by another request",
-        ["expectedRevision"],
-        true,
-      );
     case "inactive":
     case "not_found":
       return storefrontError(

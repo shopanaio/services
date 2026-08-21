@@ -1522,7 +1522,6 @@ export const DeliveryLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       providerAccountId: identifierSchema,
-      expectedAccountRevision: nonNegativeIntegerSchema,
       capability: z.enum(["delivery.carrier-service", "delivery.shipment-provider"]),
       status: z.enum(["ACTIVE", "INACTIVE"]),
       idempotencyKey: idempotencyKeySchema,
@@ -1583,7 +1582,6 @@ export const DeliveryLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       fulfillmentOrderId: identifierSchema,
-      expectedFulfillmentOrderRevision: nonNegativeIntegerSchema,
       lineItems: z
         .array(
           z
@@ -1614,7 +1612,6 @@ export const DeliveryLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       shipmentId: identifierSchema,
-      expectedShipmentRevision: nonNegativeIntegerSchema,
       reason: z.string().trim().min(1).max(1_000).nullable(),
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
@@ -1625,7 +1622,6 @@ export const DeliveryLifecycleActionSchemas = {
     .object({
       storeId: identifierSchema,
       shipmentId: identifierSchema,
-      expectedShipmentRevision: nonNegativeIntegerSchema,
       idempotencyKey: idempotencyKeySchema,
       correlationId: correlationIdSchema,
     })

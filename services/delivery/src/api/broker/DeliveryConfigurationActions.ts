@@ -20,13 +20,11 @@ const saveSchema = z
     profile: DeliveryProfileSnapshotSchema.refine((profile) => profile.status === "INACTIVE", {
       message: "Only inactive profiles can be saved as drafts",
     }),
-    expectedProfileRevision: z.number().int().safe().positive().nullable(),
   })
   .strict();
 const activateSchema = z
   .object({
     profileSet: DeliveryProfileSetSnapshotSchema,
-    expectedProfileSetRevision: id.nullable(),
     memberships: z
       .array(
         z

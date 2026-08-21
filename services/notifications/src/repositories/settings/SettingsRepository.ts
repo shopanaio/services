@@ -60,7 +60,6 @@ export class SettingsRepository extends BaseRepository {
       .update(notificationDefinitionSettings)
       .set({
         enabled: input.enabled,
-        version: current.version + 1,
         updatedBy: input.updatedBy,
         updatedAt: new Date().toISOString(),
       })
@@ -71,8 +70,7 @@ export class SettingsRepository extends BaseRepository {
         ),
       )
       .returning();
-    if (!rows[0]) throw new Error("VERSION_CONFLICT");
-    return rows[0];
+    return rows[0]!;
   }
 
   async getChannelSetting(key: NotificationDefinitionKey, channel: NotificationChannel) {
@@ -156,7 +154,6 @@ export class SettingsRepository extends BaseRepository {
         senderName: input.senderName ?? current.senderName,
         senderEmail: input.senderEmail ?? current.senderEmail,
         replyTo: input.replyTo ?? current.replyTo,
-        version: current.version + 1,
         updatedAt: new Date().toISOString(),
       })
       .where(
@@ -167,7 +164,6 @@ export class SettingsRepository extends BaseRepository {
         ),
       )
       .returning();
-    if (!rows[0]) throw new Error("VERSION_CONFLICT");
-    return rows[0];
+    return rows[0]!;
   }
 }

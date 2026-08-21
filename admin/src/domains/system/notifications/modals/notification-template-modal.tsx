@@ -26,7 +26,6 @@ interface TemplateDraft {
   subject: string;
   body: string;
   plainText: string;
-  pointerVersion: number;
 }
 
 const TEMPLATE_CHANNELS = [NotificationChannel.Email, NotificationChannel.Sms] as const;
@@ -158,7 +157,6 @@ function toDraft(
     subject: template.subjectTemplate ?? "",
     body: template.bodyTemplate,
     plainText: template.plainTextTemplate ?? "",
-    pointerVersion: template.pointerVersion ?? 0,
   };
 }
 
@@ -166,8 +164,7 @@ function isSameDraft(left?: TemplateDraft, right?: TemplateDraft) {
   return (
     left?.subject === right?.subject &&
     left?.body === right?.body &&
-    left?.plainText === right?.plainText &&
-    left?.pointerVersion === right?.pointerVersion
+    left?.plainText === right?.plainText
   );
 }
 

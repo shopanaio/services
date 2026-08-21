@@ -85,7 +85,6 @@ export class CustomerMergeProcessScript extends BaseScript<
       errorMessage: null,
       transitionedAt: now,
       expectedStatuses: [current.status],
-      expectedUpdatedAt: current.updatedAt,
     });
     if (!updated) throw persistenceError(mergeId);
     return { mergeId, status: "IN_PROGRESS" };
@@ -234,7 +233,6 @@ export class CustomerMergeProcessScript extends BaseScript<
       errorMessage: null,
       transitionedAt: now,
       expectedStatuses: ["IN_PROGRESS"],
-      expectedUpdatedAt: current.updatedAt,
     });
     if (!completed) throw persistenceError(mergeId);
 
@@ -296,7 +294,6 @@ export class CustomerMergeProcessScript extends BaseScript<
       errorMessage: error.message,
       transitionedAt: now,
       expectedStatuses: [current.status],
-      expectedUpdatedAt: current.updatedAt,
     });
     if (!failed) throw persistenceError(mergeId);
     return {

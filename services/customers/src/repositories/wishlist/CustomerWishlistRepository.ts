@@ -44,11 +44,10 @@ export type CustomerWishlistItemConnectionInput = RelayPaginationInput & {
   wishlistId: string;
 };
 
-export type WishlistOptimisticMutationResult<T> =
+export type WishlistMutationResult<T> =
   | { status: "applied"; value: T }
   | { status: "not_found" }
   | { status: "name_taken" }
-  | { status: "conflict"; value: CustomerWishlist }
   | { status: "default_protected"; value: CustomerWishlist };
 
 export type WishlistCreateRepositoryResult =
@@ -279,18 +278,14 @@ export class CustomerWishlistRepository extends BaseRepository {
   async updateName(input: {
     customerId: string;
     wishlistId: string;
-    expectedUpdatedAt: string;
     name: string;
     normalizedName: string;
-  }): Promise<WishlistOptimisticMutationResult<CustomerWishlist>> {
+  }): Promise<WishlistMutationResult<CustomerWishlist>> {
     if (!(await this.lockActiveCustomer(input.customerId))) {
       return { status: "not_found" };
     }
     const current = await this.findById(input.customerId, input.wishlistId);
     if (!current) return { status: "not_found" };
-    if (!sameInstant(current.updatedAt, input.expectedUpdatedAt)) {
-      return { status: "conflict", value: current };
-    }
     if (current.name === input.name && current.normalizedName === input.normalizedName) {
       return { status: "applied", value: current };
     }
@@ -325,16 +320,14 @@ export class CustomerWishlistRepository extends BaseRepository {
       .returning();
     if (rows[0]) return { status: "applied", value: rows[0] };
 
-    const latest = await this.findById(input.customerId, input.wishlistId);
-    return latest ? { status: "conflict", value: latest } : { status: "not_found" };
+    return { status: "not_found" };
   }
 
   @Transactional()
   async delete(input: {
     customerId: string;
     wishlistId: string;
-    expectedUpdatedAt: string;
-  }): Promise<WishlistOptimisticMutationResult<CustomerWishlist>> {
+  }): Promise<WishlistMutationResult<CustomerWishlist>> {
     if (!(await this.lockActiveCustomer(input.customerId))) {
       return { status: "not_found" };
     }
@@ -354,9 +347,6 @@ export class CustomerWishlistRepository extends BaseRepository {
     if (!current) return { status: "not_found" };
     if (current.isDefault) {
       return { status: "default_protected", value: current };
-    }
-    if (!sameInstant(current.updatedAt, input.expectedUpdatedAt)) {
-      return { status: "conflict", value: current };
     }
 
     const deleted = await this.connection
@@ -580,10 +570,4 @@ function emptyConnection(): RepositoryConnectionResult {
     pageInfo: EMPTY_PAGE_INFO,
     totalCount: 0,
   };
-}
-
-function sameInstant(left: string, right: string): boolean {
-  const leftTime = Date.parse(left);
-  const rightTime = Date.parse(right);
-  return Number.isFinite(leftTime) && leftTime === rightTime;
 }

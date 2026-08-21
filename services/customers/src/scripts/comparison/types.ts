@@ -3,7 +3,6 @@ import type { UserError } from "../../kernel/BaseScript.js";
 export interface CustomerComparisonUserError extends UserError {
   code: string;
   retryable: boolean;
-  actualRevision?: number;
 }
 
 export interface CustomerComparisonMutationResult {
@@ -28,24 +27,4 @@ export function internalComparisonError(): CustomerComparisonUserError {
     undefined,
     true,
   );
-}
-
-export function validateExpectedRevision(value: number): CustomerComparisonUserError | null {
-  return Number.isSafeInteger(value) && value >= 0
-    ? null
-    : comparisonError("INVALID_REVISION", "Expected revision must be a non-negative safe integer", [
-        "expectedRevision",
-      ]);
-}
-
-export function revisionConflict(actualRevision: number): CustomerComparisonUserError {
-  return {
-    ...comparisonError(
-      "REVISION_CONFLICT",
-      `Comparison revision changed to ${actualRevision}`,
-      ["expectedRevision"],
-      true,
-    ),
-    actualRevision,
-  };
 }

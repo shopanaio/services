@@ -34,7 +34,7 @@ export class NotificationDefinitionSetEnabledScript extends BaseScript<
       "definition.setting.updated",
       "definition",
       params.key,
-      { enabled: params.enabled, version: setting.version },
+      { enabled: params.enabled },
     );
     return { setting, userErrors: [] };
   }

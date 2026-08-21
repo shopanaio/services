@@ -31,23 +31,6 @@ export class CheckoutOptionBindingRepository
       await tx.execute(
         sql`SELECT pg_advisory_xact_lock(hashtextextended(${`${input.storeId}:${input.checkoutId}:${input.targetCheckoutVersion}`}, 0))`,
       );
-      const [current] = await tx
-        .select({ deliveryRevision: checkoutOptionBindings.deliveryRevision })
-        .from(checkoutOptionBindings)
-        .where(
-          and(
-            eq(checkoutOptionBindings.storeId, input.storeId),
-            eq(checkoutOptionBindings.checkoutId, input.checkoutId),
-            eq(checkoutOptionBindings.targetCheckoutVersion, input.targetCheckoutVersion),
-          ),
-        )
-        .limit(1);
-      if (current && current.deliveryRevision !== input.deliveryRevision) {
-        return {
-          status: "REVISION_CONFLICT" as const,
-          currentDeliveryRevision: current.deliveryRevision,
-        };
-      }
       for (const candidate of input.options) {
         const idRows = await tx.execute<{ id: string }>(sql`SELECT uuidv7() AS id`);
         const id = idRows[0]?.id;

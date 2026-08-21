@@ -3,9 +3,8 @@ import { normalizeTaxIdentifier } from "../../repositories/tax/CustomerTaxIdenti
 import {
   failedCustomerMutation,
   internalStorefrontError,
-  revisionAcquireError,
+  customerAvailabilityError,
   storefrontError,
-  validateStorefrontExpectedRevision,
   type StorefrontCustomerMutationResult,
   type StorefrontCustomerUserError,
 } from "./types.js";
@@ -58,9 +57,9 @@ export class StorefrontCustomerTaxIdentifierCreateScript extends BaseScript<
     }
     if (errors.length > 0) return failedIdentifier(...errors);
 
-    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
-    if (acquired.status !== "acquired") {
-      return failedIdentifier(revisionAcquireError(acquired));
+    const revisionUpdate = await this.repository.customer.bumpActiveRevision(params.customerId);
+    if (revisionUpdate.status !== "updated") {
+      return failedIdentifier(customerAvailabilityError(revisionUpdate));
     }
     const identifier = await this.repository.taxIdentifier.create({
       customerId: params.customerId,
@@ -75,7 +74,11 @@ export class StorefrontCustomerTaxIdentifierCreateScript extends BaseScript<
       ["taxIdentifier"],
       "storefrontTaxIdentifierCreate",
     );
-    return successfulIdentifier(identifier.id, acquired.customer.id, acquired.customer.revision);
+    return successfulIdentifier(
+      identifier.id,
+      revisionUpdate.customer.id,
+      revisionUpdate.customer.revision,
+    );
   }
 
   protected handleError(_error: unknown): StorefrontCustomerTaxIdentifierCreateResult {
@@ -91,8 +94,6 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerTaxIdentifierUpdateParams,
   ): Promise<StorefrontCustomerTaxIdentifierUpdateResult> {
-    const revisionError = validateStorefrontExpectedRevision();
-    if (revisionError) return failedIdentifier(revisionError);
     const current = await this.repository.taxIdentifier.findOwnedById(
       params.customerId,
       params.taxIdentifierId,
@@ -121,9 +122,9 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
     }
     if (errors.length > 0) return failedIdentifier(...errors);
 
-    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
-    if (acquired.status !== "acquired") {
-      return failedIdentifier(revisionAcquireError(acquired));
+    const revisionUpdate = await this.repository.customer.bumpActiveRevision(params.customerId);
+    if (revisionUpdate.status !== "updated") {
+      return failedIdentifier(customerAvailabilityError(revisionUpdate));
     }
 
     const identityChanged =
@@ -147,7 +148,11 @@ export class StorefrontCustomerTaxIdentifierUpdateScript extends BaseScript<
       ["taxIdentifier"],
       "storefrontTaxIdentifierUpdate",
     );
-    return successfulIdentifier(updated.id, acquired.customer.id, acquired.customer.revision);
+    return successfulIdentifier(
+      updated.id,
+      revisionUpdate.customer.id,
+      revisionUpdate.customer.revision,
+    );
   }
 
   protected handleError(_error: unknown): StorefrontCustomerTaxIdentifierUpdateResult {
@@ -163,8 +168,6 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerTaxIdentifierDeleteParams,
   ): Promise<StorefrontCustomerTaxIdentifierDeleteResult> {
-    const revisionError = validateStorefrontExpectedRevision();
-    if (revisionError) return failedDelete(revisionError);
     if (
       !(await this.repository.taxIdentifier.findOwnedById(
         params.customerId,
@@ -176,9 +179,9 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
       );
     }
 
-    const acquired = await this.repository.customer.acquireActiveRevision(params.customerId);
-    if (acquired.status !== "acquired") {
-      return failedDelete(revisionAcquireError(acquired));
+    const revisionUpdate = await this.repository.customer.bumpActiveRevision(params.customerId);
+    if (revisionUpdate.status !== "updated") {
+      return failedDelete(customerAvailabilityError(revisionUpdate));
     }
     if (
       !(await this.repository.taxIdentifier.softDeleteOwned(
@@ -196,8 +199,8 @@ export class StorefrontCustomerTaxIdentifierDeleteScript extends BaseScript<
     return {
       deletedTaxIdentifierId: params.taxIdentifierId,
       customer: {
-        id: acquired.customer.id,
-        revision: acquired.customer.revision,
+        id: revisionUpdate.customer.id,
+        revision: revisionUpdate.customer.revision,
       },
       updatedReasons: ["taxIdentifier"],
       userErrors: [],
@@ -215,8 +218,6 @@ function validateIdentifier(
   value: string,
 ): StorefrontCustomerUserError[] {
   const errors: StorefrontCustomerUserError[] = [];
-  const revisionError = validateStorefrontExpectedRevision();
-  if (revisionError) errors.push(revisionError);
   if (!identifierType.trim() || [...identifierType.trim()].length > 64) {
     errors.push(
       storefrontError(

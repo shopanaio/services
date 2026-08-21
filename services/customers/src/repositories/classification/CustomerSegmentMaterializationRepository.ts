@@ -385,7 +385,6 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     readonly causeSequence: bigint;
     readonly sourceEventId?: string | null;
     readonly queueSequence?: bigint | null;
-    readonly expectedScheduleToken?: string | null;
   }): Promise<boolean> {
     if (input.storeContext.storeId !== this.storeId) {
       throw new Error("Segment evaluation cannot cross tenant boundary");
@@ -411,23 +410,6 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         ),
       )
       .for("update");
-
-    if (input.expectedScheduleToken) {
-      const schedules = await this.connection
-        .select({ scheduleToken: customerSegmentTemporalSchedule.scheduleToken })
-        .from(customerSegmentTemporalSchedule)
-        .where(
-          and(
-            eq(customerSegmentTemporalSchedule.storeId, this.storeId),
-            eq(customerSegmentTemporalSchedule.customerId, input.customerId),
-            eq(customerSegmentTemporalSchedule.segmentId, input.segment.id),
-          ),
-        )
-        .limit(1);
-      if (schedules[0]?.scheduleToken !== input.expectedScheduleToken) {
-        return false;
-      }
-    }
 
     // The segment state and customer predicate are deliberately read only
     // after the shared pair lock. Bulk, event and temporal workers therefore
@@ -906,14 +888,13 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
     return terminal;
   }
 
-  async deleteTemporal(id: string, scheduleToken: string): Promise<void> {
+  async deleteTemporal(id: string): Promise<void> {
     await this.connection
       .delete(customerSegmentTemporalSchedule)
       .where(
         and(
           eq(customerSegmentTemporalSchedule.storeId, this.storeId),
           eq(customerSegmentTemporalSchedule.id, id),
-          eq(customerSegmentTemporalSchedule.scheduleToken, scheduleToken),
         ),
       );
   }
@@ -936,7 +917,6 @@ export class CustomerSegmentMaterializationRepository extends BaseRepository {
         and(
           eq(customerSegmentTemporalSchedule.storeId, this.storeId),
           eq(customerSegmentTemporalSchedule.id, item.id),
-          eq(customerSegmentTemporalSchedule.scheduleToken, item.scheduleToken),
         ),
       );
     if (terminal) await this.failCurrentSegment(item, now);

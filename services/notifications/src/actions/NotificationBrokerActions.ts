@@ -208,7 +208,6 @@ export class NotificationBrokerActions extends BrokerActions {
       return active
         ? {
             source: "REVISION",
-            pointerVersion: active.pointerVersion,
             revision: active.revision,
           }
         : { source: "DEFAULT", revision: null };

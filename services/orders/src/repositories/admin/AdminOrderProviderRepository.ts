@@ -76,13 +76,11 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
               ? {
                   ...base,
                   paymentSessionId: payment.sessionId,
-                  expectedSessionRevision: payment.sessionRevision,
                   amount: paymentMoney(request.input.amount, payment.currencyCode, payment.amount),
                 }
               : {
                   ...base,
                   paymentSessionId: payment.sessionId,
-                  expectedSessionRevision: payment.sessionRevision,
                   reason: optionalString(request.input.reason),
                 },
         },
@@ -102,12 +100,10 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
               ? {
                   ...base,
                   paymentSessionId: payment.sessionId,
-                  expectedSessionRevision: payment.sessionRevision,
                 }
               : {
                   ...base,
                   paymentSessionId: payment.sessionId,
-                  expectedSessionRevision: payment.sessionRevision,
                   amount: paymentMoney(request.input.amount, payment.currencyCode),
                   reason: requiredString(request.input, "reasonCode"),
                 },
@@ -180,7 +176,6 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
           params: {
             ...base,
             paymentSessionId: payment.sessionId,
-            expectedSessionRevision: payment.sessionRevision,
             amount: paymentMoney(refund.amount, payment.currencyCode),
             reason: optionalString(refund.reasonCode) ?? "RETURN_RECEIVED",
           },
@@ -221,7 +216,6 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
           params: {
             ...base,
             fulfillmentOrderId: rows[0].fulfillmentOrderId,
-            expectedFulfillmentOrderRevision: rows[0].version,
             lineItems: [...quantities].map(([fulfillmentOrderLineItemId, quantity]) => ({
               fulfillmentOrderLineItemId,
               quantity,
@@ -252,7 +246,6 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
           params: {
             ...base,
             shipmentId: rows[0].providerShipmentId,
-            expectedShipmentRevision: rows[0].revision,
             ...(command === "shipmentCancel"
               ? { reason: requiredString(request.input, "reasonCode") }
               : {}),
@@ -282,7 +275,6 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
             ...base,
             idempotencyKey: `${key}:shipment:${shipment.shipmentId}`,
             shipmentId: shipment.shipmentId,
-            expectedShipmentRevision: shipment.revision,
             reason: requiredString(request.input, "reasonCode"),
           },
         });
@@ -356,7 +348,6 @@ export class AdminOrderProviderRepository extends AdminOrderCoreRepository {
             ...base,
             idempotencyKey: `${key}:payment`,
             paymentSessionId: payment.sessionId,
-            expectedSessionRevision: payment.sessionRevision,
             reason: requiredString(request.input, "reasonCode"),
             ...(refund
               ? {

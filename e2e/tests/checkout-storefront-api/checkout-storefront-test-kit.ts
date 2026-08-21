@@ -1,22 +1,22 @@
 /* eslint-disable @typescript-eslint/no-non-null-assertion, @typescript-eslint/array-type */
-import type { APIRequestContext } from '@playwright/test';
-import { expect } from '@playwright/test';
-import type { ApiFixtures } from '@fixtures/api/api';
-import { composeGlobalId, parseGlobalId } from '@utils/globalid';
-import postgres from 'postgres';
-import { installMailpitSmtp } from '@utils/mailpit';
-import { HeadlessTestKit, requiredCredentials } from '../headless-admin-api/headless-test-kit';
+import type { APIRequestContext } from "@playwright/test";
+import { expect } from "@playwright/test";
+import type { ApiFixtures } from "@fixtures/api/api";
+import { composeGlobalId, parseGlobalId } from "@utils/globalid";
+import postgres from "postgres";
+import { installMailpitSmtp } from "@utils/mailpit";
+import { HeadlessTestKit, requiredCredentials } from "../headless-admin-api/headless-test-kit";
 import {
   CustomersStorefrontTestKit,
   type StorefrontCustomer,
   type StorefrontRealm,
-} from '../customers-storefront-api/customers-storefront-test-kit';
+} from "../customers-storefront-api/customers-storefront-test-kit";
 import {
   LoyaltyStorefrontTestKit,
   type LoyaltyFixture,
-} from '../loyality-storefront-api/loyalty-storefront-test-kit';
+} from "../loyality-storefront-api/loyalty-storefront-test-kit";
 
-export type Api = ApiFixtures['api'];
+export type Api = ApiFixtures["api"];
 export type GraphQLResponse<T> = {
   data?: T | null;
   errors?: Array<{
@@ -35,7 +35,7 @@ export type CheckoutUserError = {
 
 export type ActionOverride = {
   action: string;
-  mode: 'PASS' | 'THROW' | 'RETURN' | 'THROW_AFTER';
+  mode: "PASS" | "THROW" | "RETURN" | "THROW_AFTER";
   result?: unknown;
 };
 
@@ -48,7 +48,7 @@ export type Checkout = {
   currencyCode: string;
   resultRevision: string;
   valid: boolean;
-  status: 'OPEN' | 'READY' | 'PLACED' | 'EXPIRED' | 'ABANDONED';
+  status: "OPEN" | "READY" | "PLACED" | "EXPIRED" | "ABANDONED";
   expiresAt: string;
   createdAt: string;
   updatedAt: string;
@@ -74,8 +74,8 @@ export type Checkout = {
   issues: Array<{
     code: string;
     message: string;
-    severity: 'WARNING' | 'ERROR';
-    effect: 'CONTINUE' | 'STOP';
+    severity: "WARNING" | "ERROR";
+    effect: "CONTINUE" | "STOP";
     field: string[];
     lineId: string | null;
     retryable: boolean;
@@ -83,7 +83,7 @@ export type Checkout = {
   notifications: Array<{
     id: string;
     code: string;
-    severity: 'INFO' | 'WARNING';
+    severity: "INFO" | "WARNING";
     isDismissed: boolean;
   }>;
   lines: CheckoutLine[];
@@ -103,7 +103,7 @@ export type Checkout = {
     recipient: Recipient | null;
     options: DeliveryOption[];
     selection: {
-      status: 'NONE' | 'SELECTED' | 'RESET';
+      status: "NONE" | "SELECTED" | "RESET";
       option: DeliveryOption | null;
       previousOptionHandle: string | null;
       resetReason: { code: string; message: string } | null;
@@ -116,11 +116,11 @@ export type Checkout = {
       code: string;
       title: string;
       providerCode: string;
-      flow: 'ONLINE' | 'OFFLINE' | 'ON_DELIVERY';
+      flow: "ONLINE" | "OFFLINE" | "ON_DELIVERY";
     }>;
     selection: {
-      status: 'NONE' | 'SELECTED' | 'RESET';
-      method: Checkout['payment']['methods'][number] | null;
+      status: "NONE" | "SELECTED" | "RESET";
+      method: Checkout["payment"]["methods"][number] | null;
       previousMethodHandle: string | null;
       resetReason: { code: string; message: string } | null;
     };
@@ -199,8 +199,8 @@ type DeliveryOption = {
   carrierCode: string | null;
 };
 
-export const USER_ERROR_FIELDS = 'field message code retryable';
-export const MONEY_FIELDS = 'amount currencyCode';
+export const USER_ERROR_FIELDS = "field message code retryable";
+export const MONEY_FIELDS = "amount currencyCode";
 export const CHECKOUT_FIELDS = `
   id channelCode localeCode currencyCode resultRevision valid status expiresAt createdAt updatedAt
   totalQuantity customerNote
@@ -290,18 +290,18 @@ export const CHECKOUT_FIELDS = `
 const DATABASE_URL =
   process.env.E2E_DATABASE_URL ??
   process.env.DATABASE_URL ??
-  'postgresql://postgres:postgres@localhost:15432/portal';
+  "postgresql://postgres:postgres@localhost:15432/portal";
 
 const ACTION_PROXY_URL =
   process.env.TEST_ACTION_PROXY_URL ??
-  `http://127.0.0.1:${process.env.TEST_ACTION_PROXY_PORT ?? '15000'}`;
+  `http://127.0.0.1:${process.env.TEST_ACTION_PROXY_PORT ?? "15000"}`;
 
 export class CheckoutStorefrontTestKit {
   readonly sql = postgres(DATABASE_URL, { max: 1 });
   readonly headless: HeadlessTestKit;
-  token = '';
+  token = "";
   visitorId = `visitor-${crypto.randomUUID()}`;
-  customerAccessToken = '';
+  customerAccessToken = "";
   customer: StorefrontCustomer | null = null;
   private customerKit: CustomersStorefrontTestKit | null = null;
   private loyaltyKit: LoyaltyStorefrontTestKit | null = null;
@@ -315,16 +315,16 @@ export class CheckoutStorefrontTestKit {
 
   async setup(): Promise<void> {
     await this.api.session.setupUserAndStore({
-      locales: ['en', 'uk'],
-      currencyCode: 'USD',
+      locales: ["en", "uk"],
+      currencyCode: "USD",
     });
     await this.headless.install();
-    const created = await this.headless.create('Checkout storefront e2e', crypto.randomUUID(), [
-      'storefront.catalog.read',
-      'storefront.customer.read',
-      'storefront.checkout.read',
-      'storefront.checkout.write',
-      'storefront.order.write',
+    const created = await this.headless.create("Checkout storefront e2e", crypto.randomUUID(), [
+      "storefront.catalog.read",
+      "storefront.customer.read",
+      "storefront.checkout.read",
+      "storefront.checkout.write",
+      "storefront.order.write",
     ]);
     expect(created.userErrors).toEqual([]);
     requiredCredentials(created.initialStorefrontCredentials);
@@ -345,11 +345,11 @@ export class CheckoutStorefrontTestKit {
     variables?: Record<string, unknown>,
     options: { token?: string; visitorId?: string; headers?: Record<string, string> } = {},
   ): Promise<GraphQLResponse<T>> {
-    const response = await this.request.post(requiredEnvironment('CLIENT_GRAPHQL_URL'), {
+    const response = await this.request.post(requiredEnvironment("CLIENT_GRAPHQL_URL"), {
       headers: {
-        'content-type': 'application/json',
-        'x-shopana-storefront-access-token': options.token ?? this.token,
-        'x-shopana-storefront-visitor-id': options.visitorId ?? this.visitorId,
+        "content-type": "application/json",
+        "x-shopana-storefront-access-token": options.token ?? this.token,
+        "x-shopana-storefront-visitor-id": options.visitorId ?? this.visitorId,
         ...(this.customerAccessToken
           ? { authorization: `Bearer ${this.customerAccessToken}` }
           : {}),
@@ -368,7 +368,7 @@ export class CheckoutStorefrontTestKit {
     let realm: StorefrontRealm | null = null;
     await expect
       .poll(async () => {
-        const [row] = await this.sql<Omit<StorefrontRealm, 'storeGlobalId' | 'storeName'>[]>`
+        const [row] = await this.sql<Omit<StorefrontRealm, "storeGlobalId" | "storeName">[]>`
           select storefront.application_id as "applicationId",
                  client.client_id as "clientId",
                  storefront.organization_id as "organizationId",
@@ -412,7 +412,7 @@ export class CheckoutStorefrontTestKit {
   }
 
   async fundLoyalty(
-    points = '1000',
+    points = "1000",
     versionOverrides: Record<string, unknown> = {},
   ): Promise<{
     fixture: LoyaltyFixture;
@@ -425,7 +425,7 @@ export class CheckoutStorefrontTestKit {
     loyalty.accessToken = this.customerAccessToken;
     loyalty.channelToken = this.token;
     const fixture = await loyalty.createActiveAccount(versionOverrides);
-    const adjusted = await loyalty.adjustPoints(fixture.account, 'CREDIT', points);
+    const adjusted = await loyalty.adjustPoints(fixture.account, "CREDIT", points);
     this.loyaltyKit = loyalty;
     return { fixture, balanceRevision: adjusted.account.balance.revision };
   }
@@ -436,7 +436,7 @@ export class CheckoutStorefrontTestKit {
     configuration: Record<string, unknown>,
     overrides: Record<string, unknown> = {},
   ): Promise<{ id: string; rawId: string; definitionId: string }> {
-    if (!this.loyaltyKit) throw new Error('fundLoyalty must be called before seedLoyaltyReward');
+    if (!this.loyaltyKit) throw new Error("fundLoyalty must be called before seedLoyaltyReward");
     return this.loyaltyKit.seedAvailableReward(fixture, rewardType, configuration, overrides);
   }
 
@@ -458,7 +458,7 @@ export class CheckoutStorefrontTestKit {
 
   get organizationId(): string {
     const id = this.api.session.organizationId;
-    if (!id) throw new Error('Checkout test session has no organization');
+    if (!id) throw new Error("Checkout test session has no organization");
     return this.rawId(id);
   }
 
@@ -485,15 +485,14 @@ export class CheckoutStorefrontTestKit {
     });
     expect(response.ok(), await response.text()).toBe(true);
     const body = (await response.json()) as
-      | { ok: true; result: T }
-      | { ok: false; error: { code: string; message: string } };
+      { ok: true; result: T } | { ok: false; error: { code: string; message: string } };
     expect(body.ok).toBe(true);
     if (!body.ok) throw new Error(`${body.error.code}: ${body.error.message}`);
     return body.result;
   }
 
   async withActionFault<T>(action: string, run: () => Promise<T>): Promise<T> {
-    return this.withActionOverrides([{ action, mode: 'THROW' }], run);
+    return this.withActionOverrides([{ action, mode: "THROW" }], run);
   }
 
   async withActionOverrides<T>(overrides: ActionOverride[], run: () => Promise<T>): Promise<T> {
@@ -527,8 +526,8 @@ export class CheckoutStorefrontTestKit {
     expect(response.ok(), await response.text()).toBe(true);
   }
 
-  async installApp(appCode: 'test-stripe' | 'test-fedex'): Promise<string> {
-    const { data } = await this.api.admin.mutation('apps-admin-api/AppInstall', {
+  async installApp(appCode: "test-stripe" | "test-fedex"): Promise<string> {
+    const { data } = await this.api.admin.mutation("apps-admin-api/AppInstall", {
       variables: {
         input: { appCode, clientMutationId: crypto.randomUUID() },
       },
@@ -544,23 +543,23 @@ export class CheckoutStorefrontTestKit {
         `;
         return row?.status;
       })
-      .toBe('ACTIVE');
+      .toBe("ACTIVE");
     return installationId;
   }
 
   async configurePaymentProvider(
-    enabledMethodKeys: string[] = ['card', 'card-3ds', 'bank-transfer', 'declined-card'],
+    enabledMethodKeys: string[] = ["card", "card-3ds", "bank-transfer", "declined-card"],
   ): Promise<{ installationId: string; providerAccountId: string }> {
-    const installationId = await this.installApp('test-stripe');
+    const installationId = await this.installApp("test-stripe");
     const configured = await this.callAction<{
       providerAccountId: string;
       workflowId: string;
-    }>('payments.configurePaymentProviderAccount', {
+    }>("payments.configurePaymentProviderAccount", {
       organizationId: this.organizationId,
       storeId: this.storeId,
       installationId,
-      mode: 'TEST',
-      captureMode: 'AUTOMATIC',
+      mode: "TEST",
+      captureMode: "AUTOMATIC",
       enabledMethodKeys,
       idempotencyKey: crypto.randomUUID(),
       correlationId: crypto.randomUUID(),
@@ -573,7 +572,7 @@ export class CheckoutStorefrontTestKit {
         `;
         return row?.status;
       })
-      .toBe('READY');
+      .toBe("READY");
     await this.sql`
       update payments.provider_account set status = 'ACTIVE', updated_at = now()
       where id = ${configured.providerAccountId}
@@ -583,7 +582,7 @@ export class CheckoutStorefrontTestKit {
 
   async setPaymentProviderStatus(
     providerAccountId: string,
-    status: 'ACTIVE' | 'INACTIVE',
+    status: "ACTIVE" | "INACTIVE",
   ): Promise<void> {
     const rows = await this.sql`
       update payments.provider_account set status = ${status}, updated_at = now()
@@ -595,37 +594,37 @@ export class CheckoutStorefrontTestKit {
 
   async createDiscount(
     options: {
-      kind?: 'AMOUNT_OFF_PRODUCTS' | 'AMOUNT_OFF_ORDER';
-      method?: 'AUTOMATIC' | 'CODE';
+      kind?: "AMOUNT_OFF_PRODUCTS" | "AMOUNT_OFF_ORDER";
+      method?: "AUTOMATIC" | "CODE";
       amountMinor?: string;
       percentageBps?: number;
       code?: string;
-      state?: 'ACTIVE' | 'DRAFT' | 'PAUSED';
+      state?: "ACTIVE" | "DRAFT" | "PAUSED";
       minimumSubtotalMinor?: string;
       usageLimit?: string;
       title?: string;
     } = {},
   ): Promise<string> {
-    const kind = options.kind ?? 'AMOUNT_OFF_ORDER';
-    const method = options.method ?? 'AUTOMATIC';
-    const { data } = await this.api.admin.mutation('pricing-admin-api/DiscountCreate', {
+    const kind = options.kind ?? "AMOUNT_OFF_ORDER";
+    const method = options.method ?? "AUTOMATIC";
+    const { data } = await this.api.admin.mutation("pricing-admin-api/DiscountCreate", {
       variables: {
         input: {
           method,
           kind,
-          state: options.state ?? 'ACTIVE',
+          state: options.state ?? "ACTIVE",
           title: options.title ?? `Checkout discount ${crypto.randomUUID().slice(0, 8)}`,
-          currency: 'USD',
+          currency: "USD",
           schedule: { startsAt: new Date(Date.now() - 60_000).toISOString() },
           usage: { usageLimit: options.usageLimit ?? null, appliesOncePerCustomer: false },
           purchaseModes: { appliesOnOneTimePurchase: true, appliesOnSubscription: false },
           rule: {
             amountOff: {
-              operation: 'DECREASE',
-              allocationMethod: 'ACROSS',
-              valueType: options.percentageBps === undefined ? 'FIXED_AMOUNT' : 'PERCENTAGE',
+              operation: "DECREASE",
+              allocationMethod: "ACROSS",
+              valueType: options.percentageBps === undefined ? "FIXED_AMOUNT" : "PERCENTAGE",
               amountMinor:
-                options.percentageBps === undefined ? (options.amountMinor ?? '100') : null,
+                options.percentageBps === undefined ? (options.amountMinor ?? "100") : null,
               percentageBps: options.percentageBps ?? null,
             },
           },
@@ -633,17 +632,17 @@ export class CheckoutStorefrontTestKit {
             options.minimumSubtotalMinor === undefined
               ? null
               : {
-                  requirementType: 'SUBTOTAL',
+                  requirementType: "SUBTOTAL",
                   subtotalMinor: options.minimumSubtotalMinor,
                 },
-          ...(kind === 'AMOUNT_OFF_PRODUCTS'
+          ...(kind === "AMOUNT_OFF_PRODUCTS"
             ? {
-                targetSelections: [{ role: 'BENEFIT', targetType: 'ALL_PRODUCTS', targetIds: [] }],
+                targetSelections: [{ role: "BENEFIT", targetType: "ALL_PRODUCTS", targetIds: [] }],
               }
             : {}),
-          ...(method === 'CODE'
+          ...(method === "CODE"
             ? {
-                codes: [{ code: options.code ?? 'SAVE100', clientMutationId: crypto.randomUUID() }],
+                codes: [{ code: options.code ?? "SAVE100", clientMutationId: crypto.randomUUID() }],
               }
             : {}),
         },
@@ -657,7 +656,7 @@ export class CheckoutStorefrontTestKit {
 
   async create(
     overrides: Record<string, unknown> = {},
-    options: Parameters<CheckoutStorefrontTestKit['graphql']>[2] = {},
+    options: Parameters<CheckoutStorefrontTestKit["graphql"]>[2] = {},
   ): Promise<{ checkout: Checkout | null; userErrors: CheckoutUserError[] }> {
     const response = await this.graphql<{
       checkoutCreate: { checkout: Checkout | null; userErrors: CheckoutUserError[] };
@@ -667,9 +666,9 @@ export class CheckoutStorefrontTestKit {
       }`,
       {
         input: {
-          channelCode: 'online-store',
-          localeCode: 'en',
-          currencyCode: 'USD',
+          channelCode: "online-store",
+          localeCode: "en",
+          currencyCode: "USD",
           items: [],
           ...overrides,
         },
@@ -682,7 +681,7 @@ export class CheckoutStorefrontTestKit {
 
   async read(
     id: string,
-    options: Parameters<CheckoutStorefrontTestKit['graphql']>[2] = {},
+    options: Parameters<CheckoutStorefrontTestKit["graphql"]>[2] = {},
   ): Promise<Checkout | null> {
     const response = await this.graphql<{ checkout: Checkout | null }>(
       `query Checkout($id: ID!) { checkout(id: $id) { ${CHECKOUT_FIELDS} } }`,
@@ -697,7 +696,7 @@ export class CheckoutStorefrontTestKit {
     field: string,
     inputType: string,
     input: Record<string, unknown>,
-    options: Parameters<CheckoutStorefrontTestKit['graphql']>[2] = {},
+    options: Parameters<CheckoutStorefrontTestKit["graphql"]>[2] = {},
   ): Promise<{ checkout: Checkout | null; userErrors: CheckoutUserError[] }> {
     const response = await this.graphql<{
       payload: { checkout: Checkout | null; userErrors: CheckoutUserError[] };
@@ -795,7 +794,7 @@ export class CheckoutStorefrontTestKit {
     options: {
       price?: number;
       title?: string;
-      status?: 'DRAFT' | 'PUBLISHED';
+      status?: "DRAFT" | "PUBLISHED";
       requiresShipping?: boolean;
       stock?: number;
     } = {},
@@ -803,9 +802,9 @@ export class CheckoutStorefrontTestKit {
     const product = await this.api.admin.product.createWithOptions({
       title: options.title ?? `Checkout product ${crypto.randomUUID().slice(0, 8)}`,
       handle: `checkout-product-${crypto.randomUUID().slice(0, 12)}`,
-      status: options.status ?? 'PUBLISHED',
+      status: options.status ?? "PUBLISHED",
       price: options.price ?? 1_000,
-      options: [{ name: 'Option', values: ['Default'] }],
+      options: [{ name: "Option", values: ["Default"] }],
     });
     const variant = product.variants.edges[0]?.node;
     expect(variant).toBeTruthy();
@@ -814,12 +813,12 @@ export class CheckoutStorefrontTestKit {
       let stock: { warehouseId: string; onHand: number } | undefined;
       if (options.stock !== undefined) {
         const { data: warehouseData } = await this.api.admin.mutation(
-          'inventory-api/WarehouseCreate',
+          "inventory-api/WarehouseCreate",
           {
             variables: {
               input: {
                 code: `stock-${crypto.randomUUID().slice(0, 8)}`,
-                name: 'Checkout stock location',
+                name: "Checkout stock location",
                 isDefault: true,
               },
             },
@@ -830,7 +829,7 @@ export class CheckoutStorefrontTestKit {
         expect(warehouse.warehouse).not.toBeNull();
         stock = { warehouseId: warehouse.warehouse!.id, onHand: options.stock };
       }
-      const { data } = await this.api.admin.mutation('inventory-api/VariantSetStock', {
+      const { data } = await this.api.admin.mutation("inventory-api/VariantSetStock", {
         variables: {
           input: {
             id: variant!.inventoryItem!.id,
@@ -848,15 +847,15 @@ export class CheckoutStorefrontTestKit {
   async configureDelivery(
     options: {
       carrier?: boolean;
-      methodTypes?: Array<'SHIPPING' | 'PICK_UP' | 'PICKUP_POINT' | 'LOCAL' | 'RETAIL'>;
-      failureMode?: 'OMIT_PROVIDER_RATES' | 'FAIL_GROUP';
+      methodTypes?: Array<"SHIPPING" | "PICK_UP" | "PICKUP_POINT" | "LOCAL" | "RETAIL">;
+      failureMode?: "OMIT_PROVIDER_RATES" | "FAIL_GROUP";
     } = {},
   ): Promise<{ warehouseId: string; providerAccountId: string | null }> {
-    const { data } = await this.api.admin.mutation('inventory-api/WarehouseCreate', {
+    const { data } = await this.api.admin.mutation("inventory-api/WarehouseCreate", {
       variables: {
         input: {
           code: `checkout-${crypto.randomUUID().slice(0, 8)}`,
-          name: 'Checkout fulfillment location',
+          name: "Checkout fulfillment location",
           isDefault: true,
         },
       },
@@ -874,15 +873,15 @@ export class CheckoutStorefrontTestKit {
 
     let providerAccountId: string | null = null;
     if (options.carrier) {
-      const installationId = await this.installApp('test-fedex');
+      const installationId = await this.installApp("test-fedex");
       const configured = await this.callAction<{ providerAccountId: string }>(
-        'delivery.configureDeliveryProviderAccount',
+        "delivery.configureDeliveryProviderAccount",
         {
           organizationId: this.organizationId,
           storeId: this.storeId,
           installationId,
-          enabledCapabilities: ['delivery.carrier-service'],
-          mode: 'TEST',
+          enabledCapabilities: ["delivery.carrier-service"],
+          mode: "TEST",
           idempotencyKey: crypto.randomUUID(),
           correlationId: crypto.randomUUID(),
         },
@@ -910,7 +909,7 @@ export class CheckoutStorefrontTestKit {
 
     const now = new Date().toISOString();
     const profileId = crypto.randomUUID();
-    const methodTypes = options.methodTypes ?? ['SHIPPING'];
+    const methodTypes = options.methodTypes ?? ["SHIPPING"];
     const methods: Array<Record<string, unknown>> = methodTypes.map(
       (deliveryMethodType, index) => ({
         methodDefinitionId: crypto.randomUUID(),
@@ -920,10 +919,10 @@ export class CheckoutStorefrontTestKit {
         active: true,
         deliveryMethodType,
         rateSource: {
-          type: 'MANUAL' as const,
-          price: { amountMinor: String(500 + index * 100), currencyCode: 'USD' },
+          type: "MANUAL" as const,
+          price: { amountMinor: String(500 + index * 100), currencyCode: "USD" },
         },
-        conditions: { match: 'ALL' as const, conditions: [] },
+        conditions: { match: "ALL" as const, conditions: [] },
         metadata: null,
         revision: 1,
       }),
@@ -931,18 +930,18 @@ export class CheckoutStorefrontTestKit {
     if (providerAccountId) {
       methods.push({
         methodDefinitionId: crypto.randomUUID(),
-        code: 'test-fedex',
-        title: 'FedEx Test',
+        code: "test-fedex",
+        title: "FedEx Test",
         description: null,
         active: true,
-        deliveryMethodType: 'SHIPPING',
+        deliveryMethodType: "SHIPPING",
         rateSource: {
-          type: 'CARRIER_SERVICE',
+          type: "CARRIER_SERVICE",
           carrierServiceAccountIds: [providerAccountId],
           allowedServiceCodes: [],
           backupRate: null,
         },
-        conditions: { match: 'ALL' as const, conditions: [] },
+        conditions: { match: "ALL" as const, conditions: [] },
         metadata: null,
         revision: 1,
       });
@@ -950,19 +949,19 @@ export class CheckoutStorefrontTestKit {
     const profileSet = {
       organizationId: this.organizationId,
       storeId: this.storeId,
-      currencyCode: 'USD',
-      assignmentResolution: 'SELLING_PLAN_THEN_VARIANT_THEN_DEFAULT',
+      currencyCode: "USD",
+      assignmentResolution: "SELLING_PLAN_THEN_VARIANT_THEN_DEFAULT",
       revision: `delivery-profile-${crypto.randomUUID()}`,
       profiles: [
         {
           profileId,
           organizationId: this.organizationId,
           storeId: this.storeId,
-          name: 'Checkout default delivery profile',
-          status: 'ACTIVE',
+          name: "Checkout default delivery profile",
+          status: "ACTIVE",
           isDefault: true,
           assignment: {
-            scope: 'ALL_UNASSIGNED',
+            scope: "ALL_UNASSIGNED",
             assignmentSetId: null,
             assignmentRevision: null,
             variantCount: 0,
@@ -971,30 +970,30 @@ export class CheckoutStorefrontTestKit {
           locationGroups: [
             {
               locationGroupId: crypto.randomUUID(),
-              name: 'Default locations',
+              name: "Default locations",
               sender: {
-                firstName: 'Shopana',
+                firstName: "Shopana",
                 middleName: null,
-                lastName: 'Test',
+                lastName: "Test",
                 company: null,
                 email: null,
-                phone: '+380501234567',
+                phone: "+380501234567",
               },
               fulfillmentLocationIds: [warehouseId],
               zones: [
                 {
                   zone: {
                     zoneId: crypto.randomUUID(),
-                    name: 'Ukraine',
+                    name: "Ukraine",
                     priority: 0,
                     territories: [
                       {
-                        scope: 'COUNTRY',
-                        countryCode: 'UA',
+                        scope: "COUNTRY",
+                        countryCode: "UA",
                         provinceCodes: [],
                         postalCodeRuleSet: {
                           schemaVersion: 1,
-                          normalization: 'UPPERCASE_REMOVE_ASCII_WHITESPACE',
+                          normalization: "UPPERCASE_REMOVE_ASCII_WHITESPACE",
                           rules: [],
                         },
                       },
@@ -1007,7 +1006,7 @@ export class CheckoutStorefrontTestKit {
               revision: 1,
             },
           ],
-          failurePolicy: { mode: options.failureMode ?? 'OMIT_PROVIDER_RATES' },
+          failurePolicy: { mode: options.failureMode ?? "OMIT_PROVIDER_RATES" },
           revision: 1,
           createdAt: now,
           updatedAt: now,
@@ -1015,14 +1014,13 @@ export class CheckoutStorefrontTestKit {
       ],
     };
     const activated = await this.callAction<{ status: string }>(
-      'delivery.activateDeliveryProfileSet',
+      "delivery.activateDeliveryProfileSet",
       {
         profileSet,
-        expectedProfileSetRevision: null,
         memberships: [],
       },
     );
-    expect(activated.status).toBe('SAVED');
+    expect(activated.status).toBe("SAVED");
     return { warehouseId, providerAccountId };
   }
 }

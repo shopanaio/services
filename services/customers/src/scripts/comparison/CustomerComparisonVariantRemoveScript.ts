@@ -2,8 +2,6 @@ import { BaseScript } from "../../kernel/BaseScript.js";
 import {
   comparisonError,
   internalComparisonError,
-  revisionConflict,
-  validateExpectedRevision,
   type CustomerComparisonMutationResult,
 } from "./types.js";
 
@@ -19,9 +17,6 @@ export class CustomerComparisonVariantRemoveScript extends BaseScript<
   protected async execute(
     params: CustomerComparisonVariantRemoveParams,
   ): Promise<CustomerComparisonMutationResult> {
-    const revisionError = validateExpectedRevision();
-    if (revisionError) return failed(revisionError);
-
     const result = await this.repository.comparison.removeVariant(params);
     switch (result.status) {
       case "applied":
@@ -38,8 +33,6 @@ export class CustomerComparisonVariantRemoveScript extends BaseScript<
             ["variantId"],
           ),
         );
-      case "conflict":
-        return failed(revisionConflict(result.actualRevision));
       case "customer_not_found":
         return failed(comparisonError("CUSTOMER_NOT_FOUND", "Customer was not found"));
     }

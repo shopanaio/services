@@ -33,7 +33,7 @@ type Customer @key(fields: "id") {
   """
   id: ID!
   """
-  Revision used for optimistic concurrency on customer-owned writes.
+  Monotonic aggregate revision for diagnostics and change tracking.
   """
   revision: Int!
   """
@@ -179,8 +179,4 @@ type CustomerUserError implements DisplayableError {
   message: String!
   code: String!
   retryable: Boolean!
-  """
-  Current comparison revision when code is REVISION_CONFLICT.
-  """
-  actualRevision: Int
 }

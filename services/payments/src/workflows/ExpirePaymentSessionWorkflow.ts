@@ -30,7 +30,7 @@ export class ExpirePaymentSessionWorkflow extends BrokerWorkflows<
       ["REQUIRES_ACTION", "REQUIRES_CONFIRMATION", "PENDING"].includes(current.session.state)
     ) {
       try {
-        await this.cancelProvider(input, current.session.revision);
+        await this.cancelProvider(input);
         current = await this.load(input.storeId, input.paymentSessionId);
         if (current.session.state === "CANCELLED") {
           const operation = current.operations.at(-1);
@@ -47,11 +47,7 @@ export class ExpirePaymentSessionWorkflow extends BrokerWorkflows<
         if (!isUnsupportedCancellation(error)) throw error;
       }
     }
-    const expireInput =
-      current.session.revision === input.expectedSessionRevision
-        ? input
-        : { ...input, expectedSessionRevision: current.session.revision };
-    const expired = await this.expire(expireInput);
+    const expired = await this.expire(input);
     await this.publish(input, expired.operation.operationId);
     return {
       paymentCollectionId: expired.collection.paymentCollectionId,
@@ -72,7 +68,7 @@ export class ExpirePaymentSessionWorkflow extends BrokerWorkflows<
     return this.lifecycle.getSession({ storeId, paymentSessionId });
   }
 
-  private cancelProvider(input: Payments.ExpirePaymentParams, expectedSessionRevision: number) {
+  private cancelProvider(input: Payments.ExpirePaymentParams) {
     return this.broker.runWorkflow<Payments.PaymentOperationAcceptedResult>(
       "payments.executeOperation",
       {
@@ -80,7 +76,6 @@ export class ExpirePaymentSessionWorkflow extends BrokerWorkflows<
         params: {
           storeId: input.storeId,
           paymentSessionId: input.paymentSessionId,
-          expectedSessionRevision,
           reason: input.reason,
           idempotencyKey: `${input.idempotencyKey}:provider-cancel`,
           correlationId: input.correlationId,

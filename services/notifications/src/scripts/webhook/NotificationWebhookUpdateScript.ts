@@ -31,7 +31,7 @@ export class NotificationWebhookUpdateScript extends BaseScript<
       "webhook.updated",
       "webhook",
       params.id,
-      { version: webhook.version, status: webhook.status },
+      { status: webhook.status },
     );
     return { webhook, userErrors: [] };
   }

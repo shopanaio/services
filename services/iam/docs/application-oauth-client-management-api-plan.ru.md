@@ -194,7 +194,6 @@ Update разрешает менять только:
 - `skipConsent` для подтвержденного first-party client;
 - `enableEndSession`;
 - environment в пределах URI policy;
-- expected `revision` для optimistic concurrency.
 
 Update запрещает менять:
 
@@ -461,7 +460,6 @@ refresh/access token или session token.
 - client type нельзя изменить;
 - first-party policy не разрешает `skipConsent`;
 - client disabled/archived;
-- optimistic concurrency conflict;
 - rotation запрошена для public client;
 - достигнут лимит clients или URI.
 
@@ -582,7 +580,7 @@ application session на этапе административного созд�
 - wildcard, fragment, userinfo и production HTTP redirect отклоняются;
 - localhost HTTP разрешается только development policy;
 - disabled/archived client не проходит authorize/token flow;
-- optimistic concurrency предотвращает lost update;
+- write mutations применяют изменения к текущему состоянию после проверки scope и domain invariants;
 - application user session не вызывает client-management endpoints;
 - Dynamic Client Registration и неизвестные management paths возвращают `404`;
 - authorize/code exchange/refresh с missing, duplicate или foreign resource отклоняются

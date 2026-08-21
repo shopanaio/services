@@ -51,8 +51,7 @@ export type CustomerDataRequestConnectionInput = CustomerDataRequestRelayInput &
 export type CustomerDataRequestCancelResult =
   | { status: "cancelled"; dataRequest: CustomerDataRequest }
   | { status: "not_found" }
-  | { status: "invalid_state" }
-  | { status: "conflict"; actualUpdatedAt: string };
+  | { status: "invalid_state" };
 
 export type CustomerMergeCreateData = Omit<
   NewCustomerMerge,
@@ -207,7 +206,6 @@ export class CustomerLifecycleRepository extends BaseRepository {
       errorMessage?: string | null;
       transitionedAt?: string;
       expectedStatuses?: readonly CustomerMerge["status"][];
-      expectedUpdatedAt?: string;
     },
   ): Promise<CustomerMerge | null> {
     const now = input.transitionedAt ?? new Date().toISOString();
@@ -228,9 +226,6 @@ export class CustomerLifecycleRepository extends BaseRepository {
           eq(customerMerge.id, id),
           input.expectedStatuses
             ? inArray(customerMerge.status, [...input.expectedStatuses])
-            : undefined,
-          input.expectedUpdatedAt
-            ? eq(customerMerge.updatedAt, input.expectedUpdatedAt)
             : undefined,
         ),
       )
@@ -301,7 +296,6 @@ export class CustomerLifecycleRepository extends BaseRepository {
       requestMetadata?: Record<string, unknown>;
       transitionedAt?: string;
       expectedStatuses?: readonly CustomerDataRequest["status"][];
-      expectedUpdatedAt?: string;
     },
   ): Promise<CustomerDataRequest | null> {
     const now = input.transitionedAt ?? new Date().toISOString();
@@ -323,9 +317,6 @@ export class CustomerLifecycleRepository extends BaseRepository {
           eq(customerDataRequest.id, id),
           input.expectedStatuses
             ? inArray(customerDataRequest.status, [...input.expectedStatuses])
-            : undefined,
-          input.expectedUpdatedAt
-            ? eq(customerDataRequest.updatedAt, input.expectedUpdatedAt)
             : undefined,
         ),
       )
@@ -374,7 +365,6 @@ export class CustomerLifecycleRepository extends BaseRepository {
   async cancelOwnedDataRequest(input: {
     customerId: string;
     id: string;
-    expectedUpdatedAt: string;
   }): Promise<CustomerDataRequestCancelResult> {
     const now = new Date().toISOString();
     const rows = await this.connection
@@ -391,7 +381,6 @@ export class CustomerLifecycleRepository extends BaseRepository {
           eq(customerDataRequest.customerId, input.customerId),
           eq(customerDataRequest.id, input.id),
           eq(customerDataRequest.status, "PENDING"),
-          eq(customerDataRequest.updatedAt, input.expectedUpdatedAt),
         ),
       )
       .returning();
@@ -399,8 +388,7 @@ export class CustomerLifecycleRepository extends BaseRepository {
 
     const current = await this.findOwnedDataRequestById(input.customerId, input.id);
     if (!current) return { status: "not_found" };
-    if (current.status !== "PENDING") return { status: "invalid_state" };
-    return { status: "conflict", actualUpdatedAt: current.updatedAt };
+    return { status: "invalid_state" };
   }
 
   async deleteDataRequest(id: string): Promise<boolean> {

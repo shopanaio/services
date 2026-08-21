@@ -9,7 +9,7 @@ import type { NotificationItemConfig, NotificationSectionConfig } from "../const
 
 type NotificationDefinitionSummary = Pick<
   ApiNotificationDefinition,
-  "key" | "enabled" | "version" | "allowedChannels" | "variables"
+  "key" | "enabled" | "allowedChannels" | "variables"
 >;
 
 const useStyles = createStyles(({ css, token }) => ({

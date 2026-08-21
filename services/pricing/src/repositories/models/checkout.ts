@@ -22,10 +22,8 @@ export const checkoutPreliminaryQuote = pricingSchema.table(
     unique("checkout_preliminary_quote_attempt_unique").on(
       table.storeId,
       table.checkoutId,
-      table.basedOnCheckoutVersion,
       table.executionId,
     ),
-    check("checkout_preliminary_quote_version_check", sql`${table.basedOnCheckoutVersion} >= 0`),
     check(
       "checkout_preliminary_quote_payload_check",
       sql`jsonb_typeof(${table.payload}) = 'object'`,
@@ -62,10 +60,8 @@ export const checkoutFinalQuote = pricingSchema.table(
     unique("checkout_final_quote_attempt_unique").on(
       table.storeId,
       table.checkoutId,
-      table.basedOnCheckoutVersion,
       table.executionId,
     ),
-    check("checkout_final_quote_version_check", sql`${table.basedOnCheckoutVersion} >= 0`),
     check("checkout_final_quote_payload_check", sql`jsonb_typeof(${table.payload}) = 'object'`),
     check("checkout_final_quote_text_check", sql`length(${table.requestDigest}) > 0`),
     index("checkout_final_quote_checkout_created_idx").on(

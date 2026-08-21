@@ -12,7 +12,6 @@ const ERROR_MESSAGES: Readonly<Record<string, string>> = {
   STAFF_RECIPIENT_NOT_FOUND: "Staff notification recipient was not found",
   UNSUPPORTED_WEBHOOK_API_VERSION: "Webhook API version is not supported",
   UNSUPPORTED_WEBHOOK_EVENT: "Webhook event is not supported",
-  VERSION_CONFLICT: "The resource was changed by another request",
   WEBHOOK_NOT_FOUND: "Webhook subscription was not found",
   WEBHOOK_SIGNING_SECRET_NOT_FOUND: "Webhook signing secret was not found",
 };
@@ -27,7 +26,6 @@ const ERROR_FIELDS: Readonly<Record<string, string[]>> = {
   STAFF_RECIPIENT_NOT_FOUND: ["id"],
   UNSUPPORTED_WEBHOOK_API_VERSION: ["apiVersion"],
   UNSUPPORTED_WEBHOOK_EVENT: ["eventType"],
-  VERSION_CONFLICT: ["expectedVersion"],
   WEBHOOK_NOT_FOUND: ["id"],
 };
 

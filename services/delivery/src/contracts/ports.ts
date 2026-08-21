@@ -237,17 +237,7 @@ export interface DeliveryProviderAccountsPort {
   ): Promise<Delivery.DeliveryProviderAccountSnapshot | null>;
   save(
     account: Delivery.DeliveryProviderAccountSnapshot,
-    expectedAccountRevision: number | null,
-  ): Promise<
-    | Readonly<{
-        status: "SAVED";
-        account: Delivery.DeliveryProviderAccountSnapshot;
-      }>
-    | Readonly<{
-        status: "REVISION_CONFLICT";
-        current: Delivery.DeliveryProviderAccountSnapshot;
-      }>
-  >;
+  ): Promise<Readonly<{ status: "SAVED"; account: Delivery.DeliveryProviderAccountSnapshot }>>;
 }
 
 export interface DeliveryProviderAccountTransitionPolicyPort {
@@ -406,10 +396,6 @@ export interface DeliveryOptionBindingsPort {
         status: "STALE_CHECKOUT_VERSION";
         currentCheckoutVersion: number;
       }>
-    | Readonly<{
-        status: "REVISION_CONFLICT";
-        currentDeliveryRevision: string;
-      }>
   >;
   resolve(
     input: Readonly<{
@@ -499,7 +485,6 @@ export interface DeliveryAtomicMutationRecord {
   mutationId: string;
   cause: "COMMAND" | "PROVIDER_COMPLETION" | "PROVIDER_EVENT" | "RECONCILIATION";
   storeId: string;
-  expectedShipmentRevision: number | null;
   idempotency: Delivery.DeliveryIdempotencySnapshot;
   shipment: Delivery.DeliveryShipmentSnapshot;
   operation: Delivery.DeliveryShipmentOperationSnapshot | null;
@@ -511,10 +496,9 @@ export interface DeliveryAtomicMutationRecord {
 export type DeliveryAtomicMutationResult =
   | Readonly<{ status: "APPLIED"; shipmentRevision: number }>
   | Readonly<{ status: "DUPLICATE"; shipmentRevision: number }>
-  | Readonly<{ status: "IDEMPOTENCY_CONFLICT"; shipmentRevision: number }>
-  | Readonly<{ status: "REVISION_CONFLICT"; shipmentRevision: number }>;
+  | Readonly<{ status: "IDEMPOTENCY_CONFLICT"; shipmentRevision: number }>;
 
-/** Persistence port must enforce idempotency and optimistic shipment revisions. */
+/** Persistence port must enforce idempotency. */
 export interface DeliveryShipmentsPort {
   get(storeId: string, shipmentId: string): Promise<Delivery.DeliveryShipmentSnapshot | null>;
   findByProviderReference(
@@ -532,7 +516,7 @@ export interface DeliveryShipmentsPort {
   ): Promise<readonly Delivery.DeliveryTrackingEventSnapshot[]>;
 }
 
-/** One transaction: inbox dedupe, aggregate CAS, tracking append and outbox append. */
+/** One transaction: inbox dedupe, aggregate update, tracking append and outbox append. */
 export interface DeliveryUnitOfWorkPort {
   commit(record: DeliveryAtomicMutationRecord): Promise<DeliveryAtomicMutationResult>;
 }

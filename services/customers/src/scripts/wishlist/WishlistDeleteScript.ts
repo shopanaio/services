@@ -2,7 +2,6 @@ import { Transactional } from "@shopana/shared-kernel";
 import { BaseScript } from "../../kernel/BaseScript.js";
 import {
   internalWishlistError,
-  isValidExpectedTimestamp,
   wishlistError,
   type WishlistUserError,
 } from "./types.js";
@@ -10,7 +9,6 @@ import {
 export interface WishlistDeleteParams {
   customerId: string;
   wishlistId: string;
-  expectedUpdatedAt: string;
 }
 
 export interface WishlistDeleteResult {
@@ -21,16 +19,6 @@ export interface WishlistDeleteResult {
 export class WishlistDeleteScript extends BaseScript<WishlistDeleteParams, WishlistDeleteResult> {
   @Transactional()
   protected async execute(params: WishlistDeleteParams): Promise<WishlistDeleteResult> {
-    if (!isValidExpectedTimestamp(params.expectedUpdatedAt)) {
-      return {
-        deletedWishlistId: null,
-        userErrors: [
-          wishlistError("INVALID_UPDATED_AT", "Expected update timestamp is invalid", [
-            "expectedUpdatedAt",
-          ]),
-        ],
-      };
-    }
     const result = await this.repository.wishlist.delete(params);
     if (result.status === "not_found") {
       return {
@@ -47,16 +35,6 @@ export class WishlistDeleteScript extends BaseScript<WishlistDeleteParams, Wishl
             "The default wishlist cannot be deleted",
             ["id"],
           ),
-        ],
-      };
-    }
-    if (result.status === "conflict") {
-      return {
-        deletedWishlistId: null,
-        userErrors: [
-          wishlistError("UPDATED_AT_CONFLICT", "Wishlist was modified by another request", [
-            "expectedUpdatedAt",
-          ]),
         ],
       };
     }

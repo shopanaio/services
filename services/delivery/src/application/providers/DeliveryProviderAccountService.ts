@@ -134,9 +134,7 @@ export class DeliveryProviderAccountService {
       createdAt: now,
       updatedAt: now,
     };
-    const saved = await this.repository.providerAccounts.save(account, null);
-    if (saved.status !== "SAVED")
-      throw new Error("Delivery provider account persistence conflicted");
+    const saved = await this.repository.providerAccounts.save(account);
     return {
       providerAccountId: id,
       workflowId: `delivery-provider-account:${id}:1`,
@@ -152,8 +150,6 @@ export class DeliveryProviderAccountService {
       params.providerAccountId,
     );
     if (!current) throw new Error("Delivery provider account not found");
-    if (current.revision !== params.expectedAccountRevision)
-      throw new Error("Delivery provider account revision conflict");
     const key =
       params.capability === "delivery.carrier-service" ? "carrierService" : "shipmentProvider";
     const capability = current.capabilityStates[key];
@@ -168,8 +164,7 @@ export class DeliveryProviderAccountService {
         [key]: { ...capability, status: params.status, statusReason: null },
       },
     } as Delivery.DeliveryProviderAccountSnapshot;
-    const saved = await this.repository.providerAccounts.save(account, current.revision);
-    if (saved.status !== "SAVED") throw new Error("Delivery provider account revision conflict");
+    const saved = await this.repository.providerAccounts.save(account);
     return { account: saved.account };
   }
 }

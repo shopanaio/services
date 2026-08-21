@@ -22,7 +22,6 @@ export interface StorefrontCustomerDataRequestCreateResult {
 export interface StorefrontCustomerDataRequestCancelParams {
   customerId: string;
   dataRequestId: string;
-  expectedUpdatedAt: string;
 }
 
 export type StorefrontCustomerDataRequestCancelResult = StorefrontCustomerDataRequestCreateResult;
@@ -71,17 +70,9 @@ export class StorefrontCustomerDataRequestCancelScript extends BaseScript<
   protected async execute(
     params: StorefrontCustomerDataRequestCancelParams,
   ): Promise<StorefrontCustomerDataRequestCancelResult> {
-    if (!isValidTimestamp(params.expectedUpdatedAt)) {
-      return failed(
-        storefrontError("INVALID_UPDATED_AT", "Expected update timestamp is invalid", [
-          "expectedUpdatedAt",
-        ]),
-      );
-    }
     const result = await this.repository.lifecycle.cancelOwnedDataRequest({
       customerId: params.customerId,
       id: params.dataRequestId,
-      expectedUpdatedAt: params.expectedUpdatedAt,
     });
     switch (result.status) {
       case "cancelled":
@@ -95,14 +86,6 @@ export class StorefrontCustomerDataRequestCancelScript extends BaseScript<
           storefrontError("INVALID_STATE", "Only a pending privacy request can be cancelled", [
             "dataRequestId",
           ]),
-        );
-      case "conflict":
-        return failed(
-          storefrontError(
-            "UPDATED_AT_CONFLICT",
-            "Privacy request was modified by another request",
-            ["expectedUpdatedAt"],
-          ),
         );
     }
   }
@@ -200,10 +183,6 @@ function validateCorrectionDetails(value: unknown): "missing" | "invalid" | null
   } catch {
     return "invalid";
   }
-}
-
-function isValidTimestamp(value: string): boolean {
-  return value.trim().length > 0 && Number.isFinite(Date.parse(value));
 }
 
 function failed(

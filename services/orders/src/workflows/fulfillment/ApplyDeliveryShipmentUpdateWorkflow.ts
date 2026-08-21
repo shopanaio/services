@@ -18,7 +18,6 @@ const schema = z.object({
   update: z
     .object({
       fulfillmentOrderId: z.string().uuid(),
-      expectedFulfillmentOrderRevision: z.number().int().positive(),
       shipmentId: z.string().min(1),
       shipmentRevision: z.number().int().nonnegative(),
       state: z.enum([

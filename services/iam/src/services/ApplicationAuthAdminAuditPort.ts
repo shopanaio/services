@@ -39,7 +39,6 @@ export type ApplicationAuthAdminAuditReasonCategory =
   | "first_party_required"
   | "invalid_client_state"
   | "invalid_target_state"
-  | "revision_conflict"
   | "audit_unavailable"
   | "internal_error";
 

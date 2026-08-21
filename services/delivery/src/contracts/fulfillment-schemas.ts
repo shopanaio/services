@@ -486,7 +486,6 @@ export const DeliveryShipmentPlanAvailabilitySchema = z.union([
         "NO_SHIPPING_REQUIRED",
         "CLOSED",
         "INVALID_LINE_ITEMS",
-        "REVISION_CONFLICT",
       ]),
       code: z.string().trim().min(1).max(128),
       message: z.string().trim().min(1).max(2_000),
@@ -498,7 +497,6 @@ export const DeliveryShipmentPlanAvailabilitySchema = z.union([
 export const DeliveryFulfillmentShipmentUpdateSchema = z
   .object({
     fulfillmentOrderId: identifierSchema,
-    expectedFulfillmentOrderRevision: revisionSchema,
     shipmentId: identifierSchema,
     shipmentRevision: revisionSchema,
     lineItems: z

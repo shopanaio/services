@@ -150,11 +150,11 @@ export class ShipmentRepository
           return inbox.eventHash === record.providerInbox.eventHash
             ? {
                 status: "DUPLICATE",
-                shipmentRevision: record.expectedShipmentRevision ?? record.shipment.revision,
+                shipmentRevision: record.shipment.revision,
               }
             : {
                 status: "IDEMPOTENCY_CONFLICT",
-                shipmentRevision: record.expectedShipmentRevision ?? record.shipment.revision,
+                shipmentRevision: record.shipment.revision,
               };
         }
       }
@@ -167,14 +167,6 @@ export class ShipmentRepository
         )
         .limit(1)
         .for("update");
-      if (
-        record.expectedShipmentRevision === null
-          ? Boolean(current)
-          : current?.revision !== record.expectedShipmentRevision
-      ) {
-        return { status: "REVISION_CONFLICT", shipmentRevision: current?.revision ?? 0 };
-      }
-
       const values = shipmentValues(record.shipment);
       if (current) {
         await this.connection

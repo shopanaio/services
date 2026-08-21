@@ -74,12 +74,11 @@ export class CustomerSegmentStoreContextUpdateScript extends BaseScript<
           query: validation.canonicalQuery,
           definition: validation.definition as unknown as Record<string, unknown>,
         },
-        segment.revision,
         true,
         true,
         false,
       );
-      if (!updated) throw new Error(`Concurrent dynamic segment update ${segment.id}`);
+      if (!updated) throw new Error(`Dynamic segment ${segment.id} was not found during update`);
       await this.repository.segmentMaterialization.schedule(updated, params.occurredAt);
     }
     return result;

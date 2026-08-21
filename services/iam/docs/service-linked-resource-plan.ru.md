@@ -268,7 +268,6 @@ iam.updateResource({
     linkedOwnerType,
     linkedOwnerId,
   },
-  expectedRevision,
   patch,
 });
 ```
@@ -285,7 +284,6 @@ iam.updateApplicationAuth({
     linkedOwnerType,
     linkedOwnerId,
   },
-  expectedRevision,
   patch,
 });
 ```

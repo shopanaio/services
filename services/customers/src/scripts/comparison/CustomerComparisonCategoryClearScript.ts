@@ -3,8 +3,6 @@ import { resolveCatalogComparisonVariants } from "./CatalogComparisonVariants.js
 import {
   comparisonError,
   internalComparisonError,
-  revisionConflict,
-  validateExpectedRevision,
   type CustomerComparisonMutationResult,
 } from "./types.js";
 
@@ -20,9 +18,6 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
   protected async execute(
     params: CustomerComparisonCategoryClearParams,
   ): Promise<CustomerComparisonMutationResult> {
-    const revisionError = validateExpectedRevision();
-    if (revisionError) return failed(revisionError);
-
     const selection = await this.repository.comparison.getSelection(params.customerId);
     const catalog = await resolveCatalogComparisonVariants(this.services, {
       storeId: this.context.store.id,
@@ -57,8 +52,6 @@ export class CustomerComparisonCategoryClearScript extends BaseScript<
           revision: result.revision,
           userErrors: [],
         };
-      case "conflict":
-        return failed(revisionConflict(result.actualRevision));
       case "customer_not_found":
         return failed(comparisonError("CUSTOMER_NOT_FOUND", "Customer was not found"));
     }

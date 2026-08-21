@@ -32,13 +32,7 @@ export class ProfileRepository
 
   async saveInactiveProfile(input: {
     profile: Delivery.DeliveryProfileSnapshot & { status: "INACTIVE" };
-    expectedProfileRevision: number | null;
   }) {
-    const current = await this.getById(input.profile.storeId, input.profile.profileId);
-    if ((current?.revision ?? null) !== input.expectedProfileRevision) {
-      if (!current) throw new Error("Profile revision conflict without a current snapshot");
-      return { status: "PROFILE_REVISION_CONFLICT" as const, current };
-    }
     await this.connection
       .insert(profiles)
       .values({
@@ -64,7 +58,6 @@ export class ProfileRepository
 
   async replaceActiveProfileSet(input: {
     profileSet: Delivery.DeliveryProfileSetSnapshot;
-    expectedProfileSetRevision: string | null;
     memberships: readonly Delivery.DeliveryProfileAssignmentMembershipInput[];
   }) {
     validateProfileSet(input.profileSet);
@@ -75,11 +68,6 @@ export class ProfileRepository
         .from(profileSets)
         .where(eq(profileSets.storeId, input.profileSet.storeId))
         .limit(1);
-      if ((currentRow?.snapshot.revision ?? null) !== input.expectedProfileSetRevision) {
-        if (!currentRow)
-          throw new Error("Profile set revision conflict without a current snapshot");
-        return { status: "PROFILE_SET_REVISION_CONFLICT" as const, current: currentRow.snapshot };
-      }
       const id = currentRow ? undefined : await this.generateUuidV7();
       await this.connection
         .insert(profileSets)

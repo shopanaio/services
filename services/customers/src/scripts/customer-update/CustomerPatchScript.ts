@@ -39,7 +39,10 @@ export class CustomerPatchScript extends BaseScript<CustomerPatchParams, Custome
     if (Object.keys(patch).length === 0) return sectionSuccess(false);
 
     try {
-      const updated = await this.repository.customer.patchWithinRevision(params.customerId, patch);
+      const updated = await this.repository.customer.patchWithoutRevisionBump(
+        params.customerId,
+        patch,
+      );
       if (!updated) {
         return sectionErrors([{ message: "Customer not found", code: "NOT_FOUND" }]);
       }

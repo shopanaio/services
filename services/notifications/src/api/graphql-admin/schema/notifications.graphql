@@ -87,7 +87,6 @@ type NotificationDefinition {
   defaultChannels: [NotificationChannel!]!
   activeChannels: [NotificationChannel!]!
   variables: [NotificationTemplateVariable!]!
-  version: Int!
 }
 
 type NotificationTemplateVariable {
@@ -101,7 +100,6 @@ type NotificationTemplateVariable {
 type NotificationDefinitionSetting {
   definitionKey: String!
   enabled: Boolean!
-  version: Int!
   updatedAt: DateTime!
 }
 
@@ -136,7 +134,6 @@ type NotificationChannelSetting {
   senderName: String
   senderEmail: String
   replyTo: String
-  version: Int!
   updatedAt: DateTime
 }
 
@@ -164,7 +161,6 @@ type NotificationEffectiveTemplate {
   plainTextTemplate: String
   revisionId: ID
   revision: Int
-  pointerVersion: Int
   sourceVersion: String
 }
 
@@ -319,7 +315,6 @@ type NotificationWebhookSubscription {
   url: String!
   apiVersion: String!
   status: NotificationWebhookStatus!
-  version: Int!
   createdAt: DateTime!
   updatedAt: DateTime!
 }

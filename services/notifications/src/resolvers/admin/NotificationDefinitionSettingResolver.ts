@@ -27,10 +27,6 @@ export class NotificationDefinitionSettingResolver extends NotificationsType<
     return this.$get("enabled");
   }
 
-  version() {
-    return this.$get("version");
-  }
-
   updatedAt() {
     return this.$get("updatedAt");
   }

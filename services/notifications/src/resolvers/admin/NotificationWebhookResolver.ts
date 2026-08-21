@@ -36,9 +36,6 @@ export class NotificationWebhookResolver extends NotificationsType<string, Notif
       ? NotificationWebhookStatus.Active
       : NotificationWebhookStatus.Disabled;
   }
-  version() {
-    return this.$get("version");
-  }
   createdAt() {
     return this.$get("createdAt");
   }

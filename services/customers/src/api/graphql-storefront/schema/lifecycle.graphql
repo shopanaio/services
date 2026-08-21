@@ -56,7 +56,6 @@ input CustomerDataRequestCreateInput {
 
 input CustomerDataRequestCancelInput {
   dataRequestId: ID!
-  expectedUpdatedAt: DateTime!
   idempotencyKey: String!
 }
 

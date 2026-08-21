@@ -63,12 +63,12 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
         userErrors: rejectedResults.flatMap((result) => result.errors),
       };
     }
-    const acquired = await this.stepAcquireRevision(input.customerId);
-    if ("error" in acquired) {
+    const revisionUpdate = await this.stepBumpRevision(input.customerId);
+    if ("error" in revisionUpdate) {
       return {
         customer: null,
         operationResults: [],
-        userErrors: [acquired.error],
+        userErrors: [revisionUpdate.error],
       };
     }
 
@@ -98,12 +98,9 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
     }
 
     const userErrors = operationResults.flatMap((result) => result.errors);
-    if (userErrors.length > 0 && reasons.size === 0) {
-      await this.stepReleaseRevision(input.customerId, acquired.revision);
-    }
     return {
       customer:
-        userErrors.length === 0 ? { id: input.customerId, revision: acquired.revision } : null,
+        userErrors.length === 0 ? { id: input.customerId, revision: revisionUpdate.revision } : null,
       operationResults,
       userErrors,
     };
@@ -174,7 +171,7 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
   }
 
   @WorkflowStep()
-  private async stepAcquireRevision(
+  private async stepBumpRevision(
     customerId: string,
   ): Promise<
     { revision: number } | { error: { message: string; code: string; field?: string[] } }
@@ -189,11 +186,6 @@ export class CustomerUpdateWorkflow extends BrokerWorkflows {
         field: ["customerId"],
       },
     };
-  }
-
-  @WorkflowStep()
-  private stepReleaseRevision(customerId: string, revision: number) {
-    return this.kernel.repository.customer.releaseRevision(customerId, revision);
   }
 
   private runOperation(

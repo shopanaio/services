@@ -216,7 +216,6 @@ export class PaymentsActions extends BrokerActions {
         resourceId: params.paymentSessionId,
         operation: "payments.expireSession",
         content: {
-          expectedSessionRevision: params.expectedSessionRevision,
           reason: params.reason,
           idempotencyKey: params.idempotencyKey,
         },

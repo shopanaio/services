@@ -29,7 +29,6 @@ CREATE TABLE "notifications"."notification_template_active_revisions" (
   "revision_id" uuid NOT NULL
     REFERENCES "notifications"."notification_template_revisions"("id")
     ON DELETE RESTRICT,
-  "version" integer NOT NULL DEFAULT 1 CHECK ("version" >= 1),
   "updated_by" text,
   "updated_at" timestamptz NOT NULL DEFAULT now(),
   CONSTRAINT "notification_template_active_identity"

@@ -62,7 +62,3 @@ export function normalizeWishlistName(
   }
   return { name, normalizedName, userErrors: [] };
 }
-
-export function isValidExpectedTimestamp(value: string): boolean {
-  return value.trim().length > 0 && Number.isFinite(Date.parse(value));
-}

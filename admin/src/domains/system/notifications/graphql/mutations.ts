@@ -7,7 +7,6 @@ export const NOTIFICATION_DEFINITION_SET_ENABLED_MUTATION = gql`
         setting {
           definitionKey
           enabled
-          version
           updatedAt
         }
         userErrors {
@@ -49,7 +48,6 @@ export const NOTIFICATION_TEMPLATE_UPDATE_MUTATION = gql`
           plainTextTemplate
           revisionId
           revision
-          pointerVersion
           sourceVersion
         }
         userErrors {
@@ -99,7 +97,6 @@ export const NOTIFICATION_WEBHOOK_CREATE_MUTATION = gql`
           url
           apiVersion
           status
-          version
           createdAt
           updatedAt
         }
@@ -124,7 +121,6 @@ export const NOTIFICATION_WEBHOOK_UPDATE_MUTATION = gql`
           url
           apiVersion
           status
-          version
           createdAt
           updatedAt
         }

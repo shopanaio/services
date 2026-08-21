@@ -26,7 +26,6 @@ export type CustomerComparisonAddResult =
       comparison: CustomerComparison;
       item: CustomerComparisonItem;
     }
-  | { status: "conflict"; actualRevision: number }
   | { status: "customer_not_found" };
 
 export type CustomerComparisonRemoveResult =
@@ -35,8 +34,7 @@ export type CustomerComparisonRemoveResult =
       comparison: CustomerComparison;
       removedItem: CustomerComparisonItem;
     }
-  | { status: "not_selected"; actualRevision: number }
-  | { status: "conflict"; actualRevision: number }
+  | { status: "not_selected" }
   | { status: "customer_not_found" };
 
 export type CustomerComparisonClearResult =
@@ -46,15 +44,14 @@ export type CustomerComparisonClearResult =
       removedVariantIds: string[];
       revision: number;
     }
-  | { status: "conflict"; actualRevision: number }
   | { status: "customer_not_found" };
 
 /**
  * Persistence for the customer's single ordered comparison aggregate.
  *
  * Every write locks the owning active customer and comparison row. This makes
- * revision checks, append positions, deletes, and position compaction one
- * serialized transaction per customer.
+ * append positions, deletes, and position compaction one serialized
+ * transaction per customer.
  */
 export class CustomerComparisonRepository extends BaseRepository {
   @ReadOnly()
@@ -293,14 +290,12 @@ export class CustomerComparisonRepository extends BaseRepository {
     }
     const comparison = await this.lockComparison(input.customerId);
     if (!comparison) {
-      return input.expectedRevision === 0
-        ? { status: "not_selected", actualRevision: 0 }
-        : { status: "conflict", actualRevision: 0 };
+      return { status: "not_selected" };
     }
 
     const item = await this.findItemByVariantId(comparison.id, input.variantId);
     if (!item) {
-      return { status: "not_selected", actualRevision: comparison.revision };
+      return { status: "not_selected" };
     }
 
     await this.connection
@@ -328,14 +323,12 @@ export class CustomerComparisonRepository extends BaseRepository {
     }
     const comparison = await this.lockComparison(input.customerId);
     if (!comparison) {
-      return input.expectedRevision === 0
-        ? {
-            status: "applied",
-            comparison: null,
-            removedVariantIds: [],
-            revision: 0,
-          }
-        : { status: "conflict", actualRevision: 0 };
+      return {
+        status: "applied",
+        comparison: null,
+        removedVariantIds: [],
+        revision: 0,
+      };
     }
 
     const variantIds = [...new Set(input.variantIds)];

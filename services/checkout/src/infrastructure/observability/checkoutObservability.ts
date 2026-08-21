@@ -23,12 +23,6 @@ export const pipelineStageLatency = new Histogram({
   registers: [checkoutMetricsRegistry],
 });
 
-export const casConflicts = new Counter({
-  name: "shopana_checkout_cas_conflicts_total",
-  help: "Checkout compare-and-swap commit conflicts.",
-  registers: [checkoutMetricsRegistry],
-});
-
 export const compensationFailures = new Counter({
   name: "shopana_checkout_compensation_failures_total",
   help: "Checkout placement compensations that exhausted workflow-step retries.",
