@@ -1002,8 +1002,11 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       }
     }
 
-    assertAtomicOperation(errors, "productUpdate");
-    return { result: { type: "productUpdate", applied: true, errors: [] }, changes };
+    assertNoPostWriteBusinessErrors(errors, changes, "productUpdate");
+    return {
+      result: { type: "productUpdate", applied: errors.length === 0, errors },
+      changes,
+    };
   }
 
   @TransactionalStep()
@@ -1336,9 +1339,14 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
 
-    assertAtomicOperation(errors, "variantCreate");
+    assertNoPostWriteBusinessErrors(errors, changes, "variantCreate");
     return {
-      result: { type: "variantCreate", applied: true, entityId: variantId, errors: [] },
+      result: {
+        type: "variantCreate",
+        applied: errors.length === 0,
+        entityId: variantId,
+        errors,
+      },
       changes,
     };
   }
@@ -1483,8 +1491,11 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
       if (r.changes) mergeVariantChanges({ media: r.changes });
     }
 
-    assertAtomicOperation(errors, "variantUpdate");
-    return { result: { type: "variantUpdate", applied: true, errors: [] }, changes };
+    assertNoPostWriteBusinessErrors(errors, changes, "variantUpdate");
+    return {
+      result: { type: "variantUpdate", applied: errors.length === 0, errors },
+      changes,
+    };
   }
 
   /**
@@ -1807,6 +1818,27 @@ function validateVariantOptionOperationShapes(
     }
   }
 
+  const optionUpdatePositions = operations.flatMap((operation, index) =>
+    operation.type === "variantUpdate" && operation.params.options ? [index] : [],
+  );
+  if (
+    optionUpdatePositions.length > 1 &&
+    optionUpdatePositions.some(
+      (position, index) => index > 0 && position !== optionUpdatePositions[index - 1]! + 1,
+    )
+  ) {
+    for (const index of optionUpdatePositions) {
+      const operation = operations[index]!;
+      const error: UserError = {
+        message: "Variant option swap updates must be contiguous in one operation batch",
+        code: "DEPENDENT_OPERATION_CONFLICT",
+        field: fieldPath(operation, "options"),
+      };
+      errorsByOperationIndex[index] = [...(errorsByOperationIndex[index] ?? []), error];
+      userErrors.push(error);
+    }
+  }
+
   return { valid: userErrors.length === 0, errorsByOperationIndex, userErrors };
 }
 
@@ -1816,8 +1848,16 @@ function validateVariantOptionOperationShapes(
  * checkpoint a partial mutation as `applied: false`; throw instead so DBOS
  * rolls the complete transactional step back.
  */
-function assertAtomicOperation(errors: readonly UserError[], operation: string): void {
-  if (errors.length > 0) {
+function assertNoPostWriteBusinessErrors(
+  errors: readonly UserError[],
+  changes: ProductChanges,
+  operation: string,
+): void {
+  const hasWrites =
+    changes.product !== undefined ||
+    changes.component !== undefined ||
+    changes.variants !== undefined;
+  if (errors.length > 0 && hasWrites) {
     throw new Error(
       `${operation} produced a post-write business error; move validation to preflight`,
     );
