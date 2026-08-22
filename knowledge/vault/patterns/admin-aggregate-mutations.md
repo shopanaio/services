@@ -72,6 +72,53 @@ transactional commit workflow публикует `<aggregate>Created`. `<aggrega
 архитектурном документе bounded context. Удобство UI или исторически существующий CRUD endpoint не
 являются обоснованием.
 
+## Структура файлов и доменная терминология
+
+Каждый concrete workflow размещается в собственной папке. Папка является изолированной единицей
+реализации команды и содержит сам workflow, все используемые только им scripts и отдельную папку
+`dto` со всеми контрактами workflow и его scripts.
+
+Типовая структура:
+
+```text
+workflows/
+  product-update/
+    ProductUpdateWorkflow.ts
+    scripts/
+      ProductUpdateFieldsScript.ts
+      ProductVariantCreateScript.ts
+    dto/
+      ProductUpdateInput.ts
+      ProductUpdateOperation.ts
+      ProductUpdateResult.ts
+      ProductUpdateStepResult.ts
+```
+
+Имена файлов и дополнительные уровни группировки могут следовать соглашениям конкретного сервиса,
+но граница владения остаётся обязательной:
+
+- workflow-файл не размещается в общей плоской папке вместе с другими workflows;
+- все scripts, вызываемые этим workflow, находятся внутри папки этого workflow;
+- script принадлежит ровно одному workflow и не импортируется другим workflow;
+- переиспользование script между workflows запрещено; общую бизнес-логику необходимо вынести в
+  явно названный stateless domain service, policy, calculator или другой подходящий компонент, а
+  каждый workflow вызывает её через собственный script;
+- папка `dto` содержит все immutable input, operation, plan, step result, workflow result и другие
+  контракты, которыми обмениваются workflow и его scripts;
+- DTO и внутренние контракты одного workflow не используются как неявный публичный контракт другого
+  workflow; действительно общий технический контракт должен находиться в соответствующем shared
+  package и не содержать бизнес-специфичную модель конкретной команды.
+
+В concrete business domain запрещено использовать `aggregate` как имя бизнес-сущности или часть
+имени бизнес-контракта. В коде, DTO, operations, scripts, GraphQL contract, error paths и событиях
+используются реальные названия доменных сущностей: например, `ProductUpdateWorkflow`, `productId`,
+`ProductUpdateInput`, а не `AggregateWorkflow`, `aggregateId` или `AggregateDto`.
+
+Термин `aggregate` допустим только в обобщённой архитектурной документации и generic
+infrastructure/shared-kernel abstractions, таких как `AggregateUpdateWorkflow`, где он обозначает
+архитектурный паттерн, а не сущность конкретного bounded context. При реализации в сервисе generic
+параметры и hooks должны быть выражены через названия соответствующих доменных сущностей и команд.
+
 ## Multi-aggregate batch mutations
 
 Эталон multi-aggregate batch mutation — `productBulkUpdate` и durable
@@ -821,7 +868,12 @@ Audit facts являются частью durable step result: workflow replay �
 - синхронное выполнение всех aggregate groups в рамках GraphQL response вместо durable job,
   in-memory progress либо execution errors, которые не сохраняются в job items;
 - overlapping batch jobs без aggregate fence/supersession contract либо применение operation после
-  перехода соответствующего item в `CANCELLED` или `SUPERSEDED`.
+  перехода соответствующего item в `CANCELLED` или `SUPERSEDED`;
+- workflow-файл или принадлежащие ему scripts вне собственной папки workflow;
+- переиспользование одного script несколькими workflows либо импорт DTO одного workflow другим
+  workflow как способ разделить бизнес-контракт;
+- использование `aggregate` в именах concrete business-domain сущностей, DTO, scripts, operations,
+  GraphQL contracts, событий или идентификаторов вместо фактического имени доменной сущности.
 
 ## Review checklist
 
@@ -882,6 +934,10 @@ Audit facts являются частью durable step result: workflow replay �
     stable parent-derived identity и canonical aggregate partition key.
 27. Partial apply между aggregates явно отражён terminal item statuses; aggregate events и audit
     публикуются каждым child workflow только после его commit и не дублируются coordinator-ом.
+28. Каждый concrete workflow находится в собственной папке вместе со всеми принадлежащими ему
+    scripts и отдельной папкой `dto`; scripts не переиспользуются между workflows.
+29. Concrete business-domain код и контракты используют имена доменных сущностей и не вводят
+    `aggregate` как имя сущности, DTO, operation, script, события или идентификатора.
 
 ## Связанные документы
 
