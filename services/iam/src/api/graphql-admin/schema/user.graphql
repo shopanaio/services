@@ -98,6 +98,44 @@ input UserUpdateProfileInput {
   avatarId: ID
 }
 
+input UserUpdateInput {
+  profile: UserUpdateProfileInput
+  email: UserUpdateEmailInput
+  password: UserUpdatePasswordInput
+  sessions: [UserSessionOperationInput!]
+}
+
+enum UserSessionOperationAction {
+  REVOKE
+  REVOKE_ALL
+}
+
+input UserSessionOperationInput {
+  action: UserSessionOperationAction!
+  sessionId: ID
+}
+
+enum UserOperationType {
+  PROFILE
+  EMAIL
+  PASSWORD
+  SESSION
+}
+
+type UserOperationResult {
+  type: UserOperationType!
+  applied: Boolean!
+  entityId: ID
+  revokedSessionCount: Int
+  errors: [GenericUserError!]!
+}
+
+type UserUpdatePayload {
+  user: User
+  operationResults: [UserOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
 """
 Payload for user profile update.
 """

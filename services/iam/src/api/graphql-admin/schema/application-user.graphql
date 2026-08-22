@@ -120,8 +120,6 @@ input ApplicationUserOrderByInput {
 Input for blocking or unblocking an application user.
 """
 input ApplicationUserStatusSetInput {
-  organizationId: ID!
-  applicationId: ID!
   userId: ID!
 }
 
@@ -129,8 +127,6 @@ input ApplicationUserStatusSetInput {
 Input for revoking every session of an application user.
 """
 input ApplicationUserSessionsRevokeAllInput {
-  organizationId: ID!
-  applicationId: ID!
   userId: ID!
 }
 
@@ -138,10 +134,21 @@ input ApplicationUserSessionsRevokeAllInput {
 Input for unlinking a login account from an application user.
 """
 input ApplicationUserAccountUnlinkInput {
-  organizationId: ID!
-  applicationId: ID!
   userId: ID!
   accountId: ID!
+}
+
+enum ApplicationUserOperationAction {
+  BLOCK
+  UNBLOCK
+  REVOKE_SESSIONS
+  UNLINK_ACCOUNT
+}
+
+input ApplicationUserOperationInput {
+  action: ApplicationUserOperationAction!
+  userId: ID!
+  accountId: ID
 }
 
 # ============================================================================

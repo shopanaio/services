@@ -481,11 +481,12 @@ type FileCreateExternalPayload {
 Input for updating a file.
 """
 input FileUpdateInput {
-  """
-  The file ID.
-  """
-  id: ID!
+  fields: FileFieldsUpdateInput
+  lifecycle: FileLifecycleOperationInput
+  sources: [MediaSourceOperationInput!]
+}
 
+input FileFieldsUpdateInput {
   """
   Alt text for accessibility.
   """
@@ -512,6 +513,41 @@ input FileUpdateInput {
   processingError: String
 }
 
+enum FileLifecycleAction {
+  RESTORE
+  CLEAR_ERROR
+}
+
+input FileLifecycleOperationInput {
+  action: FileLifecycleAction!
+}
+
+enum MediaSourceOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+input MediaSourceOperationInput {
+  action: MediaSourceOperationAction!
+  sourceFileId: ID!
+  values: MediaSourceValuesInput
+}
+
+enum FileOperationType {
+  FIELDS
+  LIFECYCLE
+  SOURCE
+}
+
+type FileOperationResult {
+  type: FileOperationType!
+  applied: Boolean!
+  entityId: ID
+  source: MediaSource
+  errors: [GenericUserError!]!
+}
+
 """
 Payload for file update.
 """
@@ -520,6 +556,8 @@ type FileUpdatePayload {
   The updated file.
   """
   file: File
+
+  operationResults: [FileOperationResult!]!
 
   """
   List of errors that occurred during the mutation.
@@ -557,36 +595,152 @@ type FileDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-# ---- File Deletion (Batch/Restore/Clear Error) ----
+# ---- File bulk mutations ----
 
-input FileDeleteManyInput {
-  """
-  The IDs of files to delete.
-  """
-  ids: [ID!]!
-
-  """
-  Whether to permanently delete the files (hard delete).
-  """
-  permanent: Boolean
+"""
+Durable file bulk mutation job lifecycle.
+"""
+enum FileBulkMutationJobStatus {
+  QUEUED
+  RUNNING
+  COMPLETED
+  CANCELLED
 }
 
-type FileDeleteManyPayload {
-  """
-  Files that were eligible and transitioned to SOFT_DELETED.
-  """
-  acceptedIds: [ID!]!
-
-  """
-  Files for which hard delete workflow was started.
-  """
-  startedHardDeleteIds: [ID!]!
-
-  """
-  List of errors that occurred during the mutation.
-  """
-  userErrors: [GenericUserError!]!
+"""
+Durable lifecycle of one public operation in a file bulk mutation job.
+"""
+enum FileBulkMutationItemStatus {
+  PENDING
+  RUNNING
+  SUCCEEDED
+  FAILED
+  CANCELLED
+  SUPERSEDED
 }
+
+enum FileBulkMutationCancelReason {
+  USER
+  SUPERSEDED
+  SYSTEM
+}
+
+enum FileBulkMutationKind {
+  UPDATE
+  DELETE
+}
+
+enum FileBulkMutationOperationType {
+  FIELDS
+  LIFECYCLE
+  SOURCE
+  DELETE
+}
+
+"""
+Start a bulk update using the same operations contract as fileUpdate.
+The request is limited to 100 files and 500 public operations in total.
+"""
+input FileBulkUpdateInput {
+  files: [FileBulkUpdateItem!]!
+}
+
+input FileBulkUpdateItem {
+  fileId: ID!
+  operations: FileUpdateInput!
+}
+
+"""
+Start a bulk root-delete job. The request is limited to 100 files.
+"""
+input FileBulkDeleteInput {
+  files: [FileBulkDeleteItem!]!
+}
+
+input FileBulkDeleteItem {
+  fileId: ID!
+  permanent: Boolean = false
+}
+
+type FileBulkMutationPayload {
+  """
+  Created or existing idempotent job; null when request validation fails.
+  """
+  job: FileBulkMutationJob
+  userErrors: [FileBulkMutationUserError!]!
+}
+
+type FileBulkMutationJob implements Node {
+  id: ID!
+  kind: FileBulkMutationKind!
+  status: FileBulkMutationJobStatus!
+  createdAt: DateTime!
+  startedAt: DateTime
+  finishedAt: DateTime
+  progress: FileBulkMutationJobProgress!
+  items(
+    first: Int
+    after: String
+    statusFilter: [FileBulkMutationItemStatus!]
+  ): FileBulkMutationItemConnection!
+}
+
+type FileBulkMutationJobProgress {
+  total: Int!
+  done: Int!
+  succeeded: Int!
+  failed: Int!
+  cancelled: Int!
+  superseded: Int!
+  running: Int!
+  pending: Int!
+}
+
+type FileBulkMutationItem implements Node {
+  id: ID!
+  fileId: ID!
+  operationType: FileBulkMutationOperationType!
+  operationIndex: Int!
+  status: FileBulkMutationItemStatus!
+  startedAt: DateTime
+  finishedAt: DateTime
+  errors: [FileBulkMutationUserError!]!
+  cancelReason: FileBulkMutationCancelReason
+  supersededByJobId: ID
+}
+
+type FileBulkMutationItemConnection {
+  edges: [FileBulkMutationItemEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type FileBulkMutationItemEdge {
+  cursor: String!
+  node: FileBulkMutationItem!
+}
+
+type FileBulkMutationJobConnection {
+  edges: [FileBulkMutationJobEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type FileBulkMutationJobEdge {
+  cursor: String!
+  node: FileBulkMutationJob!
+}
+
+type FileBulkMutationUserError implements UserError {
+  message: String!
+  field: [String!]
+  code: String
+  fileId: ID
+  operationType: FileBulkMutationOperationType
+  operationIndex: Int
+}
+
+# ---- Legacy single-file helper types ----
 
 input FileRestoreInput {
   """
@@ -600,25 +754,6 @@ type FileRestorePayload {
   The restored file.
   """
   file: File
-
-  """
-  List of errors that occurred during the mutation.
-  """
-  userErrors: [GenericUserError!]!
-}
-
-input FileRestoreManyInput {
-  """
-  The IDs of files to restore.
-  """
-  ids: [ID!]!
-}
-
-type FileRestoreManyPayload {
-  """
-  Files that were successfully restored.
-  """
-  restoredIds: [ID!]!
 
   """
   List of errors that occurred during the mutation.
@@ -689,24 +824,21 @@ type MediaSource {
 }
 
 input MediaSourceCreateInput {
-  mediaFileId: ID!
-  sourceFileId: ID!
   kind: String!
   format: String!
   sortOrder: Int
 }
 
 input MediaSourceUpdateInput {
-  mediaFileId: ID!
-  sourceFileId: ID!
   kind: String
   format: String
   sortOrder: Int
 }
 
-input MediaSourceDeleteInput {
-  mediaFileId: ID!
-  sourceFileId: ID!
+input MediaSourceValuesInput {
+  kind: String
+  format: String
+  sortOrder: Int
 }
 
 type MediaSourcePayload {

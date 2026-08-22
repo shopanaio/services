@@ -347,10 +347,6 @@ Validated input for order manual payment record. Tenant identifiers come only fr
 """
 input OrderManualPaymentRecordInput {
   """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
-  """
   Exact decimal amount serialized as a string.
   """
   amount: MoneyInput!
@@ -377,10 +373,6 @@ Validated input for order payment capture. Tenant identifiers come only from tru
 """
 input OrderPaymentCaptureInput {
   """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
-  """
   Relay global ID identifying the transaction.
   """
   transactionId: ID!
@@ -394,10 +386,6 @@ input OrderPaymentCaptureInput {
 Validated input for order payment void. Tenant identifiers come only from trusted context.
 """
 input OrderPaymentVoidInput {
-  """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
   """
   Relay global ID identifying the transaction.
   """
@@ -413,10 +401,6 @@ Validated input for order payment retry. Tenant identifiers come only from trust
 """
 input OrderPaymentRetryInput {
   """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
-  """
   Stable payment method code.
   """
   paymentMethodCode: String
@@ -430,10 +414,6 @@ input OrderPaymentRetryInput {
 Validated input for order payment status override. Tenant identifiers come only from trusted context.
 """
 input OrderPaymentStatusOverrideInput {
-  """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
   """
   Current lifecycle or derived projection status.
   """

@@ -1437,11 +1437,7 @@ input OrderCreateInput {
 """
 Validated input for order update. Tenant identifiers come only from trusted context.
 """
-input OrderUpdateInput {
-  """
-  Relay global ID of this resource.
-  """
-  id: ID!
+input OrderFieldsUpdateInput {
   """
   Validated input value for contact.
   """
@@ -1479,10 +1475,6 @@ Validated input for order complete draft. Tenant identifiers come only from trus
 """
 input OrderCompleteDraftInput {
   """
-  Relay global ID of this resource.
-  """
-  id: ID!
-  """
   Whether completion should enqueue a customer notification.
   """
   notifyCustomer: Boolean = false
@@ -1493,10 +1485,6 @@ Validated input for order close. Tenant identifiers come only from trusted conte
 """
 input OrderCloseInput {
   """
-  Relay global ID of this resource.
-  """
-  id: ID!
-  """
   Validated input value for reason.
   """
   reason: String
@@ -1506,10 +1494,6 @@ input OrderCloseInput {
 Validated input for order reopen. Tenant identifiers come only from trusted context.
 """
 input OrderReopenInput {
-  """
-  Relay global ID of this resource.
-  """
-  id: ID!
   """
   Validated input value for reason.
   """
@@ -1541,10 +1525,6 @@ Validated input for order cancel. Tenant identifiers come only from trusted cont
 """
 input OrderCancelInput {
   """
-  Relay global ID of this resource.
-  """
-  id: ID!
-  """
   Stable audited reason code.
   """
   reasonCode: String!
@@ -1571,10 +1551,6 @@ Validated input for order customer set. Tenant identifiers come only from truste
 """
 input OrderCustomerSetInput {
   """
-  Relay global ID of this resource.
-  """
-  id: ID!
-  """
   Relay global ID identifying the customer.
   """
   customerId: ID
@@ -1584,10 +1560,6 @@ input OrderCustomerSetInput {
 Validated input for order tags update. Tenant identifiers come only from trusted context.
 """
 input OrderTagsUpdateInput {
-  """
-  Relay global ID of this resource.
-  """
-  id: ID!
   """
   Validated input value for tags.
   """
@@ -1599,10 +1571,6 @@ Validated input for order admin note update. Tenant identifiers come only from t
 """
 input OrderAdminNoteUpdateInput {
   """
-  Relay global ID of this resource.
-  """
-  id: ID!
-  """
   Validated input value for admin note.
   """
   adminNote: String
@@ -1612,10 +1580,6 @@ input OrderAdminNoteUpdateInput {
 Validated input for order comment add. Tenant identifiers come only from trusted context.
 """
 input OrderCommentAddInput {
-  """
-  Relay global ID of this resource.
-  """
-  id: ID!
   """
   Validated input value for comment.
   """
@@ -1630,10 +1594,6 @@ input OrderCommentAddInput {
 Validated input for order custom fields update. Tenant identifiers come only from trusted context.
 """
 input OrderCustomFieldsUpdateInput {
-  """
-  Relay global ID of this resource.
-  """
-  id: ID!
   """
   Merchant-defined structured data; core business facts are not stored here.
   """
@@ -1657,15 +1617,7 @@ input OrderLineAddInput {
 """
 Validated input for order line update. Tenant identifiers come only from trusted context.
 """
-input OrderLineUpdateInput {
-  """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
-  """
-  Relay global ID identifying the line.
-  """
-  lineId: ID!
+input OrderLineUpdateValuesInput {
   """
   Quantity validated against domain conservation invariants.
   """

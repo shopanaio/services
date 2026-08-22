@@ -83,8 +83,20 @@ input OnlineStorePageUpdateInput {
   status: OnlineStorePageStatus
 }
 
-input OnlineStorePageDeleteInput {
-  id: ID!
+enum OnlineStorePageOperationType {
+  HANDLE
+  TITLE
+  BODY
+  SEO
+  TEMPLATE_SUFFIX
+  STATUS
+}
+
+type OnlineStorePageOperationResult {
+  type: OnlineStorePageOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
 }
 
 type OnlineStorePageConnection {
@@ -105,6 +117,7 @@ type OnlineStorePageCreatePayload {
 
 type OnlineStorePageUpdatePayload {
   page: OnlineStorePage
+  operationResults: [OnlineStorePageOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

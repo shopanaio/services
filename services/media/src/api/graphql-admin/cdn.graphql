@@ -64,7 +64,12 @@ input CdnConfigurationCreateInput {
 }
 
 input CdnConfigurationUpdateInput {
-  id: ID!
+  fields: CdnConfigurationFieldsInput
+  lifecycle: CdnConfigurationLifecycleOperationInput
+  routingRules: [CdnRoutingRuleOperationInput!]
+}
+
+input CdnConfigurationFieldsInput {
   name: String
   provider: String
   baseUrl: String
@@ -79,14 +84,55 @@ input CdnConfigurationUpdateInput {
   transformConfig: JSON
 }
 
+enum CdnConfigurationLifecycleAction {
+  SET_DEFAULT
+}
+
+input CdnConfigurationLifecycleOperationInput {
+  action: CdnConfigurationLifecycleAction!
+}
+
 input CdnConfigurationTestInput {
   configuration: CdnConfigurationCreateInput!
   objectPath: String!
   transform: ImageTransformInput
 }
 
-type CdnConfigurationPayload {
+type CdnConfigurationCreatePayload {
   configuration: CdnConfiguration
+  userErrors: [GenericUserError!]!
+}
+
+enum CdnRoutingRuleOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+input CdnRoutingRuleOperationInput {
+  action: CdnRoutingRuleOperationAction!
+  routingRuleId: ID
+  create: CdnRoutingRuleCreateInput
+  update: CdnRoutingRuleUpdateInput
+}
+
+enum CdnConfigurationOperationType {
+  FIELDS
+  LIFECYCLE
+  ROUTING_RULE
+}
+
+type CdnConfigurationOperationResult {
+  type: CdnConfigurationOperationType!
+  applied: Boolean!
+  entityId: ID
+  routingRule: CdnRoutingRule
+  errors: [GenericUserError!]!
+}
+
+type CdnConfigurationUpdatePayload {
+  configuration: CdnConfiguration
+  operationResults: [CdnConfigurationOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -101,7 +147,6 @@ type CdnConfigurationTestPayload {
 }
 
 input CdnRoutingRuleCreateInput {
-  cdnConfigurationId: ID!
   name: String!
   priority: Int
   enabled: Boolean
@@ -110,8 +155,7 @@ input CdnRoutingRuleCreateInput {
 }
 
 input CdnRoutingRuleUpdateInput {
-  id: ID!
-  cdnConfigurationId: ID
+  targetCdnConfigurationId: ID
   name: String
   priority: Int
   enabled: Boolean

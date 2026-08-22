@@ -156,14 +156,6 @@ Input for updating a role.
 """
 input RoleUpdateInput {
   """
-  Organization ID where the role exists.
-  """
-  organizationId: ID!
-  """
-  Role ID to update.
-  """
-  id: ID!
-  """
   New display name.
   """
   displayName: String
@@ -224,11 +216,24 @@ type RoleCreatePayload {
 
 type RoleUpdatePayload {
   role: Role
+  operationResults: [RoleOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
+enum RoleOperationType {
+  FIELDS
+  PERMISSIONS
+}
+
+type RoleOperationResult {
+  type: RoleOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
+}
+
 type RoleDeletePayload {
-  deletedRoleName: String
+  deletedRoleId: ID
   userErrors: [GenericUserError!]!
 }
 

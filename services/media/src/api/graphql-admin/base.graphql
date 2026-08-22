@@ -88,6 +88,20 @@ type MediaQuery {
     """
     state: FileStateScope = ACTIVE
   ): FileConnection!
+
+  """
+  Get a durable file bulk mutation job by its global ID.
+  """
+  fileBulkMutationJob(jobId: ID!): FileBulkMutationJob
+
+  """
+  Get durable file bulk mutation jobs for the current store.
+  """
+  fileBulkMutationJobs(
+    first: Int
+    after: String
+    statusFilter: [FileBulkMutationJobStatus!]
+  ): FileBulkMutationJobConnection!
 }
 
 type MediaMutation {
@@ -95,23 +109,20 @@ type MediaMutation {
   bucketCreate(input: BucketCreateInput!): BucketCreatePayload!
 
   # CDN configuration mutations
-  cdnConfigurationCreate(input: CdnConfigurationCreateInput!): CdnConfigurationPayload!
-  cdnConfigurationUpdate(input: CdnConfigurationUpdateInput!): CdnConfigurationPayload!
-  cdnConfigurationDelete(id: ID!): CdnConfigurationDeletePayload!
-  cdnConfigurationSetDefault(id: ID!): CdnConfigurationPayload!
+  cdnConfigurationCreate(input: CdnConfigurationCreateInput!): CdnConfigurationCreatePayload!
+  cdnConfigurationUpdate(
+    cdnConfigurationId: ID!
+    operations: CdnConfigurationUpdateInput!
+  ): CdnConfigurationUpdatePayload!
+  cdnConfigurationDelete(cdnConfigurationId: ID!): CdnConfigurationDeletePayload!
   cdnConfigurationTest(input: CdnConfigurationTestInput!): CdnConfigurationTestPayload!
-
-  # CDN routing mutations
-  cdnRoutingRuleCreate(input: CdnRoutingRuleCreateInput!): CdnRoutingRulePayload!
-  cdnRoutingRuleUpdate(input: CdnRoutingRuleUpdateInput!): CdnRoutingRulePayload!
-  cdnRoutingRuleDelete(id: ID!): CdnRoutingRuleDeletePayload!
 
   # File mutations
   fileUpload(input: FileUploadMultipartInput!): FileUploadPayload!
   fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!
   fileCreateExternal(input: FileCreateExternalInput!): FileCreateExternalPayload!
-  fileUpdate(input: FileUpdateInput!): FileUpdatePayload!
-  fileDelete(input: FileDeleteInput!): FileDeletePayload!
+  fileUpdate(fileId: ID!, operations: FileUpdateInput!): FileUpdatePayload!
+  fileDelete(fileId: ID!, permanent: Boolean): FileDeletePayload!
 
   # Avatar/Logo upload
   """
@@ -121,27 +132,18 @@ type MediaMutation {
   avatarUpload(input: AvatarUploadInput!): AvatarUploadPayload!
 
   """
-  Delete multiple files by ID.
+  Start a durable asynchronous update job for multiple files.
+  Restore is expressed as the canonical FileUpdateInput lifecycle operation.
   """
-  fileDeleteMany(input: FileDeleteManyInput!): FileDeleteManyPayload!
+  fileBulkUpdate(input: FileBulkUpdateInput!): FileBulkMutationPayload!
 
   """
-  Restore a single deleted file by ID.
+  Start a durable asynchronous delete job for multiple file aggregate roots.
   """
-  fileRestore(input: FileRestoreInput!): FileRestorePayload!
+  fileBulkDelete(input: FileBulkDeleteInput!): FileBulkMutationPayload!
 
   """
-  Restore multiple deleted files by ID.
+  Cancel operations in a durable file bulk mutation job that have not started yet.
   """
-  fileRestoreMany(input: FileRestoreManyInput!): FileRestoreManyPayload!
-
-  """
-  Clear the deletion error for one file by ID.
-  """
-  fileClearError(input: FileClearErrorInput!): FileClearErrorPayload!
-
-  # Prepared video/3D sources
-  mediaSourceCreate(input: MediaSourceCreateInput!): MediaSourcePayload!
-  mediaSourceUpdate(input: MediaSourceUpdateInput!): MediaSourcePayload!
-  mediaSourceDelete(input: MediaSourceDeleteInput!): MediaSourceDeletePayload!
+  fileBulkMutationCancel(jobId: ID!): FileBulkMutationPayload!
 }

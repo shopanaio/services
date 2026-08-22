@@ -49,13 +49,13 @@ input OnlineStoreNavigationMenuCreateInput {
 }
 
 input OnlineStoreNavigationMenuUpdateInput {
-  id: ID!
-  handle: String
-  name: String
+  fields: OnlineStoreNavigationMenuFieldsInput
+  items: [OnlineStoreNavigationMenuItemOperationInput!]
 }
 
-input OnlineStoreNavigationMenuDeleteInput {
-  id: ID!
+input OnlineStoreNavigationMenuFieldsInput {
+  handle: String
+  name: String
 }
 
 input OnlineStoreNavigationTargetInput {
@@ -65,7 +65,6 @@ input OnlineStoreNavigationTargetInput {
 }
 
 input OnlineStoreNavigationMenuItemCreateInput {
-  menuId: ID!
   parentId: ID
   handle: String!
   label: String!
@@ -76,7 +75,6 @@ input OnlineStoreNavigationMenuItemCreateInput {
 }
 
 input OnlineStoreNavigationMenuItemUpdateInput {
-  id: ID!
   parentId: ID
   handle: String
   label: String
@@ -86,8 +84,31 @@ input OnlineStoreNavigationMenuItemUpdateInput {
   openInNewTab: Boolean
 }
 
-input OnlineStoreNavigationMenuItemDeleteInput {
-  id: ID!
+enum OnlineStoreNavigationMenuItemOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+  MOVE
+}
+
+input OnlineStoreNavigationMenuItemOperationInput {
+  action: OnlineStoreNavigationMenuItemOperationAction!
+  itemId: ID
+  create: OnlineStoreNavigationMenuItemCreateInput
+  update: OnlineStoreNavigationMenuItemUpdateInput
+}
+
+enum OnlineStoreNavigationMenuOperationType {
+  FIELDS
+  ITEM
+}
+
+type OnlineStoreNavigationMenuOperationResult {
+  type: OnlineStoreNavigationMenuOperationType!
+  applied: Boolean!
+  entityId: ID
+  navigationMenuItem: OnlineStoreNavigationMenuItem
+  errors: [GenericUserError!]!
 }
 
 type OnlineStoreNavigationMenuConnection {
@@ -108,6 +129,7 @@ type OnlineStoreNavigationMenuCreatePayload {
 
 type OnlineStoreNavigationMenuUpdatePayload {
   navigationMenu: OnlineStoreNavigationMenu
+  operationResults: [OnlineStoreNavigationMenuOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

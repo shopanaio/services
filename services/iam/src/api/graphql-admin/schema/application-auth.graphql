@@ -233,8 +233,6 @@ type ApplicationAuthEmailDeliveryConfiguration {
 Input for updating application authentication policy and presentation.
 """
 input ApplicationAuthUpdateInput {
-  organizationId: ID!
-  applicationId: ID!
   registrationMode: ApplicationRegistrationMode
   emailVerificationRequired: Boolean
   accessTokenTtlSeconds: Int
@@ -251,8 +249,6 @@ input ApplicationAuthUpdateInput {
 Input for enabling or disabling an application realm.
 """
 input ApplicationAuthRealmEnabledSetInput {
-  organizationId: ID!
-  applicationId: ID!
   enabled: Boolean!
 }
 
@@ -260,8 +256,6 @@ input ApplicationAuthRealmEnabledSetInput {
 Input for updating enabled capabilities of an authentication method.
 """
 input ApplicationAuthMethodUpdateInput {
-  organizationId: ID!
-  applicationId: ID!
   methodId: ApplicationAuthMethodId!
   enabledCapabilities: [ApplicationAuthMethodCapability!]!
 }

@@ -64,8 +64,6 @@ type ApplicationAuthProviderValidation {
 Input for configuring credentials and scopes of a social provider.
 """
 input ApplicationAuthProviderConfigureInput {
-  organizationId: ID!
-  applicationId: ID!
   provider: ApplicationAuthProviderName!
   clientId: String!
   clientSecret: String!
@@ -76,8 +74,6 @@ input ApplicationAuthProviderConfigureInput {
 Input for updating non-secret social provider settings.
 """
 input ApplicationAuthProviderUpdateInput {
-  organizationId: ID!
-  applicationId: ID!
   provider: ApplicationAuthProviderName!
   enabled: Boolean
   scopes: [String!]
@@ -87,8 +83,6 @@ input ApplicationAuthProviderUpdateInput {
 Input for replacing social provider credentials.
 """
 input ApplicationAuthProviderCredentialsRotateInput {
-  organizationId: ID!
-  applicationId: ID!
   provider: ApplicationAuthProviderName!
   clientId: String!
   clientSecret: String!
@@ -98,8 +92,6 @@ input ApplicationAuthProviderCredentialsRotateInput {
 Input for deleting credentials from a disabled social provider.
 """
 input ApplicationAuthProviderCredentialsDeleteInput {
-  organizationId: ID!
-  applicationId: ID!
   provider: ApplicationAuthProviderName!
 }
 
@@ -107,9 +99,22 @@ input ApplicationAuthProviderCredentialsDeleteInput {
 Input for safely validating a social provider configuration.
 """
 input ApplicationAuthProviderValidateInput {
-  organizationId: ID!
-  applicationId: ID!
   provider: ApplicationAuthProviderName!
+}
+
+enum ApplicationAuthProviderOperationAction {
+  CONFIGURE
+  UPDATE
+  ROTATE_CREDENTIALS
+  DELETE_CREDENTIALS
+}
+
+input ApplicationAuthProviderOperationInput {
+  action: ApplicationAuthProviderOperationAction!
+  configure: ApplicationAuthProviderConfigureInput
+  update: ApplicationAuthProviderUpdateInput
+  rotateCredentials: ApplicationAuthProviderCredentialsRotateInput
+  deleteCredentials: ApplicationAuthProviderCredentialsDeleteInput
 }
 
 # ============================================================================

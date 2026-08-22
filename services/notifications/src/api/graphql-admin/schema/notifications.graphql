@@ -29,19 +29,12 @@ type NotificationsQuery {
 }
 
 type NotificationsMutation {
-  setDefinitionEnabled(
-    input: NotificationDefinitionSetEnabledInput!
-  ): NotificationDefinitionSetEnabledPayload!
-  setChannelEnabled(input: NotificationChannelSettingInput!): NotificationChannelSetEnabledPayload!
-  updateTemplate(input: NotificationTemplateUpdateInput!): NotificationTemplateUpdatePayload!
-  preview(input: NotificationPreviewInput!): NotificationPreviewPayload!
-  upsertStaffRecipient(input: StaffNotificationRecipientInput!): StaffRecipientUpsertPayload!
-  deleteStaffRecipient(input: StaffRecipientDeleteInput!): StaffRecipientDeletePayload!
-  sendTest(input: NotificationTestMessageInput!): NotificationSendTestPayload!
-  createWebhook(input: NotificationWebhookCreateInput!): NotificationWebhookCreatePayload!
-  updateWebhook(input: NotificationWebhookUpdateInput!): NotificationWebhookUpdatePayload!
-  deleteWebhook(input: NotificationWebhookDeleteInput!): NotificationWebhookDeletePayload!
-  revealWebhookSecret: NotificationWebhookSecretPayload!
+  notificationConfigurationUpdate(
+    operations: NotificationConfigurationUpdateInput!
+  ): NotificationConfigurationUpdatePayload!
+  notificationPreview(input: NotificationPreviewInput!): NotificationPreviewPayload!
+  notificationSendTest(input: NotificationTestMessageInput!): NotificationSendTestPayload!
+  notificationWebhookSecretReveal: NotificationWebhookSecretPayload!
 }
 
 interface UserError {
@@ -106,6 +99,77 @@ type NotificationDefinitionSetting {
 input NotificationDefinitionSetEnabledInput {
   key: String!
   enabled: Boolean!
+}
+
+input NotificationConfigurationUpdateInput {
+  definitions: [NotificationDefinitionOperationInput!]
+  channels: [NotificationChannelOperationInput!]
+  templates: [NotificationTemplateOperationInput!]
+  staffRecipients: [StaffNotificationRecipientOperationInput!]
+  webhooks: [NotificationWebhookOperationInput!]
+}
+
+input NotificationDefinitionOperationInput {
+  key: String!
+  enabled: Boolean!
+}
+
+input NotificationChannelOperationInput {
+  values: NotificationChannelSettingInput!
+}
+
+input NotificationTemplateOperationInput {
+  values: NotificationTemplateUpdateInput!
+}
+
+enum StaffNotificationRecipientOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+input StaffNotificationRecipientOperationInput {
+  action: StaffNotificationRecipientOperationAction!
+  recipientId: ID
+  values: StaffNotificationRecipientInput
+}
+
+enum NotificationWebhookOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+input NotificationWebhookOperationInput {
+  action: NotificationWebhookOperationAction!
+  webhookId: ID
+  create: NotificationWebhookCreateInput
+  update: NotificationWebhookValuesInput
+}
+
+enum NotificationConfigurationOperationType {
+  DEFINITION
+  CHANNEL
+  TEMPLATE
+  STAFF_RECIPIENT
+  WEBHOOK
+}
+
+type NotificationConfigurationOperationResult {
+  type: NotificationConfigurationOperationType!
+  applied: Boolean!
+  entityId: ID
+  definitionSetting: NotificationDefinitionSetting
+  channelSetting: NotificationChannelSetting
+  template: NotificationEffectiveTemplate
+  staffRecipient: StaffNotificationRecipient
+  webhook: NotificationWebhookSubscription
+  errors: [GenericUserError!]!
+}
+
+type NotificationConfigurationUpdatePayload {
+  operationResults: [NotificationConfigurationOperationResult!]!
+  userErrors: [GenericUserError!]!
 }
 
 type NotificationDefinitionSetEnabledPayload {
@@ -195,7 +259,6 @@ type NotificationSmsMetrics {
 }
 
 input StaffNotificationRecipientInput {
-  id: ID
   userId: ID
   name: String!
   email: String!
@@ -282,6 +345,14 @@ type NotificationWebhookApiVersion {
 
 input NotificationWebhookUpdateInput {
   id: ID!
+  eventType: String
+  format: NotificationWebhookFormat
+  url: String
+  apiVersion: String
+  status: NotificationWebhookStatus
+}
+
+input NotificationWebhookValuesInput {
   eventType: String
   format: NotificationWebhookFormat
   url: String

@@ -202,10 +202,6 @@ Input for inviting a member to organization.
 """
 input MemberInviteInput {
   """
-  Organization ID to invite the member to.
-  """
-  organizationId: ID!
-  """
   Email address of the user to invite.
   """
   email: Email!
@@ -219,10 +215,6 @@ input MemberInviteInput {
 Input for changing member's role.
 """
 input MemberRoleChangeInput {
-  """
-  Organization ID where the member belongs.
-  """
-  organizationId: ID!
   """
   User ID.
   """
@@ -242,10 +234,6 @@ Input for removing member's access.
 """
 input MemberAccessRemoveInput {
   """
-  Organization ID where the member belongs.
-  """
-  organizationId: ID!
-  """
   User ID.
   """
   userId: ID!
@@ -259,10 +247,12 @@ input MemberAccessRemoveInput {
 Input for updating organization.
 """
 input OrganizationUpdateInput {
-  """
-  Organization ID.
-  """
-  id: ID!
+  fields: OrganizationFieldsInput
+  ownership: OrganizationOwnershipOperationInput
+  members: [OrganizationMemberOperationInput!]
+}
+
+input OrganizationFieldsInput {
   """
   New name (URL-friendly identifier).
   """
@@ -277,6 +267,39 @@ input OrganizationUpdateInput {
   logoId: ID
 }
 
+input OrganizationOwnershipOperationInput {
+  newOwnerId: ID!
+}
+
+enum OrganizationMemberOperationAction {
+  INVITE
+  REMOVE
+  CHANGE_ROLE
+  REMOVE_ACCESS
+}
+
+input OrganizationMemberOperationInput {
+  action: OrganizationMemberOperationAction!
+  invite: MemberInviteInput
+  remove: MemberRemoveInput
+  changeRole: MemberRoleChangeInput
+  removeAccess: MemberAccessRemoveInput
+}
+
+enum OrganizationOperationType {
+  FIELDS
+  OWNERSHIP
+  MEMBER
+}
+
+type OrganizationOperationResult {
+  type: OrganizationOperationType!
+  applied: Boolean!
+  entityId: ID
+  member: Member
+  errors: [GenericUserError!]!
+}
+
 # ============================================================================
 # PAYLOADS
 # ============================================================================
@@ -288,6 +311,7 @@ type OrganizationCreatePayload {
 
 type OrganizationUpdatePayload {
   organization: Organization
+  operationResults: [OrganizationOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -321,10 +345,6 @@ Input for transferring organization ownership.
 """
 input OwnershipTransferInput {
   """
-  Organization ID.
-  """
-  organizationId: ID!
-  """
   User ID of the new owner. Must be an admin of the organization.
   """
   newOwnerId: ID!
@@ -334,10 +354,6 @@ input OwnershipTransferInput {
 Input for removing a member from organization.
 """
 input MemberRemoveInput {
-  """
-  Organization ID.
-  """
-  organizationId: ID!
   """
   User ID of the member to remove.
   """
@@ -406,35 +422,12 @@ type OrganizationMutation {
   Update organization.
   Requires: org admin or owner.
   """
-  organizationUpdate(input: OrganizationUpdateInput!): OrganizationUpdatePayload!
+  organizationUpdate(
+    organizationId: ID!
+    operations: OrganizationUpdateInput!
+  ): OrganizationUpdatePayload!
   """
   Delete organization. Requires: org owner only.
   """
-  organizationDelete(id: ID!): OrganizationDeletePayload!
-  """
-  Transfer organization ownership to another admin.
-  Only the current owner can transfer ownership.
-  New owner must have admin role in the organization.
-  Previous owner retains admin role.
-  """
-  ownershipTransfer(input: OwnershipTransferInput!): OwnershipTransferPayload!
-  """
-  Invite member to organization with role assignments.
-  """
-  memberInvite(input: MemberInviteInput!): MemberInvitePayload!
-  """
-  Remove member from organization.
-  Requires: org admin or owner.
-  Cannot remove owner (transfer ownership first).
-  """
-  memberRemove(input: MemberRemoveInput!): MemberRemovePayload!
-  """
-  Change role for a member in specific domain.
-  Owner cannot be demoted.
-  """
-  memberRoleChange(input: MemberRoleChangeInput!): MemberRoleChangePayload!
-  """
-  Remove member's access from domain.
-  """
-  memberAccessRemove(input: MemberAccessRemoveInput!): MemberAccessRemovePayload!
+  organizationDelete(organizationId: ID!): OrganizationDeletePayload!
 }

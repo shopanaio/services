@@ -83,23 +83,13 @@ Admin mutations scoped to the active Online Store App installation.
 type OnlineStoreAppMutation {
   pageCreate(input: OnlineStorePageCreateInput!): OnlineStorePageCreatePayload!
   pageUpdate(pageId: ID!, operations: OnlineStorePageUpdateInput!): OnlineStorePageUpdatePayload!
-  pageDelete(input: OnlineStorePageDeleteInput!): OnlineStorePageDeletePayload!
+  pageDelete(pageId: ID!): OnlineStorePageDeletePayload!
   navigationMenuCreate(
     input: OnlineStoreNavigationMenuCreateInput!
   ): OnlineStoreNavigationMenuCreatePayload!
   navigationMenuUpdate(
-    input: OnlineStoreNavigationMenuUpdateInput!
+    navigationMenuId: ID!
+    operations: OnlineStoreNavigationMenuUpdateInput!
   ): OnlineStoreNavigationMenuUpdatePayload!
-  navigationMenuDelete(
-    input: OnlineStoreNavigationMenuDeleteInput!
-  ): OnlineStoreNavigationMenuDeletePayload!
-  navigationMenuItemCreate(
-    input: OnlineStoreNavigationMenuItemCreateInput!
-  ): OnlineStoreNavigationMenuItemCreatePayload!
-  navigationMenuItemUpdate(
-    input: OnlineStoreNavigationMenuItemUpdateInput!
-  ): OnlineStoreNavigationMenuItemUpdatePayload!
-  navigationMenuItemDelete(
-    input: OnlineStoreNavigationMenuItemDeleteInput!
-  ): OnlineStoreNavigationMenuItemDeletePayload!
+  navigationMenuDelete(navigationMenuId: ID!): OnlineStoreNavigationMenuDeletePayload!
 }

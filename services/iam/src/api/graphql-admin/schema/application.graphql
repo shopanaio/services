@@ -256,14 +256,17 @@ input ApplicationCreateInput {
 Input for updating application metadata.
 """
 input ApplicationUpdateInput {
-  """
-  Organization that owns the application.
-  """
-  organizationId: ID!
-  """
-  Application to update.
-  """
-  applicationId: ID!
+  fields: ApplicationFieldsInput
+  lifecycle: ApplicationLifecycleOperationInput
+  authentication: ApplicationAuthUpdateInput
+  authenticationRealmEnabled: Boolean
+  authenticationMethods: [ApplicationAuthMethodUpdateInput!]
+  authenticationProviders: [ApplicationAuthProviderOperationInput!]
+  oauthClients: [ApplicationOAuthClientOperationInput!]
+  users: [ApplicationUserOperationInput!]
+}
+
+input ApplicationFieldsInput {
   """
   New URL-friendly application name.
   """
@@ -276,6 +279,41 @@ input ApplicationUpdateInput {
   New application description.
   """
   description: String
+}
+
+enum ApplicationLifecycleAction {
+  ARCHIVE
+}
+
+input ApplicationLifecycleOperationInput {
+  action: ApplicationLifecycleAction!
+}
+
+enum ApplicationOperationType {
+  FIELDS
+  LIFECYCLE
+  AUTHENTICATION
+  AUTHENTICATION_REALM
+  AUTHENTICATION_METHOD
+  AUTHENTICATION_PROVIDER
+  OAUTH_CLIENT
+  USER
+}
+
+type ApplicationOperationResult {
+  type: ApplicationOperationType!
+  applied: Boolean!
+  entityId: ID
+  configuration: ApplicationAuthConfiguration
+  authMethod: ApplicationAuthMethod
+  provider: ApplicationAuthProvider
+  oauthClient: ApplicationOAuthClient
+  clientSecret: String
+  user: ApplicationUser
+  revokedSessionCount: Int
+  unlinkedAccountId: ID
+  updatedBy: ID
+  errors: [GenericUserError!]!
 }
 
 """
@@ -309,6 +347,7 @@ Result of updating application metadata.
 """
 type ApplicationUpdatePayload {
   application: Application
+  operationResults: [ApplicationOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

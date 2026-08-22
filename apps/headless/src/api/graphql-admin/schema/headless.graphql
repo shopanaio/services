@@ -187,7 +187,6 @@ type HeadlessStorefrontConnection implements Node @key(fields: "id") {
 Input for creating a private credential for an existing storefront.
 """
 input StorefrontPrivateCredentialCreateInput {
-  connectionId: ID!
   label: String!
 }
 
@@ -207,15 +206,17 @@ input HeadlessStorefrontCreateInput {
 Input for a lifecycle action on an existing Headless storefront.
 """
 input HeadlessStorefrontActionInput {
-  connectionId: ID!
+  reason: String
 }
 
 """
 Input for changing a Headless storefront display name.
 """
 input HeadlessStorefrontUpdateInput {
-  connectionId: ID!
-  displayName: String!
+  displayName: String
+  lifecycle: HeadlessStorefrontLifecycleOperationInput
+  credentials: [HeadlessStorefrontCredentialOperationInput!]
+  accessPolicy: StorefrontAccessPolicyUpdateInput
 }
 
 """
@@ -229,8 +230,45 @@ input StorefrontCredentialRevokeInput {
 Input for replacing the complete Storefront permission grant set.
 """
 input StorefrontAccessPolicyUpdateInput {
-  connectionId: ID!
   permissions: [String!]!
+}
+
+enum HeadlessStorefrontLifecycleAction {
+  SUSPEND
+  RESUME
+}
+
+input HeadlessStorefrontLifecycleOperationInput {
+  action: HeadlessStorefrontLifecycleAction!
+  reason: String
+}
+
+enum HeadlessStorefrontCredentialOperationAction {
+  CREATE
+  REVOKE
+}
+
+input HeadlessStorefrontCredentialOperationInput {
+  action: HeadlessStorefrontCredentialOperationAction!
+  credentialId: ID
+  values: StorefrontPrivateCredentialCreateInput
+}
+
+enum HeadlessStorefrontOperationType {
+  DISPLAY_NAME
+  LIFECYCLE
+  CREDENTIAL
+  ACCESS_POLICY
+}
+
+type HeadlessStorefrontOperationResult {
+  type: HeadlessStorefrontOperationType!
+  applied: Boolean!
+  entityId: ID
+  credential: StorefrontCredential
+  privateAccessToken: String
+  policy: StorefrontAccessPolicy
+  errors: [GenericUserError!]!
 }
 
 """
@@ -281,9 +319,9 @@ type StorefrontAccessPolicyPayload {
 """
 Payload returned after changing a Headless storefront.
 """
-type HeadlessStorefrontPayload {
+type HeadlessStorefrontUpdatePayload {
   connection: HeadlessStorefrontConnection
-
+  operationResults: [HeadlessStorefrontOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -338,39 +376,18 @@ type HeadlessAppMutation {
   """
   Change the display name of an existing storefront.
   """
-  headlessStorefrontUpdate(input: HeadlessStorefrontUpdateInput!): HeadlessStorefrontPayload!
-
-  """
-  Temporarily suspend Storefront API access for a storefront.
-  """
-  headlessStorefrontSuspend(input: HeadlessStorefrontActionInput!): HeadlessStorefrontPayload!
-
-  """
-  Resume Storefront API access for a suspended storefront.
-  """
-  headlessStorefrontResume(input: HeadlessStorefrontActionInput!): HeadlessStorefrontPayload!
+  headlessStorefrontUpdate(
+    headlessStorefrontId: ID!
+    operations: HeadlessStorefrontUpdateInput!
+  ): HeadlessStorefrontUpdatePayload!
 
   """
   Permanently disconnect a storefront and revoke its credentials.
   """
-  headlessStorefrontDisconnect(input: HeadlessStorefrontActionInput!): HeadlessStorefrontPayload!
+  headlessStorefrontDelete(headlessStorefrontId: ID!): HeadlessStorefrontDeletePayload!
+}
 
-  """
-  Create an additional private credential for safe rotation.
-  """
-  storefrontPrivateCredentialCreate(
-    input: StorefrontPrivateCredentialCreateInput!
-  ): StorefrontPrivateCredentialCreatePayload!
-
-  """
-  Revoke a private credential.
-  """
-  storefrontCredentialRevoke(input: StorefrontCredentialRevokeInput!): StorefrontCredentialPayload!
-
-  """
-  Replace the complete permission grant set.
-  """
-  storefrontAccessPolicyUpdate(
-    input: StorefrontAccessPolicyUpdateInput!
-  ): StorefrontAccessPolicyPayload!
+type HeadlessStorefrontDeletePayload {
+  deletedHeadlessStorefrontId: ID
+  userErrors: [GenericUserError!]!
 }

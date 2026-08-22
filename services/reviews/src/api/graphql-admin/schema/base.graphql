@@ -186,19 +186,23 @@ type ReviewsMutation {
     operations: ReviewRatingCriterionUpdateInput!
   ): ReviewRatingCriterionUpdatePayload!
   ratingCriterionDelete(
-    input: ReviewRatingCriterionDeleteInput!
+    criterionId: ID!
+    permanent: Boolean
   ): ReviewRatingCriterionDeletePayload!
 
   reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
   reviewUpdate(reviewId: ID!, operations: ReviewUpdateInput!): ReviewUpdatePayload!
-  reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
+  reviewDelete(reviewId: ID!, permanent: Boolean): ReviewDeletePayload!
 
   productQuestionCreate(input: ProductQuestionCreateInput!): ProductQuestionCreatePayload!
   productQuestionUpdate(
     productQuestionId: ID!
     operations: ProductQuestionUpdateInput!
   ): ProductQuestionUpdatePayload!
-  productQuestionDelete(input: ReviewContentDeleteInput!): ProductQuestionDeletePayload!
+  productQuestionDelete(
+    productQuestionId: ID!
+    permanent: Boolean
+  ): ProductQuestionDeletePayload!
 
   reviewRequestCreate(input: ReviewRequestCreateInput!): ReviewRequestCreatePayload!
   reviewRequestUpdate(

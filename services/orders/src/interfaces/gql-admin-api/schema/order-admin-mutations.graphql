@@ -86,531 +86,248 @@ type OrdersQuery {
 }
 
 """
-Command namespace. Every command is store-scoped from trusted context.
+Aggregate command namespace. Every command is store-scoped from trusted context.
 """
 type OrdersMutation {
-  """
-  Create an idempotent DRAFT order and calculate all totals server-side.
-  """
-  orderCreate(
-    """
-    Validated input value for input.
-    """
-    input: OrderCreateInput!
-  ): OrderPayload!
-  """
-  Update editable order details without directly overwriting derived aggregate statuses.
-  """
-  orderUpdate(
-    """
-    Validated input value for input.
-    """
-    input: OrderUpdateInput!
-  ): OrderPayload!
-  """
-  Permanently delete a DRAFT order; placed orders are never physically deleted.
-  """
-  orderDelete(
-    """
-    Validated input value for input.
-    """
-    input: OrderDeleteInput!
-  ): OrderDeletePayload!
-  """
-  Validate and transition a DRAFT order to OPEN.
-  """
-  orderCompleteDraft(
-    """
-    Validated input value for input.
-    """
-    input: OrderCompleteDraftInput!
-  ): OrderPayload!
-  """
-  Start durable cancellation across fulfillment, payment, inventory, and notifications.
-  """
-  orderCancel(
-    """
-    Validated input value for input.
-    """
-    input: OrderCancelInput!
-  ): OrderOperationPayload!
-  """
-  Close an eligible OPEN order.
-  """
-  orderClose(
-    """
-    Validated input value for input.
-    """
-    input: OrderCloseInput!
-  ): OrderPayload!
-  """
-  Reopen an eligible CLOSED order.
-  """
-  orderReopen(
-    """
-    Validated input value for input.
-    """
-    input: OrderReopenInput!
-  ): OrderPayload!
-  """
-  Archive an order without changing lifecycle status.
-  """
-  orderArchive(
-    """
-    Validated input value for input.
-    """
-    input: OrderArchiveInput!
-  ): OrderPayload!
-  """
-  Remove the archive marker without changing lifecycle status.
-  """
-  orderUnarchive(
-    """
-    Validated input value for input.
-    """
-    input: OrderUnarchiveInput!
-  ): OrderPayload!
-  """
-  Attach or detach the federated customer reference while preserving historical contact snapshots.
-  """
-  orderCustomerSet(
-    """
-    Validated input value for input.
-    """
-    input: OrderCustomerSetInput!
-  ): OrderPayload!
-  """
-  Replace normalized tags and append an immutable audit event.
-  """
-  orderTagsUpdate(
-    """
-    Validated input value for input.
-    """
-    input: OrderTagsUpdateInput!
-  ): OrderPayload!
-  """
-  Update the current staff-only note and append an immutable audit event.
-  """
-  orderAdminNoteUpdate(
-    """
-    Validated input value for input.
-    """
-    input: OrderAdminNoteUpdateInput!
-  ): OrderPayload!
-  """
-  Append a staff or customer-visible comment to the immutable activity timeline.
-  """
-  orderCommentAdd(
-    """
-    Validated input value for input.
-    """
-    input: OrderCommentAddInput!
-  ): OrderActivityPayload!
-  """
-  Replace validated merchant custom fields without storing core business facts in JSON.
-  """
-  orderCustomFieldsUpdate(
-    """
-    Validated input value for input.
-    """
-    input: OrderCustomFieldsUpdateInput!
-  ): OrderPayload!
-  """
-  Add a line directly to a DRAFT order and recalculate totals.
-  """
-  orderLineAdd(
-    """
-    Validated input value for input.
-    """
-    input: OrderLineAddInput!
-  ): OrderLinePayload!
-  """
-  Update an editable DRAFT line and recalculate totals.
-  """
-  orderLineUpdate(
-    """
-    Validated input value for input.
-    """
-    input: OrderLineUpdateInput!
-  ): OrderLinePayload!
-  """
-  Delete a line directly from a DRAFT order.
-  """
-  orderLineDelete(
-    """
-    Validated input value for input.
-    """
-    input: OrderLineDeleteInput!
-  ): OrderDeletePayload!
-  """
-  Begin an isolated staged edit of an OPEN order.
-  """
-  orderEditBegin(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditBeginInput!
-  ): OrderEditPayload!
-  """
-  Add a proposed line to a staged edit and refresh its calculated preview.
-  """
-  orderEditLineAdd(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditLineAddInput!
-  ): OrderEditPayload!
-  """
-  Update a proposed line in a staged edit and refresh its calculated preview.
-  """
-  orderEditLineUpdate(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditLineUpdateInput!
-  ): OrderEditPayload!
-  """
-  Remove a proposed line without mutating the committed order.
-  """
-  orderEditLineRemove(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditLineRemoveInput!
-  ): OrderEditPayload!
-  """
-  Update proposed delivery details in a staged edit.
-  """
-  orderEditShippingUpdate(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditShippingUpdateInput!
-  ): OrderEditPayload!
-  """
-  Add a reasoned manual discount to a staged edit.
-  """
-  orderEditDiscountAdd(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditDiscountAddInput!
-  ): OrderEditPayload!
-  """
-  Remove a proposed discount from a staged edit.
-  """
-  orderEditDiscountRemove(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditDiscountRemoveInput!
-  ): OrderEditPayload!
-  """
-  Durably commit a staged edit after verifying edit and order revisions.
-  """
-  orderEditCommit(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditCommitInput!
-  ): OrderOperationPayload!
-  """
-  Abandon an uncommitted staged edit.
-  """
-  orderEditAbandon(
-    """
-    Validated input value for input.
-    """
-    input: OrderEditAbandonInput!
-  ): OrderEditPayload!
-  """
-  Record an audited offline or imported payment fact.
-  """
-  orderManualPaymentRecord(
-    """
-    Validated input value for input.
-    """
-    input: OrderManualPaymentRecordInput!
-  ): OrderOperationPayload!
-  """
-  Start durable capture of an eligible authorization.
-  """
-  orderPaymentCapture(
-    """
-    Validated input value for input.
-    """
-    input: OrderPaymentCaptureInput!
-  ): OrderOperationPayload!
-  """
-  Start durable voiding of an eligible authorization or transaction.
-  """
-  orderPaymentVoid(
-    """
-    Validated input value for input.
-    """
-    input: OrderPaymentVoidInput!
-  ): OrderOperationPayload!
-  """
-  Start a new payment attempt without rewriting previous attempts.
-  """
-  orderPaymentRetry(
-    """
-    Validated input value for input.
-    """
-    input: OrderPaymentRetryInput!
-  ): OrderOperationPayload!
-  """
-  Start a durable refund with optional line and transaction allocations.
-  """
-  orderRefundCreate(
-    """
-    Validated input value for input.
-    """
-    input: OrderRefundCreateInput!
-  ): OrderOperationPayload!
-  """
-  Apply an elevated override only to offline or imported facts with a mandatory reason.
-  """
-  orderPaymentStatusOverride(
-    """
-    Validated input value for input.
-    """
-    input: OrderPaymentStatusOverrideInput!
-  ): OrderPayload!
-  """
-  Split selected remaining quantities into a new fulfillment work unit.
-  """
-  fulfillmentOrderSplit(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentOrderSplitInput!
-  ): FulfillmentOrderPayload!
-  """
-  Move fulfillment work to another location or pinned fulfillment-service route.
-  """
-  fulfillmentOrderMove(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentOrderMoveInput!
-  ): FulfillmentOrderPayload!
-  """
-  Place a reasoned hold on fulfillment work.
-  """
-  fulfillmentOrderHold(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentOrderHoldInput!
-  ): FulfillmentOrderPayload!
-  """
-  Release one fulfillment hold.
-  """
-  fulfillmentOrderReleaseHold(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentOrderReleaseHoldInput!
-  ): FulfillmentOrderPayload!
-  """
-  Submit fulfillment work through its pinned fulfillment service.
-  """
-  fulfillmentOrderSubmit(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentOrderSubmitInput!
-  ): OrderOperationPayload!
-  """
-  Request cancellation from the pinned fulfillment service.
-  """
-  fulfillmentOrderCancelRequest(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentOrderCancelRequestInput!
-  ): OrderOperationPayload!
-  """
-  Create merchant-managed fulfillment facts for allocated quantities.
-  """
-  fulfillmentCreate(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentCreateInput!
-  ): FulfillmentPayload!
-  """
-  Start durable fulfillment cancellation and optional restocking.
-  """
-  fulfillmentCancel(
-    """
-    Validated input value for input.
-    """
-    input: FulfillmentCancelInput!
-  ): OrderOperationPayload!
-  """
-  Start merchant-managed or provider-managed physical shipment creation.
-  """
-  shipmentCreate(
-    """
-    Validated input value for input.
-    """
-    input: ShipmentCreateInput!
-  ): OrderOperationPayload!
-  """
-  Replace merchant-managed tracking details.
-  """
-  shipmentTrackingUpdate(
-    """
-    Validated input value for input.
-    """
-    input: ShipmentTrackingUpdateInput!
-  ): ShipmentPayload!
-  """
-  Record physical handoff of a shipment.
-  """
-  shipmentMarkShipped(
-    """
-    Validated input value for input.
-    """
-    input: ShipmentMarkShippedInput!
-  ): ShipmentPayload!
-  """
-  Record confirmed physical delivery.
-  """
-  shipmentMarkDelivered(
-    """
-    Validated input value for input.
-    """
-    input: ShipmentMarkDeliveredInput!
-  ): ShipmentPayload!
-  """
-  Start durable cancellation of an eligible shipment.
-  """
-  shipmentCancel(
-    """
-    Validated input value for input.
-    """
-    input: ShipmentCancelInput!
-  ): OrderOperationPayload!
-  """
-  Reconcile shipment state through its pinned provider route.
-  """
-  shipmentReconcile(
-    """
-    Validated input value for input.
-    """
-    input: ShipmentReconcileInput!
-  ): OrderOperationPayload!
-  """
-  Create a return request for currently returnable quantities.
-  """
-  orderReturnCreate(
-    """
-    Validated input value for input.
-    """
-    input: OrderReturnCreateInput!
-  ): OrderReturnPayload!
-  """
-  Approve a return and optionally request a return shipment.
-  """
-  orderReturnApprove(
-    """
-    Validated input value for input.
-    """
-    input: OrderReturnApproveInput!
-  ): OrderReturnPayload!
-  """
-  Reject a return with a stable reason code.
-  """
-  orderReturnReject(
-    """
-    Validated input value for input.
-    """
-    input: OrderReturnRejectInput!
-  ): OrderReturnPayload!
-  """
-  Cancel an eligible return request.
-  """
-  orderReturnCancel(
-    """
-    Validated input value for input.
-    """
-    input: OrderReturnCancelInput!
-  ): OrderReturnPayload!
-  """
-  Start durable receipt, disposition, restocking, and optional refund processing.
-  """
-  orderReturnReceive(
-    """
-    Validated input value for input.
-    """
-    input: OrderReturnReceiveInput!
-  ): OrderOperationPayload!
-  """
-  Create an exchange from eligible inbound quantities and replacement lines.
-  """
-  orderExchangeCreate(
-    """
-    Validated input value for input.
-    """
-    input: OrderExchangeCreateInput!
-  ): OrderExchangePayload!
-  """
-  Cancel an eligible exchange.
-  """
-  orderExchangeCancel(
-    """
-    Validated input value for input.
-    """
-    input: OrderExchangeCancelInput!
-  ): OrderExchangePayload!
-  """
-  Complete an eligible exchange after inbound receipt and outbound fulfillment.
-  """
-  orderExchangeComplete(
-    """
-    Validated input value for input.
-    """
-    input: OrderExchangeCompleteInput!
-  ): OrderExchangePayload!
-  """
-  Request asynchronous synchronization through a pinned integration link.
-  """
-  orderIntegrationSyncRequest(
-    """
-    Validated input value for input.
-    """
-    input: OrderIntegrationSyncRequestInput!
-  ): OrderOperationPayload!
-  """
-  Retry a failed integration operation without changing its pinned route.
-  """
-  orderIntegrationSyncRetry(
-    """
-    Validated input value for input.
-    """
-    input: OrderIntegrationSyncRetryInput!
-  ): OrderOperationPayload!
-  """
-  Detach an integration link while preserving synchronization and audit history.
-  """
-  orderIntegrationLinkDetach(
-    """
-    Validated input value for input.
-    """
-    input: OrderIntegrationLinkDetachInput!
-  ): OrderPayload!
-  """
-  Start a durable bulk action over an explicit or filtered order selection.
-  """
-  ordersBulkAction(
-    """
-    Validated input value for input.
-    """
-    input: OrdersBulkActionInput!
-  ): OrderOperationPayload!
+  orderCreate(input: OrderCreateInput!): OrderCreatePayload!
+  orderUpdate(orderId: ID!, operations: OrderUpdateInput!): OrderUpdatePayload!
+  orderDelete(orderId: ID!): OrderDeletePayload!
+
+  """
+  Multi-aggregate semantic command over an explicit or filtered order selection.
+  """
+  ordersBulkAction(input: OrdersBulkActionInput!): OrderOperationPayload!
+}
+
+input OrderUpdateInput {
+  fields: OrderFieldsUpdateInput
+  lifecycle: [OrderLifecycleOperationInput!]
+  customer: OrderCustomerSetInput
+  tags: OrderTagsUpdateInput
+  adminNote: OrderAdminNoteUpdateInput
+  comments: [OrderCommentAddInput!]
+  customFields: OrderCustomFieldsUpdateInput
+  lines: [OrderLineOperationInput!]
+  edits: [OrderEditOperationInput!]
+  payments: [OrderPaymentOperationInput!]
+  fulfillmentOrders: [OrderFulfillmentOrderOperationInput!]
+  fulfillments: [OrderFulfillmentOperationInput!]
+  shipments: [OrderShipmentOperationInput!]
+  returns: [OrderReturnOperationInput!]
+  exchanges: [OrderExchangeOperationInput!]
+  integrations: [OrderIntegrationOperationInput!]
+}
+
+enum OrderLifecycleOperationAction {
+  COMPLETE_DRAFT
+  CANCEL
+  CLOSE
+  REOPEN
+  ARCHIVE
+  UNARCHIVE
+}
+
+input OrderLifecycleOperationInput {
+  action: OrderLifecycleOperationAction!
+  completeDraft: OrderCompleteDraftInput
+  cancel: OrderCancelInput
+  close: OrderCloseInput
+  reopen: OrderReopenInput
+}
+
+enum OrderLineOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+input OrderLineOperationInput {
+  action: OrderLineOperationAction!
+  lineId: ID
+  create: OrderLineCreateInput
+  update: OrderLineUpdateValuesInput
+}
+
+enum OrderEditOperationAction {
+  BEGIN
+  LINE_CREATE
+  LINE_UPDATE
+  LINE_DELETE
+  SHIPPING_UPDATE
+  DISCOUNT_CREATE
+  DISCOUNT_DELETE
+  COMMIT
+  ABANDON
+}
+
+input OrderEditOperationInput {
+  action: OrderEditOperationAction!
+  begin: Boolean
+  lineCreate: OrderEditLineAddInput
+  lineUpdate: OrderEditLineUpdateInput
+  lineDelete: OrderEditLineRemoveInput
+  shippingUpdate: OrderEditShippingUpdateInput
+  discountCreate: OrderEditDiscountAddInput
+  discountDelete: OrderEditDiscountRemoveInput
+  commit: OrderEditCommitInput
+  abandon: OrderEditAbandonInput
+}
+
+enum OrderPaymentOperationAction {
+  RECORD_MANUAL
+  CAPTURE
+  VOID
+  RETRY
+  REFUND_CREATE
+  STATUS_OVERRIDE
+}
+
+input OrderPaymentOperationInput {
+  action: OrderPaymentOperationAction!
+  recordManual: OrderManualPaymentRecordInput
+  capture: OrderPaymentCaptureInput
+  void: OrderPaymentVoidInput
+  retry: OrderPaymentRetryInput
+  refundCreate: OrderRefundCreateInput
+  statusOverride: OrderPaymentStatusOverrideInput
+}
+
+enum OrderFulfillmentOrderOperationAction {
+  SPLIT
+  MOVE
+  HOLD
+  RELEASE_HOLD
+  SUBMIT
+  CANCEL_REQUEST
+}
+
+input OrderFulfillmentOrderOperationInput {
+  action: OrderFulfillmentOrderOperationAction!
+  split: FulfillmentOrderSplitInput
+  move: FulfillmentOrderMoveInput
+  hold: FulfillmentOrderHoldInput
+  releaseHold: FulfillmentOrderReleaseHoldInput
+  submit: FulfillmentOrderSubmitInput
+  cancelRequest: FulfillmentOrderCancelRequestInput
+}
+
+enum OrderFulfillmentOperationAction {
+  CREATE
+  CANCEL
+}
+
+input OrderFulfillmentOperationInput {
+  action: OrderFulfillmentOperationAction!
+  create: FulfillmentCreateInput
+  cancel: FulfillmentCancelInput
+}
+
+enum OrderShipmentOperationAction {
+  CREATE
+  TRACKING_UPDATE
+  MARK_SHIPPED
+  MARK_DELIVERED
+  CANCEL
+  RECONCILE
+}
+
+input OrderShipmentOperationInput {
+  action: OrderShipmentOperationAction!
+  create: ShipmentCreateInput
+  trackingUpdate: ShipmentTrackingUpdateInput
+  markShipped: ShipmentMarkShippedInput
+  markDelivered: ShipmentMarkDeliveredInput
+  cancel: ShipmentCancelInput
+  reconcile: ShipmentReconcileInput
+}
+
+enum OrderReturnOperationAction {
+  CREATE
+  APPROVE
+  REJECT
+  CANCEL
+  RECEIVE
+}
+
+input OrderReturnOperationInput {
+  action: OrderReturnOperationAction!
+  create: OrderReturnCreateInput
+  approve: OrderReturnApproveInput
+  reject: OrderReturnRejectInput
+  cancel: OrderReturnCancelInput
+  receive: OrderReturnReceiveInput
+}
+
+enum OrderExchangeOperationAction {
+  CREATE
+  CANCEL
+  COMPLETE
+}
+
+input OrderExchangeOperationInput {
+  action: OrderExchangeOperationAction!
+  create: OrderExchangeCreateInput
+  cancel: OrderExchangeCancelInput
+  complete: OrderExchangeCompleteInput
+}
+
+enum OrderIntegrationOperationAction {
+  SYNC_REQUEST
+  SYNC_RETRY
+  LINK_DETACH
+}
+
+input OrderIntegrationOperationInput {
+  action: OrderIntegrationOperationAction!
+  syncRequest: OrderIntegrationSyncRequestInput
+  syncRetry: OrderIntegrationSyncRetryInput
+  linkDetach: OrderIntegrationLinkDetachInput
+}
+
+enum OrderUpdateOperationType {
+  FIELDS
+  LIFECYCLE
+  CUSTOMER
+  TAGS
+  ADMIN_NOTE
+  COMMENT
+  CUSTOM_FIELDS
+  LINE
+  EDIT
+  PAYMENT
+  FULFILLMENT_ORDER
+  FULFILLMENT
+  SHIPMENT
+  RETURN
+  EXCHANGE
+  INTEGRATION
+}
+
+type OrderUpdateOperationResult {
+  type: OrderUpdateOperationType!
+  applied: Boolean!
+  entityId: ID
+  operation: OrderOperation
+  activity: OrderActivity
+  line: OrderLine
+  edit: OrderEditSession
+  fulfillmentOrder: FulfillmentOrder
+  fulfillment: Fulfillment
+  shipment: Shipment
+  return: OrderReturn
+  exchange: OrderExchange
+  errors: [OrderUserError!]!
+}
+
+type OrderCreatePayload {
+  order: Order
+  userErrors: [OrderUserError!]!
+}
+
+type OrderUpdatePayload {
+  order: Order
+  operationResults: [OrderUpdateOperationResult!]!
+  userErrors: [OrderUserError!]!
 }
 
 """
@@ -1072,7 +789,7 @@ type OrderDeletePayload {
   """
   Relay global ID identifying the deleted.
   """
-  deletedId: ID
+  deletedOrderId: ID
   """
   Fresh order projection returned after the command.
   """

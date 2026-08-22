@@ -71,12 +71,16 @@ input SmtpConnectionCreateInput {
 }
 
 input SmtpConnectionUpdateInput {
-  connectionId: ID!
-  displayName: String!
-  provider: SmtpConnectionProvider!
-  host: String!
-  port: Int!
-  security: SmtpConnectionSecurity!
+  fields: SmtpConnectionFieldsInput
+  lifecycle: SmtpConnectionLifecycleOperationInput
+}
+
+input SmtpConnectionFieldsInput {
+  displayName: String
+  provider: SmtpConnectionProvider
+  host: String
+  port: Int
+  security: SmtpConnectionSecurity
   username: String
 
   """
@@ -86,12 +90,39 @@ input SmtpConnectionUpdateInput {
   password: String
 }
 
-input SmtpConnectionActionInput {
-  connectionId: ID!
+enum SmtpConnectionLifecycleAction {
+  ACTIVATE
 }
 
-type SmtpConnectionPayload {
+input SmtpConnectionLifecycleOperationInput {
+  action: SmtpConnectionLifecycleAction!
+}
+
+enum SmtpConnectionOperationType {
+  FIELDS
+  LIFECYCLE
+}
+
+type SmtpConnectionOperationResult {
+  type: SmtpConnectionOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
+}
+
+type SmtpConnectionUpdatePayload {
   connection: SmtpConnection
+  operationResults: [SmtpConnectionOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type SmtpConnectionCreatePayload {
+  connection: SmtpConnection
+  userErrors: [GenericUserError!]!
+}
+
+type SmtpConnectionDeletePayload {
+  deletedSmtpConnectionId: ID
   userErrors: [GenericUserError!]!
 }
 
@@ -110,8 +141,10 @@ type SmtpAppQuery {
 }
 
 type SmtpAppMutation {
-  smtpConnectionCreate(input: SmtpConnectionCreateInput!): SmtpConnectionPayload!
-  smtpConnectionUpdate(input: SmtpConnectionUpdateInput!): SmtpConnectionPayload!
-  smtpConnectionActivate(input: SmtpConnectionActionInput!): SmtpConnectionPayload!
-  smtpConnectionDisconnect(input: SmtpConnectionActionInput!): SmtpConnectionPayload!
+  smtpConnectionCreate(input: SmtpConnectionCreateInput!): SmtpConnectionCreatePayload!
+  smtpConnectionUpdate(
+    smtpConnectionId: ID!
+    operations: SmtpConnectionUpdateInput!
+  ): SmtpConnectionUpdatePayload!
+  smtpConnectionDelete(smtpConnectionId: ID!): SmtpConnectionDeletePayload!
 }

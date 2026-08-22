@@ -145,10 +145,6 @@ Validated input for order integration sync request. Tenant identifiers come only
 """
 input OrderIntegrationSyncRequestInput {
   """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
-  """
   Relay global ID identifying the integration link.
   """
   integrationLinkId: ID!
@@ -163,10 +159,6 @@ Validated input for order integration sync retry. Tenant identifiers come only f
 """
 input OrderIntegrationSyncRetryInput {
   """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
-  """
   Relay global ID identifying the operation.
   """
   operationId: ID!
@@ -176,10 +168,6 @@ input OrderIntegrationSyncRetryInput {
 Validated input for order integration link detach. Tenant identifiers come only from trusted context.
 """
 input OrderIntegrationLinkDetachInput {
-  """
-  Relay global ID identifying the order.
-  """
-  orderId: ID!
   """
   Relay global ID identifying the integration link.
   """

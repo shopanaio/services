@@ -133,8 +133,6 @@ input ApplicationOAuthClientOrderByInput {
 Input for creating an OAuth client with fixed protocol policy.
 """
 input ApplicationOAuthClientCreateInput {
-  organizationId: ID!
-  applicationId: ID!
   name: String!
   clientType: ApplicationOAuthClientType!
   environment: ApplicationOAuthClientEnvironment!
@@ -148,9 +146,6 @@ input ApplicationOAuthClientCreateInput {
 Input for updating mutable OAuth client metadata.
 """
 input ApplicationOAuthClientUpdateInput {
-  organizationId: ID!
-  applicationId: ID!
-  clientId: String!
   name: String
   environment: ApplicationOAuthClientEnvironment
   redirectUris: [String!]
@@ -162,9 +157,6 @@ input ApplicationOAuthClientUpdateInput {
 Input for enabling or disabling an OAuth client.
 """
 input ApplicationOAuthClientEnabledSetInput {
-  organizationId: ID!
-  applicationId: ID!
-  clientId: String!
   enabled: Boolean!
 }
 
@@ -172,28 +164,25 @@ input ApplicationOAuthClientEnabledSetInput {
 Input for changing first-party consent bypass policy.
 """
 input ApplicationOAuthClientSkipConsentSetInput {
-  organizationId: ID!
-  applicationId: ID!
-  clientId: String!
   skipConsent: Boolean!
 }
 
-"""
-Input for rotating a confidential OAuth client secret.
-"""
-input ApplicationOAuthClientSecretRotateInput {
-  organizationId: ID!
-  applicationId: ID!
-  clientId: String!
+enum ApplicationOAuthClientOperationAction {
+  CREATE
+  UPDATE
+  SET_ENABLED
+  SET_SKIP_CONSENT
+  ROTATE_SECRET
+  ARCHIVE
 }
 
-"""
-Input for archiving an OAuth client.
-"""
-input ApplicationOAuthClientArchiveInput {
-  organizationId: ID!
-  applicationId: ID!
-  clientId: String!
+input ApplicationOAuthClientOperationInput {
+  action: ApplicationOAuthClientOperationAction!
+  clientId: String
+  create: ApplicationOAuthClientCreateInput
+  update: ApplicationOAuthClientUpdateInput
+  enabled: Boolean
+  skipConsent: Boolean
 }
 
 # ============================================================================
