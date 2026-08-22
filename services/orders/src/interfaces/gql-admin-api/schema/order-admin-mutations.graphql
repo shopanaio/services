@@ -893,10 +893,6 @@ type OrderActor {
   Projected value for user.
   """
   user: User
-  """
-  Projected value for api key.
-  """
-  apiKey: ApiKey
 }
 
 """

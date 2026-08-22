@@ -183,10 +183,6 @@ type Order implements Node @key(fields: "id") {
   """
   source: OrderSource
   """
-  Projected value for checkout.
-  """
-  checkout: Checkout
-  """
   Projected value for checkout placement.
   """
   checkoutPlacement: OrderCheckoutPlacement
