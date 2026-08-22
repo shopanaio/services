@@ -1,0 +1,3 @@
+[submodule "services-docs"]
+	path = services-docs
+	url = git@github.com:shopanaio/services-docs.git

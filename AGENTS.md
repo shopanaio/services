@@ -12,6 +12,13 @@ Backward compatibility and backfilling are strictly forbidden.
 Project READ ONLY rules and architecture patterns are stored in the knowledge base vault under `@knowledge/vault/`.
 Before creating implementation plans or making code/documentation changes, review and align the work with the relevant documents from the knowledge base.
 
+## Documentation and Plans
+
+- Add and store all new working documentation and implementation plans only in the `services-docs/` submodule.
+- The canonical `knowledge/` knowledge base is the only exception to this storage rule.
+- Before a document is promoted to the canonical `knowledge/` knowledge base, it must first be added to and maintained in `services-docs/`.
+- Store documentation and plans related to the Admin UI in the dedicated `services-docs/admin-web/` directory.
+
 ## Architecture
 
 - **Framework:** NestJS + Fastify
