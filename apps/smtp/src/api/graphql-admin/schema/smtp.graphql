@@ -18,69 +18,69 @@ type GenericUserError implements UserError @shareable {
   code: String
 }
 
-enum SmtpConnectionProvider {
+enum SmtpConfigurationProvider {
   CUSTOM
   SENDGRID
   MAILCHIMP_TRANSACTIONAL
   GOOGLE_WORKSPACE
 }
 
-enum SmtpConnectionStatus {
+enum SmtpConfigurationStatus {
   ACTIVE
   INACTIVE
   DISCONNECTED
 }
 
-enum SmtpConnectionSecurity {
+enum SmtpConfigurationSecurity {
   NONE
   STARTTLS
   TLS
 }
 
 type SmtpProviderPreset {
-  provider: SmtpConnectionProvider!
+  provider: SmtpConfigurationProvider!
   label: String!
   host: String
   port: Int!
-  security: SmtpConnectionSecurity!
+  security: SmtpConfigurationSecurity!
   username: String
 }
 
-type SmtpConnection implements Node @key(fields: "id") {
+type SmtpConfiguration implements Node @key(fields: "id") {
   id: ID!
   displayName: String!
-  provider: SmtpConnectionProvider!
-  status: SmtpConnectionStatus!
+  provider: SmtpConfigurationProvider!
+  status: SmtpConfigurationStatus!
   host: String!
   port: Int!
-  security: SmtpConnectionSecurity!
+  security: SmtpConfigurationSecurity!
   username: String
   hasPassword: Boolean!
   createdAt: DateTime!
   updatedAt: DateTime!
 }
 
-input SmtpConnectionCreateInput {
+input SmtpConfigurationCreateInput {
   displayName: String!
-  provider: SmtpConnectionProvider!
+  provider: SmtpConfigurationProvider!
   host: String!
   port: Int!
-  security: SmtpConnectionSecurity!
+  security: SmtpConfigurationSecurity!
   username: String
   password: String
 }
 
-input SmtpConnectionUpdateInput {
-  fields: SmtpConnectionFieldsInput
-  lifecycle: SmtpConnectionLifecycleOperationInput
+input SmtpConfigurationUpdateInput {
+  fields: SmtpConfigurationFieldsInput
+  lifecycle: SmtpConfigurationLifecycleOperationInput
 }
 
-input SmtpConnectionFieldsInput {
+input SmtpConfigurationFieldsInput {
   displayName: String
-  provider: SmtpConnectionProvider
+  provider: SmtpConfigurationProvider
   host: String
   port: Int
-  security: SmtpConnectionSecurity
+  security: SmtpConfigurationSecurity
   username: String
 
   """
@@ -90,39 +90,39 @@ input SmtpConnectionFieldsInput {
   password: String
 }
 
-enum SmtpConnectionLifecycleAction {
+enum SmtpConfigurationLifecycleAction {
   ACTIVATE
 }
 
-input SmtpConnectionLifecycleOperationInput {
-  action: SmtpConnectionLifecycleAction!
+input SmtpConfigurationLifecycleOperationInput {
+  action: SmtpConfigurationLifecycleAction!
 }
 
-enum SmtpConnectionOperationType {
+enum SmtpConfigurationOperationType {
   FIELDS
   LIFECYCLE
 }
 
-type SmtpConnectionOperationResult {
-  type: SmtpConnectionOperationType!
+type SmtpConfigurationOperationResult {
+  type: SmtpConfigurationOperationType!
   applied: Boolean!
   entityId: ID
   errors: [GenericUserError!]!
 }
 
-type SmtpConnectionUpdatePayload {
-  connection: SmtpConnection
-  operationResults: [SmtpConnectionOperationResult!]!
+type SmtpConfigurationUpdatePayload {
+  smtpConfiguration: SmtpConfiguration
+  operationResults: [SmtpConfigurationOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
-type SmtpConnectionCreatePayload {
-  connection: SmtpConnection
+type SmtpConfigurationCreatePayload {
+  smtpConfiguration: SmtpConfiguration
   userErrors: [GenericUserError!]!
 }
 
-type SmtpConnectionDeletePayload {
-  deletedSmtpConnectionId: ID
+type SmtpConfigurationDeletePayload {
+  deletedSmtpConfigurationId: ID
   userErrors: [GenericUserError!]!
 }
 
@@ -136,15 +136,38 @@ extend type Mutation {
 
 type SmtpAppQuery {
   smtpProviderPresets: [SmtpProviderPreset!]!
-  smtpConnections: [SmtpConnection!]!
-  smtpConnection(id: ID!): SmtpConnection
+  smtpConfigurations(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): SmtpConfigurationConnection!
+  smtpConfiguration(id: ID!): SmtpConfiguration
 }
 
 type SmtpAppMutation {
-  smtpConnectionCreate(input: SmtpConnectionCreateInput!): SmtpConnectionCreatePayload!
-  smtpConnectionUpdate(
-    smtpConnectionId: ID!
-    operations: SmtpConnectionUpdateInput!
-  ): SmtpConnectionUpdatePayload!
-  smtpConnectionDelete(smtpConnectionId: ID!): SmtpConnectionDeletePayload!
+  smtpConfigurationCreate(input: SmtpConfigurationCreateInput!): SmtpConfigurationCreatePayload!
+  smtpConfigurationUpdate(
+    smtpConfigurationId: ID!
+    operations: SmtpConfigurationUpdateInput!
+  ): SmtpConfigurationUpdatePayload!
+  smtpConfigurationDelete(smtpConfigurationId: ID!): SmtpConfigurationDeletePayload!
+}
+
+type SmtpConfigurationConnection {
+  edges: [SmtpConfigurationEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type SmtpConfigurationEdge {
+  node: SmtpConfiguration!
+  cursor: String!
+}
+
+type PageInfo @shareable {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
 }

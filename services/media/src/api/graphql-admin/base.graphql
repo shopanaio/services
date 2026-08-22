@@ -90,18 +90,29 @@ type MediaQuery {
   ): FileConnection!
 
   """
-  Get a durable file bulk mutation job by its global ID.
+  Get a durable file bulk update job by its global ID.
   """
-  fileBulkMutationJob(jobId: ID!): FileBulkMutationJob
+  fileBulkUpdateJob(id: ID!): FileBulkUpdateJob
 
   """
-  Get durable file bulk mutation jobs for the current store.
+  Get durable file bulk update jobs for the current store.
   """
-  fileBulkMutationJobs(
+  fileBulkUpdateJobs(
     first: Int
     after: String
-    statusFilter: [FileBulkMutationJobStatus!]
-  ): FileBulkMutationJobConnection!
+    last: Int
+    before: String
+    where: FileBulkUpdateJobWhereInput
+  ): FileBulkUpdateJobConnection!
+
+  fileBulkDeleteJob(id: ID!): FileBulkDeleteJob
+  fileBulkDeleteJobs(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: FileBulkDeleteJobWhereInput
+  ): FileBulkDeleteJobConnection!
 }
 
 type MediaMutation {
@@ -135,15 +146,20 @@ type MediaMutation {
   Start a durable asynchronous update job for multiple files.
   Restore is expressed as the canonical FileUpdateInput lifecycle operation.
   """
-  fileBulkUpdate(input: FileBulkUpdateInput!): FileBulkMutationPayload!
+  fileBulkUpdate(input: FileBulkUpdateInput!): FileBulkUpdatePayload!
 
   """
   Start a durable asynchronous delete job for multiple file aggregate roots.
   """
-  fileBulkDelete(input: FileBulkDeleteInput!): FileBulkMutationPayload!
+  fileBulkDelete(input: FileBulkDeleteInput!): FileBulkDeletePayload!
 
   """
-  Cancel operations in a durable file bulk mutation job that have not started yet.
+  Cancel operations in a durable file bulk update job that have not started yet.
   """
-  fileBulkMutationCancel(jobId: ID!): FileBulkMutationPayload!
+  fileBulkUpdateCancel(jobId: ID!): FileBulkUpdatePayload!
+
+  """
+  Cancel operations in a durable file bulk delete job that have not started yet.
+  """
+  fileBulkDeleteCancel(jobId: ID!): FileBulkDeletePayload!
 }

@@ -215,7 +215,7 @@ type AppInstallationOperationResult {
 Payload returned after creating an App installation.
 """
 type AppInstallationCreatePayload {
-  installation: AppInstallation
+  appInstallation: AppInstallation
   """
   Lifecycle operation accepted while creating the installation.
   """
@@ -227,7 +227,7 @@ type AppInstallationCreatePayload {
 Payload returned after applying ordered operations to an App installation.
 """
 type AppInstallationUpdatePayload {
-  installation: AppInstallation
+  appInstallation: AppInstallation
   operationResults: [AppInstallationOperationResult!]!
   """
   Lifecycle operation accepted by an UPGRADE, SUSPEND, or RESUME operation, when present.

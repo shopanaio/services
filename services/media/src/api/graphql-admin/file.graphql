@@ -595,22 +595,16 @@ type FileDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-# ---- File bulk mutations ----
+# ---- File bulk commands ----
 
-"""
-Durable file bulk mutation job lifecycle.
-"""
-enum FileBulkMutationJobStatus {
+enum FileBulkJobStatus {
   QUEUED
   RUNNING
   COMPLETED
   CANCELLED
 }
 
-"""
-Durable lifecycle of one public operation in a file bulk mutation job.
-"""
-enum FileBulkMutationItemStatus {
+enum FileBulkItemStatus {
   PENDING
   RUNNING
   SUCCEEDED
@@ -619,18 +613,13 @@ enum FileBulkMutationItemStatus {
   SUPERSEDED
 }
 
-enum FileBulkMutationCancelReason {
+enum FileBulkCancelReason {
   USER
   SUPERSEDED
   SYSTEM
 }
 
-enum FileBulkMutationKind {
-  UPDATE
-  DELETE
-}
-
-enum FileBulkMutationOperationType {
+enum FileBulkItemOperationType {
   FIELDS
   LIFECYCLE
   SOURCE
@@ -662,30 +651,61 @@ input FileBulkDeleteItem {
   permanent: Boolean = false
 }
 
-type FileBulkMutationPayload {
-  """
-  Created or existing idempotent job; null when request validation fails.
-  """
-  job: FileBulkMutationJob
-  userErrors: [FileBulkMutationUserError!]!
+input FileBulkUpdateJobWhereInput {
+  status: [FileBulkJobStatus!]
 }
 
-type FileBulkMutationJob implements Node {
+input FileBulkDeleteJobWhereInput {
+  status: [FileBulkJobStatus!]
+}
+
+input FileBulkItemWhereInput {
+  status: [FileBulkItemStatus!]
+}
+
+type FileBulkUpdatePayload {
+  job: FileBulkUpdateJob
+  userErrors: [FileBulkUserError!]!
+}
+
+type FileBulkDeletePayload {
+  job: FileBulkDeleteJob
+  userErrors: [FileBulkUserError!]!
+}
+
+type FileBulkUpdateJob implements Node {
   id: ID!
-  kind: FileBulkMutationKind!
-  status: FileBulkMutationJobStatus!
+  status: FileBulkJobStatus!
   createdAt: DateTime!
   startedAt: DateTime
   finishedAt: DateTime
-  progress: FileBulkMutationJobProgress!
+  progress: FileBulkJobProgress!
   items(
     first: Int
     after: String
-    statusFilter: [FileBulkMutationItemStatus!]
-  ): FileBulkMutationItemConnection!
+    last: Int
+    before: String
+    where: FileBulkItemWhereInput
+  ): FileBulkItemConnection!
 }
 
-type FileBulkMutationJobProgress {
+type FileBulkDeleteJob implements Node {
+  id: ID!
+  status: FileBulkJobStatus!
+  createdAt: DateTime!
+  startedAt: DateTime
+  finishedAt: DateTime
+  progress: FileBulkJobProgress!
+  items(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: FileBulkItemWhereInput
+  ): FileBulkItemConnection!
+}
+
+type FileBulkJobProgress {
   total: Int!
   done: Int!
   succeeded: Int!
@@ -696,47 +716,58 @@ type FileBulkMutationJobProgress {
   pending: Int!
 }
 
-type FileBulkMutationItem implements Node {
+type FileBulkItem implements Node {
   id: ID!
   fileId: ID!
-  operationType: FileBulkMutationOperationType!
+  operationType: FileBulkItemOperationType!
   operationIndex: Int!
-  status: FileBulkMutationItemStatus!
+  status: FileBulkItemStatus!
   startedAt: DateTime
   finishedAt: DateTime
-  errors: [FileBulkMutationUserError!]!
-  cancelReason: FileBulkMutationCancelReason
+  errors: [FileBulkUserError!]!
+  cancelReason: FileBulkCancelReason
   supersededByJobId: ID
 }
 
-type FileBulkMutationItemConnection {
-  edges: [FileBulkMutationItemEdge!]!
+type FileBulkItemConnection {
+  edges: [FileBulkItemEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-type FileBulkMutationItemEdge {
+type FileBulkItemEdge {
   cursor: String!
-  node: FileBulkMutationItem!
+  node: FileBulkItem!
 }
 
-type FileBulkMutationJobConnection {
-  edges: [FileBulkMutationJobEdge!]!
+type FileBulkUpdateJobConnection {
+  edges: [FileBulkUpdateJobEdge!]!
   pageInfo: PageInfo!
   totalCount: Int!
 }
 
-type FileBulkMutationJobEdge {
+type FileBulkUpdateJobEdge {
   cursor: String!
-  node: FileBulkMutationJob!
+  node: FileBulkUpdateJob!
 }
 
-type FileBulkMutationUserError implements UserError {
+type FileBulkDeleteJobConnection {
+  edges: [FileBulkDeleteJobEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type FileBulkDeleteJobEdge {
+  cursor: String!
+  node: FileBulkDeleteJob!
+}
+
+type FileBulkUserError implements UserError {
   message: String!
   field: [String!]
   code: String
   fileId: ID
-  operationType: FileBulkMutationOperationType
+  operationType: FileBulkItemOperationType
   operationIndex: Int
 }
 

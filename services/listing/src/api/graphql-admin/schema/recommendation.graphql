@@ -41,6 +41,17 @@ type RecommendationPlacementPolicy implements Node {
   updatedAt: DateTime!
 }
 
+type RecommendationPlacementPolicyConnection {
+  edges: [RecommendationPlacementPolicyEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type RecommendationPlacementPolicyEdge {
+  node: RecommendationPlacementPolicy!
+  cursor: String!
+}
+
 type ManualProductRecommendation implements Node {
   id: ID!
   anchorProduct: Product!
@@ -130,12 +141,12 @@ input ManualProductRecommendationUpdateInput {
 }
 
 type ManualProductRecommendationCreatePayload {
-  recommendation: ManualProductRecommendation
+  manualProductRecommendation: ManualProductRecommendation
   userErrors: [GenericUserError!]!
 }
 
 type ManualProductRecommendationUpdatePayload {
-  recommendation: ManualProductRecommendation
+  manualProductRecommendation: ManualProductRecommendation
   operationResults: [ManualProductRecommendationOperationResult!]!
   userErrors: [GenericUserError!]!
 }
@@ -152,7 +163,7 @@ type ManualProductRecommendationOperationResult {
 }
 
 type ManualProductRecommendationDeletePayload {
-  deletedId: ID
+  deletedManualProductRecommendationId: ID
   userErrors: [GenericUserError!]!
 }
 

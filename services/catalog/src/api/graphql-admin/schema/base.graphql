@@ -139,16 +139,18 @@ type CatalogQuery {
   """
   Get bulk update job by ID.
   """
-  productBulkUpdateJob(jobId: ID!): ProductBulkUpdateJob
+  productBulkUpdateJob(id: ID!): ProductBulkUpdateJob
 
   """
   Get product bulk update jobs for the current store.
-  Defaults to active jobs when statusFilter is omitted.
+  Defaults to active jobs when where is omitted.
   """
   productBulkUpdateJobs(
     first: Int
     after: String
-    statusFilter: [BulkUpdateJobStatus!]
+    last: Int
+    before: String
+    where: ProductBulkUpdateJobWhereInput
   ): ProductBulkUpdateJobConnection!
 
   """
@@ -240,7 +242,7 @@ type WidgetQuery {
   Get inventory widget data for a product.
   Returns aggregated inventory metrics across all variants.
   """
-  inventory(productId: ID!): ProductInventoryWidget
+  inventory(input: InventoryWidgetInput!): ProductInventoryWidget
 }
 
 type InventoryQuery {
@@ -398,7 +400,7 @@ type InventoryMutation {
   that warehouse's durable update workflow. Request-level validation happens
   before any item is started; execution results preserve input order.
   """
-  warehouseBatchUpdate(input: WarehouseBatchUpdateInput!): WarehouseBatchUpdatePayload!
+  warehouseBulkUpdate(input: WarehouseBulkUpdateInput!): WarehouseBulkUpdatePayload!
   warehouseDelete(warehouseId: ID!): WarehouseDeletePayload!
 }
 
@@ -407,10 +409,10 @@ type CatalogMutation {
     input: ProductOptionCategoryCreateInput!
   ): ProductOptionCategoryCreatePayload!
   productOptionCategoryUpdate(
-    categoryId: ID!
+    productOptionCategoryId: ID!
     operations: ProductOptionCategoryUpdateInput!
   ): ProductOptionCategoryUpdatePayload!
-  productOptionCategoryDelete(categoryId: ID!): ProductOptionCategoryDeletePayload!
+  productOptionCategoryDelete(productOptionCategoryId: ID!): ProductOptionCategoryDeletePayload!
 
   # Vendor mutations
 

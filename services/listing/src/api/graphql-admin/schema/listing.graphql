@@ -13,6 +13,8 @@ extend type Collection @key(fields: "id") {
   products(
     first: Int
     after: String
+    last: Int
+    before: String
     query: String
     locale: LocaleCode
     currency: CurrencyCode

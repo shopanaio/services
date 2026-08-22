@@ -112,6 +112,17 @@ type Store implements Node @key(fields: "id") {
   currencySettings: StoreCurrencySettings!
 }
 
+type StoreConnection {
+  edges: [StoreEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type StoreEdge {
+  node: Store!
+  cursor: String!
+}
+
 # Organization entity (extended from IAM service)
 extend type Organization @key(fields: "id") {
   id: ID! @external

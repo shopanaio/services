@@ -72,7 +72,7 @@ input ProductOptionCategoryCreateInput {
 }
 
 type ProductOptionCategoryCreatePayload {
-  category: ProductOptionCategory
+  productOptionCategory: ProductOptionCategory
   userErrors: [GenericUserError!]!
 }
 
@@ -82,13 +82,13 @@ input ProductOptionCategoryUpdateInput {
 }
 
 type ProductOptionCategoryUpdatePayload {
-  category: ProductOptionCategory
+  productOptionCategory: ProductOptionCategory
   operationResults: [OperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
 type ProductOptionCategoryDeletePayload {
-  deletedCategoryId: ID
+  deletedProductOptionCategoryId: ID
   userErrors: [GenericUserError!]!
 }
 

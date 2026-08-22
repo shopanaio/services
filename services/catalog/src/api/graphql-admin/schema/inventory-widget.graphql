@@ -34,6 +34,10 @@ type InventoryAlertThreshold {
   minimumStock: Int!
 }
 
+input InventoryWidgetInput {
+  productId: ID!
+}
+
 type ProductInventoryWidget {
   quantities: InventoryQuantities!
   availableChange7d: Int!

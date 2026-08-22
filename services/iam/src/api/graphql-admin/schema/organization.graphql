@@ -376,7 +376,8 @@ type OrganizationQuery {
   Get organization by ID or name (if user has access).
   Provide either id or name, not both.
   """
-  organization(id: ID, name: String): Organization
+  organization(id: ID!): Organization
+  organizationByName(name: String!): Organization
   """
   Get all organizations the current user has access to with cursor pagination.
   Returns empty connection if not authenticated.

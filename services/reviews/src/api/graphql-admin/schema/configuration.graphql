@@ -151,23 +151,23 @@ input ReviewRatingCriterionDeleteInput {
 }
 
 type ReviewStoreConfigurationUpdatePayload {
-  configuration: ReviewStoreConfiguration
+  reviewStoreConfiguration: ReviewStoreConfiguration
   operationResults: [ReviewsOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
 type ReviewRatingCriterionCreatePayload {
-  criterion: ReviewRatingCriterion
+  ratingCriterion: ReviewRatingCriterion
   userErrors: [GenericUserError!]!
 }
 
 type ReviewRatingCriterionUpdatePayload {
-  criterion: ReviewRatingCriterion
+  ratingCriterion: ReviewRatingCriterion
   operationResults: [ReviewsOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
 type ReviewRatingCriterionDeletePayload {
-  deletedCriterionId: ID
+  deletedRatingCriterionId: ID
   userErrors: [GenericUserError!]!
 }

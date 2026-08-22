@@ -28,11 +28,6 @@ extend type Mutation {
 
 type ListingQuery {
   """
-  Search configuration and diagnostics namespace.
-  """
-  search: ListingSearchQuery!
-
-  """
   Get a node by its global ID.
   """
   node(id: ID!): Node
@@ -49,7 +44,7 @@ type ListingQuery {
   and canonical entity references only. Entity details are resolved by owning
   subgraphs through federation.
   """
-  listing(
+  products(
     first: Int
     after: String
     last: Int
@@ -70,7 +65,7 @@ type ListingQuery {
   """
   Get all facets.
   """
-  facets: [Facet!]!
+  facets(first: Int, after: String, last: Int, before: String): FacetConnection!
 
   """
   Get available facet source candidates for create flow.
@@ -130,17 +125,22 @@ type ListingQuery {
   """
   Get all facet swatches.
   """
-  facetSwatches: [FacetSwatch!]!
+  facetSwatches(first: Int, after: String, last: Int, before: String): FacetSwatchConnection!
 
-  recommendationPlacementPolicy(
-    placement: RecommendationPlacement!
-  ): RecommendationPlacementPolicy
-  recommendationPlacementPolicies: [RecommendationPlacementPolicy!]!
+  recommendationPlacementPolicy(placement: RecommendationPlacement!): RecommendationPlacementPolicy
+  recommendationPlacementPolicies(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): RecommendationPlacementPolicyConnection!
   manualProductRecommendations(
     anchorProductId: ID!
     placement: RecommendationPlacement!
     first: Int = 50
     after: String
+    last: Int
+    before: String
   ): ManualProductRecommendationConnection!
   recommendationSnapshotPreview(
     input: RecommendationSnapshotPreviewInput!
@@ -148,11 +148,6 @@ type ListingQuery {
 }
 
 type ListingMutation {
-  """
-  Search configuration mutation namespace.
-  """
-  search: ListingSearchMutation!
-
   """
   Create a new facet.
   """

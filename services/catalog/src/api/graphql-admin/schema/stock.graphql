@@ -274,23 +274,23 @@ are rejected before any warehouse workflow is started. Repeated warehouse IDs
 are grouped into one warehouseUpdate workflow, matching product bulk-update
 semantics, while item and operation results retain their original input order.
 """
-input WarehouseBatchUpdateInput {
-  warehouses: [WarehouseBatchUpdateItemInput!]!
+input WarehouseBulkUpdateInput {
+  warehouses: [WarehouseBulkUpdateItemInput!]!
 }
 
 """
 One warehouse aggregate update within a batch. Items are processed and returned
 in input order. The aggregate ID remains separate from its operations.
 """
-input WarehouseBatchUpdateItemInput {
+input WarehouseBulkUpdateItemInput {
   warehouseId: ID!
   operations: WarehouseUpdateInput!
 }
 
 """
-Result of one warehouseUpdate coordinated by warehouseBatchUpdate.
+Result of one warehouseUpdate coordinated by warehouseBulkUpdate.
 """
-type WarehouseBatchUpdateItemResult {
+type WarehouseBulkUpdateItemResult {
   warehouseId: ID!
   warehouse: Warehouse
   operationResults: [OperationResult!]!
@@ -303,8 +303,8 @@ Ordered results for a multi-warehouse update.
 userErrors contains request-level errors. Per-warehouse business errors are
 returned both in the corresponding result and its operationResults.
 """
-type WarehouseBatchUpdatePayload {
-  results: [WarehouseBatchUpdateItemResult!]!
+type WarehouseBulkUpdatePayload {
+  results: [WarehouseBulkUpdateItemResult!]!
   userErrors: [GenericUserError!]!
 }
 

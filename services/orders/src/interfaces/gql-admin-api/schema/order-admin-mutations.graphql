@@ -96,7 +96,7 @@ type OrdersMutation {
   """
   Multi-aggregate semantic command over an explicit or filtered order selection.
   """
-  ordersBulkAction(input: OrdersBulkActionInput!): OrderOperationPayload!
+  orderBulkAction(input: OrderBulkActionInput!): OrderOperationPayload!
 }
 
 input OrderUpdateInput {
@@ -521,7 +521,7 @@ enum OrderOperationStatus {
 """
 Closed set of orders bulk action kind values used by Orders Admin API.
 """
-enum OrdersBulkActionKind {
+enum OrderBulkActionKind {
   """
   Archive value of orders bulk action kind.
   """
@@ -705,7 +705,7 @@ type OrderActivityEdge {
 """
 Validated input for orders bulk action. Tenant identifiers come only from trusted context.
 """
-input OrdersBulkActionInput {
+input OrderBulkActionInput {
   """
   Validated input value for selection.
   """
@@ -713,7 +713,7 @@ input OrdersBulkActionInput {
   """
   Validated input value for action.
   """
-  action: OrdersBulkActionKind!
+  action: OrderBulkActionKind!
   """
   Stable audited reason code.
   """
@@ -749,7 +749,7 @@ input OrderBulkSelectionInput {
 """
 Expected validation, permission, concurrency, or business-rule error returned by a mutation.
 """
-type OrderUserError implements DisplayableError {
+type OrderUserError implements UserError {
   """
   Input path associated with the error, when applicable.
   """

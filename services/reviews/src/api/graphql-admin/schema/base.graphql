@@ -31,7 +31,7 @@ type WidgetQuery {
   """
   Aggregated reviews and Q&A data for a product.
   """
-  reviews(productId: ID!): ProductReviewsWidget!
+  reviews(input: ReviewsWidgetInput!): ProductReviewsWidget!
 }
 
 extend type Mutation {
@@ -174,7 +174,7 @@ Administrative commands. Storefront submission and engagement commands live else
 """
 type ReviewsMutation {
   storeConfigurationUpdate(
-    configurationId: ID!
+    reviewStoreConfigurationId: ID!
     operations: ReviewStoreConfigurationUpdateInput!
   ): ReviewStoreConfigurationUpdatePayload!
 
@@ -182,11 +182,11 @@ type ReviewsMutation {
     input: ReviewRatingCriterionCreateInput!
   ): ReviewRatingCriterionCreatePayload!
   ratingCriterionUpdate(
-    criterionId: ID!
+    ratingCriterionId: ID!
     operations: ReviewRatingCriterionUpdateInput!
   ): ReviewRatingCriterionUpdatePayload!
   ratingCriterionDelete(
-    criterionId: ID!
+    ratingCriterionId: ID!
     permanent: Boolean
   ): ReviewRatingCriterionDeletePayload!
 
@@ -199,10 +199,7 @@ type ReviewsMutation {
     productQuestionId: ID!
     operations: ProductQuestionUpdateInput!
   ): ProductQuestionUpdatePayload!
-  productQuestionDelete(
-    productQuestionId: ID!
-    permanent: Boolean
-  ): ProductQuestionDeletePayload!
+  productQuestionDelete(productQuestionId: ID!, permanent: Boolean): ProductQuestionDeletePayload!
 
   reviewRequestCreate(input: ReviewRequestCreateInput!): ReviewRequestCreatePayload!
   reviewRequestUpdate(
@@ -220,5 +217,4 @@ type ReviewsMutation {
     moderationCaseId: ID!
     operations: ReviewModerationCaseUpdateInput!
   ): ReviewModerationCaseUpdatePayload!
-
 }

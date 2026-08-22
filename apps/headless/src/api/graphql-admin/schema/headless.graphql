@@ -154,7 +154,7 @@ type StorefrontInitialCredentials {
 """
 Lifecycle state of a Headless storefront connection.
 """
-enum HeadlessStorefrontConnectionStatus {
+enum HeadlessStorefrontStatus {
   ACTIVE
   SUSPENDED
   DISCONNECTED
@@ -163,10 +163,10 @@ enum HeadlessStorefrontConnectionStatus {
 """
 An independent custom storefront owned by the Headless App installation.
 """
-type HeadlessStorefrontConnection implements Node @key(fields: "id") {
+type HeadlessStorefront implements Node @key(fields: "id") {
   id: ID!
   displayName: String!
-  status: HeadlessStorefrontConnectionStatus!
+  status: HeadlessStorefrontStatus!
   storefrontAccessPolicy: StorefrontAccessPolicy
 
   """
@@ -181,6 +181,24 @@ type HeadlessStorefrontConnection implements Node @key(fields: "id") {
 
   createdAt: DateTime!
   updatedAt: DateTime!
+}
+
+type HeadlessStorefrontConnection {
+  edges: [HeadlessStorefrontEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type HeadlessStorefrontEdge {
+  node: HeadlessStorefront!
+  cursor: String!
+}
+
+type PageInfo @shareable {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
 }
 
 """
@@ -275,7 +293,7 @@ type HeadlessStorefrontOperationResult {
 Payload returned after creating a Headless storefront.
 """
 type HeadlessStorefrontCreatePayload {
-  connection: HeadlessStorefrontConnection
+  headlessStorefront: HeadlessStorefront
 
   """
   Present only for the first successful execution.
@@ -320,7 +338,7 @@ type StorefrontAccessPolicyPayload {
 Payload returned after changing a Headless storefront.
 """
 type HeadlessStorefrontUpdatePayload {
-  connection: HeadlessStorefrontConnection
+  headlessStorefront: HeadlessStorefront
   operationResults: [HeadlessStorefrontOperationResult!]!
   userErrors: [GenericUserError!]!
 }
@@ -356,12 +374,17 @@ type HeadlessAppQuery {
   """
   List Headless storefronts owned by the active installation.
   """
-  headlessStorefrontConnections: [HeadlessStorefrontConnection!]!
+  headlessStorefronts(
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): HeadlessStorefrontConnection!
 
   """
   Get a Headless storefront by its global ID.
   """
-  headlessStorefrontConnection(id: ID!): HeadlessStorefrontConnection
+  headlessStorefront(id: ID!): HeadlessStorefront
 }
 
 """

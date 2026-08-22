@@ -21,7 +21,7 @@ type NotificationsQuery {
   template(
     key: String!
     channel: NotificationChannel!
-    locale: String!
+    locale: LocaleCode!
   ): NotificationEffectiveTemplate!
   staffRecipients: [StaffNotificationRecipient!]!
   webhookCapabilities: NotificationWebhookCapabilities!
@@ -204,7 +204,7 @@ type NotificationChannelSetting {
 input NotificationTemplateUpdateInput {
   key: String!
   channel: NotificationChannel!
-  locale: String!
+  locale: LocaleCode!
   subjectTemplate: String
   bodyTemplate: String!
   plainTextTemplate: String
@@ -218,7 +218,7 @@ type NotificationTemplateUpdatePayload {
 type NotificationEffectiveTemplate {
   key: String!
   channel: NotificationChannel!
-  locale: String!
+  locale: LocaleCode!
   source: String!
   subjectTemplate: String
   bodyTemplate: String!
@@ -231,7 +231,7 @@ type NotificationEffectiveTemplate {
 input NotificationPreviewInput {
   key: String!
   channel: NotificationChannel!
-  locale: String
+  locale: LocaleCode
   data: JSON!
   subjectTemplate: String
   bodyTemplate: String
@@ -247,7 +247,7 @@ type NotificationPreview {
   subject: String
   html: String
   text: String!
-  locale: String!
+  locale: LocaleCode!
   warnings: [String!]!
   sms: NotificationSmsMetrics
 }
@@ -262,7 +262,7 @@ input StaffNotificationRecipientInput {
   userId: ID
   name: String!
   email: String!
-  locale: String!
+  locale: LocaleCode!
   timezone: String!
   enabled: Boolean!
   eventKeys: [String!]!
@@ -287,7 +287,7 @@ type StaffNotificationRecipient {
   userId: ID
   name: String!
   email: String!
-  locale: String!
+  locale: LocaleCode!
   timezone: String!
   scope: String!
   enabled: Boolean!
@@ -310,7 +310,7 @@ input NotificationTestMessageInput {
   email: String
   phone: String
   name: String
-  locale: String
+  locale: LocaleCode
   data: JSON!
 }
 

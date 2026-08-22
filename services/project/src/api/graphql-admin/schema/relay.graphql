@@ -7,3 +7,10 @@ interface Node {
   """
   id: ID!
 }
+
+type PageInfo @shareable {
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+  endCursor: String
+}

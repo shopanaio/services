@@ -266,6 +266,8 @@ type Order implements Node @key(fields: "id") {
     Validated input value for after.
     """
     after: String
+    last: Int
+    before: String
   ): OrderReturnConnection!
   """
   Projected value for exchanges.
@@ -279,6 +281,8 @@ type Order implements Node @key(fields: "id") {
     Validated input value for after.
     """
     after: String
+    last: Int
+    before: String
   ): OrderExchangeConnection!
   """
   Projected value for refunds.
@@ -292,6 +296,8 @@ type Order implements Node @key(fields: "id") {
     Validated input value for after.
     """
     after: String
+    last: Int
+    before: String
   ): OrderRefundConnection!
   """
   Projected value for activity.
@@ -305,6 +311,8 @@ type Order implements Node @key(fields: "id") {
     Validated input value for after.
     """
     after: String
+    last: Int
+    before: String
   ): OrderActivityConnection!
   """
   Projected value for integration links.

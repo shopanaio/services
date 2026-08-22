@@ -47,7 +47,7 @@ interface Node {
 """
 Expected mutation error displayable to an authorized Admin user.
 """
-interface DisplayableError {
+interface UserError {
   """
   Path to the invalid input field, or null for an aggregate-level error.
   """
@@ -57,6 +57,11 @@ interface DisplayableError {
   Human-readable error explanation.
   """
   message: String!
+
+  """
+  Stable machine-readable error code, or null when no narrower code applies.
+  """
+  code: String
 }
 
 """

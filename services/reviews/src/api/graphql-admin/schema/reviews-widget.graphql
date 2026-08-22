@@ -1,6 +1,10 @@
 """
 Aggregated Reviews data used by product management widgets.
 """
+input ReviewsWidgetInput {
+  productId: ID!
+}
+
 type ProductReviewsWidget {
   """
   Published review aggregates for the product.

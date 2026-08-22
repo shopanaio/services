@@ -78,7 +78,15 @@ input ProductBulkUpdateItem {
   """
   Product-level operations.
   """
-  operations: ProductUpdateInput
+  operations: ProductUpdateInput!
+}
+
+input ProductBulkUpdateJobWhereInput {
+  status: [BulkUpdateJobStatus!]
+}
+
+input BulkUpdateItemWhereInput {
+  status: [BulkUpdateItemStatus!]
 }
 
 # ════════════════════════════════════════════════════════════
@@ -146,7 +154,13 @@ type ProductBulkUpdateJob {
   """
   Items with pagination and filtering.
   """
-  items(first: Int, after: String, statusFilter: [BulkUpdateItemStatus!]): BulkUpdateItemConnection!
+  items(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: BulkUpdateItemWhereInput
+  ): BulkUpdateItemConnection!
 }
 
 type ProductBulkUpdateJobConnection {

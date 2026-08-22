@@ -235,7 +235,9 @@ enum CustomerGroupMembershipOperationAction {
   DELETE
 }
 
-"""One ordered membership operation owned by the customer group."""
+"""
+One ordered membership operation owned by the customer group.
+"""
 input CustomerGroupOwnedMembershipOperationInput {
   action: CustomerGroupMembershipOperationAction!
   membershipId: ID
@@ -262,7 +264,9 @@ enum CustomerTagAssignmentOperationAction {
   UNLINK
 }
 
-"""One ordered customer assignment operation owned by the tag."""
+"""
+One ordered customer assignment operation owned by the tag.
+"""
 input CustomerTagOwnedAssignmentOperationInput {
   action: CustomerTagAssignmentOperationAction!
   assignmentId: ID
@@ -380,13 +384,17 @@ enum CustomerSegmentMembershipOperationAction {
   SET
 }
 
-"""One ordered membership operation owned by the customer segment."""
+"""
+One ordered membership operation owned by the customer segment.
+"""
 input CustomerSegmentOwnedMembershipOperationInput {
   action: CustomerSegmentMembershipOperationAction!
   membershipId: ID
   values: CustomerSegmentMembershipRelationCreateInput
   patch: CustomerSegmentMembershipRelationPatchInput
-  """Customer IDs used by SET to atomically replace all manual memberships."""
+  """
+  Customer IDs used by SET to atomically replace all manual memberships.
+  """
   customerIds: [ID!]
 }
 
@@ -410,12 +418,16 @@ enum CustomerGroupMembershipAssignmentAction {
   SET
 }
 
-"""One ordered group-membership operation owned by the customer."""
+"""
+One ordered group-membership operation owned by the customer.
+"""
 input CustomerGroupMembershipOperationInput {
   action: CustomerGroupMembershipAssignmentAction!
   membershipId: ID
   values: CustomerGroupMembershipValuesInput
-  """Memberships used by SET to atomically replace all manual group memberships."""
+  """
+  Memberships used by SET to atomically replace all manual group memberships.
+  """
   memberships: [CustomerGroupMembershipValuesInput!]
 }
 
@@ -429,11 +441,15 @@ enum CustomerTagAssignmentAction {
   SET
 }
 
-"""One ordered tag-assignment operation owned by the customer."""
+"""
+One ordered tag-assignment operation owned by the customer.
+"""
 input CustomerTagAssignmentOperationInput {
   action: CustomerTagAssignmentAction!
   tagId: ID
-  """Tag IDs used by SET to atomically replace all tag assignments."""
+  """
+  Tag IDs used by SET to atomically replace all tag assignments.
+  """
   tagIds: [ID!]
 }
 
@@ -447,11 +463,15 @@ enum CustomerSegmentMembershipAssignmentAction {
   SET
 }
 
-"""One ordered segment-membership operation owned by the customer."""
+"""
+One ordered segment-membership operation owned by the customer.
+"""
 input CustomerSegmentMembershipOperationInput {
   action: CustomerSegmentMembershipAssignmentAction!
   segmentId: ID
-  """Segment IDs used by SET to atomically replace all manual segment memberships."""
+  """
+  Segment IDs used by SET to atomically replace all manual segment memberships.
+  """
   segmentIds: [ID!]
 }
 
@@ -460,44 +480,44 @@ input CustomerSegmentMembershipsUpdateInput {
 }
 
 type CustomerGroupCreatePayload {
-  group: CustomerGroup
+  customerGroup: CustomerGroup
   userErrors: [GenericUserError!]!
 }
 
 type CustomerGroupUpdatePayload {
-  group: CustomerGroup
+  customerGroup: CustomerGroup
   operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
 type CustomerGroupDeletePayload {
-  deletedGroupId: ID
+  deletedCustomerGroupId: ID
   userErrors: [GenericUserError!]!
 }
 
 type CustomerTagCreatePayload {
-  tag: CustomerTag
+  customerTag: CustomerTag
   userErrors: [GenericUserError!]!
 }
 
 type CustomerTagUpdatePayload {
-  tag: CustomerTag
+  customerTag: CustomerTag
   operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
 type CustomerTagDeletePayload {
-  deletedTagId: ID
+  deletedCustomerTagId: ID
   userErrors: [GenericUserError!]!
 }
 
 type CustomerSegmentCreatePayload {
-  segment: CustomerSegment
+  customerSegment: CustomerSegment
   userErrors: [CustomerSegmentUserError!]!
 }
 
 type CustomerSegmentUpdatePayload {
-  segment: CustomerSegment
+  customerSegment: CustomerSegment
   operationResults: [CustomerOperationResult!]!
   userErrors: [CustomerSegmentUserError!]!
 }
@@ -510,6 +530,6 @@ type CustomerSegmentUserError implements UserError {
 }
 
 type CustomerSegmentDeletePayload {
-  deletedSegmentId: ID
+  deletedCustomerSegmentId: ID
   userErrors: [GenericUserError!]!
 }

@@ -59,6 +59,17 @@ type Facet implements Node {
   values: [FacetValue!]!
 }
 
+type FacetConnection {
+  edges: [FacetEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type FacetEdge {
+  node: Facet!
+  cursor: String!
+}
+
 type FacetSource {
   handle: String!
   name: String!
@@ -122,6 +133,17 @@ type FacetSwatch implements Node @key(fields: "id") {
   colorTwo: String
   file: File
   metadata: JSON
+}
+
+type FacetSwatchConnection {
+  edges: [FacetSwatchEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type FacetSwatchEdge {
+  node: FacetSwatch!
+  cursor: String!
 }
 
 input FacetCreateSourceInput {

@@ -57,7 +57,11 @@ type StoreQuery {
     Organization ID to list stores from
     """
     organizationId: ID!
-  ): [Store!]!
+    first: Int
+    after: String
+    last: Int
+    before: String
+  ): StoreConnection!
 
   """
   Get the current store from context

@@ -1,4 +1,4 @@
-type ListingSearchQuery {
+extend type ListingQuery {
   """
   Current search settings for the selected store, if initialized.
   """
@@ -28,7 +28,7 @@ type ListingSearchQuery {
   explain(query: String!, locale: LocaleCode!): SearchExplain!
 }
 
-type ListingSearchMutation {
+extend type ListingMutation {
   """
   Update the store-level search settings.
   """
@@ -44,9 +44,7 @@ type ListingSearchMutation {
     synonymGroupId: ID!
     operations: SearchSynonymGroupUpdateInput!
   ): SearchSynonymGroupUpdatePayload!
-  synonymGroupDelete(
-    synonymGroupId: ID!
-  ): SearchSynonymGroupDeletePayload!
+  synonymGroupDelete(synonymGroupId: ID!): SearchSynonymGroupDeletePayload!
   productBoostCreate(input: SearchProductBoostCreateInput!): SearchProductBoostCreatePayload!
   productBoostUpdate(
     productBoostId: ID!

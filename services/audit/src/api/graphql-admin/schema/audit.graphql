@@ -22,9 +22,21 @@ type Query {
 Store-scoped, read-only access to the aggregate mutation audit trail.
 """
 type AuditQuery {
-  entry(id: ID!): AuditEntry
-  entries(first: Int = 50, after: String, where: AuditEntryWhereInput): AuditEntryConnection!
-  timeline(targetId: ID!, first: Int = 50, after: String): AuditEntryConnection!
+  auditEntry(id: ID!): AuditEntry
+  auditEntries(
+    first: Int = 50
+    after: String
+    last: Int
+    before: String
+    where: AuditEntryWhereInput
+  ): AuditEntryConnection!
+  timeline(
+    targetId: ID!
+    first: Int = 50
+    after: String
+    last: Int
+    before: String
+  ): AuditEntryConnection!
 }
 
 input AuditEntryWhereInput {
