@@ -22,10 +22,11 @@
 ### Входит в v1
 
 - store-scoped MCP API keys;
-- создание, просмотр метаданных, изменение политик, отзыв и удаление ключа в Admin Settings;
+- создание, просмотр метаданных, изменение политик, ротация, отзыв и удаление ключа в Admin Settings;
 - аутентификация ключа на Admin Gateway;
 - делегированный Admin Context с владельцем ключа и credential metadata;
 - MCP server с discovery-, read- и write-инструментами;
+- stdio transport для локальных MCP clients;
 - вызовы только через Admin GraphQL Gateway;
 - аудит MCP-операций, correlation ID и идентификатор ключа;
 - идемпотентность write-инструментов;
@@ -41,12 +42,21 @@
 - произвольные raw GraphQL mutations;
 - управление ролями, участниками, RBAC, MCP-ключами и другими credentials через MCP;
 - выполнение операций, отсутствующих в Admin GraphQL schema;
-- автономное выполнение без входящего MCP-вызова.
+- автономное выполнение без входящего MCP-вызова;
+- публичный или multi-tenant Streamable HTTP transport;
+- OAuth authorization server для удаленных MCP-клиентов.
+
+Streamable HTTP не входит в v1. Его нельзя включать простым переносом
+`SHOPANA_MCP_API_KEY` в deployment secret: входящая аутентификация MCP-клиента и исходящий
+credential Admin Gateway являются разными security boundaries. Remote mode допускается только в
+отдельной версии после реализации MCP OAuth 2.1 Protected Resource, audience-bound access tokens,
+Protected Resource Metadata и запрета token passthrough согласно
+[MCP Authorization specification](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization).
 
 ## 3. Архитектура
 
 ```text
-AI agent / MCP client
+AI agent / MCP client (local stdio)
         |
         | MCP tools/resources
         v
@@ -111,6 +121,21 @@ interface ResolvedAdminAccessContext {
 
 Для `MCP_API_KEY` оба bypass-флага всегда `false`, даже если владелец является site admin или organization owner. Его разрешения материализуются в явный список.
 
+`current owner permissions` для delegation вычисляются отдельным IAM-алгоритмом:
+
+- обычный Admin получает expanded permissions своей актуальной organization/store role;
+- organization owner с активным membership получает полный `delegable permission catalog` только
+  для bound store;
+- site admin обязан иметь активный membership в organization ключа и также получает только
+  `delegable permission catalog` bound store;
+- owner/site-admin-only возможности и неделегируемые resources в этот список не попадают;
+- при потере membership, owner/site-admin статуса или при деактивации пользователя права немедленно
+  пересчитываются по оставшейся обычной роли либо становятся пустыми.
+
+Таким образом, пустой `permissions` текущего session context для owner/site admin нельзя напрямую
+использовать при вычислении grants: session bypass сначала преобразуется в ограниченный code-owned
+delegable catalog.
+
 Подписанный gateway context обновить атомарно во всех subgraphs. Так как проект запрещает backward compatibility, использовать одну новую версию claims без dual-read форматов.
 
 ### 4.2. Эффективные права
@@ -126,8 +151,8 @@ effective permissions =
 
 Следствия:
 
-- понижение роли Admin действует на ключ сразу;
-- удаление Admin из organization/store немедленно блокирует ключ;
+- понижение роли Admin действует на следующий запрос ключа и на DBOS recovery;
+- удаление Admin из organization/store блокирует следующий запрос ключа и DBOS recovery;
 - деактивация или бан пользователя блокирует ключ;
 - просроченный, отозванный или удаленный ключ не аутентифицируется;
 - расширение прав Admin само по себе не расширяет ключ;
@@ -168,11 +193,14 @@ shp_mcp_<public-id>_<32-byte-random-secret>
 
 - `public-id` используется только для поиска записи;
 - секрет генерируется CSPRNG;
-- в базе хранится verifier `HMAC-SHA-256(secret, server pepper)`, prefix и последние 4 символа;
+- в базе хранится verifier `HMAC-SHA-256(key = server pepper, data = secret)`, версия verifier и
+  последние 4 символа;
 - сравнение выполняется constant-time;
-- plaintext возвращается только в create payload и больше нигде;
+- plaintext возвращается только в успешном create/rotate payload и больше нигде;
 - секрет не попадает в Pino logs, GraphQL errors, audit payload, traces и MCP output;
-- pepper хранится в secret manager/environment и поддерживает controlled rotation;
+- pepper хранится как versioned key ring в secret manager/environment;
+- новые ключи всегда используют current verifier version; старые версии остаются доступными только
+  для проверки и после успешной проверки лениво перевычисляются current pepper;
 - gateway применяет rate limit по IP и public-id, блокировку повторных ошибок и ограничение размера header.
 
 ## 5. Данные IAM
@@ -190,6 +218,7 @@ shp_mcp_<public-id>_<32-byte-random-secret>
 | `name` | понятное имя ключа |
 | `public_id` | уникальная lookup-часть |
 | `secret_verifier` | verifier секрета |
+| `verifier_version` | версия pepper/verifier для controlled rotation |
 | `secret_last_four` | безопасная подсказка в UI |
 | `created_at` | время создания |
 | `expires_at` | срок действия |
@@ -202,14 +231,16 @@ shp_mcp_<public-id>_<32-byte-random-secret>
 | Поле | Назначение |
 | --- | --- |
 | `api_key_id` | FK на ключ |
-| `domain` | только `store:{boundStoreId}` в v1 |
 | `resource` | валидированный ресурс `@shopana/rbac` |
-| `action` | `read`, `write` или `admin` |
+| `action` | максимальное действие: `read`, `write` или `admin` |
 
 Ограничения:
 
-- primary key `(api_key_id, domain, resource, action)`;
-- composite tenant constraints, исключающие cross-store grants;
+- primary key `(api_key_id, resource)`;
+- `domain` в v1 не хранится: он всегда выводится как `store:{mcp_api_keys.store_id}`;
+- одна строка хранит только максимальное действие; implied actions разворачиваются при чтении;
+- такая форма не допускает одновременно эквивалентные `read`/`write`/`admin` строки и исключает
+  cross-store grant по построению;
 - каскадное удаление grants только при окончательном удалении ключа;
 - grants не хранятся в Casbin как user role: это ограничивающий delegation layer поверх Casbin владельца;
 - `last_used_at` обновляется throttled/batched, а не при каждом GraphQL field resolution.
@@ -227,6 +258,10 @@ shp_mcp_<public-id>_<32-byte-random-secret>
 7. Plaintext secret возвращается один раз.
 8. UI показывает copy/download step и требует подтверждения сохранения.
 
+Для owner/site admin шаг 5 использует ограниченный delegable catalog из раздела 4.1, а не пустой
+список session permissions и не bypass-флаг. Site admin без активного organization membership не
+может создать ключ.
+
 ### 6.2. GraphQL запрос с ключом
 
 1. Gateway принимает ровно один auth mechanism: session Bearer или `X-Api-Key`.
@@ -234,20 +269,44 @@ shp_mcp_<public-id>_<32-byte-random-secret>
 3. Для API key Gateway вызывает internal IAM resolver `resolveMcpApiKeyContext`.
 4. IAM валидирует verifier, status, expiry, owner, membership и store binding.
 5. IAM вычисляет актуальное пересечение permissions.
-6. Gateway подписывает краткоживущий Admin Context с `authentication.kind = MCP_API_KEY`.
+6. Gateway подписывает краткоживущий Admin Context с `authentication.kind = MCP_API_KEY` и отдельный
+   request metadata envelope с нормализованными correlation/idempotency полями.
 7. Subgraphs доверяют только подписанному context, а не входящему ключу.
 8. `@TypePolicy`, workflow preflight и recovery проверяют effective permissions.
 
-Internal IAM endpoint не возвращает и не логирует secret. Начальная реализация — без positive cache; если он понадобится, revoke должен инвалидировать его немедленно.
+Internal IAM endpoint не возвращает и не логирует secret. Начальная реализация — без positive cache;
+если он понадобится, revoke должен инвалидировать его до подтверждения mutation.
+
+Семантика «немедленного revoke» в v1 означает: после commit revoke ни один новый GraphQL request и
+ни один DBOS recovery не проходят авторизацию. Уже запущенный и прошедший root preflight workflow
+продолжает выполнение по сохраненному snapshot; принудительная отмена in-flight workflow не входит
+в v1 и не должна обещаться UI или документацией.
 
 ### 6.3. Durable workflows
 
 - сохранять `subject = ownerUserId`, `organizationId`, `storeId` и `credentialId`, но не secret и не grants;
 - на recovery IAM повторно проверяет актуальные права владельца и активность credential;
 - revoke запрещает новые workflow и recovery, требующий повторной авторизации;
-- write MCP tool передает стабильный `idempotencyKey`;
-- повтор с тем же payload возвращает прежний результат, с другим payload — conflict;
+- recovery authorization принимает `credentialId` и повторяет именно delegation intersection;
+  проверка только по `subject = ownerUserId` запрещена;
+- каждый write MCP tool требует переданный клиентом стабильный `idempotencyKey`; сервер не генерирует
+  замену, которую клиент не сможет повторить после ambiguous timeout;
+- допустимый формат ключа: 16–128 ASCII-символов из `[A-Za-z0-9._:-]`; trim, case folding и другая
+  нормализация запрещены;
+- Gateway валидирует и передает `Idempotency-Key` в подписанном request metadata; subgraph не доверяет
+  одноименному header, пришедшему в обход Gateway;
+- для `authentication.kind = MCP_API_KEY` root Admin resolver запускает существующий workflow с
+  `source: "client"`, `tenantId`, `credentialId`, operation name и client key;
+- session-authenticated Admin UI продолжает использовать обязательный `source: "time-window"`;
+- registry атомарно связывает client identity с hash нормализованного semantic payload: повтор с тем
+  же hash возвращает прежний результат, а повтор ключа с другим hash возвращает
+  `IDEMPOTENCY_KEY_REUSED` до запуска workflow;
 - устранить места, где `admin.user.id` используется как `apiKeyId`: там должен быть настоящий credential id.
+
+Это является осознанным расширением текущего правила Admin aggregate mutations, которое сейчас
+разрешает только `time-window`. До реализации требуется принять ADR и обновить knowledge-base
+contract: UI и MCP продолжают вызывать одинаковые GraphQL documents/resolvers/workflows, но resolver
+выбирает idempotency strategy по проверенному `authentication.kind`.
 
 ## 7. Admin GraphQL contract
 
@@ -286,6 +345,7 @@ extend type IAMQuery {
 extend type IAMMutation {
   mcpApiKeyCreate(input: McpApiKeyCreateInput!): McpApiKeyCreatePayload!
   mcpApiKeyUpdate(input: McpApiKeyUpdateInput!): McpApiKeyUpdatePayload!
+  mcpApiKeyRotate(input: McpApiKeyRotateInput!): McpApiKeyRotatePayload!
   mcpApiKeyRevoke(input: McpApiKeyRevokeInput!): McpApiKeyRevokePayload!
   mcpApiKeyDelete(input: McpApiKeyDeleteInput!): McpApiKeyDeletePayload!
 }
@@ -293,10 +353,14 @@ extend type IAMMutation {
 
 Правила:
 
-- `secret.value` существует только в create payload;
+- `secret.value` существует только в успешных create/rotate payload;
 - list/detail не возвращают повторно читаемое поле `key`;
 - изменение имени, expiry и grants выполняется одной aggregate mutation `mcpApiKeyUpdate(operations: ...)` без CAS/revision;
 - revoke — отдельная семантическая команда с немедленным security effect;
+- rotate сначала повторно валидирует все grants старого ключа; если хотя бы один grant больше не
+  принадлежит владельцу или не делегируется, mutation возвращает `userErrors` без изменений;
+- после успешной проверки rotate атомарно создает replacement с теми же grants, возвращает новый
+  secret один раз и отзывает старый ключ;
 - delete — отдельная root delete mutation;
 - mutation payload содержит `userErrors`;
 - нет `expectedRevision`, `version` или optimistic locking.
@@ -311,7 +375,6 @@ Package предоставляет:
 
 - executable `shopana-platform-mcp`;
 - stdio transport для локальных MCP clients;
-- Streamable HTTP transport как отдельный deployment mode;
 - Zod/JSON Schema validation для tool inputs и outputs;
 - Admin GraphQL client с operation registry;
 - structured logs только в `stderr`, без secrets и customer PII;
@@ -324,7 +387,10 @@ SHOPANA_MCP_API_KEY=shp_mcp_...
 SHOPANA_MCP_TIMEOUT_MS=15000
 ```
 
-Для remote mode secret хранится в secret manager. Для stdio mode его передает MCP client через environment; secret не указывается в command arguments или git-tracked config.
+Для stdio mode secret передает MCP client через environment; secret не указывается в command
+arguments или git-tracked config. Package pin-ит поддерживаемую MCP protocol version
+`2025-11-25` и отклоняет несовместимую negotiation. Transport abstraction сохраняется, но HTTP
+implementation и deployment entrypoint в v1 отсутствуют.
 
 ### 8.2. Tool registry
 
@@ -342,7 +408,15 @@ interface ToolDefinition {
 }
 ```
 
-Не предоставлять generic `graphql_mutation(query: String!)`. MCP на initialize вызывает `shopana_context` и строит доступный список tools по effective permissions. Это UX-оптимизация, а не security boundary: окончательная проверка всегда остается в Admin GraphQL.
+Не предоставлять generic `graphql_mutation(query: String!)`. Protocol `initialize` не вызывает
+tools. После negotiation сервер внутренним GraphQL context query проверяет credential, а каждый
+`tools/list` заново получает effective permissions и возвращает детерминированно отсортированный
+доступный список tools. `shopana_context` остается обычным явным discovery tool.
+
+Server объявляет capability `tools.listChanged`. Если при очередном backend context resolution
+обнаружено изменение permission fingerprint, он отправляет `notifications/tools/list_changed`.
+Кэшированный клиентом список является только UX: любой вызов отсутствующего/отозванного права
+все равно отклоняется Admin GraphQL.
 
 ### 8.3. Базовые tools v1
 
@@ -373,7 +447,7 @@ Write:
 ### 8.4. Правила write tools
 
 - input валидируется до GraphQL вызова;
-- tool принимает `idempotencyKey` либо генерирует его один раз на logical call;
+- каждый write tool требует `idempotencyKey` длиной 16–128 символов из `[A-Za-z0-9._:-]`;
 - update owned relations использует aggregate `operations` inputs;
 - destructive tool имеет отдельное имя, `risk: high` и описание последствий;
 - bulk tools ограничивают количество items;
@@ -398,7 +472,8 @@ Route: `/:orgName/:storeName/system/settings/mcp`.
 
 ### Список ключей
 
-Показывать name, owner Admin, masked identifier, status, created/expiry/last-used timestamps, grants summary и действия Edit permissions, Revoke, Delete.
+Показывать name, owner Admin, masked identifier, status, created/expiry/last-used timestamps, grants
+summary и действия Edit permissions, Rotate, Revoke, Delete.
 
 ### Создание
 
@@ -410,6 +485,10 @@ Route: `/:orgName/:storeName/system/settings/mcp`.
 - permission matrix из `mcpApiKeyDelegablePermissions`;
 - предупреждение для `write`/`admin` grants;
 - one-time secret screen с copy action и примером MCP config.
+
+Успешная ротация использует тот же one-time secret screen. До подтверждения rotate UI явно
+показывает, что старый ключ будет отозван атомарно и после закрытия экрана новый secret восстановить
+невозможно.
 
 UI не является security boundary. Backend повторяет все проверки. При потере `store.mcp-keys:admin` запросы завершаются forbidden.
 
@@ -465,6 +544,15 @@ Secret, Authorization header, полный customer payload и чувствит�
 
 ## 11. Этапы реализации
 
+### Этап -1. Security и protocol decisions
+
+- принять ADR для MCP `source: "client"` idempotency и payload-hash conflict semantics;
+- зафиксировать точную revoke boundary: new requests и recovery, но не in-flight cancellation;
+- зафиксировать owner/site-admin materialization и обязательный active membership;
+- зафиксировать MCP protocol version `2025-11-25` и stdio-only scope v1;
+- зафиксировать, что будущий Streamable HTTP требует отдельной OAuth security boundary и не может
+  переиспользовать/проксировать Admin API key клиента.
+
 ### Этап 0. Contract inventory
 
 - собрать актуальную Admin supergraph schema;
@@ -477,6 +565,7 @@ Secret, Authorization header, полный customer payload и чувствит�
 
 - добавить tables/repositories ключей и grants;
 - реализовать generation, verification, expiry, revoke и delete;
+- реализовать atomic rotate и versioned verifier key ring;
 - реализовать delegable permission catalog;
 - реализовать subset validation и runtime intersection;
 - добавить IAM Admin GraphQL operations и workflows;
@@ -488,7 +577,8 @@ Secret, Authorization header, полный customer payload и чувствит�
 - добавить internal IAM key-context resolver;
 - обновить context, signer, verifier и broker context;
 - передавать credential id в workflow/idempotency/audit metadata;
-- обеспечить немедленную invalidation при revoke.
+- расширить recovery authorization проверкой credential status и delegation intersection;
+- обеспечить revoke-to-deny для новых запросов и recovery после commit.
 
 ### Этап 3. Audit attribution
 
@@ -500,7 +590,7 @@ Secret, Authorization header, полный customer payload и чувствит�
 ### Этап 4. MCP read-only slice
 
 - scaffold `packages/shopana-platform-mcp`;
-- реализовать transports/config/GraphQL client/tool registry;
+- реализовать stdio transport/config/GraphQL client/tool registry;
 - добавить `shopana_context` и read tools;
 - добавить capability filtering, pagination, error mapping и redaction;
 - подготовить примеры конфигурации.
@@ -509,13 +599,13 @@ Secret, Authorization header, полный customer payload и чувствит�
 
 - добавлять typed tools по одной domain-группе;
 - начать с catalog, затем inventory, orders, customers, pricing и settings;
-- подключить idempotency и high-risk metadata;
+- подключить обязательную client idempotency, payload-hash conflict и high-risk metadata;
 - проверить aggregate mutation pattern и отсутствие raw mutation escape hatch.
 
 ### Этап 6. Admin Settings UI
 
 - зарегистрировать `AI & MCP` route;
-- реализовать list/create/edit/revoke/delete;
+- реализовать list/create/edit/rotate/revoke/delete;
 - реализовать one-time secret screen и config snippet;
 - использовать generated types и стандартные hooks/mappers;
 - добавить permission-aware и error states.
@@ -536,7 +626,7 @@ Secret, Authorization header, полный customer payload и чувствит�
 - write включает read, но не чувствительные `admin` operations;
 - Admin не может выдать отсутствующий у него grant;
 - owner/site-admin bypass не попадает в key context;
-- снижение прав владельца немедленно снижает права ключа;
+- снижение прав владельца снижает права на следующем запросе ключа и на DBOS recovery;
 - удаление владельца блокирует ключ;
 - повышение владельца автоматически не расширяет grants;
 - ключ Store A не работает с Store B;
@@ -549,6 +639,8 @@ Secret, Authorization header, полный customer payload и чувствит�
 - `userErrors` сохраняют code/field/message;
 - list tools корректно пагинируются;
 - retry с тем же idempotency key не создает дубль;
+- retry того же idempotency key с другим semantic payload возвращает
+  `IDEMPOTENCY_KEY_REUSED` без запуска workflow;
 - high-risk tools требуют `admin` grant;
 - raw arbitrary mutation отсутствует.
 
@@ -559,6 +651,19 @@ Secret, Authorization header, полный customer payload и чувствит�
 - correlation связывает tool call, GraphQL request, workflow и event;
 - secret и PII не появляются в logs/audit/errors;
 - после удаления ключа audit остается читаемым.
+
+### Protocol и lifecycle
+
+- v1 поднимается только через stdio и согласует MCP protocol version `2025-11-25`;
+- `initialize` не выполняет скрытый tool call;
+- `tools/list` детерминирован и отражает актуальный effective permission set;
+- изменение permission fingerprint приводит к `notifications/tools/list_changed` после того, как
+  сервер обнаружил изменение;
+- revoke после commit блокирует новый request и DBOS recovery;
+- тест не требует отмены workflow, уже прошедшего root preflight до revoke;
+- owner и site admin получают только materialized delegable catalog, причем site admin без active
+  organization membership не аутентифицируется ключом;
+- verifier старой поддерживаемой версии успешно проверяется и лениво обновляется current pepper.
 
 ### Verification workflow
 
@@ -576,7 +681,7 @@ Secret, Authorization header, полный customer payload и чувствит�
 - работают read и write операции минимум для catalog, orders и store settings;
 - все вызовы идут только через Admin GraphQL Gateway;
 - cross-store request, privilege escalation и revoked key блокируются;
-- изменение роли владельца немедленно отражается на ключе;
+- изменение роли владельца отражается на следующем запросе или recovery ключа;
 - write action отображается под Admin profile с указанием MCP key;
 - secrets отсутствуют в database plaintext, logs, traces и audit;
 - schema/codegen/build проходят для затронутых компонентов;
@@ -587,7 +692,8 @@ Secret, Authorization header, полный customer payload и чувствит�
 - Ключи только store-scoped: один ключ — один магазин.
 - Expiration по умолчанию 90 дней.
 - Read-only preset выбран по умолчанию.
-- Изменение grants не меняет secret; rotation выполняется новым ключом и отзывом старого.
+- Изменение grants не меняет secret; `rotate` атомарно создает replacement и отзывает старый ключ.
+- V1 поддерживает только stdio; remote Streamable HTTP откладывается до отдельного OAuth-дизайна.
 - Lifecycle требует `store.mcp-keys:admin`.
 - MCP публикует typed tools без произвольного GraphQL mutation tool.
 - Runtime intersection backend — единственный источник истины.
