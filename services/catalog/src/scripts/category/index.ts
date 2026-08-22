@@ -17,3 +17,4 @@ export { CategoryAddProductScript } from "./CategoryAddProductScript.js";
 export { CategoryRemoveProductScript } from "./CategoryRemoveProductScript.js";
 export { CategorySetProductPrimaryScript } from "./CategorySetProductPrimaryScript.js";
 export { CategoryProductsCountRefreshScript } from "./CategoryProductsCountRefreshScript.js";
+export { CategoryMutationReadScript } from "./CategoryMutationReadScript.js";

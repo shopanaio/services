@@ -1,10 +1,10 @@
 import { BaseScript, Transactional } from "../../kernel/BaseScript.js";
 import type {
-  CategoryHierarchyParams,
+  CategoryHierarchyMoveParams,
   CategoryUpdateSectionResult,
 } from "../../workflows/dto/CategoryUpdateWorkflowDto.js";
 
-export interface CategoryUpdateHierarchyParams extends CategoryHierarchyParams {
+export interface CategoryUpdateHierarchyParams extends CategoryHierarchyMoveParams {
   categoryId: string;
 }
 

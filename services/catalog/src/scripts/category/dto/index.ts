@@ -119,7 +119,8 @@ export interface CategoryRebalanceParams {
 
 export interface CategoryRebalanceResult {
   category?: Category;
-  affectedProductIds?: string[];
+  affectedProductIds: string[];
+  changed: boolean;
   userErrors: UserError[];
 }
 

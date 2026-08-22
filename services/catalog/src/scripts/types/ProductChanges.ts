@@ -9,6 +9,9 @@
 export interface ProductChanges {
   productId: string;
 
+  /** Other products changed as a side effect of this aggregate operation. */
+  affectedProductIds?: string[];
+
   /** Product-level changes (only modified fields) */
   product?: ProductFieldChanges;
 

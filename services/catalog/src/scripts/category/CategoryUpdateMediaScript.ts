@@ -28,7 +28,7 @@ export class CategoryUpdateMediaScript extends BaseScript<
       };
     }
 
-    await this.repository.category.setMedia(params.categoryId, params.fileIds);
+    await this.repository.category.setMedia(params.categoryId, [...params.fileIds]);
     const category = await this.repository.category.findById(params.categoryId);
 
     return {

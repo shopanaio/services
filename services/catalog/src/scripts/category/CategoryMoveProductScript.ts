@@ -29,7 +29,7 @@ export class CategoryMoveProductScript extends BaseScript<
     const refreshedCategory = await this.repository.category.findById(categoryId);
     return {
       category: refreshedCategory ?? undefined,
-      affectedProductIds: [productId],
+      affectedProductIds: moveResult.affectedItems.map((item) => item.productId),
       userErrors: [],
     };
   }
@@ -49,6 +49,17 @@ export class CategoryMoveProductScript extends BaseScript<
           userErrors: [
             {
               message: "afterProductId and beforeProductId cannot be the same",
+              field: ["afterProductId", "beforeProductId"],
+              code: "INVALID_INPUT",
+            },
+          ],
+        };
+      case "INVALID_REFERENCE_ORDER":
+        return {
+          category: undefined,
+          userErrors: [
+            {
+              message: "afterProductId must precede beforeProductId",
               field: ["afterProductId", "beforeProductId"],
               code: "INVALID_INPUT",
             },

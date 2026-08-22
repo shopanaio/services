@@ -10,19 +10,30 @@ export class CategoryRebalanceScript extends BaseScript<
     if (!category) {
       return {
         category: undefined,
+        affectedProductIds: [],
+        changed: false,
         userErrors: [{ message: "Category not found", field: ["categoryId"], code: "NOT_FOUND" }],
       };
     }
 
-    const affectedProductIds = (
-      await this.repository.category.getOrderedCategoryProducts(params.categoryId)
-    ).map((item) => item.productId);
+    const affectedProductIds = await this.repository.category.rebalanceCategoryProductRanks(
+      params.categoryId,
+    );
 
-    await this.repository.category.rebalanceCategoryProductRanks(params.categoryId);
+    if (affectedProductIds.length === 0) {
+      return {
+        category,
+        affectedProductIds: [],
+        changed: false,
+        userErrors: [],
+      };
+    }
+
     const refreshed = await this.repository.category.findById(params.categoryId);
     return {
       category: refreshed ?? undefined,
       affectedProductIds,
+      changed: true,
       userErrors: [],
     };
   }
@@ -31,6 +42,7 @@ export class CategoryRebalanceScript extends BaseScript<
     return {
       category: undefined,
       affectedProductIds: [],
+      changed: false,
       userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
     };
   }

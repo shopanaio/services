@@ -50,6 +50,7 @@ export class CategoryUpdateIdentityScript extends BaseScript<
 
     let changed = false;
     let affectsProductIndex = false;
+    const changedPaths: string[] = [];
 
     if (params.handle !== undefined && params.handle !== existing.handle) {
       await this.repository.category.update(params.categoryId, {
@@ -57,6 +58,7 @@ export class CategoryUpdateIdentityScript extends BaseScript<
       });
       changed = true;
       affectsProductIndex = true;
+      changedPaths.push("fields.handle");
     }
 
     if (params.name !== undefined) {
@@ -78,6 +80,8 @@ export class CategoryUpdateIdentityScript extends BaseScript<
           excerptJson: existingTranslation?.excerptJson ?? null,
         });
         changed = true;
+        affectsProductIndex = true;
+        changedPaths.push("fields.name");
       }
     }
 
@@ -85,7 +89,7 @@ export class CategoryUpdateIdentityScript extends BaseScript<
 
     return {
       category: category ?? undefined,
-      changes: changed ? { categoryFields: { affectsProductIndex } } : undefined,
+      changes: changed ? { categoryFields: { affectsProductIndex, changedPaths } } : undefined,
       userErrors: [],
     };
   }

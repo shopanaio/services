@@ -993,8 +993,9 @@ export class CategoryRepository extends BaseRepository {
     });
   }
 
-  async rebalanceCategoryProductRanks(categoryId: string): Promise<void> {
-    await this.productCategoryRankRepository.rebalance(categoryId);
+  async rebalanceCategoryProductRanks(categoryId: string): Promise<string[]> {
+    const changedProducts = await this.productCategoryRankRepository.rebalance(categoryId);
+    return changedProducts.map((item) => item.productId);
   }
 
   async updateSortPreferences(

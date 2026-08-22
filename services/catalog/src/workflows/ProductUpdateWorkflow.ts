@@ -369,6 +369,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     if (this.hasActualChanges(changes)) {
       await this.workflowNotifyProductMediaBackRefs(input, changes);
       await this.workflowEmitEvent(input, changes);
+      await this.workflowEmitAffectedProductEvents(input, changes.affectedProductIds ?? []);
     }
     return {
       product: { id: input.productId },
@@ -447,10 +448,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
         errors = prefixUserErrors(validation.userErrors, op);
       } else if (op.type === "productUpdate") {
         if (op.params.vendorId !== undefined && op.params.vendorId !== null) {
-          const vendor = await this.read(
-            { type: "vendor", vendorId: op.params.vendorId },
-            context,
-          );
+          const vendor = await this.read({ type: "vendor", vendorId: op.params.vendorId }, context);
           if (!vendor) {
             errors.push({
               message: "Vendor not found",
@@ -476,10 +474,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
 
         if (op.params.status === "published") {
           const effective = (
-            await this.read(
-              { type: "effectiveProfiles", productId: op.params.id },
-              context,
-            )
+            await this.read({ type: "effectiveProfiles", productId: op.params.id }, context)
           )[0];
           const configured = await this.read(
             { type: "configurationProfileIds", productId: op.params.id },
@@ -566,10 +561,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     );
     const storedProductOptions = optionsSyncOperation
       ? undefined
-      : await this.read(
-          { type: "options", productId: input.productId },
-          context,
-        );
+      : await this.read({ type: "options", productId: input.productId }, context);
     const productOptions: Array<{ id: string }> = optionsSyncOperation
       ? optionsSyncOperation.params.options.map((option, index) => ({
           id: option.id ?? `pending-option:${index}`,
@@ -589,10 +581,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
             ];
           }),
         )
-      : await this.read(
-          { type: "optionValues", optionIds: productOptionIds },
-          context,
-        );
+      : await this.read({ type: "optionValues", optionIds: productOptionIds }, context);
     const valueToOptionId = new Map<string, string>();
     for (const [optionId, values] of valuesByOption) {
       for (const value of values) {
@@ -676,10 +665,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     const stocks =
       requestedStockPairs.size === 0
         ? []
-        : await this.read(
-            { type: "stocks", pairs: [...requestedStockPairs.values()] },
-            context,
-          );
+        : await this.read({ type: "stocks", pairs: [...requestedStockPairs.values()] }, context);
     const stockByPair = new Map(
       stocks.map((stock) => [stockPairKey(stock.variantId, stock.warehouseId), stock]),
     );
@@ -854,9 +840,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
             context,
           );
     const inventoryItemBySku = new Map(
-      inventoryItemsBySku.flatMap((item) =>
-        item.sku === null ? [] : [[item.sku, item] as const],
-      ),
+      inventoryItemsBySku.flatMap((item) => (item.sku === null ? [] : [[item.sku, item] as const])),
     );
 
     if (warehouseIds.size > 0) {
@@ -1142,6 +1126,7 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     }
 
     if (errors.length === 0 && affectedProductIds?.includes(productId)) {
+      changes.affectedProductIds = [...affectedProductIds];
       const currentCategories = changes.product?.categories;
       const categoryIds = [...new Set([...(currentCategories?.categoryIds ?? []), categoryId])];
       const reason =
@@ -1724,6 +1709,37 @@ export class ProductUpdateWorkflow extends AggregateUpdateWorkflow<
     );
   }
 
+  @ChildWorkflowStep()
+  private async workflowEmitAffectedProductEvents(
+    input: ProductUpdateWorkflowInput,
+    productIds: readonly string[],
+  ): Promise<void> {
+    for (const productId of new Set(productIds)) {
+      if (productId === input.productId) continue;
+      await this.broker.runWorkflow(
+        "events.emit",
+        {
+          eventType: "productUpdated",
+          payload: { productId, storeId: input.context.storeId, reasons: ["category"] },
+          context: {
+            organizationId: input.context.organizationId,
+            userId: input.context.userId,
+          },
+          subject: { type: "product", id: productId },
+          actor: input.context.userId ? { type: "user", id: input.context.userId } : undefined,
+          emitKey: `product:${productId}`,
+        },
+        {
+          source: "workflow",
+          workflowId: DBOS.workflowID!,
+          stepId: "emitAffectedProductUpdated",
+          callId: productId,
+          organizationId: input.context.organizationId,
+        },
+      );
+    }
+  }
+
   private async stepRefreshCategoryProductCounts(
     categoryIds: readonly string[],
     ctx: RunScriptContext,
@@ -1806,6 +1822,12 @@ function sortProductUpdatedReasons(
 /** Rebuild workflow-level change hints exclusively from checkpointed step output. */
 function mergeProductChanges(target: ProductChanges, source: ProductChanges | null): void {
   if (!source) return;
+
+  if (source.affectedProductIds) {
+    target.affectedProductIds = [
+      ...new Set([...(target.affectedProductIds ?? []), ...source.affectedProductIds]),
+    ];
+  }
 
   if (source.product) {
     target.product = {

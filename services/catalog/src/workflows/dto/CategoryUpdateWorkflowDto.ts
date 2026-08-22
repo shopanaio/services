@@ -1,86 +1,154 @@
+import type { DurableWorkflowContext } from "@shopana/shared-kernel";
 import type { UserError } from "../../scripts/types/ScriptResult.js";
 import type { RichTextInput } from "../../scripts/shared/richText.js";
-import type { WorkflowContext } from "./ProductUpdateWorkflowDto.js";
-import type { Category } from "../../repositories/models/index.js";
 
-export type { RichTextInput, WorkflowContext };
+export type { RichTextInput };
 
-export interface CategoryUpdateWorkflowInput {
-  categoryId: string;
-  operations?: CategoryUpdateParams | null;
-  context: WorkflowContext;
+export interface CategoryWorkflowContext extends DurableWorkflowContext {
+  readonly organizationId: string;
+  readonly storeId: string;
+  readonly locale: string;
+  readonly requestId: string;
+  readonly userId?: string;
 }
 
-export interface CategoryUpdateParams {
-  handle?: string;
-  name?: string;
-  content?: CategoryContentParams | null;
-  seo?: CategorySeoParams | null;
-  status?: "published" | "draft";
-  media?: CategoryMediaParams;
-  hierarchy?: CategoryHierarchyParams | null;
-  sort?: CategorySortParams;
+export interface CategoryCreateWorkflowInput {
+  readonly params: CategoryCreateParams;
+  readonly context: CategoryWorkflowContext;
+}
+
+export interface CategoryCreateParams {
+  readonly handle: string;
+  readonly name: string;
+  readonly parentId?: string | null;
+  readonly description?: RichTextInput | null;
+  readonly excerpt?: RichTextInput | null;
+  readonly seo?: CategorySeoParams;
+  readonly mediaFileIds?: readonly string[];
+  readonly publish?: boolean;
+}
+
+export interface CategoryCreateWorkflowResult {
+  readonly category: { readonly id: string } | null;
+  readonly userErrors: readonly UserError[];
+}
+
+export interface CategoryUpdateWorkflowInput {
+  readonly categoryId: string;
+  readonly operations: readonly CategoryUpdateOperation[];
+  readonly context: CategoryWorkflowContext;
+}
+
+interface CategoryOperationMeta {
+  readonly fieldPrefix: readonly string[];
+}
+
+type CategoryOperationEntry<TType extends string, TParams> = Readonly<{
+  type: TType;
+  params: TParams;
+  meta: CategoryOperationMeta;
+}>;
+
+export type CategoryUpdateOperation =
+  | CategoryOperationEntry<"categoryUpdate", CategoryFieldsParams>
+  | CategoryOperationEntry<"categoryHierarchyMove", CategoryHierarchyMoveParams>
+  | CategoryOperationEntry<"categoryHierarchyRebalance", Record<string, never>>
+  | CategoryOperationEntry<"categoryComparisonProfileSet", CategoryComparisonProfileSetParams>;
+
+export interface CategoryFieldsParams {
+  readonly handle?: string;
+  readonly name?: string;
+  readonly content?: CategoryContentParams;
+  readonly seo?: CategorySeoParams | null;
+  readonly status?: "published" | "draft";
+  readonly media?: CategoryMediaParams;
+  readonly sort?: CategorySortParams;
 }
 
 export interface CategoryContentParams {
-  description?: RichTextInput | null;
-  excerpt?: RichTextInput | null;
+  readonly description?: RichTextInput | null;
+  readonly excerpt?: RichTextInput | null;
 }
 
 export interface CategorySeoParams {
-  seoTitle?: string | null;
-  seoDescription?: string | null;
-  ogTitle?: string | null;
-  ogDescription?: string | null;
-  ogImageId?: string | null;
+  readonly seoTitle?: string | null;
+  readonly seoDescription?: string | null;
+  readonly ogTitle?: string | null;
+  readonly ogDescription?: string | null;
+  readonly ogImageId?: string | null;
 }
 
 export interface CategoryMediaParams {
-  fileIds: string[];
+  readonly fileIds: readonly string[];
 }
 
-export interface CategoryHierarchyParams {
-  parentId?: string | null;
+export interface CategoryHierarchyMoveParams {
+  readonly parentId: string | null;
+}
+
+export interface CategoryComparisonProfileSetParams {
+  readonly profileId: string | null;
 }
 
 export interface CategorySortParams {
-  defaultSort: "manual" | "price" | "newest" | "name";
-  defaultSortDirection: "asc" | "desc";
+  readonly defaultSort: "manual" | "price" | "newest" | "name";
+  readonly defaultSortDirection: "asc" | "desc";
+}
+
+export type CategoryOperationResultType = CategoryUpdateOperation["type"];
+
+export interface CategoryOperationResult {
+  readonly type: CategoryOperationResultType;
+  readonly applied: boolean;
+  readonly entityId?: string;
+  readonly errors: readonly UserError[];
 }
 
 export interface CategoryUpdateWorkflowResult {
-  category: { id: string } | null;
-  operationResults: OperationResult[];
-  userErrors: UserError[];
+  readonly category: { readonly id: string } | null;
+  readonly operationResults: readonly CategoryOperationResult[];
+  readonly userErrors: readonly UserError[];
 }
 
-export interface OperationResult {
-  type: "categoryUpdate";
-  applied: boolean;
-  errors: UserError[];
+export interface CategoryDeleteWorkflowInput {
+  readonly categoryId: string;
+  readonly permanent: boolean;
+  readonly context: CategoryWorkflowContext;
+}
+
+export interface CategoryDeleteWorkflowResult {
+  readonly deletedCategoryId: string | null;
+  readonly userErrors: readonly UserError[];
+}
+
+export interface CategoryAuditChange {
+  readonly path: string;
+  readonly kind: "SET" | "ADD" | "REMOVE" | "MOVE";
+  readonly before?: { readonly state: "VISIBLE" | "MASKED" | "OMITTED"; readonly value?: unknown };
+  readonly after?: { readonly state: "VISIBLE" | "MASKED" | "OMITTED"; readonly value?: unknown };
+}
+
+export interface CategoryAuditOperation {
+  readonly position: number;
+  readonly type: string;
+  readonly action: "CREATE" | "UPDATE" | "DELETE" | "MOVE" | "LINK" | "UNLINK";
+  readonly target?: { readonly type: string; readonly id: string };
+  readonly changes: readonly CategoryAuditChange[];
 }
 
 export interface CategoryChanges {
-  categoryId: string;
-  product?: {
-    categories?: ProductCategoryFieldChanges;
-  };
-}
-
-export interface ProductCategoryFieldChanges {
-  changed: true;
-  reason: "assignment" | "categoryFields" | "rank";
-  categoryIds?: string[];
-}
-
-export interface CategorySectionChanges {
-  categoryFields?: {
-    affectsProductIndex: boolean;
-  };
+  readonly categoryId: string;
+  auditOperations: CategoryAuditOperation[];
+  affectedProductIds: string[];
 }
 
 export interface CategoryUpdateSectionResult {
-  category?: Category;
-  changes?: CategorySectionChanges;
-  userErrors: UserError[];
+  readonly category?: { readonly id: string };
+  readonly changes?: {
+    readonly categoryFields?: {
+      readonly affectsProductIndex: boolean;
+      readonly changedPaths?: readonly string[];
+    };
+  };
+  readonly userErrors: readonly UserError[];
 }

@@ -5,6 +5,7 @@ export type LexoRankMoveFailureCode =
   | "BEFORE_ITEM_NOT_FOUND"
   | "ITEM_NOT_FOUND"
   | "INVALID_AFTER_BEFORE"
+  | "INVALID_REFERENCE_ORDER"
   | "INVALID_AFTER_SELF"
   | "INVALID_BEFORE_SELF"
   | "RANK_SPACE_EXHAUSTED";
@@ -14,6 +15,7 @@ export type LexoRankMoveResult<TItem> =
       ok: true;
       item: TItem;
       lexoRank: string;
+      affectedItems: readonly TItem[];
     }
   | {
       ok: false;
@@ -59,16 +61,25 @@ export class LexoRankRepository<TItem> {
   async rebalance(scopeId?: string): Promise<TItem[]> {
     const items = await this.config.findOrderedItems(scopeId);
     const ranks = rebalanceRanks(items.length);
+    const changedItems: TItem[] = [];
 
     for (let i = 0; i < items.length; i++) {
-      await this.config.updateRank({
+      const item = items[i];
+      const lexoRank = ranks[i];
+      if (this.config.getLexoRank(item) === lexoRank) continue;
+
+      const updatedItem = await this.config.updateRank({
         scopeId,
-        itemId: this.config.getItemId(items[i]),
-        lexoRank: ranks[i],
+        itemId: this.config.getItemId(item),
+        lexoRank,
       });
+      if (!updatedItem) {
+        throw new Error("Ranked item disappeared during rebalance");
+      }
+      changedItems.push(updatedItem);
     }
 
-    return items;
+    return changedItems;
   }
 
   async move(params: LexoRankMoveParams): Promise<LexoRankMoveResult<TItem>> {
@@ -109,6 +120,27 @@ export class LexoRankRepository<TItem> {
       return { ok: false, code: "BEFORE_ITEM_NOT_FOUND" };
     }
 
+    if (afterItemId && beforeItemId) {
+      const orderedItems = (await this.config.findOrderedItems(params.scopeId)).filter(
+        (item) => this.config.getItemId(item) !== params.itemId,
+      );
+      const afterIndex = orderedItems.findIndex(
+        (item) => this.config.getItemId(item) === afterItemId,
+      );
+      const beforeIndex = orderedItems.findIndex(
+        (item) => this.config.getItemId(item) === beforeItemId,
+      );
+      if (afterIndex < 0) {
+        return { ok: false, code: "AFTER_ITEM_NOT_FOUND" };
+      }
+      if (beforeIndex < 0) {
+        return { ok: false, code: "BEFORE_ITEM_NOT_FOUND" };
+      }
+      if (afterIndex >= beforeIndex) {
+        return { ok: false, code: "INVALID_REFERENCE_ORDER" };
+      }
+    }
+
     const needNeighborLookup = Boolean(
       (beforeItemId && !afterItemId) || (afterItemId && !beforeItemId),
     );
@@ -124,9 +156,10 @@ export class LexoRankRepository<TItem> {
     });
 
     let lexoRank = midpointRank(effectiveRanks.afterRank, effectiveRanks.beforeRank);
+    let rebalancedItems: readonly TItem[] = [];
 
     if (!lexoRank) {
-      await this.rebalance(params.scopeId);
+      rebalancedItems = await this.rebalance(params.scopeId);
       const [afterRebalanced, beforeRebalanced] = await Promise.all([
         afterItemId
           ? this.config.findItem({ scopeId: params.scopeId, itemId: afterItemId })
@@ -159,7 +192,14 @@ export class LexoRankRepository<TItem> {
     });
 
     return updatedItem
-      ? { ok: true, item: updatedItem, lexoRank }
+      ? {
+          ok: true,
+          item: updatedItem,
+          lexoRank,
+          affectedItems: dedupeItems([...rebalancedItems, updatedItem], (item) =>
+            this.config.getItemId(item),
+          ),
+        }
       : { ok: false, code: "ITEM_NOT_FOUND" };
   }
 
@@ -209,4 +249,8 @@ export class LexoRankRepository<TItem> {
     }
     return this.config.getLexoRank(orderedItems[index + 1]);
   }
+}
+
+function dedupeItems<TItem>(items: readonly TItem[], getItemId: (item: TItem) => string): TItem[] {
+  return [...new Map(items.map((item) => [getItemId(item), item])).values()];
 }

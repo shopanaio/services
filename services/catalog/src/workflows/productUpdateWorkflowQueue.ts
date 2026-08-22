@@ -6,3 +6,10 @@ export function buildProductUpdateQueuePartitionKey(input: {
 }): string {
   return [input.storeId, "product", input.productId].join(":");
 }
+
+export function buildCategoryUpdateQueuePartitionKey(input: {
+  storeId: string;
+  categoryId: string;
+}): string {
+  return [input.storeId, "category", input.categoryId].join(":");
+}

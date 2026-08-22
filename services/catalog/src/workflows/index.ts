@@ -1,6 +1,10 @@
 import { ProductBulkEditWorkflow } from "./ProductBulkEditWorkflow.js";
 import { ProductUpdateWorkflow } from "./ProductUpdateWorkflow.js";
-import { CategoryUpdateWorkflow } from "./CategoryUpdateWorkflow.js";
+import {
+  CategoryCreateWorkflow,
+  CategoryDeleteWorkflow,
+  CategoryUpdateWorkflow,
+} from "./CategoryUpdateWorkflow.js";
 import {
   CollectionMutationWorkflow,
   CollectionProductSyncWorkflow,
@@ -8,6 +12,8 @@ import {
 } from "./CollectionMutationWorkflows.js";
 
 export {
+  CategoryCreateWorkflow,
+  CategoryDeleteWorkflow,
   CategoryUpdateWorkflow,
   ProductBulkEditWorkflow,
   ProductUpdateWorkflow,
@@ -17,6 +23,8 @@ export {
 };
 
 export const workflows = [
+  CategoryCreateWorkflow,
+  CategoryDeleteWorkflow,
   CategoryUpdateWorkflow,
   ProductBulkEditWorkflow,
   ProductUpdateWorkflow,

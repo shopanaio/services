@@ -72,6 +72,17 @@ export class CollectionMoveProductScript extends BaseScript<
             },
           ],
         };
+      case "INVALID_REFERENCE_ORDER":
+        return {
+          collection: undefined,
+          userErrors: [
+            {
+              message: "afterProductId must precede beforeProductId",
+              field: ["afterProductId", "beforeProductId"],
+              code: "INVALID_INPUT",
+            },
+          ],
+        };
       case "INVALID_AFTER_SELF":
         return {
           collection: undefined,
