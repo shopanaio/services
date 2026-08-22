@@ -83,7 +83,7 @@ input ProductOptionCategoryUpdateInput {
 
 type ProductOptionCategoryUpdatePayload {
   productOptionCategory: ProductOptionCategory
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

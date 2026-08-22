@@ -164,7 +164,7 @@ input VendorUpdateInput {
 
 type VendorUpdatePayload {
   vendor: Vendor
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -836,7 +836,7 @@ input VariantOperationInput {
 """
 Type of operation in the unified update.
 """
-enum OperationType {
+enum CatalogOperationType {
   PRODUCT_UPDATE
   PRODUCT_OPTIONS_SYNC
   PRODUCT_FEATURES_SYNC
@@ -877,11 +877,11 @@ enum OperationType {
 """
 Result of a single operation in the unified update.
 """
-type OperationResult {
+type CatalogOperationResult {
   """
   The type of operation.
   """
-  type: OperationType!
+  type: CatalogOperationType!
 
   """
   Whether the operation was applied successfully.
@@ -911,7 +911,7 @@ type ProductUpdatePayload {
   """
   Results of each operation.
   """
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
 
   """
   All errors from all operations.

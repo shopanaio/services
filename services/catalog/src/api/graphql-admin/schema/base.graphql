@@ -433,7 +433,7 @@ type CatalogMutation {
   """
   Delete an existing product
   """
-  productDelete(productId: ID!, permanent: Boolean): ProductDeletePayload!
+  productDelete(productId: ID!, permanent: Boolean! = false): ProductDeletePayload!
 
   """
   Unified product update.
@@ -465,7 +465,7 @@ type CatalogMutation {
   """
   Delete a category
   """
-  categoryDelete(categoryId: ID!, permanent: Boolean): CategoryDeletePayload!
+  categoryDelete(categoryId: ID!, permanent: Boolean! = false): CategoryDeletePayload!
 
   """
   Create a collection.

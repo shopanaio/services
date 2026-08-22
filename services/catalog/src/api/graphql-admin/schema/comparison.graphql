@@ -246,7 +246,7 @@ type ComparisonProfileCreatePayload {
 
 type ComparisonProfileUpdatePayload {
   profile: ComparisonProfile
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 type ComparisonProfileDeletePayload {

@@ -133,7 +133,7 @@ type MediaMutation {
   fileUploadFromUrl(input: FileUploadFromUrlInput!): FileUploadPayload!
   fileCreateExternal(input: FileCreateExternalInput!): FileCreateExternalPayload!
   fileUpdate(fileId: ID!, operations: FileUpdateInput!): FileUpdatePayload!
-  fileDelete(fileId: ID!, permanent: Boolean): FileDeletePayload!
+  fileDelete(fileId: ID!, permanent: Boolean! = false): FileDeletePayload!
 
   # Avatar/Logo upload
   """

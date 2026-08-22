@@ -362,7 +362,7 @@ type CategoryUpdatePayload {
   """
   Results of requested category update operations.
   """
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
 
   """
   List of errors that occurred during the mutation.

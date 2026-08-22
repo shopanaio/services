@@ -187,19 +187,22 @@ type ReviewsMutation {
   ): ReviewRatingCriterionUpdatePayload!
   ratingCriterionDelete(
     ratingCriterionId: ID!
-    permanent: Boolean
+    permanent: Boolean! = false
   ): ReviewRatingCriterionDeletePayload!
 
   reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
   reviewUpdate(reviewId: ID!, operations: ReviewUpdateInput!): ReviewUpdatePayload!
-  reviewDelete(reviewId: ID!, permanent: Boolean): ReviewDeletePayload!
+  reviewDelete(reviewId: ID!, permanent: Boolean! = false): ReviewDeletePayload!
 
   productQuestionCreate(input: ProductQuestionCreateInput!): ProductQuestionCreatePayload!
   productQuestionUpdate(
     productQuestionId: ID!
     operations: ProductQuestionUpdateInput!
   ): ProductQuestionUpdatePayload!
-  productQuestionDelete(productQuestionId: ID!, permanent: Boolean): ProductQuestionDeletePayload!
+  productQuestionDelete(
+    productQuestionId: ID!
+    permanent: Boolean! = false
+  ): ProductQuestionDeletePayload!
 
   reviewRequestCreate(input: ReviewRequestCreateInput!): ReviewRequestCreatePayload!
   reviewRequestUpdate(

@@ -849,7 +849,7 @@ type OrderDeliveryMethod {
 """
 Relay-style paginated connection of order resources.
 """
-type OrderConnection implements Connection {
+type OrderConnection {
   """
   Cursor and resource pairs in this page.
   """

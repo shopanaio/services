@@ -624,7 +624,7 @@ type CollectionCreatePayload {
 
 type CollectionUpdatePayload {
   collection: Collection
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

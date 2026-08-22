@@ -669,7 +669,7 @@ type OrderOperation implements Node {
 """
 Relay-style paginated connection of order activity resources.
 """
-type OrderActivityConnection implements Connection {
+type OrderActivityConnection {
   """
   Cursor and resource pairs in this page.
   """

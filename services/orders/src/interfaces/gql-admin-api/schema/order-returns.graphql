@@ -297,7 +297,7 @@ type OrderRefundLine {
 """
 Relay-style paginated connection of order return resources.
 """
-type OrderReturnConnection implements Connection {
+type OrderReturnConnection {
   """
   Cursor and resource pairs in this page.
   """
@@ -333,7 +333,7 @@ type OrderReturnEdge {
 """
 Relay-style paginated connection of order exchange resources.
 """
-type OrderExchangeConnection implements Connection {
+type OrderExchangeConnection {
   """
   Cursor and resource pairs in this page.
   """
@@ -369,7 +369,7 @@ type OrderExchangeEdge {
 """
 Relay-style paginated connection of order refund resources.
 """
-type OrderRefundConnection implements Connection {
+type OrderRefundConnection {
   """
   Cursor and resource pairs in this page.
   """

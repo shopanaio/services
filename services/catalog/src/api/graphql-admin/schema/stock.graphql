@@ -257,7 +257,7 @@ type WarehouseUpdatePayload {
   """
   warehouse: Warehouse
 
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
 
   """
   List of errors that occurred during the mutation.
@@ -293,7 +293,7 @@ Result of one warehouseUpdate coordinated by warehouseBulkUpdate.
 type WarehouseBulkUpdateItemResult {
   warehouseId: ID!
   warehouse: Warehouse
-  operationResults: [OperationResult!]!
+  operationResults: [CatalogOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 

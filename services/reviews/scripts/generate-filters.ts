@@ -81,6 +81,8 @@ const reviewReplyFields: Record<string, GraphQLFieldType> = {
   createdAt: dateTime,
   updatedAt: dateTime,
   deletedAt: dateTime,
+  redactedAt: dateTime,
+  likeCount: int,
 };
 
 const productQuestionFields: Record<string, GraphQLFieldType> = {
@@ -100,10 +102,12 @@ const productQuestionFields: Record<string, GraphQLFieldType> = {
   updatedAt: dateTime,
   publishedAt: dateTime,
   deletedAt: dateTime,
+  redactedAt: dateTime,
   answerCount: int,
   officialAnswerCount: int,
   acceptedAnswerCount: int,
   reportCount: int,
+  likeCount: int,
 };
 
 const productQuestionAnswerFields: Record<string, GraphQLFieldType> = {
@@ -121,6 +125,8 @@ const productQuestionAnswerFields: Record<string, GraphQLFieldType> = {
   createdAt: dateTime,
   updatedAt: dateTime,
   deletedAt: dateTime,
+  redactedAt: dateTime,
+  likeCount: int,
 };
 
 const reviewRequestFields: Record<string, GraphQLFieldType> = {

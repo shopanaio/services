@@ -37,7 +37,7 @@ extend type ListingMutation {
     """
     Operations to apply.
     """
-    operations: SearchSettingsOperationsInput!
+    operations: SearchSettingsUpdateInput!
   ): SearchSettingsUpdatePayload!
   synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupCreatePayload!
   synonymGroupUpdate(
@@ -239,7 +239,7 @@ type SearchFieldConfiguration {
   weight: Float!
 }
 
-input SearchSettingsOperationsInput {
+input SearchSettingsUpdateInput {
   """
   Main search settings replacement.
   """

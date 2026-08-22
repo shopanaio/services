@@ -260,9 +260,9 @@ input ReviewReplyWhereInput {
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
   """Filter by redactedAt"""
-  redactedAt: StringFilter
+  redactedAt: DateTimeFilter
   """Filter by likeCount"""
-  likeCount: StringFilter
+  likeCount: IntFilter
   """Filter by reviewId"""
   reviewId: IDFilter
   """Filter by isOfficial"""
@@ -352,7 +352,7 @@ input ProductQuestionWhereInput {
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
   """Filter by redactedAt"""
-  redactedAt: StringFilter
+  redactedAt: DateTimeFilter
   """Filter by answerCount"""
   answerCount: IntFilter
   """Filter by officialAnswerCount"""
@@ -362,7 +362,7 @@ input ProductQuestionWhereInput {
   """Filter by reportCount"""
   reportCount: IntFilter
   """Filter by likeCount"""
-  likeCount: StringFilter
+  likeCount: IntFilter
 }
 
 """Fields available for sorting ProductQuestion"""
@@ -448,9 +448,9 @@ input ProductQuestionAnswerWhereInput {
   """Filter by deletedAt"""
   deletedAt: DateTimeFilter
   """Filter by redactedAt"""
-  redactedAt: StringFilter
+  redactedAt: DateTimeFilter
   """Filter by likeCount"""
-  likeCount: StringFilter
+  likeCount: IntFilter
   """Filter by questionId"""
   questionId: IDFilter
   """Filter by isOfficial"""
