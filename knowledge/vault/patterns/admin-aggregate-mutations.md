@@ -6,6 +6,7 @@ tags:
   - mutation
   - dbos
   - workflow
+  - batch
   - transaction
   - events
   - audit
@@ -70,6 +71,127 @@ transactional commit workflow публикует `<aggregate>Created`. `<aggrega
 является изменением одного существующего aggregate. Такое исключение должно быть явно обосновано в
 архитектурном документе bounded context. Удобство UI или исторически существующий CRUD endpoint не
 являются обоснованием.
+
+## Multi-aggregate batch mutations
+
+Эталон multi-aggregate batch mutation — `productBulkUpdate` и durable
+`ProductBulkEditWorkflow`. Batch является отдельной asynchronous job command: mutation валидирует и
+нормализует request, запускает durable coordinator и возвращает job, а прогресс и результаты
+отдельных operations читаются через job items. Batch не возвращает синхронный массив aggregate
+payloads и не удерживает GraphQL request до завершения всех child updates.
+
+Batch endpoint не создаёт новый domain write path. Для каждого aggregate он использует тот же
+GraphQL-to-domain mapper, тот же ordered список internal operations и тот же зарегистрированный
+`<aggregate>Update` workflow, что и одиночная mutation. Batch-specific handlers могут управлять
+только lifecycle job/items, cancellation, supersession и progress; дублировать domain operations
+отдельными scripts или repositories запрещено.
+
+Типовой публичный контракт:
+
+```graphql
+input ExampleBulkUpdateInput {
+  examples: [ExampleBulkUpdateItem!]!
+}
+
+input ExampleBulkUpdateItem {
+  exampleId: ID!
+  operations: ExampleUpdateInput!
+}
+
+type ExampleBulkUpdatePayload {
+  job: ExampleBulkUpdateJob
+  userErrors: [BulkUpdateUserError!]!
+}
+
+type ExampleBulkUpdateJob implements Node {
+  id: ID!
+  status: BulkUpdateJobStatus!
+  createdAt: DateTime!
+  startedAt: DateTime
+  finishedAt: DateTime
+  progress: BulkUpdateJobProgress!
+  items(
+    first: Int
+    after: String
+    statusFilter: [BulkUpdateItemStatus!]
+  ): BulkUpdateItemConnection!
+}
+
+type BulkUpdateItem implements Node {
+  id: ID!
+  aggregateId: ID!
+  operationType: String!
+  operationIndex: Int!
+  status: BulkUpdateItemStatus!
+  errors: [BulkUpdateUserError!]!
+  cancelReason: BulkUpdateCancelReason
+}
+```
+
+Job lifecycle содержит как минимум `QUEUED`, `RUNNING`, `COMPLETED` и `CANCELLED`. Lifecycle item
+содержит `PENDING`, `RUNNING`, `SUCCEEDED`, `FAILED`, `CANCELLED` и `SUPERSEDED`. Progress строится
+из durable item states, а не из in-memory counters coordinator workflow. GraphQL payload содержит
+только ошибки, из-за которых job не была создана; business/execution errors после durable start
+сохраняются в соответствующих job items.
+
+### Request mapping и создание job
+
+1. Batch input обязательно и не может быть пустым. Bounded context задаёт явный максимум aggregate
+   items и суммарных public operations; для product bulk update — не более 100 products и 500
+   operations.
+2. Aggregate ID каждого item передаётся отдельно от обязательного `operations`. Пустой
+   `operations`, пустые operation-массивы и item без допустимой operation отклоняются до durable
+   start.
+3. Resolver декодирует все global IDs и применяет canonical single-update mapper ко всем items. Он
+   сохраняет исходные item/operation positions в metadata и до запуска workflow возвращает полный
+   список syntactic/request-level ошибок. Resolver не пишет job, item или aggregate rows напрямую.
+4. Tenant ownership и aggregate-wide prevalidation, требующая database reads, выполняется durable
+   coordinator step до создания исполняемых items или запуска первого child update. Ошибка общей
+   prevalidation не допускает aggregate writes.
+5. Повторяющиеся aggregate IDs детерминированно группируются в один aggregate operation stream.
+   Порядок определяется парой `(inputItemPosition, operationPosition)`; сортировка только по локальному
+   operation index запрещена. Политика grouping и отображение исходных positions документируются в
+   публичном контракте.
+
+Coordinator запускается как зарегистрированный durable workflow через broker с `time-window`
+idempotency context: tenant organization, стабильное semantic operation name, transport-assigned
+`requestTimestamp`, `windowMs: 5_000` и нормализованный ordered batch content. `requestId`, actor,
+timestamp и другие volatile transport values не входят в content. Повторный semantic request в
+пределах окна получает ту же job и не создаёт второй набор job items.
+
+Job ID, item IDs, fence tokens и другие nondeterministic values создаются внутри durable
+transactional step. Создание job, всех её items и aggregate fences коммитится атомарно вместе с
+DBOS checkpoint. Coordinator не обращается к repository напрямую: job lifecycle mutations
+выполняются через local scripts внутри `@TransactionalStep()`.
+
+### Group execution, fencing и supersession
+
+После durable job creation coordinator группирует items по aggregate ID. Для каждого aggregate
+существует один fence token текущей job. Новая job, затрагивающая тот же aggregate, атомарно заменяет
+fence и переводит ещё не применённые items предыдущей job в `SUPERSEDED`. Старый coordinator обязан
+проверить durable item/fence state перед child start и не может применить superseded operation.
+
+Операции одного aggregate передаются одним ordered списком в canonical `<aggregate>Update` child
+workflow. Child invocation использует `source: "workflow"`, parent `DBOS.workflowID`, стабильные
+`stepId`/`callId` и ту же partitioned queue с key `storeId:aggregateType:aggregateId`, что и одиночный
+update. Batch-wide queue key, случайный child workflow ID, child-entity key и обход canonical queue
+запрещены.
+
+После child completion coordinator сопоставляет каждый `operationResult` с job item по сохранённой
+public position, а не по неявному порядку database rows или длине response. Успех переводит item в
+`SUCCEEDED`, business failure — в `FAILED` с сохранёнными errors. Отсутствующий, лишний или
+дублированный child result является workflow invariant error и не маскируется успешным status.
+
+Atomicity существует внутри каждой public operation или dependent operation group одного aggregate.
+Разные aggregate groups коммитятся независимо; failure одного aggregate не откатывает уже
+завершённые groups. Job status `COMPLETED` означает, что все items достигли terminal state, а не то,
+что все operations успешно применены. Cancellation останавливает только ещё не начатые items и не
+откатывает committed changes.
+
+Каждый canonical child workflow самостоятельно публикует `<aggregate>Updated` после своего commit и
+формирует audit только по фактически применённым operations этого aggregate. Bulk coordinator не
+публикует подменяющее aggregate lifecycle event и не дублирует child events. Отдельное событие
+завершения job допустимо только как lifecycle event самой job и не заменяет aggregate events/audit.
 
 ## GraphQL-контракт
 
@@ -689,6 +811,17 @@ Audit facts являются частью durable step result: workflow replay �
 - запуск `<aggregate>Update` без partitioned queue, с partition key шире или уже aggregate instance,
   либо с повторной queue entry для time-window duplicate;
 - альтернативный внутренний endpoint, обходящий aggregate workflow для той же операции.
+- batch mutation, которая дублирует single-aggregate operations отдельными scripts/repositories или
+  используется как альтернативный write path одного aggregate без документированной semantic
+  command;
+- batch input без non-empty validation, явных size limits, полной request-level prevalidation и
+  стабильного соответствия input positions результатам и error paths;
+- batch coordinator с одним batch-wide partition key, обходом child aggregate queue, случайной
+  child identity или заявленной all-or-nothing atomicity поверх независимо коммитящих workflows;
+- синхронное выполнение всех aggregate groups в рамках GraphQL response вместо durable job,
+  in-memory progress либо execution errors, которые не сохраняются в job items;
+- overlapping batch jobs без aggregate fence/supersession contract либо применение operation после
+  перехода соответствующего item в `CANCELLED` или `SUPERSEDED`.
 
 ## Review checklist
 
@@ -734,6 +867,21 @@ Audit facts являются частью durable step result: workflow replay �
     изменения.
 20. Audit values проходят producer-side allowlist и PII masking до `events.emit`; raw input, full
     snapshots, secrets и volatile request metadata в audit envelope отсутствуют.
+21. Multi-aggregate batch mutation реализована как durable asynchronous job с persistent job/item
+    lifecycle, progress, cancellation и execution errors, доступными после mutation response.
+22. Batch items используют canonical mapper, internal operations и `<aggregate>Update` child
+    workflow; resolver и coordinator не выполняют aggregate domain writes напрямую.
+23. Batch input non-empty и bounded по aggregate items и суммарным operations; все IDs,
+    request-level invariants и canonical mapping проверены до durable start, а database
+    prevalidation завершена до первого child update.
+24. Duplicates группируются детерминированно по `(inputItemPosition, operationPosition)`; job items
+    сохраняют public identity/path каждой operation, а child results сопоставляются по position.
+25. Job/items/fences создаются в durable transactional step; overlapping jobs используют aggregate
+    fence и `SUPERSEDED`, cancellation не откатывает committed operations.
+26. Coordinator использует `time-window` idempotency без volatile content; child workflows имеют
+    stable parent-derived identity и canonical aggregate partition key.
+27. Partial apply между aggregates явно отражён terminal item statuses; aggregate events и audit
+    публикуются каждым child workflow только после его commit и не дублируются coordinator-ом.
 
 ## Связанные документы
 
