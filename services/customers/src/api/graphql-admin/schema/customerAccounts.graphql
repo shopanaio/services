@@ -35,5 +35,6 @@ input CustomerAccountsSettingsUpdateInput {
 
 type CustomerAccountsSettingsUpdatePayload {
   settings: CustomerAccountsSettings
+  operationResults: [CustomerOperationResult!]!
   userErrors: [GenericUserError!]!
 }

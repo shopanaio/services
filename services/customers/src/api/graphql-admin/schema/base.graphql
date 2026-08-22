@@ -124,7 +124,7 @@ type CustomersMutation {
   Replace the enabled customer authentication methods for the current store.
   """
   customerAccountsSettingsUpdate(
-    input: CustomerAccountsSettingsUpdateInput!
+    operations: CustomerAccountsSettingsUpdateInput!
   ): CustomerAccountsSettingsUpdatePayload!
 
   customerCreate(input: CustomerCreateInput!): CustomerCreatePayload!
@@ -141,41 +141,39 @@ type CustomersMutation {
     """
     operations: CustomerUpdateInput!
   ): CustomerUpdatePayload!
-  customerDelete(input: CustomerDeleteInput!): CustomerDeletePayload!
+  customerDelete(customerId: ID!): CustomerDeletePayload!
 
   customerGroupCreate(input: CustomerGroupCreateInput!): CustomerGroupCreatePayload!
   customerGroupUpdate(
     groupId: ID!
     operations: CustomerGroupUpdateInput!
   ): CustomerGroupUpdatePayload!
-  customerGroupDelete(input: CustomerGroupDeleteInput!): CustomerGroupDeletePayload!
+  customerGroupDelete(groupId: ID!): CustomerGroupDeletePayload!
 
   customerTagCreate(input: CustomerTagCreateInput!): CustomerTagCreatePayload!
-  customerTagUpdate(tagId: ID!, operations: CustomerTagUpdateInput): CustomerTagUpdatePayload!
-  customerTagDelete(input: CustomerTagDeleteInput!): CustomerTagDeletePayload!
+  customerTagUpdate(tagId: ID!, operations: CustomerTagUpdateInput!): CustomerTagUpdatePayload!
+  customerTagDelete(tagId: ID!): CustomerTagDeletePayload!
 
   customerSegmentCreate(input: CustomerSegmentCreateInput!): CustomerSegmentCreatePayload!
   customerSegmentUpdate(
     segmentId: ID!
     operations: CustomerSegmentUpdateInput!
   ): CustomerSegmentUpdatePayload!
-  customerSegmentDelete(input: CustomerSegmentDeleteInput!): CustomerSegmentDeletePayload!
+  customerSegmentDelete(segmentId: ID!): CustomerSegmentDeletePayload!
 
   customerMergeCreate(input: CustomerMergeCreateInput!): CustomerMergeCreatePayload!
   customerMergeUpdate(
     mergeId: ID!
-    operations: CustomerMergeUpdateInput
+    operations: CustomerMergeUpdateInput!
   ): CustomerMergeUpdatePayload!
-  customerMergeDelete(input: CustomerMergeDeleteInput!): CustomerMergeDeletePayload!
+  customerMergeDelete(mergeId: ID!): CustomerMergeDeletePayload!
 
   customerDataRequestCreate(
     input: CustomerDataRequestCreateInput!
   ): CustomerDataRequestCreatePayload!
   customerDataRequestUpdate(
     dataRequestId: ID!
-    operations: CustomerDataRequestUpdateInput
+    operations: CustomerDataRequestUpdateInput!
   ): CustomerDataRequestUpdatePayload!
-  customerDataRequestDelete(
-    input: CustomerDataRequestDeleteInput!
-  ): CustomerDataRequestDeletePayload!
+  customerDataRequestDelete(dataRequestId: ID!): CustomerDataRequestDeletePayload!
 }

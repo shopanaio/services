@@ -28,8 +28,7 @@ type ReviewContentExternalReferenceEdge {
   cursor: String!
 }
 
-input ReviewContentExternalReferenceCreateInput {
-  contentId: ID!
+input ReviewContentExternalReferenceCreateValuesInput {
   externalSystem: String!
   externalType: String!
   externalId: String!
@@ -53,28 +52,26 @@ input ReviewContentExternalReferenceSyncInput {
   metadata: JSON
 }
 
-input ReviewContentExternalReferenceUpdateInput {
+input ReviewContentExternalReferenceUpdateValuesInput {
   identity: ReviewContentExternalReferenceIdentityInput
   sync: ReviewContentExternalReferenceSyncInput
 }
 
-input ReviewContentExternalReferenceDeleteInput {
-  id: ID!
+enum ReviewContentExternalReferenceOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+"""
+An ordered operation on an external reference owned by the content currently being updated.
+For CREATE supply create; for UPDATE supply externalReferenceId and update; for DELETE supply
+externalReferenceId and, optionally, permanent.
+"""
+input ReviewContentExternalReferenceOperationInput {
+  action: ReviewContentExternalReferenceOperationAction!
+  externalReferenceId: ID
+  create: ReviewContentExternalReferenceCreateValuesInput
+  update: ReviewContentExternalReferenceUpdateValuesInput
   permanent: Boolean = false
-}
-
-type ReviewContentExternalReferenceCreatePayload {
-  externalReference: ReviewContentExternalReference
-  userErrors: [GenericUserError!]!
-}
-
-type ReviewContentExternalReferenceUpdatePayload {
-  externalReference: ReviewContentExternalReference
-  operationResults: [ReviewsOperationResult!]!
-  userErrors: [GenericUserError!]!
-}
-
-type ReviewContentExternalReferenceDeletePayload {
-  deletedExternalReferenceId: ID
-  userErrors: [GenericUserError!]!
 }

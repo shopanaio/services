@@ -170,6 +170,10 @@ input ReviewContentCreateInput {
   """
   status: ReviewContentStatus
   moderationNote: String
+  """
+  External references created together with this owned content item.
+  """
+  externalReferences: [ReviewContentExternalReferenceCreateValuesInput!]
 }
 
 input ReviewContentTextUpdateInput {
@@ -199,6 +203,18 @@ input ReviewContentUpdateInput {
   Complete publication destination replacement when supplied.
   """
   publications: [ReviewContentPublicationSyncInput!]
+  """
+  Create, update, or delete external references owned by this content item.
+  """
+  externalReferences: [ReviewContentExternalReferenceOperationInput!]
+  """
+  Redact this content item. Redaction is a lifecycle operation of its owning aggregate.
+  """
+  redact: Boolean
+  """
+  Restore this content item from an immutable audit revision.
+  """
+  restoreRevision: Int
 }
 
 input ReviewContentDeleteInput {

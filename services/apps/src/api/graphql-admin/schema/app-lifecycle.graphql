@@ -102,16 +102,3 @@ type AppManifestSnapshotEdge {
   node: AppManifestSnapshot!
   cursor: String!
 }
-
-"""
-Payload returned after accepting a lifecycle operation.
-"""
-type AppLifecyclePayload {
-  installation: AppInstallation
-  operation: AppLifecycleOperation
-
-  """
-  Whether an earlier request with the same client mutation ID was reused.
-  """
-  userErrors: [GenericUserError!]!
-}

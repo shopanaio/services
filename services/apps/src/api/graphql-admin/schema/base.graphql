@@ -28,6 +28,16 @@ extend type Mutation {
 
 type AppsQuery {
   """
+  Resolve an Apps-owned Relay node by its global ID.
+  """
+  node(id: ID!): Node
+
+  """
+  Resolve Apps-owned Relay nodes while preserving input order.
+  """
+  nodes(ids: [ID!]!): [Node]!
+
+  """
   Get a bundled App definition by its stable code.
   """
   appDefinition(code: String!): AppDefinition
@@ -57,32 +67,23 @@ type AppsQuery {
 
 type AppsMutation {
   """
-  Install a bundled App in the current store.
+  Create an App installation in the current store.
   """
-  appInstall(input: AppInstallInput!): AppLifecyclePayload!
+  appInstallationCreate(input: AppInstallationCreateInput!): AppInstallationCreatePayload!
 
   """
-  Update an installed App to the bundled target version.
+  Apply an ordered set of operations to an existing App installation.
   """
-  appUpdate(input: AppUpdateInput!): AppLifecyclePayload!
+  appInstallationUpdate(
+    appInstallationId: ID!
+    operations: AppInstallationUpdateInput!
+  ): AppInstallationUpdatePayload!
 
   """
-  Update installation configuration and granted scopes.
-  """
-  appConfigure(input: AppConfigureInput!): AppConfigurePayload!
+  Delete an App installation from the current store.
 
+  The current domain implementation may perform this as a soft delete, but it remains a distinct
+  aggregate delete command and is not an AppInstallationUpdate operation.
   """
-  Temporarily disable an active App installation.
-  """
-  appSuspend(input: AppInstallationActionInput!): AppLifecyclePayload!
-
-  """
-  Resume a suspended App installation.
-  """
-  appResume(input: AppInstallationActionInput!): AppLifecyclePayload!
-
-  """
-  Uninstall an App from the current store.
-  """
-  appUninstall(input: AppInstallationActionInput!): AppLifecyclePayload!
+  appInstallationDelete(appInstallationId: ID!): AppInstallationDeletePayload!
 }

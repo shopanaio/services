@@ -192,6 +192,10 @@ input ProductQuestionUpdateInput {
   Create, update, or delete answers owned by this question.
   """
   answers: ProductQuestionAnswersUpdateInput
+  """
+  Update subscriptions owned by this question.
+  """
+  subscriptions: [ProductQuestionSubscriptionUpdateOperationInput!]
 }
 
 input ProductQuestionAnswerCreateOperationInput {
@@ -215,13 +219,24 @@ input ProductQuestionAnswerUpdateInput {
   properties: ProductQuestionAnswerPropertiesUpdateInput
 }
 
-input ProductQuestionAnswerUpdateOperationInput {
-  answerId: ID!
-  operations: ProductQuestionAnswerUpdateInput!
+enum ProductQuestionAnswerOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
-input ProductQuestionAnswerDeleteOperationInput {
-  answerId: ID!
+"""
+One ordered operation on an answer owned by the product question.
+
+For CREATE supply create. For UPDATE supply answerId and update. For DELETE supply answerId and,
+optionally, permanent. Empty operation arrays and action/value mismatches are rejected during
+request validation before the workflow is started.
+"""
+input ProductQuestionAnswerOperationInput {
+  action: ProductQuestionAnswerOperationAction!
+  answerId: ID
+  create: ProductQuestionAnswerCreateOperationInput
+  update: ProductQuestionAnswerUpdateInput
   """
   Hard deletion is reserved for explicit privacy or retention workflows.
   """
@@ -229,15 +244,23 @@ input ProductQuestionAnswerDeleteOperationInput {
 }
 
 input ProductQuestionAnswersUpdateInput {
-  create: [ProductQuestionAnswerCreateOperationInput!]
-  update: [ProductQuestionAnswerUpdateOperationInput!]
-  delete: [ProductQuestionAnswerDeleteOperationInput!]
+  operations: [ProductQuestionAnswerOperationInput!]!
 }
 
-input ProductQuestionSubscriptionUpdateInput {
+input ProductQuestionSubscriptionUpdateValuesInput {
   status: ProductQuestionSubscriptionStatus
   channel: ReviewNotificationChannel
   locale: LocaleCode
+}
+
+enum ProductQuestionSubscriptionOperationAction {
+  UPDATE
+}
+
+input ProductQuestionSubscriptionUpdateOperationInput {
+  action: ProductQuestionSubscriptionOperationAction!
+  subscriptionId: ID!
+  values: ProductQuestionSubscriptionUpdateValuesInput!
 }
 
 type ProductQuestionCreatePayload {
@@ -253,11 +276,5 @@ type ProductQuestionUpdatePayload {
 
 type ProductQuestionDeletePayload {
   deletedProductQuestionId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type ProductQuestionSubscriptionUpdatePayload {
-  subscription: ProductQuestionSubscription
-  operationResults: [ReviewsOperationResult!]!
   userErrors: [GenericUserError!]!
 }

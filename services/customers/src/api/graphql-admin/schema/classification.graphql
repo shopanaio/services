@@ -215,19 +215,6 @@ input CustomerGroupStateUpdateInput {
   isActive: Boolean
 }
 
-input CustomerGroupUpdateInput {
-  definition: CustomerGroupDefinitionUpdateInput
-  state: CustomerGroupStateUpdateInput
-  """
-  Create, update, or delete customer memberships in this group.
-  """
-  memberships: CustomerGroupMembershipRelationsUpdateInput
-}
-
-input CustomerGroupDeleteInput {
-  id: ID!
-}
-
 """
 Create a customer's membership in this group.
 """
@@ -237,41 +224,54 @@ input CustomerGroupMembershipRelationCreateInput {
   expiresAt: DateTime
 }
 
-input CustomerGroupMembershipRelationUpdateInput {
-  membershipId: ID!
+input CustomerGroupMembershipRelationPatchInput {
   isPrimary: Boolean
   expiresAt: DateTime
 }
 
-input CustomerGroupMembershipRelationsUpdateInput {
-  create: [CustomerGroupMembershipRelationCreateInput!]
-  update: [CustomerGroupMembershipRelationUpdateInput!]
-  deleteIds: [ID!]
+enum CustomerGroupMembershipOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+"""One ordered membership operation owned by the customer group."""
+input CustomerGroupOwnedMembershipOperationInput {
+  action: CustomerGroupMembershipOperationAction!
+  membershipId: ID
+  values: CustomerGroupMembershipRelationCreateInput
+  patch: CustomerGroupMembershipRelationPatchInput
+}
+
+input CustomerGroupUpdateInput {
+  definition: CustomerGroupDefinitionUpdateInput
+  state: CustomerGroupStateUpdateInput
+  memberships: [CustomerGroupOwnedMembershipOperationInput!]
 }
 
 input CustomerTagCreateInput {
   name: String!
 }
 
-input CustomerTagUpdateInput {
-  name: String
-  """
-  Create or delete customer assignments for this tag.
-  """
-  assignments: CustomerTagAssignmentRelationsUpdateInput
-}
-
-input CustomerTagDeleteInput {
-  id: ID!
-}
-
 input CustomerTagAssignmentRelationCreateInput {
   customerId: ID!
 }
 
-input CustomerTagAssignmentRelationsUpdateInput {
-  create: [CustomerTagAssignmentRelationCreateInput!]
-  deleteIds: [ID!]
+enum CustomerTagAssignmentOperationAction {
+  LINK
+  UNLINK
+}
+
+"""One ordered customer assignment operation owned by the tag."""
+input CustomerTagOwnedAssignmentOperationInput {
+  action: CustomerTagAssignmentOperationAction!
+  assignmentId: ID
+  values: CustomerTagAssignmentRelationCreateInput
+}
+
+input CustomerTagUpdateInput {
+  name: String
+  assignments: [CustomerTagOwnedAssignmentOperationInput!]
 }
 
 input CustomerSegmentCreateInput {
@@ -364,68 +364,99 @@ input CustomerSegmentStateUpdateInput {
   status: CustomerSegmentStatus
 }
 
-input CustomerSegmentUpdateInput {
-  details: CustomerSegmentDetailsUpdateInput
-  definition: CustomerSegmentDefinitionUpdateInput
-  state: CustomerSegmentStateUpdateInput
-  """
-  Create, update, delete, or replace manual customer memberships.
-  """
-  memberships: CustomerSegmentMembershipRelationsUpdateInput
-}
-
 input CustomerSegmentMembershipRelationCreateInput {
   customerId: ID!
   expiresAt: DateTime
 }
 
-input CustomerSegmentMembershipRelationUpdateInput {
-  membershipId: ID!
+input CustomerSegmentMembershipRelationPatchInput {
   expiresAt: DateTime
 }
 
-input CustomerSegmentMembershipRelationsUpdateInput {
-  create: [CustomerSegmentMembershipRelationCreateInput!]
-  update: [CustomerSegmentMembershipRelationUpdateInput!]
-  deleteIds: [ID!]
-  """
-  Atomically replace all manual memberships with these customers.
-  """
-  setCustomerIds: [ID!]
+enum CustomerSegmentMembershipOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+  SET
 }
 
-input CustomerSegmentDeleteInput {
-  id: ID!
+"""One ordered membership operation owned by the customer segment."""
+input CustomerSegmentOwnedMembershipOperationInput {
+  action: CustomerSegmentMembershipOperationAction!
+  membershipId: ID
+  values: CustomerSegmentMembershipRelationCreateInput
+  patch: CustomerSegmentMembershipRelationPatchInput
+  """Customer IDs used by SET to atomically replace all manual memberships."""
+  customerIds: [ID!]
 }
 
-"""
-One group membership used by the unified customer update.
-"""
-input CustomerGroupMembershipUpdateOperationInput {
+input CustomerSegmentUpdateInput {
+  details: CustomerSegmentDetailsUpdateInput
+  definition: CustomerSegmentDefinitionUpdateInput
+  state: CustomerSegmentStateUpdateInput
+  memberships: [CustomerSegmentOwnedMembershipOperationInput!]
+}
+
+input CustomerGroupMembershipValuesInput {
   groupId: ID!
   isPrimary: Boolean = false
   expiresAt: DateTime
 }
 
-"""
-Replace all manual group memberships for the customer.
-"""
+enum CustomerGroupMembershipAssignmentAction {
+  LINK
+  UPDATE
+  UNLINK
+  SET
+}
+
+"""One ordered group-membership operation owned by the customer."""
+input CustomerGroupMembershipOperationInput {
+  action: CustomerGroupMembershipAssignmentAction!
+  membershipId: ID
+  values: CustomerGroupMembershipValuesInput
+  """Memberships used by SET to atomically replace all manual group memberships."""
+  memberships: [CustomerGroupMembershipValuesInput!]
+}
+
 input CustomerGroupMembershipsUpdateInput {
-  memberships: [CustomerGroupMembershipUpdateOperationInput!]!
+  operations: [CustomerGroupMembershipOperationInput!]!
 }
 
-"""
-Replace all tag assignments for the customer.
-"""
+enum CustomerTagAssignmentAction {
+  LINK
+  UNLINK
+  SET
+}
+
+"""One ordered tag-assignment operation owned by the customer."""
+input CustomerTagAssignmentOperationInput {
+  action: CustomerTagAssignmentAction!
+  tagId: ID
+  """Tag IDs used by SET to atomically replace all tag assignments."""
+  tagIds: [ID!]
+}
+
 input CustomerTagAssignmentsUpdateInput {
-  tagIds: [ID!]!
+  operations: [CustomerTagAssignmentOperationInput!]!
 }
 
-"""
-Replace all manual segment memberships for the customer.
-"""
+enum CustomerSegmentMembershipAssignmentAction {
+  LINK
+  UNLINK
+  SET
+}
+
+"""One ordered segment-membership operation owned by the customer."""
+input CustomerSegmentMembershipOperationInput {
+  action: CustomerSegmentMembershipAssignmentAction!
+  segmentId: ID
+  """Segment IDs used by SET to atomically replace all manual segment memberships."""
+  segmentIds: [ID!]
+}
+
 input CustomerSegmentMembershipsUpdateInput {
-  segmentIds: [ID!]!
+  operations: [CustomerSegmentMembershipOperationInput!]!
 }
 
 type CustomerGroupCreatePayload {

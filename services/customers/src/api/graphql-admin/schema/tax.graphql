@@ -101,18 +101,21 @@ input CustomerTaxIdentifierCreateOperationInput {
   validTo: Date
 }
 
-input CustomerTaxIdentifierUpdateOperationInput {
-  taxIdentifierId: ID!
-  operations: CustomerTaxIdentifierPatchInput!
+enum CustomerTaxIdentifierOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
-"""
-Batched tax identifier changes scoped to the customer being updated.
-"""
+input CustomerTaxIdentifierOperationInput {
+  action: CustomerTaxIdentifierOperationAction!
+  taxIdentifierId: ID
+  values: CustomerTaxIdentifierCreateOperationInput
+  patch: CustomerTaxIdentifierPatchInput
+}
+
 input CustomerTaxIdentifiersUpdateInput {
-  create: [CustomerTaxIdentifierCreateOperationInput!]
-  update: [CustomerTaxIdentifierUpdateOperationInput!]
-  deleteIds: [ID!]
+  operations: [CustomerTaxIdentifierOperationInput!]!
 }
 
 input CustomerTaxExemptionCreateOperationInput {
@@ -129,16 +132,19 @@ input CustomerTaxExemptionCreateOperationInput {
   validTo: Date
 }
 
-input CustomerTaxExemptionUpdateOperationInput {
-  taxExemptionId: ID!
-  operations: CustomerTaxExemptionPatchInput!
+enum CustomerTaxExemptionOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
-"""
-Batched tax exemption changes scoped to the customer being updated.
-"""
+input CustomerTaxExemptionOperationInput {
+  action: CustomerTaxExemptionOperationAction!
+  taxExemptionId: ID
+  values: CustomerTaxExemptionCreateOperationInput
+  patch: CustomerTaxExemptionPatchInput
+}
+
 input CustomerTaxExemptionsUpdateInput {
-  create: [CustomerTaxExemptionCreateOperationInput!]
-  update: [CustomerTaxExemptionUpdateOperationInput!]
-  deleteIds: [ID!]
+  operations: [CustomerTaxExemptionOperationInput!]!
 }

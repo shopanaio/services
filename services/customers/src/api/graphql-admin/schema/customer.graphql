@@ -193,10 +193,6 @@ input CustomerCreateInput {
   moderationNote: String
 }
 
-input CustomerDeleteInput {
-  id: ID!
-}
-
 """
 Personal profile fields in the unified customer update.
 """
@@ -273,6 +269,7 @@ input CustomerUpdateInput {
 }
 
 enum CustomerOperationType {
+  CUSTOMER_ACCOUNTS_SETTINGS_UPDATE
   PROFILE_UPDATE
   CONTACT_UPDATE
   COMPANY_UPDATE
@@ -294,8 +291,12 @@ enum CustomerOperationType {
 Result of one operation in a customer-domain update.
 """
 type CustomerOperationResult {
+  """Zero-based public operation position in the mapped operation sequence."""
+  position: Int!
   type: CustomerOperationType!
   applied: Boolean!
+  """Affected owned entity when the operation has an entity target."""
+  entityId: ID
   errors: [GenericUserError!]!
 }
 

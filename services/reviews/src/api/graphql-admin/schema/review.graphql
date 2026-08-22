@@ -267,13 +267,24 @@ input ReviewReplyUpdateInput {
   properties: ReviewReplyPropertiesUpdateInput
 }
 
-input ReviewReplyUpdateOperationInput {
-  replyId: ID!
-  operations: ReviewReplyUpdateInput!
+enum ReviewReplyOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
-input ReviewReplyDeleteOperationInput {
-  replyId: ID!
+"""
+One ordered operation on a reply owned by the review.
+
+For CREATE supply create. For UPDATE supply replyId and update. For DELETE supply replyId and,
+optionally, permanent. Empty operation arrays and action/value mismatches are rejected during
+request validation before the workflow is started.
+"""
+input ReviewReplyOperationInput {
+  action: ReviewReplyOperationAction!
+  replyId: ID
+  create: ReviewReplyCreateOperationInput
+  update: ReviewReplyUpdateInput
   """
   Hard deletion is reserved for explicit privacy or retention workflows.
   """
@@ -281,9 +292,7 @@ input ReviewReplyDeleteOperationInput {
 }
 
 input ReviewRepliesUpdateInput {
-  create: [ReviewReplyCreateOperationInput!]
-  update: [ReviewReplyUpdateOperationInput!]
-  delete: [ReviewReplyDeleteOperationInput!]
+  operations: [ReviewReplyOperationInput!]!
 }
 
 type ReviewCreatePayload {

@@ -99,10 +99,6 @@ input CustomerMergeUpdateInput {
   reason: String
 }
 
-input CustomerMergeDeleteInput {
-  id: ID!
-}
-
 input CustomerDataRequestCreateInput {
   customerId: ID!
   type: CustomerDataRequestType!
@@ -125,10 +121,6 @@ input CustomerDataRequestUpdateInput {
   requestMetadata: JSON
   dueAt: DateTime
   cancel: CustomerDataRequestCancelOperationInput
-}
-
-input CustomerDataRequestDeleteInput {
-  id: ID!
 }
 
 type CustomerMergeCreatePayload {

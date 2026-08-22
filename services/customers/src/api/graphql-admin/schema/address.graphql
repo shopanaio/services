@@ -100,24 +100,28 @@ input CustomerAddressCreateOperationInput {
   longitude: Float
 }
 
-input CustomerAddressUpdateOperationInput {
-  addressId: ID!
-  operations: CustomerAddressPatchInput!
+enum CustomerAddressOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+  SET_DEFAULT_SHIPPING
+  SET_DEFAULT_BILLING
 }
 
 """
-Batched address changes scoped to the customer being updated.
+One ordered address operation. Values are required by the selected action;
+addressId is required for UPDATE and DELETE and may be null for either default action.
+"""
+input CustomerAddressOperationInput {
+  action: CustomerAddressOperationAction!
+  addressId: ID
+  values: CustomerAddressCreateOperationInput
+  patch: CustomerAddressPatchInput
+}
+
+"""
+Ordered address changes scoped to the customer being updated.
 """
 input CustomerAddressesUpdateInput {
-  create: [CustomerAddressCreateOperationInput!]
-  update: [CustomerAddressUpdateOperationInput!]
-  deleteIds: [ID!]
-  """
-  Existing address ID to make the default. Explicit null clears the default.
-  """
-  defaultShippingAddressId: ID
-  """
-  Existing address ID to make the default. Explicit null clears the default.
-  """
-  defaultBillingAddressId: ID
+  operations: [CustomerAddressOperationInput!]!
 }

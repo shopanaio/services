@@ -175,7 +175,7 @@ Administrative commands. Storefront submission and engagement commands live else
 type ReviewsMutation {
   storeConfigurationUpdate(
     configurationId: ID!
-    operations: ReviewStoreConfigurationUpdateInput
+    operations: ReviewStoreConfigurationUpdateInput!
   ): ReviewStoreConfigurationUpdatePayload!
 
   ratingCriterionCreate(
@@ -183,56 +183,38 @@ type ReviewsMutation {
   ): ReviewRatingCriterionCreatePayload!
   ratingCriterionUpdate(
     criterionId: ID!
-    operations: ReviewRatingCriterionUpdateInput
+    operations: ReviewRatingCriterionUpdateInput!
   ): ReviewRatingCriterionUpdatePayload!
   ratingCriterionDelete(
     input: ReviewRatingCriterionDeleteInput!
   ): ReviewRatingCriterionDeletePayload!
 
   reviewCreate(input: ReviewCreateInput!): ReviewCreatePayload!
-  reviewUpdate(reviewId: ID!, operations: ReviewUpdateInput): ReviewUpdatePayload!
+  reviewUpdate(reviewId: ID!, operations: ReviewUpdateInput!): ReviewUpdatePayload!
   reviewDelete(input: ReviewContentDeleteInput!): ReviewDeletePayload!
 
   productQuestionCreate(input: ProductQuestionCreateInput!): ProductQuestionCreatePayload!
   productQuestionUpdate(
     productQuestionId: ID!
-    operations: ProductQuestionUpdateInput
+    operations: ProductQuestionUpdateInput!
   ): ProductQuestionUpdatePayload!
   productQuestionDelete(input: ReviewContentDeleteInput!): ProductQuestionDeletePayload!
-
-  productQuestionSubscriptionUpdate(
-    subscriptionId: ID!
-    operations: ProductQuestionSubscriptionUpdateInput
-  ): ProductQuestionSubscriptionUpdatePayload!
-
-  contentRedact(contentId: ID!): ReviewContentUpdatePayload!
-  contentRevisionRestore(contentId: ID!, revision: Int!): ReviewContentUpdatePayload!
 
   reviewRequestCreate(input: ReviewRequestCreateInput!): ReviewRequestCreatePayload!
   reviewRequestUpdate(
     reviewRequestId: ID!
-    operations: ReviewRequestUpdateInput
+    operations: ReviewRequestUpdateInput!
   ): ReviewRequestUpdatePayload!
 
   contentReportUpdate(
     contentReportId: ID!
-    operations: ReviewContentReportUpdateInput
+    operations: ReviewContentReportUpdateInput!
   ): ReviewContentReportUpdatePayload!
 
   moderationCaseCreate(input: ReviewModerationCaseCreateInput!): ReviewModerationCaseCreatePayload!
   moderationCaseUpdate(
     moderationCaseId: ID!
-    operations: ReviewModerationCaseUpdateInput
+    operations: ReviewModerationCaseUpdateInput!
   ): ReviewModerationCaseUpdatePayload!
 
-  contentExternalReferenceCreate(
-    input: ReviewContentExternalReferenceCreateInput!
-  ): ReviewContentExternalReferenceCreatePayload!
-  contentExternalReferenceUpdate(
-    externalReferenceId: ID!
-    operations: ReviewContentExternalReferenceUpdateInput
-  ): ReviewContentExternalReferenceUpdatePayload!
-  contentExternalReferenceDelete(
-    input: ReviewContentExternalReferenceDeleteInput!
-  ): ReviewContentExternalReferenceDeletePayload!
 }

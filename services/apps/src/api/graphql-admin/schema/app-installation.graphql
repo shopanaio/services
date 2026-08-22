@@ -121,9 +121,9 @@ input AppSecretInput {
 }
 
 """
-Input for installing a bundled App in the current store.
+Input for creating an App installation in the current store.
 """
-input AppInstallInput {
+input AppInstallationCreateInput {
   appCode: String!
   configuration: JSON
   grantedScopes: [String!]
@@ -131,47 +131,119 @@ input AppInstallInput {
 }
 
 """
-Input for updating an App installation.
+Root configuration operation for an existing App installation.
 """
-input AppUpdateInput {
-  installationId: ID!
-  configuration: JSON
-
-  """
-  Replaces the granted scopes when provided.
-  """
-  grantedScopes: [String!]
-
-  """
-  Sets or rotates the named secrets without returning their values.
-  """
-  secrets: [AppSecretInput!]
-}
-
-"""
-Input for changing installation configuration without a lifecycle update.
-"""
-input AppConfigureInput {
-  installationId: ID!
+input AppInstallationConfigurationUpdateInput {
   configuration: JSON!
-
-  """
-  Replaces the granted scopes when provided.
-  """
-  grantedScopes: [String!]
 }
 
 """
-Input for a lifecycle action on an existing installation.
+Complete replacement of the scope links owned by an App installation.
 """
-input AppInstallationActionInput {
-  installationId: ID!
+input AppInstallationScopesReplaceInput {
+  grantedScopes: [String!]!
+}
+
+enum AppInstallationSecretOperationAction {
+  SET
 }
 
 """
-Payload returned after changing installation configuration.
+Operation for setting or rotating one write-only App installation secret.
 """
-type AppConfigurePayload {
+input AppInstallationSecretOperationInput {
+  action: AppInstallationSecretOperationAction!
+  name: String!
+  value: String!
+}
+
+"""
+Lifecycle action applied to an existing App installation.
+
+Deletion is intentionally absent: aggregate deletion is exposed only through
+appInstallationDelete.
+"""
+enum AppInstallationLifecycleOperationAction {
+  UPGRADE
+  SUSPEND
+  RESUME
+}
+
+input AppInstallationLifecycleOperationInput {
+  action: AppInstallationLifecycleOperationAction!
+}
+
+"""
+All operations that can be applied to an existing App installation.
+
+At least one field must be supplied. Empty operation arrays and an input object without a supplied
+operation are rejected during request validation before the workflow is started.
+
+operationResults use the canonical group order declared below: configuration, lifecycle, scopes,
+then secrets. The order of secrets is preserved within its group.
+"""
+input AppInstallationUpdateInput {
+  configuration: AppInstallationConfigurationUpdateInput
+  lifecycle: AppInstallationLifecycleOperationInput
+  scopes: AppInstallationScopesReplaceInput
+  secrets: [AppInstallationSecretOperationInput!]
+}
+
+"""
+Stable type of an App installation update operation result.
+"""
+enum AppInstallationOperationType {
+  CONFIGURATION_UPDATE
+  VERSION_UPGRADE
+  STATUS_SUSPEND
+  STATUS_RESUME
+  SCOPES_REPLACE
+  SECRET_SET
+}
+
+"""
+Result of one public App installation update operation.
+"""
+type AppInstallationOperationResult {
+  type: AppInstallationOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
+}
+
+"""
+Payload returned after creating an App installation.
+"""
+type AppInstallationCreatePayload {
   installation: AppInstallation
+  """
+  Lifecycle operation accepted while creating the installation.
+  """
+  operation: AppLifecycleOperation
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload returned after applying ordered operations to an App installation.
+"""
+type AppInstallationUpdatePayload {
+  installation: AppInstallation
+  operationResults: [AppInstallationOperationResult!]!
+  """
+  Lifecycle operation accepted by an UPGRADE, SUSPEND, or RESUME operation, when present.
+  """
+  operation: AppLifecycleOperation
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Payload returned after deleting an App installation.
+"""
+type AppInstallationDeletePayload {
+  deletedAppInstallationId: ID
+  """
+  Lifecycle operation accepted while deleting the installation.
+  """
+  operation: AppLifecycleOperation
   userErrors: [GenericUserError!]!
 }

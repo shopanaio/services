@@ -91,10 +91,7 @@ type CustomerConsentEventEdge {
   cursor: String!
 }
 
-"""
-Consent transition scoped to the customer being updated.
-"""
-input CustomerConsentUpdateOperationInput {
+input CustomerConsentValuesInput {
   channel: CustomerConsentChannel!
   state: CustomerConsentAdminState!
   """
@@ -106,9 +103,16 @@ input CustomerConsentUpdateOperationInput {
   evidence: JSON
 }
 
-"""
-Batched consent transitions keyed by channel.
-"""
+enum CustomerConsentOperationAction {
+  SET
+}
+
+"""One ordered consent transition scoped to the customer being updated."""
+input CustomerConsentOperationInput {
+  action: CustomerConsentOperationAction!
+  values: CustomerConsentValuesInput!
+}
+
 input CustomerConsentsUpdateInput {
-  set: [CustomerConsentUpdateOperationInput!]!
+  operations: [CustomerConsentOperationInput!]!
 }
