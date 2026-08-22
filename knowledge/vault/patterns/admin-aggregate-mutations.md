@@ -28,7 +28,7 @@ aggregate root, должны проходить через одну объеди
 ```graphql
 <aggregate>Update(
   <aggregate>Id: ID!
-  operations: <Aggregate>UpdateInput
+  operations: <Aggregate>UpdateInput!
 ): <Aggregate>UpdatePayload!
 ```
 
@@ -123,7 +123,9 @@ operations или CRUD owned entities.
 Контракт должен соблюдать следующие правила:
 
 1. Идентификатор aggregate root передаётся отдельно от `operations`.
-2. `operations` может быть nullable для единообразного no-op поведения.
+2. `operations` обязательно (`!`) и не может быть пустым. GraphQL input object с нулём
+   заданных operation-полей, а также пустые operation-массивы, если они не представляют
+   допустимую operation, отклоняются как request-level validation error до запуска workflow.
 3. Порядок элементов в массивах является частью контракта и сохраняется resolver-ом и workflow.
 4. `OperationResult` содержит стабильный `type`, `applied`, при необходимости `entityId`, а также
    `errors` с путём к исходному полю `operations`.
