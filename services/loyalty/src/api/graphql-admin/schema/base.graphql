@@ -4,14 +4,14 @@ extend schema
     import: ["@key", "@external", "@shareable", "@inaccessible"]
   )
 
-type Query {
+extend type Query {
   """
   Loyalty Admin query namespace.
   """
   loyaltyQuery: LoyaltyQuery!
 }
 
-type Mutation {
+extend type Mutation {
   """
   Loyalty Admin mutation namespace.
   """
@@ -34,6 +34,7 @@ type LoyaltyQuery {
     last: Int
     before: String
     where: LoyaltyProgramWhereInput
+    orderBy: [LoyaltyProgramOrderByInput!]
   ): LoyaltyProgramConnection!
 
   account(id: ID!): LoyaltyAccount
@@ -44,6 +45,7 @@ type LoyaltyQuery {
     last: Int
     before: String
     where: LoyaltyAccountWhereInput
+    orderBy: [LoyaltyAccountOrderByInput!]
   ): LoyaltyAccountConnection!
 
   transaction(id: ID!): LoyaltyTransaction
@@ -53,6 +55,7 @@ type LoyaltyQuery {
     last: Int
     before: String
     where: LoyaltyTransactionWhereInput
+    orderBy: [LoyaltyTransactionOrderByInput!]
   ): LoyaltyTransactionConnection!
 
   reservation(id: ID!): LoyaltyReservation
@@ -62,36 +65,74 @@ type LoyaltyQuery {
     last: Int
     before: String
     where: LoyaltyReservationWhereInput
+    orderBy: [LoyaltyReservationOrderByInput!]
   ): LoyaltyReservationConnection!
 
   tierMembership(id: ID!): LoyaltyTierMembership
-  tierMemberships(accountId: ID!, first: Int = 100): [LoyaltyTierMembership!]!
+  tierMemberships(
+    accountId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    orderBy: [LoyaltyTierMembershipOrderByInput!]
+  ): LoyaltyTierMembershipConnection!
 
   eventFact(id: ID!): LoyaltyEventFact
-  eventFacts(where: LoyaltyEventFactWhereInput, first: Int = 100): [LoyaltyEventFact!]!
+  eventFacts(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: LoyaltyEventFactWhereInput
+    orderBy: [LoyaltyEventFactOrderByInput!]
+  ): LoyaltyEventFactConnection!
   eventEvaluation(id: ID!): LoyaltyEventEvaluation
   eventEvaluations(
+    first: Int
+    after: String
+    last: Int
+    before: String
     where: LoyaltyEventEvaluationWhereInput!
-    first: Int = 100
-  ): [LoyaltyEventEvaluation!]!
+    orderBy: [LoyaltyEventEvaluationOrderByInput!]
+  ): LoyaltyEventEvaluationConnection!
   earningRuleUsages(
+    first: Int
+    after: String
+    last: Int
+    before: String
     where: LoyaltyEarningRuleUsageWhereInput!
-    first: Int = 100
-  ): [LoyaltyEarningRuleUsage!]!
+    orderBy: [LoyaltyEarningRuleUsageOrderByInput!]
+  ): LoyaltyEarningRuleUsageConnection!
 
   rewardEntitlement(id: ID!): LoyaltyRewardEntitlement
   rewardEntitlements(
+    first: Int
+    after: String
+    last: Int
+    before: String
     where: LoyaltyRewardEntitlementWhereInput!
-    first: Int = 100
-  ): [LoyaltyRewardEntitlement!]!
+    orderBy: [LoyaltyRewardEntitlementOrderByInput!]
+  ): LoyaltyRewardEntitlementConnection!
 
   monetaryWallet(id: ID!): LoyaltyMonetaryWallet
   monetaryWallets(
+    first: Int
+    after: String
+    last: Int
+    before: String
     where: LoyaltyMonetaryWalletWhereInput!
-    first: Int = 100
-  ): [LoyaltyMonetaryWallet!]!
+    orderBy: [LoyaltyMonetaryWalletOrderByInput!]
+  ): LoyaltyMonetaryWalletConnection!
   monetaryTransaction(id: ID!): LoyaltyMonetaryTransaction
-  monetaryTransactions(walletId: ID!, first: Int = 100): [LoyaltyMonetaryTransaction!]!
+  monetaryTransactions(
+    walletId: ID!
+    first: Int
+    after: String
+    last: Int
+    before: String
+    orderBy: [LoyaltyMonetaryTransactionOrderByInput!]
+  ): LoyaltyMonetaryTransactionConnection!
 }
 
 type LoyaltyMutation {

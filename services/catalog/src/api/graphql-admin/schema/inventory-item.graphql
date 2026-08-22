@@ -72,7 +72,7 @@ type InventoryItemCost {
   """
   Currency code
   """
-  currency: String!
+  currency: CurrencyCode!
   """
   Cost in minor units (cents)
   """
@@ -232,7 +232,7 @@ input InventoryItemStockInput {
 }
 
 input InventoryItemCostInput {
-  currency: String!
+  currency: CurrencyCode!
   amountMinor: BigInt!
 }
 

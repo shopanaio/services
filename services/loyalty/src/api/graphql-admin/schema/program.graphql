@@ -178,6 +178,22 @@ input LoyaltyProgramWhereInput {
   search: String
 }
 
+enum LoyaltyProgramOrderField {
+  id
+  code
+  name
+  status
+  isDefault
+  createdAt
+  updatedAt
+  archivedAt
+}
+
+input LoyaltyProgramOrderByInput {
+  field: LoyaltyProgramOrderField!
+  direction: SortDirection!
+}
+
 input LoyaltyProgramCreateInput {
   code: String!
   name: String!

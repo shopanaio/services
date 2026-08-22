@@ -20,10 +20,6 @@ scalar DateTime
 Valid email address
 """
 scalar Email
-"""
-Unix timestamp in milliseconds
-"""
-scalar Timestamp
 
 extend type Query {
   """
@@ -43,6 +39,16 @@ extend type Mutation {
 Queries for store management
 """
 type StoreQuery {
+  """
+  Get a Store-owned Relay node by its global ID
+  """
+  node(id: ID!): Node
+
+  """
+  Get Store-owned Relay nodes while preserving input order
+  """
+  nodes(ids: [ID!]!): [Node]!
+
   """
   Get all stores accessible to the current user in the organization
   """

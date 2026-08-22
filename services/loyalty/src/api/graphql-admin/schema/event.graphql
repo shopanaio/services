@@ -41,6 +41,83 @@ type LoyaltyEarningRuleUsage implements Node @key(fields: "id") {
   updatedAt: DateTime!
 }
 
+type LoyaltyEventFactConnection {
+  edges: [LoyaltyEventFactEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyEventFactEdge {
+  node: LoyaltyEventFact!
+  cursor: String!
+}
+
+enum LoyaltyEventFactOrderField {
+  id
+  producer
+  externalEventId
+  eventType
+  subjectType
+  subjectId
+  customerId
+  occurredAt
+  receivedAt
+}
+
+input LoyaltyEventFactOrderByInput {
+  field: LoyaltyEventFactOrderField!
+  direction: SortDirection!
+}
+
+type LoyaltyEventEvaluationConnection {
+  edges: [LoyaltyEventEvaluationEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyEventEvaluationEdge {
+  node: LoyaltyEventEvaluation!
+  cursor: String!
+}
+
+enum LoyaltyEventEvaluationOrderField {
+  id
+  decision
+  pointsAwarded
+  evaluatedAt
+}
+
+input LoyaltyEventEvaluationOrderByInput {
+  field: LoyaltyEventEvaluationOrderField!
+  direction: SortDirection!
+}
+
+type LoyaltyEarningRuleUsageConnection {
+  edges: [LoyaltyEarningRuleUsageEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyEarningRuleUsageEdge {
+  node: LoyaltyEarningRuleUsage!
+  cursor: String!
+}
+
+enum LoyaltyEarningRuleUsageOrderField {
+  id
+  scopeKey
+  windowStartedAt
+  windowEndedAt
+  occurrenceCount
+  pointsAwarded
+  updatedAt
+}
+
+input LoyaltyEarningRuleUsageOrderByInput {
+  field: LoyaltyEarningRuleUsageOrderField!
+  direction: SortDirection!
+}
+
 input LoyaltyEventFactWhereInput {
   customerIds: [ID!]
   producers: [String!]

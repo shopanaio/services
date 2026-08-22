@@ -46,6 +46,35 @@ type LoyaltyTierRewardBenefit implements Node @key(fields: "id") {
   createdAt: DateTime!
 }
 
+type LoyaltyRewardEntitlementConnection {
+  edges: [LoyaltyRewardEntitlementEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyRewardEntitlementEdge {
+  node: LoyaltyRewardEntitlement!
+  cursor: String!
+}
+
+enum LoyaltyRewardEntitlementOrderField {
+  id
+  status
+  quantity
+  validFrom
+  validTo
+  issuedAt
+  redeemedAt
+  expiredAt
+  revokedAt
+  updatedAt
+}
+
+input LoyaltyRewardEntitlementOrderByInput {
+  field: LoyaltyRewardEntitlementOrderField!
+  direction: SortDirection!
+}
+
 input LoyaltyRewardEntitlementWhereInput {
   accountIds: [ID!]
   rewardDefinitionIds: [ID!]

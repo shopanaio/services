@@ -6,8 +6,20 @@ type LoyaltyAccount implements Node @key(fields: "id") {
   status: LoyaltyAccountStatus!
   balance: LoyaltyAccountBalance!
   tierMembership: LoyaltyTierMembership
-  tierMemberships(first: Int = 100): [LoyaltyTierMembership!]!
-  rewardEntitlements(first: Int = 100): [LoyaltyRewardEntitlement!]!
+  tierMemberships(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    orderBy: [LoyaltyTierMembershipOrderByInput!]
+  ): LoyaltyTierMembershipConnection!
+  rewardEntitlements(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    orderBy: [LoyaltyRewardEntitlementOrderByInput!]
+  ): LoyaltyRewardEntitlementConnection!
   monetaryWallets: [LoyaltyMonetaryWallet!]!
   mergedIntoAccount: LoyaltyAccount
   suspendedReason: String
@@ -22,6 +34,7 @@ type LoyaltyAccount implements Node @key(fields: "id") {
     last: Int
     before: String
     where: LoyaltyTransactionWhereInput
+    orderBy: [LoyaltyTransactionOrderByInput!]
   ): LoyaltyTransactionConnection!
 }
 
@@ -91,6 +104,47 @@ input LoyaltyAccountWhereInput {
   minimumAvailablePoints: BigInt
   hasDebt: Boolean
   tierIds: [ID!]
+}
+
+enum LoyaltyAccountOrderField {
+  id
+  customerId
+  status
+  openedAt
+  suspendedAt
+  closedAt
+  updatedAt
+}
+
+input LoyaltyAccountOrderByInput {
+  field: LoyaltyAccountOrderField!
+  direction: SortDirection!
+}
+
+type LoyaltyTierMembershipConnection {
+  edges: [LoyaltyTierMembershipEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyTierMembershipEdge {
+  node: LoyaltyTierMembership!
+  cursor: String!
+}
+
+enum LoyaltyTierMembershipOrderField {
+  id
+  status
+  qualifiedAt
+  effectiveFrom
+  effectiveTo
+  createdAt
+  updatedAt
+}
+
+input LoyaltyTierMembershipOrderByInput {
+  field: LoyaltyTierMembershipOrderField!
+  direction: SortDirection!
 }
 
 input LoyaltyAccountStatusUpdateInput {

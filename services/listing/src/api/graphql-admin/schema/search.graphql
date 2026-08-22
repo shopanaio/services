@@ -39,7 +39,7 @@ type ListingSearchMutation {
     """
     operations: SearchSettingsOperationsInput!
   ): SearchSettingsUpdatePayload!
-  synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupPayload!
+  synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupCreatePayload!
   synonymGroupUpdate(
     synonymGroupId: ID!
     operations: SearchSynonymGroupUpdateInput!
@@ -47,7 +47,7 @@ type ListingSearchMutation {
   synonymGroupDelete(
     synonymGroupId: ID!
   ): SearchSynonymGroupDeletePayload!
-  productBoostCreate(input: SearchProductBoostCreateInput!): SearchProductBoostPayload!
+  productBoostCreate(input: SearchProductBoostCreateInput!): SearchProductBoostCreatePayload!
   productBoostUpdate(
     productBoostId: ID!
     operations: SearchProductBoostUpdateInput!
@@ -55,7 +55,7 @@ type ListingSearchMutation {
   productBoostDelete(productBoostId: ID!): SearchProductBoostDeletePayload!
 }
 
-type SearchSynonymGroup {
+type SearchSynonymGroup implements Node {
   id: ID!
   locale: LocaleCode!
   name: String!
@@ -82,7 +82,7 @@ type SearchSynonymGroupEdge {
   cursor: String!
 }
 
-type SearchProductBoost {
+type SearchProductBoost implements Node {
   id: ID!
   locale: LocaleCode!
   name: String!
@@ -306,7 +306,7 @@ type SearchSettingsUpdatePayload {
   userErrors: [GenericUserError!]!
 }
 
-type SearchSynonymGroupPayload {
+type SearchSynonymGroupCreatePayload {
   synonymGroup: SearchSynonymGroup
   userErrors: [GenericUserError!]!
 }
@@ -333,7 +333,7 @@ type SearchSynonymGroupOperationResult {
   errors: [GenericUserError!]!
 }
 
-type SearchProductBoostPayload {
+type SearchProductBoostCreatePayload {
   productBoost: SearchProductBoost
   userErrors: [GenericUserError!]!
 }

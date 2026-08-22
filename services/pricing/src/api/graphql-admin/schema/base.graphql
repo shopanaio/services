@@ -12,14 +12,14 @@ extend schema
     ]
   )
 
-type Query {
+extend type Query {
   """
   Pricing Admin query namespace.
   """
   pricingQuery: PricingQuery!
 }
 
-type Mutation {
+extend type Mutation {
   """
   Pricing Admin mutation namespace.
   """

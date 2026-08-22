@@ -17,7 +17,7 @@ enum StoreStatus {
 """
 A store
 """
-type Store @key(fields: "id") {
+type Store implements Node @key(fields: "id") {
   """
   Unique identifier of the store
   """
@@ -45,7 +45,7 @@ type Store @key(fields: "id") {
   """
   Contact email address for the store
   """
-  email: String
+  email: Email
   """
   List of enabled locale codes for the store
   """
@@ -158,7 +158,7 @@ input StoreCreateInput {
   """
   Contact email address
   """
-  email: String
+  email: Email
 }
 
 """

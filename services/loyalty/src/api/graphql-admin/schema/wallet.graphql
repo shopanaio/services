@@ -7,7 +7,13 @@ type LoyaltyMonetaryWallet implements Node @key(fields: "id") {
   status: LoyaltyMonetaryWalletStatus!
   mergedIntoWallet: LoyaltyMonetaryWallet
   balance: LoyaltyMonetaryWalletBalance!
-  transactions(first: Int = 100): [LoyaltyMonetaryTransaction!]!
+  transactions(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    orderBy: [LoyaltyMonetaryTransactionOrderByInput!]
+  ): LoyaltyMonetaryTransactionConnection!
   creditLots: [LoyaltyMonetaryCreditLot!]!
   openedAt: DateTime!
   closedAt: DateTime
@@ -71,6 +77,57 @@ type LoyaltyMonetaryLotAllocation implements Node @key(fields: "id") {
   debitEntry: LoyaltyMonetaryLedgerEntry!
   amount: LoyaltyMoney!
   createdAt: DateTime!
+}
+
+type LoyaltyMonetaryWalletConnection {
+  edges: [LoyaltyMonetaryWalletEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyMonetaryWalletEdge {
+  node: LoyaltyMonetaryWallet!
+  cursor: String!
+}
+
+enum LoyaltyMonetaryWalletOrderField {
+  id
+  walletType
+  currencyCode
+  status
+  openedAt
+  closedAt
+  updatedAt
+}
+
+input LoyaltyMonetaryWalletOrderByInput {
+  field: LoyaltyMonetaryWalletOrderField!
+  direction: SortDirection!
+}
+
+type LoyaltyMonetaryTransactionConnection {
+  edges: [LoyaltyMonetaryTransactionEdge!]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type LoyaltyMonetaryTransactionEdge {
+  node: LoyaltyMonetaryTransaction!
+  cursor: String!
+}
+
+enum LoyaltyMonetaryTransactionOrderField {
+  id
+  kind
+  sourceType
+  occurredAt
+  effectiveAt
+  createdAt
+}
+
+input LoyaltyMonetaryTransactionOrderByInput {
+  field: LoyaltyMonetaryTransactionOrderField!
+  direction: SortDirection!
 }
 
 input LoyaltyMonetaryWalletWhereInput {

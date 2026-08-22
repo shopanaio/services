@@ -15,6 +15,11 @@ type PageInfo @shareable {
   endCursor: String
 }
 
+enum SortDirection {
+  asc
+  desc
+}
+
 """
 A user-facing validation, authorization, or business error.
 """

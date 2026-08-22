@@ -12,14 +12,14 @@ extend schema
     ]
   )
 
-type Query {
+extend type Query {
   """
   Listing query namespace.
   """
   listingQuery: ListingQuery!
 }
 
-type Mutation {
+extend type Mutation {
   """
   Listing mutation namespace.
   """

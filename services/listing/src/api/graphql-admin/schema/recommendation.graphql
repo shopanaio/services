@@ -65,8 +65,8 @@ type ManualProductRecommendationEdge {
 
 type ManualProductRecommendationConnection {
   edges: [ManualProductRecommendationEdge!]!
-  nodes: [ManualProductRecommendation!]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 input RecommendationPlacementPolicyCreateInput {
@@ -85,7 +85,7 @@ input RecommendationPlacementPolicyUpdateInput {
   fallbackChain: [String!]
 }
 
-type RecommendationPlacementPolicyPayload {
+type RecommendationPlacementPolicyCreatePayload {
   policy: RecommendationPlacementPolicy
   userErrors: [GenericUserError!]!
 }
@@ -129,7 +129,7 @@ input ManualProductRecommendationUpdateInput {
   endsAt: DateTime
 }
 
-type ManualProductRecommendationPayload {
+type ManualProductRecommendationCreatePayload {
   recommendation: ManualProductRecommendation
   userErrors: [GenericUserError!]!
 }
@@ -264,14 +264,14 @@ extend type ListingQuery {
 extend type ListingMutation {
   recommendationPlacementPolicyCreate(
     input: RecommendationPlacementPolicyCreateInput!
-  ): RecommendationPlacementPolicyPayload!
+  ): RecommendationPlacementPolicyCreatePayload!
   recommendationPlacementPolicyUpdate(
     recommendationPlacementPolicyId: ID!
     operations: RecommendationPlacementPolicyUpdateInput!
   ): RecommendationPlacementPolicyUpdatePayload!
   manualProductRecommendationCreate(
     input: ManualProductRecommendationCreateInput!
-  ): ManualProductRecommendationPayload!
+  ): ManualProductRecommendationCreatePayload!
   manualProductRecommendationUpdate(
     manualProductRecommendationId: ID!
     operations: ManualProductRecommendationUpdateInput!

@@ -80,3 +80,17 @@ input LoyaltyTransactionWhereInput {
   occurredFrom: DateTime
   occurredTo: DateTime
 }
+
+enum LoyaltyTransactionOrderField {
+  id
+  kind
+  source
+  occurredAt
+  effectiveAt
+  createdAt
+}
+
+input LoyaltyTransactionOrderByInput {
+  field: LoyaltyTransactionOrderField!
+  direction: SortDirection!
+}

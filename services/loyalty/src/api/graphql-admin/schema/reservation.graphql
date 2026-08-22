@@ -61,6 +61,21 @@ input LoyaltyReservationWhereInput {
   createdTo: DateTime
 }
 
+enum LoyaltyReservationOrderField {
+  id
+  status
+  expiresAt
+  committedAt
+  releasedAt
+  createdAt
+  updatedAt
+}
+
+input LoyaltyReservationOrderByInput {
+  field: LoyaltyReservationOrderField!
+  direction: SortDirection!
+}
+
 input LoyaltyReservationUpdateInput {
   releases: [LoyaltyReservationReleaseOperationInput!]
 }
