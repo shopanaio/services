@@ -1028,16 +1028,32 @@ export type ProductQuestionAnswerCreateOperationInput = {
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type ProductQuestionAnswerDeleteOperationInput = {
-  answerId: Scalars['ID']['input'];
-  /** Hard deletion is reserved for explicit privacy or retention workflows. */
-  permanent?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
 export type ProductQuestionAnswerEdge = {
   __typename?: 'ProductQuestionAnswerEdge';
   cursor: Scalars['String']['output'];
   node: ProductQuestionAnswer;
+};
+
+export enum ProductQuestionAnswerOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/**
+ * One ordered operation on an answer owned by the product question.
+ *
+ * For CREATE supply create. For UPDATE supply answerId and update. For DELETE supply answerId and,
+ * optionally, permanent. Empty operation arrays and action/value mismatches are rejected during
+ * request validation before the workflow is started.
+ */
+export type ProductQuestionAnswerOperationInput = {
+  action: ProductQuestionAnswerOperationAction;
+  answerId?: InputMaybe<Scalars['ID']['input']>;
+  create?: InputMaybe<ProductQuestionAnswerCreateOperationInput>;
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+  update?: InputMaybe<ProductQuestionAnswerUpdateInput>;
 };
 
 /** Ordering configuration for ProductQuestionAnswer */
@@ -1097,11 +1113,6 @@ export type ProductQuestionAnswerUpdateInput = {
   properties?: InputMaybe<ProductQuestionAnswerPropertiesUpdateInput>;
 };
 
-export type ProductQuestionAnswerUpdateOperationInput = {
-  answerId: Scalars['ID']['input'];
-  operations: ProductQuestionAnswerUpdateInput;
-};
-
 /** Filter conditions for ProductQuestionAnswer */
 export type ProductQuestionAnswerWhereInput = {
   /** Logical AND of multiple conditions */
@@ -1145,9 +1156,7 @@ export type ProductQuestionAnswerWhereInput = {
 };
 
 export type ProductQuestionAnswersUpdateInput = {
-  create?: InputMaybe<Array<ProductQuestionAnswerCreateOperationInput>>;
-  delete?: InputMaybe<Array<ProductQuestionAnswerDeleteOperationInput>>;
-  update?: InputMaybe<Array<ProductQuestionAnswerUpdateOperationInput>>;
+  operations: Array<ProductQuestionAnswerOperationInput>;
 };
 
 export type ProductQuestionConnection = {
@@ -1264,23 +1273,26 @@ export type ProductQuestionSubscriptionEdge = {
   node: ProductQuestionSubscription;
 };
 
+export enum ProductQuestionSubscriptionOperationAction {
+  Update = 'UPDATE'
+}
+
 export enum ProductQuestionSubscriptionStatus {
   Active = 'ACTIVE',
   Paused = 'PAUSED',
   Unsubscribed = 'UNSUBSCRIBED'
 }
 
-export type ProductQuestionSubscriptionUpdateInput = {
+export type ProductQuestionSubscriptionUpdateOperationInput = {
+  action: ProductQuestionSubscriptionOperationAction;
+  subscriptionId: Scalars['ID']['input'];
+  values: ProductQuestionSubscriptionUpdateValuesInput;
+};
+
+export type ProductQuestionSubscriptionUpdateValuesInput = {
   channel?: InputMaybe<ReviewNotificationChannel>;
   locale?: InputMaybe<LocaleCode>;
   status?: InputMaybe<ProductQuestionSubscriptionStatus>;
-};
-
-export type ProductQuestionSubscriptionUpdatePayload = {
-  __typename?: 'ProductQuestionSubscriptionUpdatePayload';
-  operationResults: Array<ReviewsOperationResult>;
-  subscription: Maybe<ProductQuestionSubscription>;
-  userErrors: Array<GenericUserError>;
 };
 
 /** Read-only projection over currently published product questions and answers. */
@@ -1303,6 +1315,8 @@ export type ProductQuestionUpdateInput = {
   /** Text, author, source, moderation, translations, and publications. */
   content?: InputMaybe<ReviewContentUpdateInput>;
   subject?: InputMaybe<ProductQuestionSubjectUpdateInput>;
+  /** Update subscriptions owned by this question. */
+  subscriptions?: InputMaybe<Array<ProductQuestionSubscriptionUpdateOperationInput>>;
 };
 
 export type ProductQuestionUpdatePayload = {
@@ -1680,6 +1694,8 @@ export type ReviewContentConnectionMetaInput = {
 export type ReviewContentCreateInput = {
   author: ReviewContentAuthorCreateInput;
   body: Scalars['String']['input'];
+  /** External references created together with this owned content item. */
+  externalReferences?: InputMaybe<Array<ReviewContentExternalReferenceCreateValuesInput>>;
   locale: LocaleCode;
   moderationNote?: InputMaybe<Scalars['String']['input']>;
   source?: InputMaybe<ReviewContentSourceCreateInput>;
@@ -1727,31 +1743,13 @@ export type ReviewContentExternalReferenceConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type ReviewContentExternalReferenceCreateInput = {
-  contentId: Scalars['ID']['input'];
+export type ReviewContentExternalReferenceCreateValuesInput = {
   direction: ReviewExternalSyncDirection;
   externalId: Scalars['String']['input'];
   externalSystem: Scalars['String']['input'];
   externalType: Scalars['String']['input'];
   externalUrl?: InputMaybe<Scalars['String']['input']>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
-};
-
-export type ReviewContentExternalReferenceCreatePayload = {
-  __typename?: 'ReviewContentExternalReferenceCreatePayload';
-  externalReference: Maybe<ReviewContentExternalReference>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type ReviewContentExternalReferenceDeleteInput = {
-  id: Scalars['ID']['input'];
-  permanent?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-export type ReviewContentExternalReferenceDeletePayload = {
-  __typename?: 'ReviewContentExternalReferenceDeletePayload';
-  deletedExternalReferenceId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
 };
 
 export type ReviewContentExternalReferenceEdge = {
@@ -1765,6 +1763,25 @@ export type ReviewContentExternalReferenceIdentityInput = {
   externalSystem?: InputMaybe<Scalars['String']['input']>;
   externalType?: InputMaybe<Scalars['String']['input']>;
   externalUrl?: InputMaybe<Scalars['String']['input']>;
+};
+
+export enum ReviewContentExternalReferenceOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/**
+ * An ordered operation on an external reference owned by the content currently being updated.
+ * For CREATE supply create; for UPDATE supply externalReferenceId and update; for DELETE supply
+ * externalReferenceId and, optionally, permanent.
+ */
+export type ReviewContentExternalReferenceOperationInput = {
+  action: ReviewContentExternalReferenceOperationAction;
+  create?: InputMaybe<ReviewContentExternalReferenceCreateValuesInput>;
+  externalReferenceId?: InputMaybe<Scalars['ID']['input']>;
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+  update?: InputMaybe<ReviewContentExternalReferenceUpdateValuesInput>;
 };
 
 /** Ordering configuration for ReviewContentExternalReference */
@@ -1809,16 +1826,9 @@ export type ReviewContentExternalReferenceSyncInput = {
   status?: InputMaybe<ReviewExternalSyncStatus>;
 };
 
-export type ReviewContentExternalReferenceUpdateInput = {
+export type ReviewContentExternalReferenceUpdateValuesInput = {
   identity?: InputMaybe<ReviewContentExternalReferenceIdentityInput>;
   sync?: InputMaybe<ReviewContentExternalReferenceSyncInput>;
-};
-
-export type ReviewContentExternalReferenceUpdatePayload = {
-  __typename?: 'ReviewContentExternalReferenceUpdatePayload';
-  externalReference: Maybe<ReviewContentExternalReference>;
-  operationResults: Array<ReviewsOperationResult>;
-  userErrors: Array<GenericUserError>;
 };
 
 /** Filter conditions for ReviewContentExternalReference */
@@ -2163,9 +2173,15 @@ export type ReviewContentTranslationSyncInput = {
 /** Common section operations reused by all content aggregate updates. */
 export type ReviewContentUpdateInput = {
   author?: InputMaybe<ReviewContentAuthorUpdateInput>;
+  /** Create, update, or delete external references owned by this content item. */
+  externalReferences?: InputMaybe<Array<ReviewContentExternalReferenceOperationInput>>;
   moderation?: InputMaybe<ReviewContentModerationInput>;
   /** Complete publication destination replacement when supplied. */
   publications?: InputMaybe<Array<ReviewContentPublicationSyncInput>>;
+  /** Redact this content item. Redaction is a lifecycle operation of its owning aggregate. */
+  redact?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Restore this content item from an immutable audit revision. */
+  restoreRevision?: InputMaybe<Scalars['Int']['input']>;
   source?: InputMaybe<ReviewContentSourceUpdateInput>;
   text?: InputMaybe<ReviewContentTextUpdateInput>;
   /** Complete translation replacement when supplied. Empty removes all translations. */
@@ -2866,9 +2882,7 @@ export type ReviewRatingValueInput = {
 };
 
 export type ReviewRepliesUpdateInput = {
-  create?: InputMaybe<Array<ReviewReplyCreateOperationInput>>;
-  delete?: InputMaybe<Array<ReviewReplyDeleteOperationInput>>;
-  update?: InputMaybe<Array<ReviewReplyUpdateOperationInput>>;
+  operations: Array<ReviewReplyOperationInput>;
 };
 
 export type ReviewReply = Node & ReviewContent & {
@@ -2976,16 +2990,32 @@ export type ReviewReplyCreateOperationInput = {
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
 };
 
-export type ReviewReplyDeleteOperationInput = {
-  /** Hard deletion is reserved for explicit privacy or retention workflows. */
-  permanent?: InputMaybe<Scalars['Boolean']['input']>;
-  replyId: Scalars['ID']['input'];
-};
-
 export type ReviewReplyEdge = {
   __typename?: 'ReviewReplyEdge';
   cursor: Scalars['String']['output'];
   node: ReviewReply;
+};
+
+export enum ReviewReplyOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/**
+ * One ordered operation on a reply owned by the review.
+ *
+ * For CREATE supply create. For UPDATE supply replyId and update. For DELETE supply replyId and,
+ * optionally, permanent. Empty operation arrays and action/value mismatches are rejected during
+ * request validation before the workflow is started.
+ */
+export type ReviewReplyOperationInput = {
+  action: ReviewReplyOperationAction;
+  create?: InputMaybe<ReviewReplyCreateOperationInput>;
+  /** Hard deletion is reserved for explicit privacy or retention workflows. */
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+  replyId?: InputMaybe<Scalars['ID']['input']>;
+  update?: InputMaybe<ReviewReplyUpdateInput>;
 };
 
 /** Ordering configuration for ReviewReply */
@@ -3035,11 +3065,6 @@ export type ReviewReplyUpdateInput = {
   /** Text, author, source, moderation, translations, and publications. */
   content?: InputMaybe<ReviewContentUpdateInput>;
   properties?: InputMaybe<ReviewReplyPropertiesUpdateInput>;
-};
-
-export type ReviewReplyUpdateOperationInput = {
-  operations: ReviewReplyUpdateInput;
-  replyId: Scalars['ID']['input'];
 };
 
 /** Filter conditions for ReviewReply */
@@ -3503,17 +3528,11 @@ export type ReviewWhereInput = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutation = {
   __typename?: 'ReviewsMutation';
-  contentExternalReferenceCreate: ReviewContentExternalReferenceCreatePayload;
-  contentExternalReferenceDelete: ReviewContentExternalReferenceDeletePayload;
-  contentExternalReferenceUpdate: ReviewContentExternalReferenceUpdatePayload;
-  contentRedact: ReviewContentUpdatePayload;
   contentReportUpdate: ReviewContentReportUpdatePayload;
-  contentRevisionRestore: ReviewContentUpdatePayload;
   moderationCaseCreate: ReviewModerationCaseCreatePayload;
   moderationCaseUpdate: ReviewModerationCaseUpdatePayload;
   productQuestionCreate: ProductQuestionCreatePayload;
   productQuestionDelete: ProductQuestionDeletePayload;
-  productQuestionSubscriptionUpdate: ProductQuestionSubscriptionUpdatePayload;
   productQuestionUpdate: ProductQuestionUpdatePayload;
   ratingCriterionCreate: ReviewRatingCriterionCreatePayload;
   ratingCriterionDelete: ReviewRatingCriterionDeletePayload;
@@ -3528,41 +3547,9 @@ export type ReviewsMutation = {
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ReviewsMutationContentExternalReferenceCreateArgs = {
-  input: ReviewContentExternalReferenceCreateInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ReviewsMutationContentExternalReferenceDeleteArgs = {
-  input: ReviewContentExternalReferenceDeleteInput;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ReviewsMutationContentExternalReferenceUpdateArgs = {
-  externalReferenceId: Scalars['ID']['input'];
-  operations?: InputMaybe<ReviewContentExternalReferenceUpdateInput>;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ReviewsMutationContentRedactArgs = {
-  contentId: Scalars['ID']['input'];
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationContentReportUpdateArgs = {
   contentReportId: Scalars['ID']['input'];
-  operations?: InputMaybe<ReviewContentReportUpdateInput>;
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ReviewsMutationContentRevisionRestoreArgs = {
-  contentId: Scalars['ID']['input'];
-  revision: Scalars['Int']['input'];
+  operations: ReviewContentReportUpdateInput;
 };
 
 
@@ -3575,7 +3562,7 @@ export type ReviewsMutationModerationCaseCreateArgs = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationModerationCaseUpdateArgs = {
   moderationCaseId: Scalars['ID']['input'];
-  operations?: InputMaybe<ReviewModerationCaseUpdateInput>;
+  operations: ReviewModerationCaseUpdateInput;
 };
 
 
@@ -3592,15 +3579,8 @@ export type ReviewsMutationProductQuestionDeleteArgs = {
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
-export type ReviewsMutationProductQuestionSubscriptionUpdateArgs = {
-  operations?: InputMaybe<ProductQuestionSubscriptionUpdateInput>;
-  subscriptionId: Scalars['ID']['input'];
-};
-
-
-/** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationProductQuestionUpdateArgs = {
-  operations?: InputMaybe<ProductQuestionUpdateInput>;
+  operations: ProductQuestionUpdateInput;
   productQuestionId: Scalars['ID']['input'];
 };
 
@@ -3620,7 +3600,7 @@ export type ReviewsMutationRatingCriterionDeleteArgs = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationRatingCriterionUpdateArgs = {
   criterionId: Scalars['ID']['input'];
-  operations?: InputMaybe<ReviewRatingCriterionUpdateInput>;
+  operations: ReviewRatingCriterionUpdateInput;
 };
 
 
@@ -3644,14 +3624,14 @@ export type ReviewsMutationReviewRequestCreateArgs = {
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationReviewRequestUpdateArgs = {
-  operations?: InputMaybe<ReviewRequestUpdateInput>;
+  operations: ReviewRequestUpdateInput;
   reviewRequestId: Scalars['ID']['input'];
 };
 
 
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationReviewUpdateArgs = {
-  operations?: InputMaybe<ReviewUpdateInput>;
+  operations: ReviewUpdateInput;
   reviewId: Scalars['ID']['input'];
 };
 
@@ -3659,7 +3639,7 @@ export type ReviewsMutationReviewUpdateArgs = {
 /** Administrative commands. Storefront submission and engagement commands live elsewhere. */
 export type ReviewsMutationStoreConfigurationUpdateArgs = {
   configurationId: Scalars['ID']['input'];
-  operations?: InputMaybe<ReviewStoreConfigurationUpdateInput>;
+  operations: ReviewStoreConfigurationUpdateInput;
 };
 
 /** Result for one section of a unified update. */
@@ -3674,6 +3654,8 @@ export type ReviewsOperationResult = {
 /** Logical sections executed by unified admin update workflows. */
 export enum ReviewsOperationType {
   ContentAuthorUpdate = 'CONTENT_AUTHOR_UPDATE',
+  ContentExternalReferenceCreate = 'CONTENT_EXTERNAL_REFERENCE_CREATE',
+  ContentExternalReferenceDelete = 'CONTENT_EXTERNAL_REFERENCE_DELETE',
   ContentExternalReferenceUpdate = 'CONTENT_EXTERNAL_REFERENCE_UPDATE',
   ContentModerationUpdate = 'CONTENT_MODERATION_UPDATE',
   ContentPublicationsSync = 'CONTENT_PUBLICATIONS_SYNC',
@@ -4123,14 +4105,14 @@ export type ResolversTypes = ResolversObject<{
   ProductQuestionAnswer: ResolverTypeWrapper<Omit<ProductQuestionAnswer, 'externalReferences' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'question' | 'reports' | 'revisions' | 'translations' | 'votes'> & { externalReferences: ResolversTypes['ReviewContentExternalReferenceConnection'], moderationCases: ResolversTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversTypes['ReviewModerationEventConnection'], moderationSignals: ResolversTypes['ReviewModerationSignalConnection'], publications: Array<ResolversTypes['ReviewContentPublication']>, question: ResolversTypes['ProductQuestion'], reports: ResolversTypes['ReviewContentReportConnection'], revisions: ResolversTypes['ReviewContentRevisionConnection'], translations: Array<ResolversTypes['ReviewContentTranslation']>, votes: ResolversTypes['ReviewContentVoteConnection'] }>;
   ProductQuestionAnswerConnection: ResolverTypeWrapper<Omit<ProductQuestionAnswerConnection, 'edges'> & { edges: Array<ResolversTypes['ProductQuestionAnswerEdge']> }>;
   ProductQuestionAnswerCreateOperationInput: ProductQuestionAnswerCreateOperationInput;
-  ProductQuestionAnswerDeleteOperationInput: ProductQuestionAnswerDeleteOperationInput;
   ProductQuestionAnswerEdge: ResolverTypeWrapper<Omit<ProductQuestionAnswerEdge, 'node'> & { node: ResolversTypes['ProductQuestionAnswer'] }>;
+  ProductQuestionAnswerOperationAction: ProductQuestionAnswerOperationAction;
+  ProductQuestionAnswerOperationInput: ProductQuestionAnswerOperationInput;
   ProductQuestionAnswerOrderByInput: ProductQuestionAnswerOrderByInput;
   ProductQuestionAnswerOrderField: ProductQuestionAnswerOrderField;
   ProductQuestionAnswerPropertiesUpdateInput: ProductQuestionAnswerPropertiesUpdateInput;
   ProductQuestionAnswerState: ProductQuestionAnswerState;
   ProductQuestionAnswerUpdateInput: ProductQuestionAnswerUpdateInput;
-  ProductQuestionAnswerUpdateOperationInput: ProductQuestionAnswerUpdateOperationInput;
   ProductQuestionAnswerWhereInput: ProductQuestionAnswerWhereInput;
   ProductQuestionAnswersUpdateInput: ProductQuestionAnswersUpdateInput;
   ProductQuestionConnection: ResolverTypeWrapper<Omit<ProductQuestionConnection, 'edges'> & { edges: Array<ResolversTypes['ProductQuestionEdge']> }>;
@@ -4144,9 +4126,10 @@ export type ResolversTypes = ResolversObject<{
   ProductQuestionSubscription: ResolverTypeWrapper<Omit<ProductQuestionSubscription, 'question'> & { question: ResolversTypes['ProductQuestion'] }>;
   ProductQuestionSubscriptionConnection: ResolverTypeWrapper<Omit<ProductQuestionSubscriptionConnection, 'edges'> & { edges: Array<ResolversTypes['ProductQuestionSubscriptionEdge']> }>;
   ProductQuestionSubscriptionEdge: ResolverTypeWrapper<Omit<ProductQuestionSubscriptionEdge, 'node'> & { node: ResolversTypes['ProductQuestionSubscription'] }>;
+  ProductQuestionSubscriptionOperationAction: ProductQuestionSubscriptionOperationAction;
   ProductQuestionSubscriptionStatus: ProductQuestionSubscriptionStatus;
-  ProductQuestionSubscriptionUpdateInput: ProductQuestionSubscriptionUpdateInput;
-  ProductQuestionSubscriptionUpdatePayload: ResolverTypeWrapper<Omit<ProductQuestionSubscriptionUpdatePayload, 'subscription'> & { subscription?: Maybe<ResolversTypes['ProductQuestionSubscription']> }>;
+  ProductQuestionSubscriptionUpdateOperationInput: ProductQuestionSubscriptionUpdateOperationInput;
+  ProductQuestionSubscriptionUpdateValuesInput: ProductQuestionSubscriptionUpdateValuesInput;
   ProductQuestionSummary: ResolverTypeWrapper<ProductQuestionSummary>;
   ProductQuestionUpdateInput: ProductQuestionUpdateInput;
   ProductQuestionUpdatePayload: ResolverTypeWrapper<Omit<ProductQuestionUpdatePayload, 'productQuestion'> & { productQuestion?: Maybe<ResolversTypes['ProductQuestion']> }>;
@@ -4169,17 +4152,15 @@ export type ResolversTypes = ResolversObject<{
   ReviewContentEdge: ResolverTypeWrapper<Omit<ReviewContentEdge, 'node'> & { node: ResolversTypes['ReviewContent'] }>;
   ReviewContentExternalReference: ResolverTypeWrapper<Omit<ReviewContentExternalReference, 'content'> & { content: ResolversTypes['ReviewContent'] }>;
   ReviewContentExternalReferenceConnection: ResolverTypeWrapper<Omit<ReviewContentExternalReferenceConnection, 'edges'> & { edges: Array<ResolversTypes['ReviewContentExternalReferenceEdge']> }>;
-  ReviewContentExternalReferenceCreateInput: ReviewContentExternalReferenceCreateInput;
-  ReviewContentExternalReferenceCreatePayload: ResolverTypeWrapper<Omit<ReviewContentExternalReferenceCreatePayload, 'externalReference'> & { externalReference?: Maybe<ResolversTypes['ReviewContentExternalReference']> }>;
-  ReviewContentExternalReferenceDeleteInput: ReviewContentExternalReferenceDeleteInput;
-  ReviewContentExternalReferenceDeletePayload: ResolverTypeWrapper<ReviewContentExternalReferenceDeletePayload>;
+  ReviewContentExternalReferenceCreateValuesInput: ReviewContentExternalReferenceCreateValuesInput;
   ReviewContentExternalReferenceEdge: ResolverTypeWrapper<Omit<ReviewContentExternalReferenceEdge, 'node'> & { node: ResolversTypes['ReviewContentExternalReference'] }>;
   ReviewContentExternalReferenceIdentityInput: ReviewContentExternalReferenceIdentityInput;
+  ReviewContentExternalReferenceOperationAction: ReviewContentExternalReferenceOperationAction;
+  ReviewContentExternalReferenceOperationInput: ReviewContentExternalReferenceOperationInput;
   ReviewContentExternalReferenceOrderByInput: ReviewContentExternalReferenceOrderByInput;
   ReviewContentExternalReferenceOrderField: ReviewContentExternalReferenceOrderField;
   ReviewContentExternalReferenceSyncInput: ReviewContentExternalReferenceSyncInput;
-  ReviewContentExternalReferenceUpdateInput: ReviewContentExternalReferenceUpdateInput;
-  ReviewContentExternalReferenceUpdatePayload: ResolverTypeWrapper<Omit<ReviewContentExternalReferenceUpdatePayload, 'externalReference'> & { externalReference?: Maybe<ResolversTypes['ReviewContentExternalReference']> }>;
+  ReviewContentExternalReferenceUpdateValuesInput: ReviewContentExternalReferenceUpdateValuesInput;
   ReviewContentExternalReferenceWhereInput: ReviewContentExternalReferenceWhereInput;
   ReviewContentKind: ReviewContentKind;
   ReviewContentMetrics: ResolverTypeWrapper<ReviewContentMetrics>;
@@ -4280,13 +4261,13 @@ export type ResolversTypes = ResolversObject<{
   ReviewReply: ResolverTypeWrapper<Omit<ReviewReply, 'externalReferences' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'reports' | 'review' | 'revisions' | 'translations' | 'votes'> & { externalReferences: ResolversTypes['ReviewContentExternalReferenceConnection'], moderationCases: ResolversTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversTypes['ReviewModerationEventConnection'], moderationSignals: ResolversTypes['ReviewModerationSignalConnection'], publications: Array<ResolversTypes['ReviewContentPublication']>, reports: ResolversTypes['ReviewContentReportConnection'], review: ResolversTypes['Review'], revisions: ResolversTypes['ReviewContentRevisionConnection'], translations: Array<ResolversTypes['ReviewContentTranslation']>, votes: ResolversTypes['ReviewContentVoteConnection'] }>;
   ReviewReplyConnection: ResolverTypeWrapper<Omit<ReviewReplyConnection, 'edges'> & { edges: Array<ResolversTypes['ReviewReplyEdge']> }>;
   ReviewReplyCreateOperationInput: ReviewReplyCreateOperationInput;
-  ReviewReplyDeleteOperationInput: ReviewReplyDeleteOperationInput;
   ReviewReplyEdge: ResolverTypeWrapper<Omit<ReviewReplyEdge, 'node'> & { node: ResolversTypes['ReviewReply'] }>;
+  ReviewReplyOperationAction: ReviewReplyOperationAction;
+  ReviewReplyOperationInput: ReviewReplyOperationInput;
   ReviewReplyOrderByInput: ReviewReplyOrderByInput;
   ReviewReplyOrderField: ReviewReplyOrderField;
   ReviewReplyPropertiesUpdateInput: ReviewReplyPropertiesUpdateInput;
   ReviewReplyUpdateInput: ReviewReplyUpdateInput;
-  ReviewReplyUpdateOperationInput: ReviewReplyUpdateOperationInput;
   ReviewReplyWhereInput: ReviewReplyWhereInput;
   ReviewRequest: ResolverTypeWrapper<Omit<ReviewRequest, 'events' | 'review'> & { events: ResolversTypes['ReviewRequestEventConnection'], review?: Maybe<ResolversTypes['Review']> }>;
   ReviewRequestConnection: ResolverTypeWrapper<Omit<ReviewRequestConnection, 'edges'> & { edges: Array<ResolversTypes['ReviewRequestEdge']> }>;
@@ -4317,7 +4298,7 @@ export type ResolversTypes = ResolversObject<{
   ReviewVerificationStatus: ReviewVerificationStatus;
   ReviewVerificationUpdateInput: ReviewVerificationUpdateInput;
   ReviewWhereInput: ReviewWhereInput;
-  ReviewsMutation: ResolverTypeWrapper<Omit<ReviewsMutation, 'contentExternalReferenceCreate' | 'contentExternalReferenceUpdate' | 'contentRedact' | 'contentReportUpdate' | 'contentRevisionRestore' | 'moderationCaseCreate' | 'moderationCaseUpdate' | 'productQuestionCreate' | 'productQuestionSubscriptionUpdate' | 'productQuestionUpdate' | 'ratingCriterionCreate' | 'ratingCriterionUpdate' | 'reviewCreate' | 'reviewRequestCreate' | 'reviewRequestUpdate' | 'reviewUpdate'> & { contentExternalReferenceCreate: ResolversTypes['ReviewContentExternalReferenceCreatePayload'], contentExternalReferenceUpdate: ResolversTypes['ReviewContentExternalReferenceUpdatePayload'], contentRedact: ResolversTypes['ReviewContentUpdatePayload'], contentReportUpdate: ResolversTypes['ReviewContentReportUpdatePayload'], contentRevisionRestore: ResolversTypes['ReviewContentUpdatePayload'], moderationCaseCreate: ResolversTypes['ReviewModerationCaseCreatePayload'], moderationCaseUpdate: ResolversTypes['ReviewModerationCaseUpdatePayload'], productQuestionCreate: ResolversTypes['ProductQuestionCreatePayload'], productQuestionSubscriptionUpdate: ResolversTypes['ProductQuestionSubscriptionUpdatePayload'], productQuestionUpdate: ResolversTypes['ProductQuestionUpdatePayload'], ratingCriterionCreate: ResolversTypes['ReviewRatingCriterionCreatePayload'], ratingCriterionUpdate: ResolversTypes['ReviewRatingCriterionUpdatePayload'], reviewCreate: ResolversTypes['ReviewCreatePayload'], reviewRequestCreate: ResolversTypes['ReviewRequestCreatePayload'], reviewRequestUpdate: ResolversTypes['ReviewRequestUpdatePayload'], reviewUpdate: ResolversTypes['ReviewUpdatePayload'] }>;
+  ReviewsMutation: ResolverTypeWrapper<Omit<ReviewsMutation, 'contentReportUpdate' | 'moderationCaseCreate' | 'moderationCaseUpdate' | 'productQuestionCreate' | 'productQuestionUpdate' | 'ratingCriterionCreate' | 'ratingCriterionUpdate' | 'reviewCreate' | 'reviewRequestCreate' | 'reviewRequestUpdate' | 'reviewUpdate'> & { contentReportUpdate: ResolversTypes['ReviewContentReportUpdatePayload'], moderationCaseCreate: ResolversTypes['ReviewModerationCaseCreatePayload'], moderationCaseUpdate: ResolversTypes['ReviewModerationCaseUpdatePayload'], productQuestionCreate: ResolversTypes['ProductQuestionCreatePayload'], productQuestionUpdate: ResolversTypes['ProductQuestionUpdatePayload'], ratingCriterionCreate: ResolversTypes['ReviewRatingCriterionCreatePayload'], ratingCriterionUpdate: ResolversTypes['ReviewRatingCriterionUpdatePayload'], reviewCreate: ResolversTypes['ReviewCreatePayload'], reviewRequestCreate: ResolversTypes['ReviewRequestCreatePayload'], reviewRequestUpdate: ResolversTypes['ReviewRequestUpdatePayload'], reviewUpdate: ResolversTypes['ReviewUpdatePayload'] }>;
   ReviewsOperationResult: ResolverTypeWrapper<ReviewsOperationResult>;
   ReviewsOperationType: ReviewsOperationType;
   ReviewsQuery: ResolverTypeWrapper<Omit<ReviewsQuery, 'content' | 'contentExternalReference' | 'contentExternalReferences' | 'contentReport' | 'contentReports' | 'contents' | 'moderationCase' | 'moderationCases' | 'node' | 'nodes' | 'productQuestion' | 'productQuestionAnswer' | 'productQuestionAnswers' | 'productQuestions' | 'ratingCriteria' | 'ratingCriterion' | 'review' | 'reviewReplies' | 'reviewReply' | 'reviewRequest' | 'reviewRequests' | 'reviews'> & { content?: Maybe<ResolversTypes['ReviewContent']>, contentExternalReference?: Maybe<ResolversTypes['ReviewContentExternalReference']>, contentExternalReferences: ResolversTypes['ReviewContentExternalReferenceConnection'], contentReport?: Maybe<ResolversTypes['ReviewContentReport']>, contentReports: ResolversTypes['ReviewContentReportConnection'], contents: ResolversTypes['ReviewContentConnection'], moderationCase?: Maybe<ResolversTypes['ReviewModerationCase']>, moderationCases: ResolversTypes['ReviewModerationCaseConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, productQuestion?: Maybe<ResolversTypes['ProductQuestion']>, productQuestionAnswer?: Maybe<ResolversTypes['ProductQuestionAnswer']>, productQuestionAnswers: ResolversTypes['ProductQuestionAnswerConnection'], productQuestions: ResolversTypes['ProductQuestionConnection'], ratingCriteria: ResolversTypes['ReviewRatingCriterionConnection'], ratingCriterion?: Maybe<ResolversTypes['ReviewRatingCriterion']>, review?: Maybe<ResolversTypes['Review']>, reviewReplies: ResolversTypes['ReviewReplyConnection'], reviewReply?: Maybe<ResolversTypes['ReviewReply']>, reviewRequest?: Maybe<ResolversTypes['ReviewRequest']>, reviewRequests: ResolversTypes['ReviewRequestConnection'], reviews: ResolversTypes['ReviewConnection'] }>;
@@ -4357,12 +4338,11 @@ export type ResolversParentTypes = ResolversObject<{
   ProductQuestionAnswer: Omit<ProductQuestionAnswer, 'externalReferences' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'question' | 'reports' | 'revisions' | 'translations' | 'votes'> & { externalReferences: ResolversParentTypes['ReviewContentExternalReferenceConnection'], moderationCases: ResolversParentTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversParentTypes['ReviewModerationEventConnection'], moderationSignals: ResolversParentTypes['ReviewModerationSignalConnection'], publications: Array<ResolversParentTypes['ReviewContentPublication']>, question: ResolversParentTypes['ProductQuestion'], reports: ResolversParentTypes['ReviewContentReportConnection'], revisions: ResolversParentTypes['ReviewContentRevisionConnection'], translations: Array<ResolversParentTypes['ReviewContentTranslation']>, votes: ResolversParentTypes['ReviewContentVoteConnection'] };
   ProductQuestionAnswerConnection: Omit<ProductQuestionAnswerConnection, 'edges'> & { edges: Array<ResolversParentTypes['ProductQuestionAnswerEdge']> };
   ProductQuestionAnswerCreateOperationInput: ProductQuestionAnswerCreateOperationInput;
-  ProductQuestionAnswerDeleteOperationInput: ProductQuestionAnswerDeleteOperationInput;
   ProductQuestionAnswerEdge: Omit<ProductQuestionAnswerEdge, 'node'> & { node: ResolversParentTypes['ProductQuestionAnswer'] };
+  ProductQuestionAnswerOperationInput: ProductQuestionAnswerOperationInput;
   ProductQuestionAnswerOrderByInput: ProductQuestionAnswerOrderByInput;
   ProductQuestionAnswerPropertiesUpdateInput: ProductQuestionAnswerPropertiesUpdateInput;
   ProductQuestionAnswerUpdateInput: ProductQuestionAnswerUpdateInput;
-  ProductQuestionAnswerUpdateOperationInput: ProductQuestionAnswerUpdateOperationInput;
   ProductQuestionAnswerWhereInput: ProductQuestionAnswerWhereInput;
   ProductQuestionAnswersUpdateInput: ProductQuestionAnswersUpdateInput;
   ProductQuestionConnection: Omit<ProductQuestionConnection, 'edges'> & { edges: Array<ResolversParentTypes['ProductQuestionEdge']> };
@@ -4375,8 +4355,8 @@ export type ResolversParentTypes = ResolversObject<{
   ProductQuestionSubscription: Omit<ProductQuestionSubscription, 'question'> & { question: ResolversParentTypes['ProductQuestion'] };
   ProductQuestionSubscriptionConnection: Omit<ProductQuestionSubscriptionConnection, 'edges'> & { edges: Array<ResolversParentTypes['ProductQuestionSubscriptionEdge']> };
   ProductQuestionSubscriptionEdge: Omit<ProductQuestionSubscriptionEdge, 'node'> & { node: ResolversParentTypes['ProductQuestionSubscription'] };
-  ProductQuestionSubscriptionUpdateInput: ProductQuestionSubscriptionUpdateInput;
-  ProductQuestionSubscriptionUpdatePayload: Omit<ProductQuestionSubscriptionUpdatePayload, 'subscription'> & { subscription?: Maybe<ResolversParentTypes['ProductQuestionSubscription']> };
+  ProductQuestionSubscriptionUpdateOperationInput: ProductQuestionSubscriptionUpdateOperationInput;
+  ProductQuestionSubscriptionUpdateValuesInput: ProductQuestionSubscriptionUpdateValuesInput;
   ProductQuestionSummary: ProductQuestionSummary;
   ProductQuestionUpdateInput: ProductQuestionUpdateInput;
   ProductQuestionUpdatePayload: Omit<ProductQuestionUpdatePayload, 'productQuestion'> & { productQuestion?: Maybe<ResolversParentTypes['ProductQuestion']> };
@@ -4398,16 +4378,13 @@ export type ResolversParentTypes = ResolversObject<{
   ReviewContentEdge: Omit<ReviewContentEdge, 'node'> & { node: ResolversParentTypes['ReviewContent'] };
   ReviewContentExternalReference: Omit<ReviewContentExternalReference, 'content'> & { content: ResolversParentTypes['ReviewContent'] };
   ReviewContentExternalReferenceConnection: Omit<ReviewContentExternalReferenceConnection, 'edges'> & { edges: Array<ResolversParentTypes['ReviewContentExternalReferenceEdge']> };
-  ReviewContentExternalReferenceCreateInput: ReviewContentExternalReferenceCreateInput;
-  ReviewContentExternalReferenceCreatePayload: Omit<ReviewContentExternalReferenceCreatePayload, 'externalReference'> & { externalReference?: Maybe<ResolversParentTypes['ReviewContentExternalReference']> };
-  ReviewContentExternalReferenceDeleteInput: ReviewContentExternalReferenceDeleteInput;
-  ReviewContentExternalReferenceDeletePayload: ReviewContentExternalReferenceDeletePayload;
+  ReviewContentExternalReferenceCreateValuesInput: ReviewContentExternalReferenceCreateValuesInput;
   ReviewContentExternalReferenceEdge: Omit<ReviewContentExternalReferenceEdge, 'node'> & { node: ResolversParentTypes['ReviewContentExternalReference'] };
   ReviewContentExternalReferenceIdentityInput: ReviewContentExternalReferenceIdentityInput;
+  ReviewContentExternalReferenceOperationInput: ReviewContentExternalReferenceOperationInput;
   ReviewContentExternalReferenceOrderByInput: ReviewContentExternalReferenceOrderByInput;
   ReviewContentExternalReferenceSyncInput: ReviewContentExternalReferenceSyncInput;
-  ReviewContentExternalReferenceUpdateInput: ReviewContentExternalReferenceUpdateInput;
-  ReviewContentExternalReferenceUpdatePayload: Omit<ReviewContentExternalReferenceUpdatePayload, 'externalReference'> & { externalReference?: Maybe<ResolversParentTypes['ReviewContentExternalReference']> };
+  ReviewContentExternalReferenceUpdateValuesInput: ReviewContentExternalReferenceUpdateValuesInput;
   ReviewContentExternalReferenceWhereInput: ReviewContentExternalReferenceWhereInput;
   ReviewContentMetrics: ReviewContentMetrics;
   ReviewContentModerationInput: ReviewContentModerationInput;
@@ -4488,12 +4465,11 @@ export type ResolversParentTypes = ResolversObject<{
   ReviewReply: Omit<ReviewReply, 'externalReferences' | 'moderationCases' | 'moderationEvents' | 'moderationSignals' | 'publications' | 'reports' | 'review' | 'revisions' | 'translations' | 'votes'> & { externalReferences: ResolversParentTypes['ReviewContentExternalReferenceConnection'], moderationCases: ResolversParentTypes['ReviewModerationCaseConnection'], moderationEvents: ResolversParentTypes['ReviewModerationEventConnection'], moderationSignals: ResolversParentTypes['ReviewModerationSignalConnection'], publications: Array<ResolversParentTypes['ReviewContentPublication']>, reports: ResolversParentTypes['ReviewContentReportConnection'], review: ResolversParentTypes['Review'], revisions: ResolversParentTypes['ReviewContentRevisionConnection'], translations: Array<ResolversParentTypes['ReviewContentTranslation']>, votes: ResolversParentTypes['ReviewContentVoteConnection'] };
   ReviewReplyConnection: Omit<ReviewReplyConnection, 'edges'> & { edges: Array<ResolversParentTypes['ReviewReplyEdge']> };
   ReviewReplyCreateOperationInput: ReviewReplyCreateOperationInput;
-  ReviewReplyDeleteOperationInput: ReviewReplyDeleteOperationInput;
   ReviewReplyEdge: Omit<ReviewReplyEdge, 'node'> & { node: ResolversParentTypes['ReviewReply'] };
+  ReviewReplyOperationInput: ReviewReplyOperationInput;
   ReviewReplyOrderByInput: ReviewReplyOrderByInput;
   ReviewReplyPropertiesUpdateInput: ReviewReplyPropertiesUpdateInput;
   ReviewReplyUpdateInput: ReviewReplyUpdateInput;
-  ReviewReplyUpdateOperationInput: ReviewReplyUpdateOperationInput;
   ReviewReplyWhereInput: ReviewReplyWhereInput;
   ReviewRequest: Omit<ReviewRequest, 'events' | 'review'> & { events: ResolversParentTypes['ReviewRequestEventConnection'], review?: Maybe<ResolversParentTypes['Review']> };
   ReviewRequestConnection: Omit<ReviewRequestConnection, 'edges'> & { edges: Array<ResolversParentTypes['ReviewRequestEdge']> };
@@ -4518,7 +4494,7 @@ export type ResolversParentTypes = ResolversObject<{
   ReviewUpdatePayload: Omit<ReviewUpdatePayload, 'review'> & { review?: Maybe<ResolversParentTypes['Review']> };
   ReviewVerificationUpdateInput: ReviewVerificationUpdateInput;
   ReviewWhereInput: ReviewWhereInput;
-  ReviewsMutation: Omit<ReviewsMutation, 'contentExternalReferenceCreate' | 'contentExternalReferenceUpdate' | 'contentRedact' | 'contentReportUpdate' | 'contentRevisionRestore' | 'moderationCaseCreate' | 'moderationCaseUpdate' | 'productQuestionCreate' | 'productQuestionSubscriptionUpdate' | 'productQuestionUpdate' | 'ratingCriterionCreate' | 'ratingCriterionUpdate' | 'reviewCreate' | 'reviewRequestCreate' | 'reviewRequestUpdate' | 'reviewUpdate'> & { contentExternalReferenceCreate: ResolversParentTypes['ReviewContentExternalReferenceCreatePayload'], contentExternalReferenceUpdate: ResolversParentTypes['ReviewContentExternalReferenceUpdatePayload'], contentRedact: ResolversParentTypes['ReviewContentUpdatePayload'], contentReportUpdate: ResolversParentTypes['ReviewContentReportUpdatePayload'], contentRevisionRestore: ResolversParentTypes['ReviewContentUpdatePayload'], moderationCaseCreate: ResolversParentTypes['ReviewModerationCaseCreatePayload'], moderationCaseUpdate: ResolversParentTypes['ReviewModerationCaseUpdatePayload'], productQuestionCreate: ResolversParentTypes['ProductQuestionCreatePayload'], productQuestionSubscriptionUpdate: ResolversParentTypes['ProductQuestionSubscriptionUpdatePayload'], productQuestionUpdate: ResolversParentTypes['ProductQuestionUpdatePayload'], ratingCriterionCreate: ResolversParentTypes['ReviewRatingCriterionCreatePayload'], ratingCriterionUpdate: ResolversParentTypes['ReviewRatingCriterionUpdatePayload'], reviewCreate: ResolversParentTypes['ReviewCreatePayload'], reviewRequestCreate: ResolversParentTypes['ReviewRequestCreatePayload'], reviewRequestUpdate: ResolversParentTypes['ReviewRequestUpdatePayload'], reviewUpdate: ResolversParentTypes['ReviewUpdatePayload'] };
+  ReviewsMutation: Omit<ReviewsMutation, 'contentReportUpdate' | 'moderationCaseCreate' | 'moderationCaseUpdate' | 'productQuestionCreate' | 'productQuestionUpdate' | 'ratingCriterionCreate' | 'ratingCriterionUpdate' | 'reviewCreate' | 'reviewRequestCreate' | 'reviewRequestUpdate' | 'reviewUpdate'> & { contentReportUpdate: ResolversParentTypes['ReviewContentReportUpdatePayload'], moderationCaseCreate: ResolversParentTypes['ReviewModerationCaseCreatePayload'], moderationCaseUpdate: ResolversParentTypes['ReviewModerationCaseUpdatePayload'], productQuestionCreate: ResolversParentTypes['ProductQuestionCreatePayload'], productQuestionUpdate: ResolversParentTypes['ProductQuestionUpdatePayload'], ratingCriterionCreate: ResolversParentTypes['ReviewRatingCriterionCreatePayload'], ratingCriterionUpdate: ResolversParentTypes['ReviewRatingCriterionUpdatePayload'], reviewCreate: ResolversParentTypes['ReviewCreatePayload'], reviewRequestCreate: ResolversParentTypes['ReviewRequestCreatePayload'], reviewRequestUpdate: ResolversParentTypes['ReviewRequestUpdatePayload'], reviewUpdate: ResolversParentTypes['ReviewUpdatePayload'] };
   ReviewsOperationResult: ReviewsOperationResult;
   ReviewsQuery: Omit<ReviewsQuery, 'content' | 'contentExternalReference' | 'contentExternalReferences' | 'contentReport' | 'contentReports' | 'contents' | 'moderationCase' | 'moderationCases' | 'node' | 'nodes' | 'productQuestion' | 'productQuestionAnswer' | 'productQuestionAnswers' | 'productQuestions' | 'ratingCriteria' | 'ratingCriterion' | 'review' | 'reviewReplies' | 'reviewReply' | 'reviewRequest' | 'reviewRequests' | 'reviews'> & { content?: Maybe<ResolversParentTypes['ReviewContent']>, contentExternalReference?: Maybe<ResolversParentTypes['ReviewContentExternalReference']>, contentExternalReferences: ResolversParentTypes['ReviewContentExternalReferenceConnection'], contentReport?: Maybe<ResolversParentTypes['ReviewContentReport']>, contentReports: ResolversParentTypes['ReviewContentReportConnection'], contents: ResolversParentTypes['ReviewContentConnection'], moderationCase?: Maybe<ResolversParentTypes['ReviewModerationCase']>, moderationCases: ResolversParentTypes['ReviewModerationCaseConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, productQuestion?: Maybe<ResolversParentTypes['ProductQuestion']>, productQuestionAnswer?: Maybe<ResolversParentTypes['ProductQuestionAnswer']>, productQuestionAnswers: ResolversParentTypes['ProductQuestionAnswerConnection'], productQuestions: ResolversParentTypes['ProductQuestionConnection'], ratingCriteria: ResolversParentTypes['ReviewRatingCriterionConnection'], ratingCriterion?: Maybe<ResolversParentTypes['ReviewRatingCriterion']>, review?: Maybe<ResolversParentTypes['Review']>, reviewReplies: ResolversParentTypes['ReviewReplyConnection'], reviewReply?: Maybe<ResolversParentTypes['ReviewReply']>, reviewRequest?: Maybe<ResolversParentTypes['ReviewRequest']>, reviewRequests: ResolversParentTypes['ReviewRequestConnection'], reviews: ResolversParentTypes['ReviewConnection'] };
   StringFilter: StringFilter;
@@ -4733,13 +4709,6 @@ export type ProductQuestionSubscriptionEdgeResolvers<ContextType = ServiceContex
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ProductQuestionSubscriptionUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductQuestionSubscriptionUpdatePayload'] = ResolversParentTypes['ProductQuestionSubscriptionUpdatePayload']> = ResolversObject<{
-  operationResults?: Resolver<Array<ResolversTypes['ReviewsOperationResult']>, ParentType, ContextType>;
-  subscription?: Resolver<Maybe<ResolversTypes['ProductQuestionSubscription']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type ProductQuestionSummaryResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ProductQuestionSummary'] = ResolversParentTypes['ProductQuestionSummary']> = ResolversObject<{
   answerCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   answeredQuestionCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
@@ -4933,28 +4902,9 @@ export type ReviewContentExternalReferenceConnectionResolvers<ContextType = Serv
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ReviewContentExternalReferenceCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewContentExternalReferenceCreatePayload'] = ResolversParentTypes['ReviewContentExternalReferenceCreatePayload']> = ResolversObject<{
-  externalReference?: Resolver<Maybe<ResolversTypes['ReviewContentExternalReference']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ReviewContentExternalReferenceDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewContentExternalReferenceDeletePayload'] = ResolversParentTypes['ReviewContentExternalReferenceDeletePayload']> = ResolversObject<{
-  deletedExternalReferenceId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type ReviewContentExternalReferenceEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewContentExternalReferenceEdge'] = ResolversParentTypes['ReviewContentExternalReferenceEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['ReviewContentExternalReference'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type ReviewContentExternalReferenceUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewContentExternalReferenceUpdatePayload'] = ResolversParentTypes['ReviewContentExternalReferenceUpdatePayload']> = ResolversObject<{
-  externalReference?: Resolver<Maybe<ResolversTypes['ReviewContentExternalReference']>, ParentType, ContextType>;
-  operationResults?: Resolver<Array<ResolversTypes['ReviewsOperationResult']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -5499,27 +5449,21 @@ export type ReviewUpdatePayloadResolvers<ContextType = ServiceContext, ParentTyp
 }>;
 
 export type ReviewsMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ReviewsMutation'] = ResolversParentTypes['ReviewsMutation']> = ResolversObject<{
-  contentExternalReferenceCreate?: Resolver<ResolversTypes['ReviewContentExternalReferenceCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentExternalReferenceCreateArgs, 'input'>>;
-  contentExternalReferenceDelete?: Resolver<ResolversTypes['ReviewContentExternalReferenceDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentExternalReferenceDeleteArgs, 'input'>>;
-  contentExternalReferenceUpdate?: Resolver<ResolversTypes['ReviewContentExternalReferenceUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentExternalReferenceUpdateArgs, 'externalReferenceId'>>;
-  contentRedact?: Resolver<ResolversTypes['ReviewContentUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentRedactArgs, 'contentId'>>;
-  contentReportUpdate?: Resolver<ResolversTypes['ReviewContentReportUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentReportUpdateArgs, 'contentReportId'>>;
-  contentRevisionRestore?: Resolver<ResolversTypes['ReviewContentUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentRevisionRestoreArgs, 'contentId' | 'revision'>>;
+  contentReportUpdate?: Resolver<ResolversTypes['ReviewContentReportUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationContentReportUpdateArgs, 'contentReportId' | 'operations'>>;
   moderationCaseCreate?: Resolver<ResolversTypes['ReviewModerationCaseCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationModerationCaseCreateArgs, 'input'>>;
-  moderationCaseUpdate?: Resolver<ResolversTypes['ReviewModerationCaseUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationModerationCaseUpdateArgs, 'moderationCaseId'>>;
+  moderationCaseUpdate?: Resolver<ResolversTypes['ReviewModerationCaseUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationModerationCaseUpdateArgs, 'moderationCaseId' | 'operations'>>;
   productQuestionCreate?: Resolver<ResolversTypes['ProductQuestionCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionCreateArgs, 'input'>>;
   productQuestionDelete?: Resolver<ResolversTypes['ProductQuestionDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionDeleteArgs, 'input'>>;
-  productQuestionSubscriptionUpdate?: Resolver<ResolversTypes['ProductQuestionSubscriptionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionSubscriptionUpdateArgs, 'subscriptionId'>>;
-  productQuestionUpdate?: Resolver<ResolversTypes['ProductQuestionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionUpdateArgs, 'productQuestionId'>>;
+  productQuestionUpdate?: Resolver<ResolversTypes['ProductQuestionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationProductQuestionUpdateArgs, 'operations' | 'productQuestionId'>>;
   ratingCriterionCreate?: Resolver<ResolversTypes['ReviewRatingCriterionCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionCreateArgs, 'input'>>;
   ratingCriterionDelete?: Resolver<ResolversTypes['ReviewRatingCriterionDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionDeleteArgs, 'input'>>;
-  ratingCriterionUpdate?: Resolver<ResolversTypes['ReviewRatingCriterionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionUpdateArgs, 'criterionId'>>;
+  ratingCriterionUpdate?: Resolver<ResolversTypes['ReviewRatingCriterionUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationRatingCriterionUpdateArgs, 'criterionId' | 'operations'>>;
   reviewCreate?: Resolver<ResolversTypes['ReviewCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewCreateArgs, 'input'>>;
   reviewDelete?: Resolver<ResolversTypes['ReviewDeletePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewDeleteArgs, 'input'>>;
   reviewRequestCreate?: Resolver<ResolversTypes['ReviewRequestCreatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewRequestCreateArgs, 'input'>>;
-  reviewRequestUpdate?: Resolver<ResolversTypes['ReviewRequestUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewRequestUpdateArgs, 'reviewRequestId'>>;
-  reviewUpdate?: Resolver<ResolversTypes['ReviewUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewUpdateArgs, 'reviewId'>>;
-  storeConfigurationUpdate?: Resolver<ResolversTypes['ReviewStoreConfigurationUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationStoreConfigurationUpdateArgs, 'configurationId'>>;
+  reviewRequestUpdate?: Resolver<ResolversTypes['ReviewRequestUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewRequestUpdateArgs, 'operations' | 'reviewRequestId'>>;
+  reviewUpdate?: Resolver<ResolversTypes['ReviewUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationReviewUpdateArgs, 'operations' | 'reviewId'>>;
+  storeConfigurationUpdate?: Resolver<ResolversTypes['ReviewStoreConfigurationUpdatePayload'], ParentType, ContextType, RequireFields<ReviewsMutationStoreConfigurationUpdateArgs, 'configurationId' | 'operations'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -5600,7 +5544,6 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ProductQuestionSubscription?: ProductQuestionSubscriptionResolvers<ContextType>;
   ProductQuestionSubscriptionConnection?: ProductQuestionSubscriptionConnectionResolvers<ContextType>;
   ProductQuestionSubscriptionEdge?: ProductQuestionSubscriptionEdgeResolvers<ContextType>;
-  ProductQuestionSubscriptionUpdatePayload?: ProductQuestionSubscriptionUpdatePayloadResolvers<ContextType>;
   ProductQuestionSummary?: ProductQuestionSummaryResolvers<ContextType>;
   ProductQuestionUpdatePayload?: ProductQuestionUpdatePayloadResolvers<ContextType>;
   ProductRatingCriterionSummary?: ProductRatingCriterionSummaryResolvers<ContextType>;
@@ -5615,10 +5558,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ReviewContentEdge?: ReviewContentEdgeResolvers<ContextType>;
   ReviewContentExternalReference?: ReviewContentExternalReferenceResolvers<ContextType>;
   ReviewContentExternalReferenceConnection?: ReviewContentExternalReferenceConnectionResolvers<ContextType>;
-  ReviewContentExternalReferenceCreatePayload?: ReviewContentExternalReferenceCreatePayloadResolvers<ContextType>;
-  ReviewContentExternalReferenceDeletePayload?: ReviewContentExternalReferenceDeletePayloadResolvers<ContextType>;
   ReviewContentExternalReferenceEdge?: ReviewContentExternalReferenceEdgeResolvers<ContextType>;
-  ReviewContentExternalReferenceUpdatePayload?: ReviewContentExternalReferenceUpdatePayloadResolvers<ContextType>;
   ReviewContentMetrics?: ReviewContentMetricsResolvers<ContextType>;
   ReviewContentPublication?: ReviewContentPublicationResolvers<ContextType>;
   ReviewContentReport?: ReviewContentReportResolvers<ContextType>;

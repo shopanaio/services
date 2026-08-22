@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CategoryCategoriesMetaInput, CategoryComparisonProfileSetInput, CategoryContentInput, CategoryCreateInput, CategoryDeleteInput, CategoryHierarchyInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryMoveInput, CategoryOrderByInput, CategoryOrderField, CategoryProductsScopeInput, CategoryRebalanceInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAddProductsInput, CollectionAttributeRuleValueInput, CollectionCategoryRuleInput, CollectionClearProductsInput, CollectionComparisonRuleOperator, CollectionCreateInput, CollectionCreatedAtComparisonRuleInput, CollectionCreatedAtRangeRuleInput, CollectionDeleteInput, CollectionFeatureRuleInput, CollectionInStockRuleInput, CollectionMediaInput, CollectionMoveProductInput, CollectionOptionRuleInput, CollectionPriceComparisonRuleInput, CollectionPriceRangeRuleInput, CollectionRebalanceInput, CollectionRemoveProductsInput, CollectionRuleField, CollectionRuleInput, CollectionRuleReferenceStatus, CollectionRulesPreviewCountInput, CollectionSetRuleOperator, CollectionTagRuleInput, CollectionType, CollectionUpdateInput, CollectionUpdateRulesInput, CollectionVendorRuleInput, ComparisonCardinality, ComparisonFieldCreateInput, ComparisonFieldInput, ComparisonFieldOptionCreateInput, ComparisonFieldOptionInput, ComparisonGroupCreateInput, ComparisonGroupInput, ComparisonProfileCreateInput, ComparisonProfileDeleteInput, ComparisonProfileOrderByInput, ComparisonProfileOrderField, ComparisonProfileUpdateInput, ComparisonProfileWhereInput, ComparisonValueType, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateWhereInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, LocaleCode, OperationType, PriceAdjustmentOperation, PriceAdjustmentValueType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductComparisonCompatibilityStatus, ProductComparisonConfigurationSyncInput, ProductComparisonFeatureMappingInput, ProductComparisonFeatureValueMappingInput, ProductComparisonFieldMappingInput, ProductComparisonNormalizedValueInput, ProductComparisonNotApplicableInput, ProductComparisonOptionMappingInput, ProductComparisonOptionValueMappingInput, ProductComparisonSourceKind, ProductComponentConditionCategory, ProductComponentConditionGroupSyncItemInput, ProductComponentConditionOperator, ProductComponentConditionSubject, ProductComponentConditionSyncItemInput, ProductComponentDependencyActionSyncItemInput, ProductComponentDependencyActionType, ProductComponentDependencyRuleSyncItemInput, ProductComponentDependencyTargetType, ProductComponentDisplayStyle, ProductComponentGroupSyncItemInput, ProductComponentItemOptionSelectionSyncItemInput, ProductComponentItemOptionValueSelectionStatus, ProductComponentItemOptionValueSelectionSyncItemInput, ProductComponentItemSyncItemInput, ProductComponentItemType, ProductComponentLogicOperator, ProductComponentOperationAction, ProductComponentOperationInput, ProductComponentPriceRuleAmountInput, ProductComponentPriceRuleInput, ProductComponentPriceStrategy, ProductComponentPricingTemplateSyncItemInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductDeleteInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCategoryCreateInput, ProductOptionCategoryDeleteInput, ProductOptionCategoryOrderByInput, ProductOptionCategoryOrderField, ProductOptionCategoryUpdateInput, ProductOptionCategoryWhereInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagDeleteInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseDeleteInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockCreateInput, WarehouseStockCreateItemInput, WarehouseStockDeleteInput, WarehouseStockDeleteItemInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
+import { BooleanFilter, BulkUpdateCancelReason, BulkUpdateItemStatus, BulkUpdateJobStatus, BulkUpdateOpType, CategoryCategoriesMetaInput, CategoryComparisonProfileOperationAction, CategoryComparisonProfileOperationInput, CategoryContentInput, CategoryCreateInput, CategoryFieldsInput, CategoryHierarchyOperationAction, CategoryHierarchyOperationInput, CategoryHierarchyScopeDirection, CategoryHierarchyScopeInput, CategoryHierarchyScopeMode, CategoryMediaInput, CategoryOrderByInput, CategoryOrderField, CategoryProductsScopeInput, CategorySortInput, CategoryStatus, CategoryUpdateInput, CategoryWhereInput, CollectionAttributeRuleValueInput, CollectionCategoryRuleInput, CollectionComparisonRuleOperator, CollectionCreateInput, CollectionCreatedAtComparisonRuleInput, CollectionCreatedAtRangeRuleInput, CollectionFeatureRuleInput, CollectionFieldsInput, CollectionInStockRuleInput, CollectionMediaInput, CollectionOptionRuleInput, CollectionPriceComparisonRuleInput, CollectionPriceRangeRuleInput, CollectionProductOperationAction, CollectionProductOperationInput, CollectionRuleField, CollectionRuleInput, CollectionRuleReferenceStatus, CollectionRulesOperationAction, CollectionRulesOperationInput, CollectionRulesPreviewCountInput, CollectionSetRuleOperator, CollectionTagRuleInput, CollectionType, CollectionUpdateInput, CollectionVendorRuleInput, ComparisonCardinality, ComparisonFieldCreateInput, ComparisonFieldInput, ComparisonFieldOptionCreateInput, ComparisonFieldOptionInput, ComparisonGroupCreateInput, ComparisonGroupInput, ComparisonProfileCreateInput, ComparisonProfileDefinitionInput, ComparisonProfileOrderByInput, ComparisonProfileOrderField, ComparisonProfileUpdateInput, ComparisonProfileWhereInput, ComparisonValueType, CurrencyCode, DateTimeFilter, DimensionUnit, DimensionsInput, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateWhereInput, FloatFilter, IdFilter, IntFilter, InventoryItemCostInput, InventoryItemInput, InventoryItemInventoryItemsMetaInput, InventoryItemOrderByInput, InventoryItemOrderField, InventoryItemStockInput, InventoryItemUpdateInput, InventoryItemWarehouseScopeInput, InventoryItemWarehouseScopeMode, InventoryItemWhereInput, LocaleCode, OperationType, PriceAdjustmentOperation, PriceAdjustmentValueType, PricingWidgetInput, ProductBulkUpdateInput, ProductBulkUpdateItem, ProductCategoriesScopeInput, ProductCategoryOperationAction, ProductCategoryOperationInput, ProductComparisonCompatibilityStatus, ProductComparisonConfigurationOperationAction, ProductComparisonConfigurationOperationInput, ProductComparisonFeatureMappingInput, ProductComparisonFeatureValueMappingInput, ProductComparisonFieldMappingInput, ProductComparisonNormalizedValueInput, ProductComparisonNotApplicableInput, ProductComparisonOptionMappingInput, ProductComparisonOptionValueMappingInput, ProductComparisonSourceKind, ProductComponentConditionCategory, ProductComponentConditionGroupSyncItemInput, ProductComponentConditionOperator, ProductComponentConditionSubject, ProductComponentConditionSyncItemInput, ProductComponentDependencyActionSyncItemInput, ProductComponentDependencyActionType, ProductComponentDependencyRuleSyncItemInput, ProductComponentDependencyTargetType, ProductComponentDisplayStyle, ProductComponentGroupSyncItemInput, ProductComponentItemOptionSelectionSyncItemInput, ProductComponentItemOptionValueSelectionStatus, ProductComponentItemOptionValueSelectionSyncItemInput, ProductComponentItemSyncItemInput, ProductComponentItemType, ProductComponentLogicOperator, ProductComponentOperationAction, ProductComponentOperationInput, ProductComponentPriceRuleAmountInput, ProductComponentPriceRuleInput, ProductComponentPriceStrategy, ProductComponentPricingTemplateSyncItemInput, ProductContentInput, ProductCreateInput, ProductCreateOptionInput, ProductCreateOptionValueInput, ProductCreateVariantInput, ProductFeatureCreateInput, ProductFeatureDeleteInput, ProductFeatureInput, ProductFeatureSyncItemInput, ProductFeatureUpdateInput, ProductFeatureValueCreateInput, ProductFeatureValueSyncInput, ProductFeatureValueUpdateInput, ProductFeatureValuesInput, ProductFeaturesSyncInput, ProductMediaInput, ProductOptionCategoryCreateInput, ProductOptionCategoryOrderByInput, ProductOptionCategoryOrderField, ProductOptionCategoryUpdateInput, ProductOptionCategoryWhereInput, ProductOptionCreateInput, ProductOptionDeleteInput, ProductOptionSwatchInput, ProductOptionSyncItemInput, ProductOptionUpdateInput, ProductOptionValueCreateInput, ProductOptionValueSyncInput, ProductOptionValueUpdateInput, ProductOptionValuesInput, ProductOptionsSyncInput, ProductOrderByInput, ProductOrderField, ProductProductsMetaInput, ProductSeoInput, ProductSortBy, ProductSortInput, ProductStatus, ProductStatusAction, ProductTagOperationAction, ProductTagOperationInput, ProductUpdateInput, ProductWhereInput, RichTextInput, SelectedOptionInput, SeoInput, SortDirection, StringFilter, SwatchType, TagCreateInput, TagOrderByInput, TagOrderField, TagUpdateInput, TagWhereInput, ThresholdMethod, VariantCreateInput, VariantDeleteInput, VariantDimensionsOpInput, VariantInput, VariantInventoryOpInput, VariantMediaOpInput, VariantOperationAction, VariantOperationInput, VariantOptionLinkInput, VariantOptionsOpInput, VariantOrderByInput, VariantOrderField, VariantPricingOpInput, VariantUpdateMediaInput, VariantUpdateOptionsInput, VariantUpdatePricingInput, VariantWhereInput, VendorCreateInput, VendorOrderByInput, VendorOrderField, VendorUpdateInput, VendorWhereInput, WarehouseAssignableVariantOrderByInput, WarehouseAssignableVariantOrderField, WarehouseAssignableVariantWhereInput, WarehouseBatchUpdateInput, WarehouseBatchUpdateItemInput, WarehouseConnectionInput, WarehouseCreateInput, WarehouseOrderByInput, WarehouseOrderField, WarehouseStockConnectionInput, WarehouseStockOperationAction, WarehouseStockOperationInput, WarehouseStockOrderByInput, WarehouseStockOrderField, WarehouseStockWhereInput, WarehouseUpdateInput, WarehouseWhereInput, WeightInput, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -19,6 +19,10 @@ export const BulkUpdateJobStatusSchema = z.nativeEnum(BulkUpdateJobStatus);
 
 export const BulkUpdateOpTypeSchema = z.nativeEnum(BulkUpdateOpType);
 
+export const CategoryComparisonProfileOperationActionSchema = z.nativeEnum(CategoryComparisonProfileOperationAction);
+
+export const CategoryHierarchyOperationActionSchema = z.nativeEnum(CategoryHierarchyOperationAction);
+
 export const CategoryHierarchyScopeDirectionSchema = z.nativeEnum(CategoryHierarchyScopeDirection);
 
 export const CategoryHierarchyScopeModeSchema = z.nativeEnum(CategoryHierarchyScopeMode);
@@ -29,9 +33,13 @@ export const CategoryStatusSchema = z.nativeEnum(CategoryStatus);
 
 export const CollectionComparisonRuleOperatorSchema = z.nativeEnum(CollectionComparisonRuleOperator);
 
+export const CollectionProductOperationActionSchema = z.nativeEnum(CollectionProductOperationAction);
+
 export const CollectionRuleFieldSchema = z.nativeEnum(CollectionRuleField);
 
 export const CollectionRuleReferenceStatusSchema = z.nativeEnum(CollectionRuleReferenceStatus);
+
+export const CollectionRulesOperationActionSchema = z.nativeEnum(CollectionRulesOperationAction);
 
 export const CollectionSetRuleOperatorSchema = z.nativeEnum(CollectionSetRuleOperator);
 
@@ -66,6 +74,8 @@ export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueT
 export const ProductCategoryOperationActionSchema = z.nativeEnum(ProductCategoryOperationAction);
 
 export const ProductComparisonCompatibilityStatusSchema = z.nativeEnum(ProductComparisonCompatibilityStatus);
+
+export const ProductComparisonConfigurationOperationActionSchema = z.nativeEnum(ProductComparisonConfigurationOperationAction);
 
 export const ProductComparisonSourceKindSchema = z.nativeEnum(ProductComparisonSourceKind);
 
@@ -121,6 +131,8 @@ export const WarehouseAssignableVariantOrderFieldSchema = z.nativeEnum(Warehouse
 
 export const WarehouseOrderFieldSchema = z.nativeEnum(WarehouseOrderField);
 
+export const WarehouseStockOperationActionSchema = z.nativeEnum(WarehouseStockOperationAction);
+
 export const WarehouseStockOrderFieldSchema = z.nativeEnum(WarehouseStockOrderField);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
@@ -141,9 +153,9 @@ export function CategoryCategoriesMetaInputSchema(): z.ZodObject<Properties<Cate
   })
 }
 
-export function CategoryComparisonProfileSetInputSchema(): z.ZodObject<Properties<CategoryComparisonProfileSetInput>> {
+export function CategoryComparisonProfileOperationInputSchema(): z.ZodObject<Properties<CategoryComparisonProfileOperationInput>> {
   return z.object({
-    categoryId: z.string(),
+    action: CategoryComparisonProfileOperationActionSchema,
     profileId: z.string().nullish()
   })
 }
@@ -168,15 +180,21 @@ export function CategoryCreateInputSchema(): z.ZodObject<Properties<CategoryCrea
   })
 }
 
-export function CategoryDeleteInputSchema(): z.ZodObject<Properties<CategoryDeleteInput>> {
+export function CategoryFieldsInputSchema(): z.ZodObject<Properties<CategoryFieldsInput>> {
   return z.object({
-    id: z.string(),
-    permanent: z.boolean().nullish()
+    content: z.lazy(() => CategoryContentInputSchema().nullish()),
+    handle: z.string().nullish(),
+    media: z.lazy(() => CategoryMediaInputSchema().nullish()),
+    name: z.string().nullish(),
+    seo: z.lazy(() => SeoInputSchema().nullish()),
+    sort: z.lazy(() => CategorySortInputSchema().nullish()),
+    status: CategoryStatusSchema.nullish()
   })
 }
 
-export function CategoryHierarchyInputSchema(): z.ZodObject<Properties<CategoryHierarchyInput>> {
+export function CategoryHierarchyOperationInputSchema(): z.ZodObject<Properties<CategoryHierarchyOperationInput>> {
   return z.object({
+    action: CategoryHierarchyOperationActionSchema,
     parentId: z.string().nullish()
   })
 }
@@ -196,13 +214,6 @@ export function CategoryMediaInputSchema(): z.ZodObject<Properties<CategoryMedia
   })
 }
 
-export function CategoryMoveInputSchema(): z.ZodObject<Properties<CategoryMoveInput>> {
-  return z.object({
-    id: z.string(),
-    newParentId: z.string().nullish()
-  })
-}
-
 export function CategoryOrderByInputSchema(): z.ZodObject<Properties<CategoryOrderByInput>> {
   return z.object({
     direction: SortDirectionSchema,
@@ -217,12 +228,6 @@ export function CategoryProductsScopeInputSchema(): z.ZodObject<Properties<Categ
   })
 }
 
-export function CategoryRebalanceInputSchema(): z.ZodObject<Properties<CategoryRebalanceInput>> {
-  return z.object({
-    categoryId: z.string()
-  })
-}
-
 export function CategorySortInputSchema(): z.ZodObject<Properties<CategorySortInput>> {
   return z.object({
     defaultSort: ProductSortBySchema,
@@ -232,14 +237,9 @@ export function CategorySortInputSchema(): z.ZodObject<Properties<CategorySortIn
 
 export function CategoryUpdateInputSchema(): z.ZodObject<Properties<CategoryUpdateInput>> {
   return z.object({
-    content: z.lazy(() => CategoryContentInputSchema().nullish()),
-    handle: z.string().nullish(),
-    hierarchy: z.lazy(() => CategoryHierarchyInputSchema().nullish()),
-    media: z.lazy(() => CategoryMediaInputSchema().nullish()),
-    name: z.string().nullish(),
-    seo: z.lazy(() => SeoInputSchema().nullish()),
-    sort: z.lazy(() => CategorySortInputSchema().nullish()),
-    status: CategoryStatusSchema.nullish()
+    comparisonProfile: z.array(z.lazy(() => CategoryComparisonProfileOperationInputSchema())).nullish(),
+    fields: z.lazy(() => CategoryFieldsInputSchema().nullish()),
+    hierarchy: z.array(z.lazy(() => CategoryHierarchyOperationInputSchema())).nullish()
   })
 }
 
@@ -264,13 +264,6 @@ export function CategoryWhereInputSchema(): z.ZodObject<Properties<CategoryWhere
   })
 }
 
-export function CollectionAddProductsInputSchema(): z.ZodObject<Properties<CollectionAddProductsInput>> {
-  return z.object({
-    collectionId: z.string(),
-    productIds: z.array(z.string())
-  })
-}
-
 export function CollectionAttributeRuleValueInputSchema(): z.ZodObject<Properties<CollectionAttributeRuleValueInput>> {
   return z.object({
     sourceHandle: z.string(),
@@ -282,12 +275,6 @@ export function CollectionCategoryRuleInputSchema(): z.ZodObject<Properties<Coll
   return z.object({
     categoryIds: z.array(z.string()),
     operator: CollectionSetRuleOperatorSchema
-  })
-}
-
-export function CollectionClearProductsInputSchema(): z.ZodObject<Properties<CollectionClearProductsInput>> {
-  return z.object({
-    collectionId: z.string()
   })
 }
 
@@ -322,16 +309,26 @@ export function CollectionCreatedAtRangeRuleInputSchema(): z.ZodObject<Propertie
   })
 }
 
-export function CollectionDeleteInputSchema(): z.ZodObject<Properties<CollectionDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function CollectionFeatureRuleInputSchema(): z.ZodObject<Properties<CollectionFeatureRuleInput>> {
   return z.object({
     operator: CollectionSetRuleOperatorSchema,
     values: z.array(z.lazy(() => CollectionAttributeRuleValueInputSchema()))
+  })
+}
+
+export function CollectionFieldsInputSchema(): z.ZodObject<Properties<CollectionFieldsInput>> {
+  return z.object({
+    activeFrom: z.string().nullish(),
+    activeTo: z.string().nullish(),
+    defaultSort: ProductSortBySchema.nullish(),
+    defaultSortDirection: SortDirectionSchema.nullish(),
+    description: z.lazy(() => RichTextInputSchema().nullish()),
+    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
+    handle: z.string().nullish(),
+    media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
+    name: z.string().nullish(),
+    publish: z.boolean().nullish(),
+    seo: z.lazy(() => SeoInputSchema().nullish())
   })
 }
 
@@ -344,15 +341,6 @@ export function CollectionInStockRuleInputSchema(): z.ZodObject<Properties<Colle
 export function CollectionMediaInputSchema(): z.ZodObject<Properties<CollectionMediaInput>> {
   return z.object({
     fileId: z.string()
-  })
-}
-
-export function CollectionMoveProductInputSchema(): z.ZodObject<Properties<CollectionMoveProductInput>> {
-  return z.object({
-    afterProductId: z.string().nullish(),
-    beforeProductId: z.string().nullish(),
-    collectionId: z.string(),
-    productId: z.string()
   })
 }
 
@@ -379,16 +367,12 @@ export function CollectionPriceRangeRuleInputSchema(): z.ZodObject<Properties<Co
   })
 }
 
-export function CollectionRebalanceInputSchema(): z.ZodObject<Properties<CollectionRebalanceInput>> {
+export function CollectionProductOperationInputSchema(): z.ZodObject<Properties<CollectionProductOperationInput>> {
   return z.object({
-    collectionId: z.string()
-  })
-}
-
-export function CollectionRemoveProductsInputSchema(): z.ZodObject<Properties<CollectionRemoveProductsInput>> {
-  return z.object({
-    collectionId: z.string(),
-    productIds: z.array(z.string())
+    action: CollectionProductOperationActionSchema,
+    afterProductId: z.string().nullish(),
+    beforeProductId: z.string().nullish(),
+    productId: z.string().nullish()
   })
 }
 
@@ -407,6 +391,13 @@ export function CollectionRuleInputSchema(): z.ZodObject<Properties<CollectionRu
   })
 }
 
+export function CollectionRulesOperationInputSchema(): z.ZodObject<Properties<CollectionRulesOperationInput>> {
+  return z.object({
+    action: CollectionRulesOperationActionSchema,
+    rules: z.array(z.lazy(() => CollectionRuleInputSchema()))
+  })
+}
+
 export function CollectionRulesPreviewCountInputSchema(): z.ZodObject<Properties<CollectionRulesPreviewCountInput>> {
   return z.object({
     rules: z.array(z.lazy(() => CollectionRuleInputSchema()))
@@ -422,25 +413,9 @@ export function CollectionTagRuleInputSchema(): z.ZodObject<Properties<Collectio
 
 export function CollectionUpdateInputSchema(): z.ZodObject<Properties<CollectionUpdateInput>> {
   return z.object({
-    activeFrom: z.string().nullish(),
-    activeTo: z.string().nullish(),
-    defaultSort: ProductSortBySchema.nullish(),
-    defaultSortDirection: SortDirectionSchema.nullish(),
-    description: z.lazy(() => RichTextInputSchema().nullish()),
-    excerpt: z.lazy(() => RichTextInputSchema().nullish()),
-    handle: z.string().nullish(),
-    id: z.string(),
-    media: z.array(z.lazy(() => CollectionMediaInputSchema())).nullish(),
-    name: z.string().nullish(),
-    publish: z.boolean().nullish(),
-    seo: z.lazy(() => SeoInputSchema().nullish())
-  })
-}
-
-export function CollectionUpdateRulesInputSchema(): z.ZodObject<Properties<CollectionUpdateRulesInput>> {
-  return z.object({
-    collectionId: z.string(),
-    rules: z.array(z.lazy(() => CollectionRuleInputSchema()))
+    fields: z.lazy(() => CollectionFieldsInputSchema().nullish()),
+    products: z.array(z.lazy(() => CollectionProductOperationInputSchema())).nullish(),
+    rules: z.array(z.lazy(() => CollectionRulesOperationInputSchema())).nullish()
   })
 }
 
@@ -527,9 +502,15 @@ export function ComparisonProfileCreateInputSchema(): z.ZodObject<Properties<Com
   })
 }
 
-export function ComparisonProfileDeleteInputSchema(): z.ZodObject<Properties<ComparisonProfileDeleteInput>> {
+export function ComparisonProfileDefinitionInputSchema(): z.ZodObject<Properties<ComparisonProfileDefinitionInput>> {
   return z.object({
-    id: z.string()
+    enabled: z.boolean(),
+    groups: z.array(z.lazy(() => ComparisonGroupInputSchema())),
+    handle: z.string(),
+    missingLabel: z.string(),
+    name: z.string(),
+    notApplicableLabel: z.string(),
+    unavailableLabel: z.string()
   })
 }
 
@@ -542,14 +523,7 @@ export function ComparisonProfileOrderByInputSchema(): z.ZodObject<Properties<Co
 
 export function ComparisonProfileUpdateInputSchema(): z.ZodObject<Properties<ComparisonProfileUpdateInput>> {
   return z.object({
-    enabled: z.boolean(),
-    groups: z.array(z.lazy(() => ComparisonGroupInputSchema())),
-    handle: z.string(),
-    id: z.string(),
-    missingLabel: z.string(),
-    name: z.string(),
-    notApplicableLabel: z.string(),
-    unavailableLabel: z.string()
+    definition: z.lazy(() => ComparisonProfileDefinitionInputSchema().nullish())
   })
 }
 
@@ -669,7 +643,7 @@ export function IntFilterSchema(): z.ZodObject<Properties<IntFilter>> {
 export function InventoryItemCostInputSchema(): z.ZodObject<Properties<InventoryItemCostInput>> {
   return z.object({
     amountMinor: z.string(),
-    currency: z.string()
+    currency: CurrencyCodeSchema
   })
 }
 
@@ -780,10 +754,10 @@ export function ProductCategoryOperationInputSchema(): z.ZodObject<Properties<Pr
   })
 }
 
-export function ProductComparisonConfigurationSyncInputSchema(): z.ZodObject<Properties<ProductComparisonConfigurationSyncInput>> {
+export function ProductComparisonConfigurationOperationInputSchema(): z.ZodObject<Properties<ProductComparisonConfigurationOperationInput>> {
   return z.object({
+    action: ProductComparisonConfigurationOperationActionSchema,
     mappings: z.array(z.lazy(() => ProductComparisonFieldMappingInputSchema())),
-    productId: z.string(),
     profileId: z.string()
   })
 }
@@ -1023,13 +997,6 @@ export function ProductCreateVariantInputSchema(): z.ZodObject<Properties<Produc
   })
 }
 
-export function ProductDeleteInputSchema(): z.ZodObject<Properties<ProductDeleteInput>> {
-  return z.object({
-    id: z.string(),
-    permanent: z.boolean().nullish()
-  })
-}
-
 export function ProductFeatureCreateInputSchema(): z.ZodObject<Properties<ProductFeatureCreateInput>> {
   return z.object({
     featured: z.boolean().default(false).nullish(),
@@ -1129,12 +1096,6 @@ export function ProductOptionCategoryCreateInputSchema(): z.ZodObject<Properties
   })
 }
 
-export function ProductOptionCategoryDeleteInputSchema(): z.ZodObject<Properties<ProductOptionCategoryDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function ProductOptionCategoryOrderByInputSchema(): z.ZodObject<Properties<ProductOptionCategoryOrderByInput>> {
   return z.object({
     direction: SortDirectionSchema,
@@ -1144,7 +1105,6 @@ export function ProductOptionCategoryOrderByInputSchema(): z.ZodObject<Propertie
 
 export function ProductOptionCategoryUpdateInputSchema(): z.ZodObject<Properties<ProductOptionCategoryUpdateInput>> {
   return z.object({
-    id: z.string(),
     name: z.string().nullish(),
     slug: z.string().nullish()
   })
@@ -1296,6 +1256,7 @@ export function ProductTagOperationInputSchema(): z.ZodObject<Properties<Product
 export function ProductUpdateInputSchema(): z.ZodObject<Properties<ProductUpdateInput>> {
   return z.object({
     categories: z.array(z.lazy(() => ProductCategoryOperationInputSchema())).nullish(),
+    comparisonConfiguration: z.array(z.lazy(() => ProductComparisonConfigurationOperationInputSchema())).nullish(),
     components: z.array(z.lazy(() => ProductComponentOperationInputSchema())).nullish(),
     content: z.lazy(() => ProductContentInputSchema().nullish()),
     features: z.array(z.lazy(() => ProductFeatureSyncItemInputSchema())).nullish(),
@@ -1386,12 +1347,6 @@ export function TagCreateInputSchema(): z.ZodObject<Properties<TagCreateInput>> 
   })
 }
 
-export function TagDeleteInputSchema(): z.ZodObject<Properties<TagDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function TagOrderByInputSchema(): z.ZodObject<Properties<TagOrderByInput>> {
   return z.object({
     direction: SortDirectionSchema,
@@ -1402,7 +1357,6 @@ export function TagOrderByInputSchema(): z.ZodObject<Properties<TagOrderByInput>
 export function TagUpdateInputSchema(): z.ZodObject<Properties<TagUpdateInput>> {
   return z.object({
     handle: z.string().nullish(),
-    id: z.string(),
     name: z.string().nullish()
   })
 }
@@ -1566,6 +1520,12 @@ export function VendorOrderByInputSchema(): z.ZodObject<Properties<VendorOrderBy
   })
 }
 
+export function VendorUpdateInputSchema(): z.ZodObject<Properties<VendorUpdateInput>> {
+  return z.object({
+    name: z.string().nullish()
+  })
+}
+
 export function VendorWhereInputSchema(): z.ZodObject<Properties<VendorWhereInput>> {
   return z.object({
     _and: z.array(z.lazy(() => VendorWhereInputSchema())).nullish(),
@@ -1601,6 +1561,19 @@ export function WarehouseAssignableVariantWhereInputSchema(): z.ZodObject<Proper
   })
 }
 
+export function WarehouseBatchUpdateInputSchema(): z.ZodObject<Properties<WarehouseBatchUpdateInput>> {
+  return z.object({
+    warehouses: z.array(z.lazy(() => WarehouseBatchUpdateItemInputSchema()))
+  })
+}
+
+export function WarehouseBatchUpdateItemInputSchema(): z.ZodObject<Properties<WarehouseBatchUpdateItemInput>> {
+  return z.object({
+    operations: z.lazy(() => WarehouseUpdateInputSchema()),
+    warehouseId: z.string()
+  })
+}
+
 export function WarehouseConnectionInputSchema(): z.ZodObject<Properties<WarehouseConnectionInput>> {
   return z.object({
     after: z.string().nullish(),
@@ -1617,12 +1590,6 @@ export function WarehouseCreateInputSchema(): z.ZodObject<Properties<WarehouseCr
     code: z.string(),
     isDefault: z.boolean().nullish(),
     name: z.string()
-  })
-}
-
-export function WarehouseDeleteInputSchema(): z.ZodObject<Properties<WarehouseDeleteInput>> {
-  return z.object({
-    id: z.string()
   })
 }
 
@@ -1644,29 +1611,10 @@ export function WarehouseStockConnectionInputSchema(): z.ZodObject<Properties<Wa
   })
 }
 
-export function WarehouseStockCreateInputSchema(): z.ZodObject<Properties<WarehouseStockCreateInput>> {
+export function WarehouseStockOperationInputSchema(): z.ZodObject<Properties<WarehouseStockOperationInput>> {
   return z.object({
-    items: z.array(z.lazy(() => WarehouseStockCreateItemInputSchema()))
-  })
-}
-
-export function WarehouseStockCreateItemInputSchema(): z.ZodObject<Properties<WarehouseStockCreateItemInput>> {
-  return z.object({
-    variantId: z.string(),
-    warehouseId: z.string()
-  })
-}
-
-export function WarehouseStockDeleteInputSchema(): z.ZodObject<Properties<WarehouseStockDeleteInput>> {
-  return z.object({
-    items: z.array(z.lazy(() => WarehouseStockDeleteItemInputSchema()))
-  })
-}
-
-export function WarehouseStockDeleteItemInputSchema(): z.ZodObject<Properties<WarehouseStockDeleteItemInput>> {
-  return z.object({
-    variantId: z.string(),
-    warehouseId: z.string()
+    action: WarehouseStockOperationActionSchema,
+    variantId: z.string()
   })
 }
 
@@ -1694,9 +1642,9 @@ export function WarehouseStockWhereInputSchema(): z.ZodObject<Properties<Warehou
 export function WarehouseUpdateInputSchema(): z.ZodObject<Properties<WarehouseUpdateInput>> {
   return z.object({
     code: z.string().nullish(),
-    id: z.string(),
     isDefault: z.boolean().nullish(),
-    name: z.string().nullish()
+    name: z.string().nullish(),
+    stock: z.array(z.lazy(() => WarehouseStockOperationInputSchema())).nullish()
   })
 }
 

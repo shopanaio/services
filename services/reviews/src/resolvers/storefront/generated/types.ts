@@ -1523,7 +1523,6 @@ export type ReviewContent = {
   locale: LocaleCode;
   metrics: ReviewContentMetrics;
   publishedAt: Maybe<Scalars['DateTime']['output']>;
-  revision: Scalars['Int']['output'];
   status: ReviewContentStatus;
   title: Maybe<Scalars['String']['output']>;
   translations: Array<ReviewContentTranslation>;
@@ -3135,7 +3134,6 @@ export type ReviewContentResolvers<ContextType = ServiceContext, ParentType exte
   locale?: Resolver<ResolversTypes['LocaleCode'], ParentType, ContextType>;
   metrics?: Resolver<ResolversTypes['ReviewContentMetrics'], ParentType, ContextType>;
   publishedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
-  revision?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   status?: Resolver<ResolversTypes['ReviewContentStatus'], ParentType, ContextType>;
   title?: Resolver<Maybe<ResolversTypes['String']>, ParentType, ContextType>;
   translations?: Resolver<Array<ResolversTypes['ReviewContentTranslation']>, ParentType, ContextType>;

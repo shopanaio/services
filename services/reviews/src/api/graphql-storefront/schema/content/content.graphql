@@ -9,7 +9,6 @@ interface ReviewContent implements Node {
   locale: LocaleCode!
   author: ReviewContentAuthor!
   status: ReviewContentStatus!
-  revision: Int!
   publishedAt: DateTime
   createdAt: DateTime!
   updatedAt: DateTime!

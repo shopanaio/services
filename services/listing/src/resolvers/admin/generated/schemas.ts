@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetDeleteInput, FacetMoveInput, FacetRebalanceInput, FacetScopeType, FacetScopesUpdateInput, FacetScopesUpdateItemInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchDeleteInput, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueCreateInput, FacetValueDeleteInput, FacetValueKind, FacetValueMergeInput, FacetValueUnmergeInput, FacetValueUpdateInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingProductStatus, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, ManualProductRecommendationCreateInput, ManualProductRecommendationDeleteInput, ManualProductRecommendationUpdateInput, ManualRecommendationAction, ManualRecommendationDraftChangeInput, ManualRecommendationDraftCreateInput, ManualRecommendationDraftDeleteInput, ManualRecommendationDraftUpdateInput, PriceAdjustmentOperation, PriceAdjustmentValueType, ProductRecommendationSource, RecommendationPlacement, RecommendationPlacementPolicyDraftInput, RecommendationPlacementPolicySetEnabledInput, RecommendationPlacementPolicyUpsertInput, RecommendationPreviewExcludedReason, RecommendationReferenceStatus, RecommendationSnapshotPreviewInput, RecommendationStrategy, SearchConfigurationDeleteInput, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
+import { BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FacetCreateInput, FacetCreateSourceInput, FacetCreateValueCandidateInput, FacetFieldsInput, FacetOperationType, FacetPositionInput, FacetScopeType, FacetScopesUpdateInput, FacetScopesUpdateItemInput, FacetSelectionMode, FacetSourceCandidateOrderByInput, FacetSourceCandidateOrderField, FacetSourceCandidateWhereInput, FacetSwatchCreateInput, FacetSwatchFieldsInput, FacetSwatchOperationType, FacetSwatchUpdateInput, FacetType, FacetUiType, FacetUpdateInput, FacetValueCandidateOrderByInput, FacetValueCandidateOrderField, FacetValueCandidateType, FacetValueCandidateWhereInput, FacetValueCandidatesMetaInput, FacetValueKind, FacetValueMergeValuesInput, FacetValueOperationAction, FacetValueOperationInput, FacetValueValuesInput, FloatFilter, IdFilter, IntFilter, ListingFacetType, ListingFacetValueFilter, ListingOrderByInput, ListingPriceRangeFilter, ListingProductFilter, ListingProductStatus, ListingScopeInput, ListingScopeKind, ListingSortBy, ListingSortDirection, ListingVariantOptionFilter, LocaleCode, ManualProductRecommendationCreateInput, ManualProductRecommendationOperationType, ManualProductRecommendationUpdateInput, ManualRecommendationAction, ManualRecommendationDraftChangeInput, ManualRecommendationDraftCreateInput, ManualRecommendationDraftDeleteInput, ManualRecommendationDraftUpdateInput, PriceAdjustmentOperation, PriceAdjustmentValueType, ProductRecommendationSource, RecommendationPlacement, RecommendationPlacementPolicyCreateInput, RecommendationPlacementPolicyDraftInput, RecommendationPlacementPolicyOperationType, RecommendationPlacementPolicyUpdateInput, RecommendationPreviewExcludedReason, RecommendationReferenceStatus, RecommendationSnapshotPreviewInput, RecommendationStrategy, SearchExecutionMode, SearchExplainClauseKind, SearchExplainReason, SearchField, SearchFieldConfigurationInput, SearchLexicalUnitKind, SearchOutOfStockPolicy, SearchProductBoostCreateInput, SearchProductBoostOperationType, SearchProductBoostOrderByInput, SearchProductBoostOrderField, SearchProductBoostUpdateInput, SearchProductBoostWhereInput, SearchProductBoostsMetaInput, SearchSettingsOperationType, SearchSettingsOperationsInput, SearchSettingsValuesInput, SearchSynonymGroupCreateInput, SearchSynonymGroupOperationType, SearchSynonymGroupOrderByInput, SearchSynonymGroupOrderField, SearchSynonymGroupUpdateInput, SearchSynonymGroupWhereInput, SortDirection, StringFilter, SwatchType, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -15,11 +15,15 @@ export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const DimensionUnitSchema = z.nativeEnum(DimensionUnit);
 
+export const FacetOperationTypeSchema = z.nativeEnum(FacetOperationType);
+
 export const FacetScopeTypeSchema = z.nativeEnum(FacetScopeType);
 
 export const FacetSelectionModeSchema = z.nativeEnum(FacetSelectionMode);
 
 export const FacetSourceCandidateOrderFieldSchema = z.nativeEnum(FacetSourceCandidateOrderField);
+
+export const FacetSwatchOperationTypeSchema = z.nativeEnum(FacetSwatchOperationType);
 
 export const FacetTypeSchema = z.nativeEnum(FacetType);
 
@@ -30,6 +34,8 @@ export const FacetValueCandidateOrderFieldSchema = z.nativeEnum(FacetValueCandid
 export const FacetValueCandidateTypeSchema = z.nativeEnum(FacetValueCandidateType);
 
 export const FacetValueKindSchema = z.nativeEnum(FacetValueKind);
+
+export const FacetValueOperationActionSchema = z.nativeEnum(FacetValueOperationAction);
 
 export const ListingFacetTypeSchema = z.nativeEnum(ListingFacetType);
 
@@ -43,6 +49,8 @@ export const ListingSortDirectionSchema = z.nativeEnum(ListingSortDirection);
 
 export const LocaleCodeSchema = z.nativeEnum(LocaleCode);
 
+export const ManualProductRecommendationOperationTypeSchema = z.nativeEnum(ManualProductRecommendationOperationType);
+
 export const ManualRecommendationActionSchema = z.nativeEnum(ManualRecommendationAction);
 
 export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperation);
@@ -52,6 +60,8 @@ export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueT
 export const ProductRecommendationSourceSchema = z.nativeEnum(ProductRecommendationSource);
 
 export const RecommendationPlacementSchema = z.nativeEnum(RecommendationPlacement);
+
+export const RecommendationPlacementPolicyOperationTypeSchema = z.nativeEnum(RecommendationPlacementPolicyOperationType);
 
 export const RecommendationPreviewExcludedReasonSchema = z.nativeEnum(RecommendationPreviewExcludedReason);
 
@@ -71,9 +81,13 @@ export const SearchLexicalUnitKindSchema = z.nativeEnum(SearchLexicalUnitKind);
 
 export const SearchOutOfStockPolicySchema = z.nativeEnum(SearchOutOfStockPolicy);
 
+export const SearchProductBoostOperationTypeSchema = z.nativeEnum(SearchProductBoostOperationType);
+
 export const SearchProductBoostOrderFieldSchema = z.nativeEnum(SearchProductBoostOrderField);
 
 export const SearchSettingsOperationTypeSchema = z.nativeEnum(SearchSettingsOperationType);
+
+export const SearchSynonymGroupOperationTypeSchema = z.nativeEnum(SearchSynonymGroupOperationType);
 
 export const SearchSynonymGroupOrderFieldSchema = z.nativeEnum(SearchSynonymGroupOrderField);
 
@@ -136,23 +150,20 @@ export function FacetCreateValueCandidateInputSchema(): z.ZodObject<Properties<F
   })
 }
 
-export function FacetDeleteInputSchema(): z.ZodObject<Properties<FacetDeleteInput>> {
+export function FacetFieldsInputSchema(): z.ZodObject<Properties<FacetFieldsInput>> {
   return z.object({
-    id: z.string()
+    label: z.string().nullish(),
+    scopes: z.array(FacetScopeTypeSchema).nullish(),
+    selectionMode: FacetSelectionModeSchema.nullish(),
+    slug: z.string().nullish(),
+    uiType: FacetUiTypeSchema.nullish()
   })
 }
 
-export function FacetMoveInputSchema(): z.ZodObject<Properties<FacetMoveInput>> {
+export function FacetPositionInputSchema(): z.ZodObject<Properties<FacetPositionInput>> {
   return z.object({
     afterFacetId: z.string().nullish(),
-    beforeFacetId: z.string().nullish(),
-    id: z.string()
-  })
-}
-
-export function FacetRebalanceInputSchema(): z.ZodObject<Properties<FacetRebalanceInput>> {
-  return z.object({
-    confirm: z.boolean().default(true).nullish()
+    beforeFacetId: z.string().nullish()
   })
 }
 
@@ -200,31 +211,27 @@ export function FacetSwatchCreateInputSchema(): z.ZodObject<Properties<FacetSwat
   })
 }
 
-export function FacetSwatchDeleteInputSchema(): z.ZodObject<Properties<FacetSwatchDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
-export function FacetSwatchUpdateInputSchema(): z.ZodObject<Properties<FacetSwatchUpdateInput>> {
+export function FacetSwatchFieldsInputSchema(): z.ZodObject<Properties<FacetSwatchFieldsInput>> {
   return z.object({
     colorOne: z.string().nullish(),
     colorTwo: z.string().nullish(),
     fileId: z.string().nullish(),
-    id: z.string(),
     metadata: z.record(z.unknown()).nullish(),
     swatchType: SwatchTypeSchema.nullish()
   })
 }
 
+export function FacetSwatchUpdateInputSchema(): z.ZodObject<Properties<FacetSwatchUpdateInput>> {
+  return z.object({
+    fields: z.lazy(() => FacetSwatchFieldsInputSchema().nullish())
+  })
+}
+
 export function FacetUpdateInputSchema(): z.ZodObject<Properties<FacetUpdateInput>> {
   return z.object({
-    id: z.string(),
-    label: z.string().nullish(),
-    scopes: z.array(FacetScopeTypeSchema).nullish(),
-    selectionMode: FacetSelectionModeSchema.nullish(),
-    slug: z.string().nullish(),
-    uiType: FacetUiTypeSchema.nullish()
+    fields: z.lazy(() => FacetFieldsInputSchema().nullish()),
+    position: z.lazy(() => FacetPositionInputSchema().nullish()),
+    values: z.array(z.lazy(() => FacetValueOperationInputSchema())).nullish()
   })
 }
 
@@ -254,48 +261,32 @@ export function FacetValueCandidatesMetaInputSchema(): z.ZodObject<Properties<Fa
   })
 }
 
-export function FacetValueCreateInputSchema(): z.ZodObject<Properties<FacetValueCreateInput>> {
+export function FacetValueMergeValuesInputSchema(): z.ZodObject<Properties<FacetValueMergeValuesInput>> {
   return z.object({
-    enabled: z.boolean().nullish(),
-    facetId: z.string(),
-    handle: z.string(),
-    kind: FacetValueKindSchema.nullish(),
-    label: z.string(),
-    sortIndex: z.number().nullish(),
     sourceValueIds: z.array(z.string()).nullish(),
-    swatchId: z.string().nullish()
-  })
-}
-
-export function FacetValueDeleteInputSchema(): z.ZodObject<Properties<FacetValueDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
-export function FacetValueMergeInputSchema(): z.ZodObject<Properties<FacetValueMergeInput>> {
-  return z.object({
-    facetId: z.string(),
-    sourceValueIds: z.array(z.string()),
     targetGroupValueId: z.string().nullish(),
     targetHandle: z.string().nullish(),
     targetLabel: z.string().nullish()
   })
 }
 
-export function FacetValueUnmergeInputSchema(): z.ZodObject<Properties<FacetValueUnmergeInput>> {
+export function FacetValueOperationInputSchema(): z.ZodObject<Properties<FacetValueOperationInput>> {
   return z.object({
-    sourceValueIds: z.array(z.string())
+    action: FacetValueOperationActionSchema,
+    facetValueId: z.string().nullish(),
+    merge: z.lazy(() => FacetValueMergeValuesInputSchema().nullish()),
+    values: z.lazy(() => FacetValueValuesInputSchema().nullish())
   })
 }
 
-export function FacetValueUpdateInputSchema(): z.ZodObject<Properties<FacetValueUpdateInput>> {
+export function FacetValueValuesInputSchema(): z.ZodObject<Properties<FacetValueValuesInput>> {
   return z.object({
     enabled: z.boolean().nullish(),
     handle: z.string().nullish(),
-    id: z.string(),
+    kind: FacetValueKindSchema.nullish(),
     label: z.string().nullish(),
     sortIndex: z.number().nullish(),
+    sourceValueIds: z.array(z.string()).nullish(),
     swatchId: z.string().nullish()
   })
 }
@@ -406,19 +397,12 @@ export function ManualProductRecommendationCreateInputSchema(): z.ZodObject<Prop
   })
 }
 
-export function ManualProductRecommendationDeleteInputSchema(): z.ZodObject<Properties<ManualProductRecommendationDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function ManualProductRecommendationUpdateInputSchema(): z.ZodObject<Properties<ManualProductRecommendationUpdateInput>> {
   return z.object({
     action: ManualRecommendationActionSchema.nullish(),
     boost: z.string().nullish(),
     enabled: z.boolean().nullish(),
     endsAt: z.string().nullish(),
-    id: z.string(),
     position: z.number().nullish(),
     startsAt: z.string().nullish(),
     targetProductId: z.string().nullish()
@@ -464,6 +448,16 @@ export function ManualRecommendationDraftUpdateInputSchema(): z.ZodObject<Proper
   })
 }
 
+export function RecommendationPlacementPolicyCreateInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyCreateInput>> {
+  return z.object({
+    fallbackChain: z.array(z.string()),
+    maximumResults: z.number(),
+    minimumResults: z.number(),
+    placement: RecommendationPlacementSchema,
+    strategy: RecommendationStrategySchema
+  })
+}
+
 export function RecommendationPlacementPolicyDraftInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyDraftInput>> {
   return z.object({
     enabled: z.boolean(),
@@ -474,20 +468,13 @@ export function RecommendationPlacementPolicyDraftInputSchema(): z.ZodObject<Pro
   })
 }
 
-export function RecommendationPlacementPolicySetEnabledInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicySetEnabledInput>> {
+export function RecommendationPlacementPolicyUpdateInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyUpdateInput>> {
   return z.object({
-    enabled: z.boolean(),
-    placement: RecommendationPlacementSchema
-  })
-}
-
-export function RecommendationPlacementPolicyUpsertInputSchema(): z.ZodObject<Properties<RecommendationPlacementPolicyUpsertInput>> {
-  return z.object({
-    fallbackChain: z.array(z.string()),
-    maximumResults: z.number(),
-    minimumResults: z.number(),
-    placement: RecommendationPlacementSchema,
-    strategy: RecommendationStrategySchema
+    enabled: z.boolean().nullish(),
+    fallbackChain: z.array(z.string()).nullish(),
+    maximumResults: z.number().nullish(),
+    minimumResults: z.number().nullish(),
+    strategy: RecommendationStrategySchema.nullish()
   })
 }
 
@@ -497,12 +484,6 @@ export function RecommendationSnapshotPreviewInputSchema(): z.ZodObject<Properti
     manualChanges: z.array(z.lazy(() => ManualRecommendationDraftChangeInputSchema())),
     placement: RecommendationPlacementSchema,
     policy: z.lazy(() => RecommendationPlacementPolicyDraftInputSchema().nullish())
-  })
-}
-
-export function SearchConfigurationDeleteInputSchema(): z.ZodObject<Properties<SearchConfigurationDeleteInput>> {
-  return z.object({
-    id: z.string()
   })
 }
 
@@ -533,7 +514,6 @@ export function SearchProductBoostOrderByInputSchema(): z.ZodObject<Properties<S
 export function SearchProductBoostUpdateInputSchema(): z.ZodObject<Properties<SearchProductBoostUpdateInput>> {
   return z.object({
     enabled: z.boolean(),
-    id: z.string(),
     locale: LocaleCodeSchema,
     name: z.string(),
     phrases: z.array(z.string()),
@@ -597,7 +577,6 @@ export function SearchSynonymGroupOrderByInputSchema(): z.ZodObject<Properties<S
 export function SearchSynonymGroupUpdateInputSchema(): z.ZodObject<Properties<SearchSynonymGroupUpdateInput>> {
   return z.object({
     enabled: z.boolean(),
-    id: z.string(),
     locale: LocaleCodeSchema,
     name: z.string(),
     values: z.array(z.string())

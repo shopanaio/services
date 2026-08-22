@@ -18,7 +18,6 @@ export type Scalars = {
   Float: { input: number; output: number; }
   BigInt: { input: string; output: string; }
   DateTime: { input: string; output: string; }
-  Email: { input: string; output: string; }
   JSON: { input: Record<string, unknown>; output: Record<string, unknown>; }
   _FieldSet: { input: any; output: any; }
 };
@@ -461,30 +460,42 @@ export type FacetCreateValueCandidateInput = {
   sourceHandle: Scalars['String']['input'];
 };
 
-export type FacetDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
 export type FacetDeletePayload = {
   __typename?: 'FacetDeletePayload';
   deletedFacetId: Maybe<Scalars['ID']['output']>;
   userErrors: Array<GenericUserError>;
 };
 
-export type FacetMoveInput = {
+export type FacetFieldsInput = {
+  label?: InputMaybe<Scalars['String']['input']>;
+  /** Replaces the current scopes when provided. The list cannot be empty. */
+  scopes?: InputMaybe<Array<FacetScopeType>>;
+  selectionMode?: InputMaybe<FacetSelectionMode>;
+  slug?: InputMaybe<Scalars['String']['input']>;
+  uiType?: InputMaybe<FacetUiType>;
+};
+
+export type FacetOperationResult = {
+  __typename?: 'FacetOperationResult';
+  applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
+  errors: Array<GenericUserError>;
+  type: FacetOperationType;
+};
+
+export enum FacetOperationType {
+  FieldsUpdate = 'FIELDS_UPDATE',
+  Move = 'MOVE',
+  ValueCreate = 'VALUE_CREATE',
+  ValueDelete = 'VALUE_DELETE',
+  ValueMerge = 'VALUE_MERGE',
+  ValueUnmerge = 'VALUE_UNMERGE',
+  ValueUpdate = 'VALUE_UPDATE'
+}
+
+export type FacetPositionInput = {
   afterFacetId?: InputMaybe<Scalars['ID']['input']>;
   beforeFacetId?: InputMaybe<Scalars['ID']['input']>;
-  id: Scalars['ID']['input'];
-};
-
-export type FacetMovePayload = {
-  __typename?: 'FacetMovePayload';
-  facet: Maybe<Facet>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetRebalanceInput = {
-  confirm?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 export type FacetRebalancePayload = {
@@ -507,13 +518,15 @@ export enum FacetScopeType {
 }
 
 export type FacetScopesUpdateInput = {
-  /** Only changed facets need to be included. All updates are applied atomically. */
   updates: Array<FacetScopesUpdateItemInput>;
 };
 
+/**
+ * One item of the store-wide facet-scope replacement command. It deliberately
+ * addresses several independent facet aggregates atomically.
+ */
 export type FacetScopesUpdateItemInput = {
   id: Scalars['ID']['input'];
-  /** Replaces the current scopes. The list cannot be empty. */
   scopes: Array<FacetScopeType>;
 };
 
@@ -626,28 +639,40 @@ export type FacetSwatchCreatePayload = {
   userErrors: Array<GenericUserError>;
 };
 
-export type FacetSwatchDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
 export type FacetSwatchDeletePayload = {
   __typename?: 'FacetSwatchDeletePayload';
   deletedFacetSwatchId: Maybe<Scalars['ID']['output']>;
   userErrors: Array<GenericUserError>;
 };
 
-export type FacetSwatchUpdateInput = {
+export type FacetSwatchFieldsInput = {
   colorOne?: InputMaybe<Scalars['String']['input']>;
   colorTwo?: InputMaybe<Scalars['String']['input']>;
   fileId?: InputMaybe<Scalars['ID']['input']>;
-  id: Scalars['ID']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   swatchType?: InputMaybe<SwatchType>;
+};
+
+export type FacetSwatchOperationResult = {
+  __typename?: 'FacetSwatchOperationResult';
+  applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
+  errors: Array<GenericUserError>;
+  type: FacetSwatchOperationType;
+};
+
+export enum FacetSwatchOperationType {
+  FieldsUpdate = 'FIELDS_UPDATE'
+}
+
+export type FacetSwatchUpdateInput = {
+  fields?: InputMaybe<FacetSwatchFieldsInput>;
 };
 
 export type FacetSwatchUpdatePayload = {
   __typename?: 'FacetSwatchUpdatePayload';
   facetSwatch: Maybe<FacetSwatch>;
+  operationResults: Array<FacetSwatchOperationResult>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -668,18 +693,15 @@ export enum FacetUiType {
 }
 
 export type FacetUpdateInput = {
-  id: Scalars['ID']['input'];
-  label?: InputMaybe<Scalars['String']['input']>;
-  /** Replaces the current scopes when provided. The list cannot be empty. */
-  scopes?: InputMaybe<Array<FacetScopeType>>;
-  selectionMode?: InputMaybe<FacetSelectionMode>;
-  slug?: InputMaybe<Scalars['String']['input']>;
-  uiType?: InputMaybe<FacetUiType>;
+  fields?: InputMaybe<FacetFieldsInput>;
+  position?: InputMaybe<FacetPositionInput>;
+  values?: InputMaybe<Array<FacetValueOperationInput>>;
 };
 
 export type FacetUpdatePayload = {
   __typename?: 'FacetUpdatePayload';
   facet: Maybe<Facet>;
+  operationResults: Array<FacetOperationResult>;
   userErrors: Array<GenericUserError>;
 };
 
@@ -765,77 +787,45 @@ export type FacetValueCandidatesMetaInput = {
   sourceHandles?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
-export type FacetValueCreateInput = {
-  enabled?: InputMaybe<Scalars['Boolean']['input']>;
-  facetId: Scalars['ID']['input'];
-  handle: Scalars['String']['input'];
-  kind?: InputMaybe<FacetValueKind>;
-  label: Scalars['String']['input'];
-  sortIndex?: InputMaybe<Scalars['Int']['input']>;
-  sourceValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  swatchId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type FacetValueCreatePayload = {
-  __typename?: 'FacetValueCreatePayload';
-  facetValue: Maybe<FacetValue>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetValueDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
-export type FacetValueDeletePayload = {
-  __typename?: 'FacetValueDeletePayload';
-  deletedFacetValueId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
-};
-
 export enum FacetValueKind {
   Group = 'GROUP',
   Source = 'SOURCE'
 }
 
-export type FacetValueMergeInput = {
-  facetId: Scalars['ID']['input'];
-  sourceValueIds: Array<Scalars['ID']['input']>;
+export type FacetValueMergeValuesInput = {
+  sourceValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   targetGroupValueId?: InputMaybe<Scalars['ID']['input']>;
   targetHandle?: InputMaybe<Scalars['String']['input']>;
   targetLabel?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type FacetValueMergePayload = {
-  __typename?: 'FacetValueMergePayload';
-  facetValue: Maybe<FacetValue>;
-  sourceValues: Array<FacetValue>;
-  userErrors: Array<GenericUserError>;
+export enum FacetValueOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Merge = 'MERGE',
+  Unmerge = 'UNMERGE',
+  Update = 'UPDATE'
+}
+
+export type FacetValueOperationInput = {
+  action: FacetValueOperationAction;
+  facetValueId?: InputMaybe<Scalars['ID']['input']>;
+  merge?: InputMaybe<FacetValueMergeValuesInput>;
+  values?: InputMaybe<FacetValueValuesInput>;
 };
 
-export type FacetValueUnmergeInput = {
-  sourceValueIds: Array<Scalars['ID']['input']>;
-};
-
-export type FacetValueUnmergePayload = {
-  __typename?: 'FacetValueUnmergePayload';
-  affectedGroupValues: Array<FacetValue>;
-  sourceValues: Array<FacetValue>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type FacetValueUpdateInput = {
+export type FacetValueValuesInput = {
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   handle?: InputMaybe<Scalars['String']['input']>;
-  id: Scalars['ID']['input'];
+  kind?: InputMaybe<FacetValueKind>;
   label?: InputMaybe<Scalars['String']['input']>;
   sortIndex?: InputMaybe<Scalars['Int']['input']>;
+  /**
+   * Source values to attach when this operation creates a group value.
+   * Ignored for UPDATE; use MERGE to attach values to an existing group.
+   */
+  sourceValueIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   swatchId?: InputMaybe<Scalars['ID']['input']>;
-};
-
-export type FacetValueUpdatePayload = {
-  __typename?: 'FacetValueUpdatePayload';
-  facetValue: Maybe<FacetValue>;
-  userErrors: Array<GenericUserError>;
 };
 
 export type File = {
@@ -998,13 +988,13 @@ export type ListingMutation = {
   facetCreate: FacetCreatePayload;
   /** Delete a facet. */
   facetDelete: FacetDeletePayload;
-  /** Move a facet before or after another facet. */
-  facetMove: FacetMovePayload;
-  /** Rebalance facet lexo ranks. */
+  /** Repair the store-wide facet rank sequence without changing visible order. */
   facetRebalance: FacetRebalancePayload;
   /**
-   * Atomically replace scopes for multiple facets.
-   * No updates are applied when any input item is invalid.
+   * Atomically replace scopes for several facets.
+   *
+   * This is a store-wide configuration command rather than a write to one facet
+   * aggregate; see the Listing facets architecture decision.
    */
   facetScopesUpdate: FacetScopesUpdatePayload;
   /** Create a new facet swatch. */
@@ -1015,27 +1005,11 @@ export type ListingMutation = {
   facetSwatchUpdate: FacetSwatchUpdatePayload;
   /** Update an existing facet. */
   facetUpdate: FacetUpdatePayload;
-  /** Create a new facet value. */
-  facetValueCreate: FacetValueCreatePayload;
-  /** Delete a facet value. */
-  facetValueDelete: FacetValueDeletePayload;
-  /**
-   * Attach source facet values to an existing or newly-created group value.
-   * This is the only mutation that merges source values into a group value.
-   */
-  facetValueMerge: FacetValueMergePayload;
-  /**
-   * Detach source facet values from their group value and make them root values.
-   * This is the only mutation that unmerges source values.
-   */
-  facetValueUnmerge: FacetValueUnmergePayload;
-  /** Update an existing facet value. */
-  facetValueUpdate: FacetValueUpdatePayload;
-  manualProductRecommendationCreate: ManualProductRecommendationPayload;
+  manualProductRecommendationCreate: ManualProductRecommendationCreatePayload;
   manualProductRecommendationDelete: ManualProductRecommendationDeletePayload;
-  manualProductRecommendationUpdate: ManualProductRecommendationPayload;
-  recommendationPlacementPolicySetEnabled: RecommendationPlacementPolicyPayload;
-  recommendationPlacementPolicyUpsert: RecommendationPlacementPolicyPayload;
+  manualProductRecommendationUpdate: ManualProductRecommendationUpdatePayload;
+  recommendationPlacementPolicyCreate: RecommendationPlacementPolicyCreatePayload;
+  recommendationPlacementPolicyUpdate: RecommendationPlacementPolicyUpdatePayload;
   /** Search configuration mutation namespace. */
   search: ListingSearchMutation;
 };
@@ -1047,17 +1021,12 @@ export type ListingMutationFacetCreateArgs = {
 
 
 export type ListingMutationFacetDeleteArgs = {
-  input: FacetDeleteInput;
-};
-
-
-export type ListingMutationFacetMoveArgs = {
-  input: FacetMoveInput;
+  facetId: Scalars['ID']['input'];
 };
 
 
 export type ListingMutationFacetRebalanceArgs = {
-  input: FacetRebalanceInput;
+  confirm?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
 
@@ -1072,42 +1041,19 @@ export type ListingMutationFacetSwatchCreateArgs = {
 
 
 export type ListingMutationFacetSwatchDeleteArgs = {
-  input: FacetSwatchDeleteInput;
+  facetSwatchId: Scalars['ID']['input'];
 };
 
 
 export type ListingMutationFacetSwatchUpdateArgs = {
-  input: FacetSwatchUpdateInput;
+  facetSwatchId: Scalars['ID']['input'];
+  operations: FacetSwatchUpdateInput;
 };
 
 
 export type ListingMutationFacetUpdateArgs = {
-  input: FacetUpdateInput;
-};
-
-
-export type ListingMutationFacetValueCreateArgs = {
-  input: FacetValueCreateInput;
-};
-
-
-export type ListingMutationFacetValueDeleteArgs = {
-  input: FacetValueDeleteInput;
-};
-
-
-export type ListingMutationFacetValueMergeArgs = {
-  input: FacetValueMergeInput;
-};
-
-
-export type ListingMutationFacetValueUnmergeArgs = {
-  input: FacetValueUnmergeInput;
-};
-
-
-export type ListingMutationFacetValueUpdateArgs = {
-  input: FacetValueUpdateInput;
+  facetId: Scalars['ID']['input'];
+  operations: FacetUpdateInput;
 };
 
 
@@ -1117,22 +1063,24 @@ export type ListingMutationManualProductRecommendationCreateArgs = {
 
 
 export type ListingMutationManualProductRecommendationDeleteArgs = {
-  input: ManualProductRecommendationDeleteInput;
+  manualProductRecommendationId: Scalars['ID']['input'];
 };
 
 
 export type ListingMutationManualProductRecommendationUpdateArgs = {
-  input: ManualProductRecommendationUpdateInput;
+  manualProductRecommendationId: Scalars['ID']['input'];
+  operations: ManualProductRecommendationUpdateInput;
 };
 
 
-export type ListingMutationRecommendationPlacementPolicySetEnabledArgs = {
-  input: RecommendationPlacementPolicySetEnabledInput;
+export type ListingMutationRecommendationPlacementPolicyCreateArgs = {
+  input: RecommendationPlacementPolicyCreateInput;
 };
 
 
-export type ListingMutationRecommendationPlacementPolicyUpsertArgs = {
-  input: RecommendationPlacementPolicyUpsertInput;
+export type ListingMutationRecommendationPlacementPolicyUpdateArgs = {
+  operations: RecommendationPlacementPolicyUpdateInput;
+  recommendationPlacementPolicyId: Scalars['ID']['input'];
 };
 
 export type ListingOrderByInput = {
@@ -1311,14 +1259,14 @@ export enum ListingScopeKind {
 
 export type ListingSearchMutation = {
   __typename?: 'ListingSearchMutation';
-  productBoostCreate: SearchProductBoostPayload;
-  productBoostDelete: SearchProductBoostPayload;
-  productBoostUpdate: SearchProductBoostPayload;
+  productBoostCreate: SearchProductBoostCreatePayload;
+  productBoostDelete: SearchProductBoostDeletePayload;
+  productBoostUpdate: SearchProductBoostUpdatePayload;
   /** Update the store-level search settings. */
   settingsUpdate: SearchSettingsUpdatePayload;
-  synonymGroupCreate: SearchSynonymGroupPayload;
-  synonymGroupDelete: SearchSynonymGroupPayload;
-  synonymGroupUpdate: SearchSynonymGroupPayload;
+  synonymGroupCreate: SearchSynonymGroupCreatePayload;
+  synonymGroupDelete: SearchSynonymGroupDeletePayload;
+  synonymGroupUpdate: SearchSynonymGroupUpdatePayload;
 };
 
 
@@ -1328,17 +1276,19 @@ export type ListingSearchMutationProductBoostCreateArgs = {
 
 
 export type ListingSearchMutationProductBoostDeleteArgs = {
-  input: SearchConfigurationDeleteInput;
+  productBoostId: Scalars['ID']['input'];
 };
 
 
 export type ListingSearchMutationProductBoostUpdateArgs = {
-  input: SearchProductBoostUpdateInput;
+  operations: SearchProductBoostUpdateInput;
+  productBoostId: Scalars['ID']['input'];
 };
 
 
 export type ListingSearchMutationSettingsUpdateArgs = {
   operations: SearchSettingsOperationsInput;
+  searchSettingsId: Scalars['ID']['input'];
 };
 
 
@@ -1348,12 +1298,13 @@ export type ListingSearchMutationSynonymGroupCreateArgs = {
 
 
 export type ListingSearchMutationSynonymGroupDeleteArgs = {
-  input: SearchConfigurationDeleteInput;
+  synonymGroupId: Scalars['ID']['input'];
 };
 
 
 export type ListingSearchMutationSynonymGroupUpdateArgs = {
-  input: SearchSynonymGroupUpdateInput;
+  operations: SearchSynonymGroupUpdateInput;
+  synonymGroupId: Scalars['ID']['input'];
 };
 
 export type ListingSearchQuery = {
@@ -1723,8 +1674,8 @@ export type ManualProductRecommendation = Node & {
 export type ManualProductRecommendationConnection = {
   __typename?: 'ManualProductRecommendationConnection';
   edges: Array<ManualProductRecommendationEdge>;
-  nodes: Array<ManualProductRecommendation>;
   pageInfo: PageInfo;
+  totalCount: Scalars['Int']['output'];
 };
 
 export type ManualProductRecommendationCreateInput = {
@@ -1739,14 +1690,16 @@ export type ManualProductRecommendationCreateInput = {
   targetProductId: Scalars['ID']['input'];
 };
 
-export type ManualProductRecommendationDeleteInput = {
-  id: Scalars['ID']['input'];
+export type ManualProductRecommendationCreatePayload = {
+  __typename?: 'ManualProductRecommendationCreatePayload';
+  recommendation: Maybe<ManualProductRecommendation>;
+  userErrors: Array<GenericUserError>;
 };
 
 export type ManualProductRecommendationDeletePayload = {
   __typename?: 'ManualProductRecommendationDeletePayload';
   deletedId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<UserError>;
+  userErrors: Array<GenericUserError>;
 };
 
 export type ManualProductRecommendationEdge = {
@@ -1755,21 +1708,33 @@ export type ManualProductRecommendationEdge = {
   node: ManualProductRecommendation;
 };
 
-export type ManualProductRecommendationPayload = {
-  __typename?: 'ManualProductRecommendationPayload';
-  recommendation: Maybe<ManualProductRecommendation>;
-  userErrors: Array<UserError>;
+export type ManualProductRecommendationOperationResult = {
+  __typename?: 'ManualProductRecommendationOperationResult';
+  applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
+  errors: Array<GenericUserError>;
+  type: ManualProductRecommendationOperationType;
 };
+
+export enum ManualProductRecommendationOperationType {
+  FieldsUpdate = 'FIELDS_UPDATE'
+}
 
 export type ManualProductRecommendationUpdateInput = {
   action?: InputMaybe<ManualRecommendationAction>;
   boost?: InputMaybe<Scalars['String']['input']>;
   enabled?: InputMaybe<Scalars['Boolean']['input']>;
   endsAt?: InputMaybe<Scalars['DateTime']['input']>;
-  id: Scalars['ID']['input'];
   position?: InputMaybe<Scalars['Int']['input']>;
   startsAt?: InputMaybe<Scalars['DateTime']['input']>;
   targetProductId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ManualProductRecommendationUpdatePayload = {
+  __typename?: 'ManualProductRecommendationUpdatePayload';
+  operationResults: Array<ManualProductRecommendationOperationResult>;
+  recommendation: Maybe<ManualProductRecommendation>;
+  userErrors: Array<GenericUserError>;
 };
 
 export enum ManualRecommendationAction {
@@ -1888,6 +1853,20 @@ export type RecommendationPlacementPolicy = Node & {
   updatedAt: Scalars['DateTime']['output'];
 };
 
+export type RecommendationPlacementPolicyCreateInput = {
+  fallbackChain: Array<Scalars['String']['input']>;
+  maximumResults: Scalars['Int']['input'];
+  minimumResults: Scalars['Int']['input'];
+  placement: RecommendationPlacement;
+  strategy: RecommendationStrategy;
+};
+
+export type RecommendationPlacementPolicyCreatePayload = {
+  __typename?: 'RecommendationPlacementPolicyCreatePayload';
+  policy: Maybe<RecommendationPlacementPolicy>;
+  userErrors: Array<GenericUserError>;
+};
+
 export type RecommendationPlacementPolicyDraftInput = {
   enabled: Scalars['Boolean']['input'];
   fallbackChain: Array<Scalars['String']['input']>;
@@ -1896,23 +1875,31 @@ export type RecommendationPlacementPolicyDraftInput = {
   strategy: RecommendationStrategy;
 };
 
-export type RecommendationPlacementPolicyPayload = {
-  __typename?: 'RecommendationPlacementPolicyPayload';
+export type RecommendationPlacementPolicyOperationResult = {
+  __typename?: 'RecommendationPlacementPolicyOperationResult';
+  applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
+  errors: Array<GenericUserError>;
+  type: RecommendationPlacementPolicyOperationType;
+};
+
+export enum RecommendationPlacementPolicyOperationType {
+  FieldsUpdate = 'FIELDS_UPDATE'
+}
+
+export type RecommendationPlacementPolicyUpdateInput = {
+  enabled?: InputMaybe<Scalars['Boolean']['input']>;
+  fallbackChain?: InputMaybe<Array<Scalars['String']['input']>>;
+  maximumResults?: InputMaybe<Scalars['Int']['input']>;
+  minimumResults?: InputMaybe<Scalars['Int']['input']>;
+  strategy?: InputMaybe<RecommendationStrategy>;
+};
+
+export type RecommendationPlacementPolicyUpdatePayload = {
+  __typename?: 'RecommendationPlacementPolicyUpdatePayload';
+  operationResults: Array<RecommendationPlacementPolicyOperationResult>;
   policy: Maybe<RecommendationPlacementPolicy>;
-  userErrors: Array<UserError>;
-};
-
-export type RecommendationPlacementPolicySetEnabledInput = {
-  enabled: Scalars['Boolean']['input'];
-  placement: RecommendationPlacement;
-};
-
-export type RecommendationPlacementPolicyUpsertInput = {
-  fallbackChain: Array<Scalars['String']['input']>;
-  maximumResults: Scalars['Int']['input'];
-  minimumResults: Scalars['Int']['input'];
-  placement: RecommendationPlacement;
-  strategy: RecommendationStrategy;
+  userErrors: Array<GenericUserError>;
 };
 
 export type RecommendationPreviewCandidate = {
@@ -1974,7 +1961,7 @@ export type RecommendationSnapshotPreviewPayload = {
   __typename?: 'RecommendationSnapshotPreviewPayload';
   active: Maybe<RecommendationPreviewResult>;
   draft: Maybe<RecommendationPreviewResult>;
-  userErrors: Array<UserError>;
+  userErrors: Array<GenericUserError>;
 };
 
 export enum RecommendationStrategy {
@@ -1983,10 +1970,6 @@ export enum RecommendationStrategy {
   CuratedFirst = 'CURATED_FIRST',
   CuratedOnly = 'CURATED_ONLY'
 }
-
-export type SearchConfigurationDeleteInput = {
-  id: Scalars['ID']['input'];
-};
 
 export enum SearchExecutionMode {
   Fuzzy = 'FUZZY',
@@ -2111,7 +2094,7 @@ export enum SearchOutOfStockPolicy {
   Show = 'SHOW'
 }
 
-export type SearchProductBoost = {
+export type SearchProductBoost = Node & {
   __typename?: 'SearchProductBoost';
   createdAt: Scalars['DateTime']['output'];
   enabled: Scalars['Boolean']['output'];
@@ -2140,11 +2123,35 @@ export type SearchProductBoostCreateInput = {
   productIds: Array<Scalars['ID']['input']>;
 };
 
+export type SearchProductBoostCreatePayload = {
+  __typename?: 'SearchProductBoostCreatePayload';
+  productBoost: Maybe<SearchProductBoost>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type SearchProductBoostDeletePayload = {
+  __typename?: 'SearchProductBoostDeletePayload';
+  deletedProductBoostId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
 export type SearchProductBoostEdge = {
   __typename?: 'SearchProductBoostEdge';
   cursor: Scalars['String']['output'];
   node: SearchProductBoost;
 };
+
+export type SearchProductBoostOperationResult = {
+  __typename?: 'SearchProductBoostOperationResult';
+  applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
+  errors: Array<GenericUserError>;
+  type: SearchProductBoostOperationType;
+};
+
+export enum SearchProductBoostOperationType {
+  FieldsUpdate = 'FIELDS_UPDATE'
+}
 
 /** Ordering configuration for SearchProductBoost */
 export type SearchProductBoostOrderByInput = {
@@ -2174,12 +2181,6 @@ export enum SearchProductBoostOrderField {
   UpdatedAt = 'updatedAt'
 }
 
-export type SearchProductBoostPayload = {
-  __typename?: 'SearchProductBoostPayload';
-  productBoost: Maybe<SearchProductBoost>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type SearchProductBoostPhrase = {
   __typename?: 'SearchProductBoostPhrase';
   phrase: Scalars['String']['output'];
@@ -2188,11 +2189,17 @@ export type SearchProductBoostPhrase = {
 
 export type SearchProductBoostUpdateInput = {
   enabled: Scalars['Boolean']['input'];
-  id: Scalars['ID']['input'];
   locale: LocaleCode;
   name: Scalars['String']['input'];
   phrases: Array<Scalars['String']['input']>;
   productIds: Array<Scalars['ID']['input']>;
+};
+
+export type SearchProductBoostUpdatePayload = {
+  __typename?: 'SearchProductBoostUpdatePayload';
+  operationResults: Array<SearchProductBoostOperationResult>;
+  productBoost: Maybe<SearchProductBoost>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** Filter conditions for SearchProductBoost */
@@ -2231,6 +2238,7 @@ export type SearchProductBoostsMetaInput = {
 export type SearchSettings = {
   __typename?: 'SearchSettings';
   fields: Array<SearchFieldConfiguration>;
+  id: Scalars['ID']['output'];
   outOfStockPolicy: SearchOutOfStockPolicy;
   typoToleranceEnabled: Scalars['Boolean']['output'];
   updatedAt: Scalars['DateTime']['output'];
@@ -2266,7 +2274,7 @@ export type SearchSettingsValuesInput = {
   typoToleranceEnabled: Scalars['Boolean']['input'];
 };
 
-export type SearchSynonymGroup = {
+export type SearchSynonymGroup = Node & {
   __typename?: 'SearchSynonymGroup';
   createdAt: Scalars['DateTime']['output'];
   enabled: Scalars['Boolean']['output'];
@@ -2292,11 +2300,35 @@ export type SearchSynonymGroupCreateInput = {
   values: Array<Scalars['String']['input']>;
 };
 
+export type SearchSynonymGroupCreatePayload = {
+  __typename?: 'SearchSynonymGroupCreatePayload';
+  synonymGroup: Maybe<SearchSynonymGroup>;
+  userErrors: Array<GenericUserError>;
+};
+
+export type SearchSynonymGroupDeletePayload = {
+  __typename?: 'SearchSynonymGroupDeletePayload';
+  deletedSynonymGroupId: Maybe<Scalars['ID']['output']>;
+  userErrors: Array<GenericUserError>;
+};
+
 export type SearchSynonymGroupEdge = {
   __typename?: 'SearchSynonymGroupEdge';
   cursor: Scalars['String']['output'];
   node: SearchSynonymGroup;
 };
+
+export type SearchSynonymGroupOperationResult = {
+  __typename?: 'SearchSynonymGroupOperationResult';
+  applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
+  errors: Array<GenericUserError>;
+  type: SearchSynonymGroupOperationType;
+};
+
+export enum SearchSynonymGroupOperationType {
+  FieldsUpdate = 'FIELDS_UPDATE'
+}
 
 /** Ordering configuration for SearchSynonymGroup */
 export type SearchSynonymGroupOrderByInput = {
@@ -2324,18 +2356,18 @@ export enum SearchSynonymGroupOrderField {
   ValuesCount = 'valuesCount'
 }
 
-export type SearchSynonymGroupPayload = {
-  __typename?: 'SearchSynonymGroupPayload';
-  synonymGroup: Maybe<SearchSynonymGroup>;
-  userErrors: Array<GenericUserError>;
-};
-
 export type SearchSynonymGroupUpdateInput = {
   enabled: Scalars['Boolean']['input'];
-  id: Scalars['ID']['input'];
   locale: LocaleCode;
   name: Scalars['String']['input'];
   values: Array<Scalars['String']['input']>;
+};
+
+export type SearchSynonymGroupUpdatePayload = {
+  __typename?: 'SearchSynonymGroupUpdatePayload';
+  operationResults: Array<SearchSynonymGroupOperationResult>;
+  synonymGroup: Maybe<SearchSynonymGroup>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** Filter conditions for SearchSynonymGroup */
@@ -2520,7 +2552,7 @@ export type DirectiveResolverFn<TResult = {}, TParent = {}, TContext = {}, TArgs
 /** Mapping of interface types */
 export type ResolversInterfaceTypes<_RefType extends Record<string, unknown>> = ResolversObject<{
   Listing: ( Product );
-  Node: ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( ManualProductRecommendation ) | ( Product ) | ( RecommendationPlacementPolicy );
+  Node: ( Facet ) | ( FacetSwatch ) | ( FacetValue ) | ( ManualProductRecommendation ) | ( Product ) | ( RecommendationPlacementPolicy ) | ( SearchProductBoost ) | ( SearchSynonymGroup );
   UserError: ( GenericUserError );
 }>;
 
@@ -2537,17 +2569,16 @@ export type ResolversTypes = ResolversObject<{
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
   DateTimeFilter: DateTimeFilter;
   DimensionUnit: DimensionUnit;
-  Email: ResolverTypeWrapper<Scalars['Email']['output']>;
   Facet: ResolverTypeWrapper<Facet>;
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: ResolverTypeWrapper<FacetCreatePayload>;
   FacetCreateSourceInput: FacetCreateSourceInput;
   FacetCreateValueCandidateInput: FacetCreateValueCandidateInput;
-  FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: ResolverTypeWrapper<FacetDeletePayload>;
-  FacetMoveInput: FacetMoveInput;
-  FacetMovePayload: ResolverTypeWrapper<FacetMovePayload>;
-  FacetRebalanceInput: FacetRebalanceInput;
+  FacetFieldsInput: FacetFieldsInput;
+  FacetOperationResult: ResolverTypeWrapper<FacetOperationResult>;
+  FacetOperationType: FacetOperationType;
+  FacetPositionInput: FacetPositionInput;
   FacetRebalancePayload: ResolverTypeWrapper<FacetRebalancePayload>;
   FacetScopeType: FacetScopeType;
   FacetScopesUpdateInput: FacetScopesUpdateInput;
@@ -2564,8 +2595,10 @@ export type ResolversTypes = ResolversObject<{
   FacetSwatch: ResolverTypeWrapper<FacetSwatch>;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
   FacetSwatchCreatePayload: ResolverTypeWrapper<FacetSwatchCreatePayload>;
-  FacetSwatchDeleteInput: FacetSwatchDeleteInput;
   FacetSwatchDeletePayload: ResolverTypeWrapper<FacetSwatchDeletePayload>;
+  FacetSwatchFieldsInput: FacetSwatchFieldsInput;
+  FacetSwatchOperationResult: ResolverTypeWrapper<FacetSwatchOperationResult>;
+  FacetSwatchOperationType: FacetSwatchOperationType;
   FacetSwatchUpdateInput: FacetSwatchUpdateInput;
   FacetSwatchUpdatePayload: ResolverTypeWrapper<FacetSwatchUpdatePayload>;
   FacetType: FacetType;
@@ -2581,17 +2614,11 @@ export type ResolversTypes = ResolversObject<{
   FacetValueCandidateType: FacetValueCandidateType;
   FacetValueCandidateWhereInput: FacetValueCandidateWhereInput;
   FacetValueCandidatesMetaInput: FacetValueCandidatesMetaInput;
-  FacetValueCreateInput: FacetValueCreateInput;
-  FacetValueCreatePayload: ResolverTypeWrapper<FacetValueCreatePayload>;
-  FacetValueDeleteInput: FacetValueDeleteInput;
-  FacetValueDeletePayload: ResolverTypeWrapper<FacetValueDeletePayload>;
   FacetValueKind: FacetValueKind;
-  FacetValueMergeInput: FacetValueMergeInput;
-  FacetValueMergePayload: ResolverTypeWrapper<FacetValueMergePayload>;
-  FacetValueUnmergeInput: FacetValueUnmergeInput;
-  FacetValueUnmergePayload: ResolverTypeWrapper<FacetValueUnmergePayload>;
-  FacetValueUpdateInput: FacetValueUpdateInput;
-  FacetValueUpdatePayload: ResolverTypeWrapper<FacetValueUpdatePayload>;
+  FacetValueMergeValuesInput: FacetValueMergeValuesInput;
+  FacetValueOperationAction: FacetValueOperationAction;
+  FacetValueOperationInput: FacetValueOperationInput;
+  FacetValueValuesInput: FacetValueValuesInput;
   File: ResolverTypeWrapper<File>;
   FloatFilter: FloatFilter;
   Float: ResolverTypeWrapper<Scalars['Float']['output']>;
@@ -2606,12 +2633,12 @@ export type ResolversTypes = ResolversObject<{
   ListingFacetType: ListingFacetType;
   ListingFacetValue: ResolverTypeWrapper<ListingFacetValue>;
   ListingFacetValueFilter: ListingFacetValueFilter;
-  ListingMutation: ResolverTypeWrapper<Omit<ListingMutation, 'manualProductRecommendationCreate' | 'manualProductRecommendationDelete' | 'manualProductRecommendationUpdate' | 'recommendationPlacementPolicySetEnabled' | 'recommendationPlacementPolicyUpsert'> & { manualProductRecommendationCreate: ResolversTypes['ManualProductRecommendationPayload'], manualProductRecommendationDelete: ResolversTypes['ManualProductRecommendationDeletePayload'], manualProductRecommendationUpdate: ResolversTypes['ManualProductRecommendationPayload'], recommendationPlacementPolicySetEnabled: ResolversTypes['RecommendationPlacementPolicyPayload'], recommendationPlacementPolicyUpsert: ResolversTypes['RecommendationPlacementPolicyPayload'] }>;
+  ListingMutation: ResolverTypeWrapper<ListingMutation>;
   ListingOrderByInput: ListingOrderByInput;
   ListingPriceRangeFilter: ListingPriceRangeFilter;
   ListingProductFilter: ListingProductFilter;
   ListingProductStatus: ListingProductStatus;
-  ListingQuery: ResolverTypeWrapper<Omit<ListingQuery, 'listing' | 'node' | 'nodes' | 'recommendationPlacementPolicies' | 'recommendationPlacementPolicy' | 'recommendationSnapshotPreview'> & { listing: ResolversTypes['ListingConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>>, recommendationPlacementPolicies: Array<ResolversTypes['RecommendationPlacementPolicy']>, recommendationPlacementPolicy?: Maybe<ResolversTypes['RecommendationPlacementPolicy']>, recommendationSnapshotPreview: ResolversTypes['RecommendationSnapshotPreviewPayload'] }>;
+  ListingQuery: ResolverTypeWrapper<Omit<ListingQuery, 'listing' | 'node' | 'nodes'> & { listing: ResolversTypes['ListingConnection'], node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   ListingScopeInput: ListingScopeInput;
   ListingScopeKind: ListingScopeKind;
   ListingSearchMutation: ResolverTypeWrapper<ListingSearchMutation>;
@@ -2623,11 +2650,13 @@ export type ResolversTypes = ResolversObject<{
   ManualProductRecommendation: ResolverTypeWrapper<ManualProductRecommendation>;
   ManualProductRecommendationConnection: ResolverTypeWrapper<ManualProductRecommendationConnection>;
   ManualProductRecommendationCreateInput: ManualProductRecommendationCreateInput;
-  ManualProductRecommendationDeleteInput: ManualProductRecommendationDeleteInput;
-  ManualProductRecommendationDeletePayload: ResolverTypeWrapper<Omit<ManualProductRecommendationDeletePayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  ManualProductRecommendationCreatePayload: ResolverTypeWrapper<ManualProductRecommendationCreatePayload>;
+  ManualProductRecommendationDeletePayload: ResolverTypeWrapper<ManualProductRecommendationDeletePayload>;
   ManualProductRecommendationEdge: ResolverTypeWrapper<ManualProductRecommendationEdge>;
-  ManualProductRecommendationPayload: ResolverTypeWrapper<Omit<ManualProductRecommendationPayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  ManualProductRecommendationOperationResult: ResolverTypeWrapper<ManualProductRecommendationOperationResult>;
+  ManualProductRecommendationOperationType: ManualProductRecommendationOperationType;
   ManualProductRecommendationUpdateInput: ManualProductRecommendationUpdateInput;
+  ManualProductRecommendationUpdatePayload: ResolverTypeWrapper<ManualProductRecommendationUpdatePayload>;
   ManualRecommendationAction: ManualRecommendationAction;
   ManualRecommendationDraftChangeInput: ManualRecommendationDraftChangeInput;
   ManualRecommendationDraftCreateInput: ManualRecommendationDraftCreateInput;
@@ -2643,10 +2672,13 @@ export type ResolversTypes = ResolversObject<{
   Query: ResolverTypeWrapper<{}>;
   RecommendationPlacement: RecommendationPlacement;
   RecommendationPlacementPolicy: ResolverTypeWrapper<RecommendationPlacementPolicy>;
+  RecommendationPlacementPolicyCreateInput: RecommendationPlacementPolicyCreateInput;
+  RecommendationPlacementPolicyCreatePayload: ResolverTypeWrapper<RecommendationPlacementPolicyCreatePayload>;
   RecommendationPlacementPolicyDraftInput: RecommendationPlacementPolicyDraftInput;
-  RecommendationPlacementPolicyPayload: ResolverTypeWrapper<Omit<RecommendationPlacementPolicyPayload, 'policy' | 'userErrors'> & { policy?: Maybe<ResolversTypes['RecommendationPlacementPolicy']>, userErrors: Array<ResolversTypes['UserError']> }>;
-  RecommendationPlacementPolicySetEnabledInput: RecommendationPlacementPolicySetEnabledInput;
-  RecommendationPlacementPolicyUpsertInput: RecommendationPlacementPolicyUpsertInput;
+  RecommendationPlacementPolicyOperationResult: ResolverTypeWrapper<RecommendationPlacementPolicyOperationResult>;
+  RecommendationPlacementPolicyOperationType: RecommendationPlacementPolicyOperationType;
+  RecommendationPlacementPolicyUpdateInput: RecommendationPlacementPolicyUpdateInput;
+  RecommendationPlacementPolicyUpdatePayload: ResolverTypeWrapper<RecommendationPlacementPolicyUpdatePayload>;
   RecommendationPreviewCandidate: ResolverTypeWrapper<RecommendationPreviewCandidate>;
   RecommendationPreviewExcludedCandidate: ResolverTypeWrapper<RecommendationPreviewExcludedCandidate>;
   RecommendationPreviewExcludedReason: RecommendationPreviewExcludedReason;
@@ -2654,9 +2686,8 @@ export type ResolversTypes = ResolversObject<{
   RecommendationPreviewSourceBreakdown: ResolverTypeWrapper<RecommendationPreviewSourceBreakdown>;
   RecommendationReferenceStatus: RecommendationReferenceStatus;
   RecommendationSnapshotPreviewInput: RecommendationSnapshotPreviewInput;
-  RecommendationSnapshotPreviewPayload: ResolverTypeWrapper<Omit<RecommendationSnapshotPreviewPayload, 'userErrors'> & { userErrors: Array<ResolversTypes['UserError']> }>;
+  RecommendationSnapshotPreviewPayload: ResolverTypeWrapper<RecommendationSnapshotPreviewPayload>;
   RecommendationStrategy: RecommendationStrategy;
-  SearchConfigurationDeleteInput: SearchConfigurationDeleteInput;
   SearchExecutionMode: SearchExecutionMode;
   SearchExplain: ResolverTypeWrapper<SearchExplain>;
   SearchExplainClause: ResolverTypeWrapper<SearchExplainClause>;
@@ -2674,12 +2705,16 @@ export type ResolversTypes = ResolversObject<{
   SearchProductBoost: ResolverTypeWrapper<SearchProductBoost>;
   SearchProductBoostConnection: ResolverTypeWrapper<SearchProductBoostConnection>;
   SearchProductBoostCreateInput: SearchProductBoostCreateInput;
+  SearchProductBoostCreatePayload: ResolverTypeWrapper<SearchProductBoostCreatePayload>;
+  SearchProductBoostDeletePayload: ResolverTypeWrapper<SearchProductBoostDeletePayload>;
   SearchProductBoostEdge: ResolverTypeWrapper<SearchProductBoostEdge>;
+  SearchProductBoostOperationResult: ResolverTypeWrapper<SearchProductBoostOperationResult>;
+  SearchProductBoostOperationType: SearchProductBoostOperationType;
   SearchProductBoostOrderByInput: SearchProductBoostOrderByInput;
   SearchProductBoostOrderField: SearchProductBoostOrderField;
-  SearchProductBoostPayload: ResolverTypeWrapper<SearchProductBoostPayload>;
   SearchProductBoostPhrase: ResolverTypeWrapper<SearchProductBoostPhrase>;
   SearchProductBoostUpdateInput: SearchProductBoostUpdateInput;
+  SearchProductBoostUpdatePayload: ResolverTypeWrapper<SearchProductBoostUpdatePayload>;
   SearchProductBoostWhereInput: SearchProductBoostWhereInput;
   SearchProductBoostsMetaInput: SearchProductBoostsMetaInput;
   SearchSettings: ResolverTypeWrapper<SearchSettings>;
@@ -2691,11 +2726,15 @@ export type ResolversTypes = ResolversObject<{
   SearchSynonymGroup: ResolverTypeWrapper<SearchSynonymGroup>;
   SearchSynonymGroupConnection: ResolverTypeWrapper<SearchSynonymGroupConnection>;
   SearchSynonymGroupCreateInput: SearchSynonymGroupCreateInput;
+  SearchSynonymGroupCreatePayload: ResolverTypeWrapper<SearchSynonymGroupCreatePayload>;
+  SearchSynonymGroupDeletePayload: ResolverTypeWrapper<SearchSynonymGroupDeletePayload>;
   SearchSynonymGroupEdge: ResolverTypeWrapper<SearchSynonymGroupEdge>;
+  SearchSynonymGroupOperationResult: ResolverTypeWrapper<SearchSynonymGroupOperationResult>;
+  SearchSynonymGroupOperationType: SearchSynonymGroupOperationType;
   SearchSynonymGroupOrderByInput: SearchSynonymGroupOrderByInput;
   SearchSynonymGroupOrderField: SearchSynonymGroupOrderField;
-  SearchSynonymGroupPayload: ResolverTypeWrapper<SearchSynonymGroupPayload>;
   SearchSynonymGroupUpdateInput: SearchSynonymGroupUpdateInput;
+  SearchSynonymGroupUpdatePayload: ResolverTypeWrapper<SearchSynonymGroupUpdatePayload>;
   SearchSynonymGroupWhereInput: SearchSynonymGroupWhereInput;
   SearchSynonymValue: ResolverTypeWrapper<SearchSynonymValue>;
   SortDirection: SortDirection;
@@ -2716,17 +2755,15 @@ export type ResolversParentTypes = ResolversObject<{
   Int: Scalars['Int']['output'];
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
-  Email: Scalars['Email']['output'];
   Facet: Facet;
   FacetCreateInput: FacetCreateInput;
   FacetCreatePayload: FacetCreatePayload;
   FacetCreateSourceInput: FacetCreateSourceInput;
   FacetCreateValueCandidateInput: FacetCreateValueCandidateInput;
-  FacetDeleteInput: FacetDeleteInput;
   FacetDeletePayload: FacetDeletePayload;
-  FacetMoveInput: FacetMoveInput;
-  FacetMovePayload: FacetMovePayload;
-  FacetRebalanceInput: FacetRebalanceInput;
+  FacetFieldsInput: FacetFieldsInput;
+  FacetOperationResult: FacetOperationResult;
+  FacetPositionInput: FacetPositionInput;
   FacetRebalancePayload: FacetRebalancePayload;
   FacetScopesUpdateInput: FacetScopesUpdateInput;
   FacetScopesUpdateItemInput: FacetScopesUpdateItemInput;
@@ -2740,8 +2777,9 @@ export type ResolversParentTypes = ResolversObject<{
   FacetSwatch: FacetSwatch;
   FacetSwatchCreateInput: FacetSwatchCreateInput;
   FacetSwatchCreatePayload: FacetSwatchCreatePayload;
-  FacetSwatchDeleteInput: FacetSwatchDeleteInput;
   FacetSwatchDeletePayload: FacetSwatchDeletePayload;
+  FacetSwatchFieldsInput: FacetSwatchFieldsInput;
+  FacetSwatchOperationResult: FacetSwatchOperationResult;
   FacetSwatchUpdateInput: FacetSwatchUpdateInput;
   FacetSwatchUpdatePayload: FacetSwatchUpdatePayload;
   FacetUpdateInput: FacetUpdateInput;
@@ -2753,16 +2791,9 @@ export type ResolversParentTypes = ResolversObject<{
   FacetValueCandidateOrderByInput: FacetValueCandidateOrderByInput;
   FacetValueCandidateWhereInput: FacetValueCandidateWhereInput;
   FacetValueCandidatesMetaInput: FacetValueCandidatesMetaInput;
-  FacetValueCreateInput: FacetValueCreateInput;
-  FacetValueCreatePayload: FacetValueCreatePayload;
-  FacetValueDeleteInput: FacetValueDeleteInput;
-  FacetValueDeletePayload: FacetValueDeletePayload;
-  FacetValueMergeInput: FacetValueMergeInput;
-  FacetValueMergePayload: FacetValueMergePayload;
-  FacetValueUnmergeInput: FacetValueUnmergeInput;
-  FacetValueUnmergePayload: FacetValueUnmergePayload;
-  FacetValueUpdateInput: FacetValueUpdateInput;
-  FacetValueUpdatePayload: FacetValueUpdatePayload;
+  FacetValueMergeValuesInput: FacetValueMergeValuesInput;
+  FacetValueOperationInput: FacetValueOperationInput;
+  FacetValueValuesInput: FacetValueValuesInput;
   File: File;
   FloatFilter: FloatFilter;
   Float: Scalars['Float']['output'];
@@ -2776,11 +2807,11 @@ export type ResolversParentTypes = ResolversObject<{
   ListingFacet: ListingFacet;
   ListingFacetValue: ListingFacetValue;
   ListingFacetValueFilter: ListingFacetValueFilter;
-  ListingMutation: Omit<ListingMutation, 'manualProductRecommendationCreate' | 'manualProductRecommendationDelete' | 'manualProductRecommendationUpdate' | 'recommendationPlacementPolicySetEnabled' | 'recommendationPlacementPolicyUpsert'> & { manualProductRecommendationCreate: ResolversParentTypes['ManualProductRecommendationPayload'], manualProductRecommendationDelete: ResolversParentTypes['ManualProductRecommendationDeletePayload'], manualProductRecommendationUpdate: ResolversParentTypes['ManualProductRecommendationPayload'], recommendationPlacementPolicySetEnabled: ResolversParentTypes['RecommendationPlacementPolicyPayload'], recommendationPlacementPolicyUpsert: ResolversParentTypes['RecommendationPlacementPolicyPayload'] };
+  ListingMutation: ListingMutation;
   ListingOrderByInput: ListingOrderByInput;
   ListingPriceRangeFilter: ListingPriceRangeFilter;
   ListingProductFilter: ListingProductFilter;
-  ListingQuery: Omit<ListingQuery, 'listing' | 'node' | 'nodes' | 'recommendationPlacementPolicies' | 'recommendationPlacementPolicy' | 'recommendationSnapshotPreview'> & { listing: ResolversParentTypes['ListingConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>>, recommendationPlacementPolicies: Array<ResolversParentTypes['RecommendationPlacementPolicy']>, recommendationPlacementPolicy?: Maybe<ResolversParentTypes['RecommendationPlacementPolicy']>, recommendationSnapshotPreview: ResolversParentTypes['RecommendationSnapshotPreviewPayload'] };
+  ListingQuery: Omit<ListingQuery, 'listing' | 'node' | 'nodes'> & { listing: ResolversParentTypes['ListingConnection'], node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   ListingScopeInput: ListingScopeInput;
   ListingSearchMutation: ListingSearchMutation;
   ListingSearchQuery: ListingSearchQuery;
@@ -2788,11 +2819,12 @@ export type ResolversParentTypes = ResolversObject<{
   ManualProductRecommendation: ManualProductRecommendation;
   ManualProductRecommendationConnection: ManualProductRecommendationConnection;
   ManualProductRecommendationCreateInput: ManualProductRecommendationCreateInput;
-  ManualProductRecommendationDeleteInput: ManualProductRecommendationDeleteInput;
-  ManualProductRecommendationDeletePayload: Omit<ManualProductRecommendationDeletePayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  ManualProductRecommendationCreatePayload: ManualProductRecommendationCreatePayload;
+  ManualProductRecommendationDeletePayload: ManualProductRecommendationDeletePayload;
   ManualProductRecommendationEdge: ManualProductRecommendationEdge;
-  ManualProductRecommendationPayload: Omit<ManualProductRecommendationPayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
+  ManualProductRecommendationOperationResult: ManualProductRecommendationOperationResult;
   ManualProductRecommendationUpdateInput: ManualProductRecommendationUpdateInput;
+  ManualProductRecommendationUpdatePayload: ManualProductRecommendationUpdatePayload;
   ManualRecommendationDraftChangeInput: ManualRecommendationDraftChangeInput;
   ManualRecommendationDraftCreateInput: ManualRecommendationDraftCreateInput;
   ManualRecommendationDraftDeleteInput: ManualRecommendationDraftDeleteInput;
@@ -2803,17 +2835,18 @@ export type ResolversParentTypes = ResolversObject<{
   Product: Product;
   Query: {};
   RecommendationPlacementPolicy: RecommendationPlacementPolicy;
+  RecommendationPlacementPolicyCreateInput: RecommendationPlacementPolicyCreateInput;
+  RecommendationPlacementPolicyCreatePayload: RecommendationPlacementPolicyCreatePayload;
   RecommendationPlacementPolicyDraftInput: RecommendationPlacementPolicyDraftInput;
-  RecommendationPlacementPolicyPayload: Omit<RecommendationPlacementPolicyPayload, 'policy' | 'userErrors'> & { policy?: Maybe<ResolversParentTypes['RecommendationPlacementPolicy']>, userErrors: Array<ResolversParentTypes['UserError']> };
-  RecommendationPlacementPolicySetEnabledInput: RecommendationPlacementPolicySetEnabledInput;
-  RecommendationPlacementPolicyUpsertInput: RecommendationPlacementPolicyUpsertInput;
+  RecommendationPlacementPolicyOperationResult: RecommendationPlacementPolicyOperationResult;
+  RecommendationPlacementPolicyUpdateInput: RecommendationPlacementPolicyUpdateInput;
+  RecommendationPlacementPolicyUpdatePayload: RecommendationPlacementPolicyUpdatePayload;
   RecommendationPreviewCandidate: RecommendationPreviewCandidate;
   RecommendationPreviewExcludedCandidate: RecommendationPreviewExcludedCandidate;
   RecommendationPreviewResult: RecommendationPreviewResult;
   RecommendationPreviewSourceBreakdown: RecommendationPreviewSourceBreakdown;
   RecommendationSnapshotPreviewInput: RecommendationSnapshotPreviewInput;
-  RecommendationSnapshotPreviewPayload: Omit<RecommendationSnapshotPreviewPayload, 'userErrors'> & { userErrors: Array<ResolversParentTypes['UserError']> };
-  SearchConfigurationDeleteInput: SearchConfigurationDeleteInput;
+  RecommendationSnapshotPreviewPayload: RecommendationSnapshotPreviewPayload;
   SearchExplain: SearchExplain;
   SearchExplainClause: SearchExplainClause;
   SearchExplainFieldWeight: SearchExplainFieldWeight;
@@ -2825,11 +2858,14 @@ export type ResolversParentTypes = ResolversObject<{
   SearchProductBoost: SearchProductBoost;
   SearchProductBoostConnection: SearchProductBoostConnection;
   SearchProductBoostCreateInput: SearchProductBoostCreateInput;
+  SearchProductBoostCreatePayload: SearchProductBoostCreatePayload;
+  SearchProductBoostDeletePayload: SearchProductBoostDeletePayload;
   SearchProductBoostEdge: SearchProductBoostEdge;
+  SearchProductBoostOperationResult: SearchProductBoostOperationResult;
   SearchProductBoostOrderByInput: SearchProductBoostOrderByInput;
-  SearchProductBoostPayload: SearchProductBoostPayload;
   SearchProductBoostPhrase: SearchProductBoostPhrase;
   SearchProductBoostUpdateInput: SearchProductBoostUpdateInput;
+  SearchProductBoostUpdatePayload: SearchProductBoostUpdatePayload;
   SearchProductBoostWhereInput: SearchProductBoostWhereInput;
   SearchProductBoostsMetaInput: SearchProductBoostsMetaInput;
   SearchSettings: SearchSettings;
@@ -2840,10 +2876,13 @@ export type ResolversParentTypes = ResolversObject<{
   SearchSynonymGroup: SearchSynonymGroup;
   SearchSynonymGroupConnection: SearchSynonymGroupConnection;
   SearchSynonymGroupCreateInput: SearchSynonymGroupCreateInput;
+  SearchSynonymGroupCreatePayload: SearchSynonymGroupCreatePayload;
+  SearchSynonymGroupDeletePayload: SearchSynonymGroupDeletePayload;
   SearchSynonymGroupEdge: SearchSynonymGroupEdge;
+  SearchSynonymGroupOperationResult: SearchSynonymGroupOperationResult;
   SearchSynonymGroupOrderByInput: SearchSynonymGroupOrderByInput;
-  SearchSynonymGroupPayload: SearchSynonymGroupPayload;
   SearchSynonymGroupUpdateInput: SearchSynonymGroupUpdateInput;
+  SearchSynonymGroupUpdatePayload: SearchSynonymGroupUpdatePayload;
   SearchSynonymGroupWhereInput: SearchSynonymGroupWhereInput;
   SearchSynonymValue: SearchSynonymValue;
   StringFilter: StringFilter;
@@ -2863,10 +2902,6 @@ export type CollectionResolvers<ContextType = ServiceContext, ParentType extends
 
 export interface DateTimeScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['DateTime'], any> {
   name: 'DateTime';
-}
-
-export interface EmailScalarConfig extends GraphQLScalarTypeConfig<ResolversTypes['Email'], any> {
-  name: 'Email';
 }
 
 export type FacetResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Facet'] = ResolversParentTypes['Facet']> = ResolversObject<{
@@ -2895,9 +2930,11 @@ export type FacetDeletePayloadResolvers<ContextType = ServiceContext, ParentType
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type FacetMovePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetMovePayload'] = ResolversParentTypes['FacetMovePayload']> = ResolversObject<{
-  facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+export type FacetOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetOperationResult'] = ResolversParentTypes['FacetOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['FacetOperationType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2964,14 +3001,24 @@ export type FacetSwatchDeletePayloadResolvers<ContextType = ServiceContext, Pare
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type FacetSwatchOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchOperationResult'] = ResolversParentTypes['FacetSwatchOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['FacetSwatchOperationType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type FacetSwatchUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetSwatchUpdatePayload'] = ResolversParentTypes['FacetSwatchUpdatePayload']> = ResolversObject<{
   facetSwatch?: Resolver<Maybe<ResolversTypes['FacetSwatch']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['FacetSwatchOperationResult']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type FacetUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetUpdatePayload'] = ResolversParentTypes['FacetUpdatePayload']> = ResolversObject<{
   facet?: Resolver<Maybe<ResolversTypes['Facet']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['FacetOperationResult']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3009,38 +3056,6 @@ export type FacetValueCandidateConnectionResolvers<ContextType = ServiceContext,
 export type FacetValueCandidateEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCandidateEdge'] = ResolversParentTypes['FacetValueCandidateEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['FacetValueCandidate'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueCreatePayload'] = ResolversParentTypes['FacetValueCreatePayload']> = ResolversObject<{
-  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueDeletePayload'] = ResolversParentTypes['FacetValueDeletePayload']> = ResolversObject<{
-  deletedFacetValueId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueMergePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueMergePayload'] = ResolversParentTypes['FacetValueMergePayload']> = ResolversObject<{
-  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  sourceValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueUnmergePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueUnmergePayload'] = ResolversParentTypes['FacetValueUnmergePayload']> = ResolversObject<{
-  affectedGroupValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  sourceValues?: Resolver<Array<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type FacetValueUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['FacetValueUpdatePayload'] = ResolversParentTypes['FacetValueUpdatePayload']> = ResolversObject<{
-  facetValue?: Resolver<Maybe<ResolversTypes['FacetValue']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3101,24 +3116,18 @@ export type ListingFacetValueResolvers<ContextType = ServiceContext, ParentType 
 
 export type ListingMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ListingMutation'] = ResolversParentTypes['ListingMutation']> = ResolversObject<{
   facetCreate?: Resolver<ResolversTypes['FacetCreatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetCreateArgs, 'input'>>;
-  facetDelete?: Resolver<ResolversTypes['FacetDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetDeleteArgs, 'input'>>;
-  facetMove?: Resolver<ResolversTypes['FacetMovePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetMoveArgs, 'input'>>;
-  facetRebalance?: Resolver<ResolversTypes['FacetRebalancePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetRebalanceArgs, 'input'>>;
+  facetDelete?: Resolver<ResolversTypes['FacetDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetDeleteArgs, 'facetId'>>;
+  facetRebalance?: Resolver<ResolversTypes['FacetRebalancePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetRebalanceArgs, 'confirm'>>;
   facetScopesUpdate?: Resolver<ResolversTypes['FacetScopesUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetScopesUpdateArgs, 'input'>>;
   facetSwatchCreate?: Resolver<ResolversTypes['FacetSwatchCreatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchCreateArgs, 'input'>>;
-  facetSwatchDelete?: Resolver<ResolversTypes['FacetSwatchDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchDeleteArgs, 'input'>>;
-  facetSwatchUpdate?: Resolver<ResolversTypes['FacetSwatchUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchUpdateArgs, 'input'>>;
-  facetUpdate?: Resolver<ResolversTypes['FacetUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetUpdateArgs, 'input'>>;
-  facetValueCreate?: Resolver<ResolversTypes['FacetValueCreatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueCreateArgs, 'input'>>;
-  facetValueDelete?: Resolver<ResolversTypes['FacetValueDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueDeleteArgs, 'input'>>;
-  facetValueMerge?: Resolver<ResolversTypes['FacetValueMergePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueMergeArgs, 'input'>>;
-  facetValueUnmerge?: Resolver<ResolversTypes['FacetValueUnmergePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueUnmergeArgs, 'input'>>;
-  facetValueUpdate?: Resolver<ResolversTypes['FacetValueUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetValueUpdateArgs, 'input'>>;
-  manualProductRecommendationCreate?: Resolver<ResolversTypes['ManualProductRecommendationPayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationCreateArgs, 'input'>>;
-  manualProductRecommendationDelete?: Resolver<ResolversTypes['ManualProductRecommendationDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationDeleteArgs, 'input'>>;
-  manualProductRecommendationUpdate?: Resolver<ResolversTypes['ManualProductRecommendationPayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationUpdateArgs, 'input'>>;
-  recommendationPlacementPolicySetEnabled?: Resolver<ResolversTypes['RecommendationPlacementPolicyPayload'], ParentType, ContextType, RequireFields<ListingMutationRecommendationPlacementPolicySetEnabledArgs, 'input'>>;
-  recommendationPlacementPolicyUpsert?: Resolver<ResolversTypes['RecommendationPlacementPolicyPayload'], ParentType, ContextType, RequireFields<ListingMutationRecommendationPlacementPolicyUpsertArgs, 'input'>>;
+  facetSwatchDelete?: Resolver<ResolversTypes['FacetSwatchDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchDeleteArgs, 'facetSwatchId'>>;
+  facetSwatchUpdate?: Resolver<ResolversTypes['FacetSwatchUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetSwatchUpdateArgs, 'facetSwatchId' | 'operations'>>;
+  facetUpdate?: Resolver<ResolversTypes['FacetUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationFacetUpdateArgs, 'facetId' | 'operations'>>;
+  manualProductRecommendationCreate?: Resolver<ResolversTypes['ManualProductRecommendationCreatePayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationCreateArgs, 'input'>>;
+  manualProductRecommendationDelete?: Resolver<ResolversTypes['ManualProductRecommendationDeletePayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationDeleteArgs, 'manualProductRecommendationId'>>;
+  manualProductRecommendationUpdate?: Resolver<ResolversTypes['ManualProductRecommendationUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationManualProductRecommendationUpdateArgs, 'manualProductRecommendationId' | 'operations'>>;
+  recommendationPlacementPolicyCreate?: Resolver<ResolversTypes['RecommendationPlacementPolicyCreatePayload'], ParentType, ContextType, RequireFields<ListingMutationRecommendationPlacementPolicyCreateArgs, 'input'>>;
+  recommendationPlacementPolicyUpdate?: Resolver<ResolversTypes['RecommendationPlacementPolicyUpdatePayload'], ParentType, ContextType, RequireFields<ListingMutationRecommendationPlacementPolicyUpdateArgs, 'operations' | 'recommendationPlacementPolicyId'>>;
   search?: Resolver<ResolversTypes['ListingSearchMutation'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -3144,13 +3153,13 @@ export type ListingQueryResolvers<ContextType = ServiceContext, ParentType exten
 }>;
 
 export type ListingSearchMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ListingSearchMutation'] = ResolversParentTypes['ListingSearchMutation']> = ResolversObject<{
-  productBoostCreate?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostCreateArgs, 'input'>>;
-  productBoostDelete?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostDeleteArgs, 'input'>>;
-  productBoostUpdate?: Resolver<ResolversTypes['SearchProductBoostPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostUpdateArgs, 'input'>>;
-  settingsUpdate?: Resolver<ResolversTypes['SearchSettingsUpdatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSettingsUpdateArgs, 'operations'>>;
-  synonymGroupCreate?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupCreateArgs, 'input'>>;
-  synonymGroupDelete?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupDeleteArgs, 'input'>>;
-  synonymGroupUpdate?: Resolver<ResolversTypes['SearchSynonymGroupPayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupUpdateArgs, 'input'>>;
+  productBoostCreate?: Resolver<ResolversTypes['SearchProductBoostCreatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostCreateArgs, 'input'>>;
+  productBoostDelete?: Resolver<ResolversTypes['SearchProductBoostDeletePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostDeleteArgs, 'productBoostId'>>;
+  productBoostUpdate?: Resolver<ResolversTypes['SearchProductBoostUpdatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationProductBoostUpdateArgs, 'operations' | 'productBoostId'>>;
+  settingsUpdate?: Resolver<ResolversTypes['SearchSettingsUpdatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSettingsUpdateArgs, 'operations' | 'searchSettingsId'>>;
+  synonymGroupCreate?: Resolver<ResolversTypes['SearchSynonymGroupCreatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupCreateArgs, 'input'>>;
+  synonymGroupDelete?: Resolver<ResolversTypes['SearchSynonymGroupDeletePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupDeleteArgs, 'synonymGroupId'>>;
+  synonymGroupUpdate?: Resolver<ResolversTypes['SearchSynonymGroupUpdatePayload'], ParentType, ContextType, RequireFields<ListingSearchMutationSynonymGroupUpdateArgs, 'operations' | 'synonymGroupId'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3184,14 +3193,20 @@ export type ManualProductRecommendationResolvers<ContextType = ServiceContext, P
 
 export type ManualProductRecommendationConnectionResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationConnection'] = ResolversParentTypes['ManualProductRecommendationConnection']> = ResolversObject<{
   edges?: Resolver<Array<ResolversTypes['ManualProductRecommendationEdge']>, ParentType, ContextType>;
-  nodes?: Resolver<Array<ResolversTypes['ManualProductRecommendation']>, ParentType, ContextType>;
   pageInfo?: Resolver<ResolversTypes['PageInfo'], ParentType, ContextType>;
+  totalCount?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ManualProductRecommendationCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationCreatePayload'] = ResolversParentTypes['ManualProductRecommendationCreatePayload']> = ResolversObject<{
+  recommendation?: Resolver<Maybe<ResolversTypes['ManualProductRecommendation']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
 export type ManualProductRecommendationDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationDeletePayload'] = ResolversParentTypes['ManualProductRecommendationDeletePayload']> = ResolversObject<{
   deletedId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3201,9 +3216,18 @@ export type ManualProductRecommendationEdgeResolvers<ContextType = ServiceContex
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type ManualProductRecommendationPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationPayload'] = ResolversParentTypes['ManualProductRecommendationPayload']> = ResolversObject<{
+export type ManualProductRecommendationOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationOperationResult'] = ResolversParentTypes['ManualProductRecommendationOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['ManualProductRecommendationOperationType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type ManualProductRecommendationUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['ManualProductRecommendationUpdatePayload'] = ResolversParentTypes['ManualProductRecommendationUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['ManualProductRecommendationOperationResult']>, ParentType, ContextType>;
   recommendation?: Resolver<Maybe<ResolversTypes['ManualProductRecommendation']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3212,7 +3236,7 @@ export type MutationResolvers<ContextType = ServiceContext, ParentType extends R
 }>;
 
 export type NodeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['Node'] = ResolversParentTypes['Node']> = ResolversObject<{
-  __resolveType: TypeResolveFn<'Facet' | 'FacetSwatch' | 'FacetValue' | 'ManualProductRecommendation' | 'Product' | 'RecommendationPlacementPolicy', ParentType, ContextType>;
+  __resolveType: TypeResolveFn<'Facet' | 'FacetSwatch' | 'FacetValue' | 'ManualProductRecommendation' | 'Product' | 'RecommendationPlacementPolicy' | 'SearchProductBoost' | 'SearchSynonymGroup', ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
 }>;
 
@@ -3247,9 +3271,24 @@ export type RecommendationPlacementPolicyResolvers<ContextType = ServiceContext,
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type RecommendationPlacementPolicyPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPlacementPolicyPayload'] = ResolversParentTypes['RecommendationPlacementPolicyPayload']> = ResolversObject<{
+export type RecommendationPlacementPolicyCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPlacementPolicyCreatePayload'] = ResolversParentTypes['RecommendationPlacementPolicyCreatePayload']> = ResolversObject<{
   policy?: Resolver<Maybe<ResolversTypes['RecommendationPlacementPolicy']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationPlacementPolicyOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPlacementPolicyOperationResult'] = ResolversParentTypes['RecommendationPlacementPolicyOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['RecommendationPlacementPolicyOperationType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type RecommendationPlacementPolicyUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationPlacementPolicyUpdatePayload'] = ResolversParentTypes['RecommendationPlacementPolicyUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['RecommendationPlacementPolicyOperationResult']>, ParentType, ContextType>;
+  policy?: Resolver<Maybe<ResolversTypes['RecommendationPlacementPolicy']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3290,7 +3329,7 @@ export type RecommendationPreviewSourceBreakdownResolvers<ContextType = ServiceC
 export type RecommendationSnapshotPreviewPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['RecommendationSnapshotPreviewPayload'] = ResolversParentTypes['RecommendationSnapshotPreviewPayload']> = ResolversObject<{
   active?: Resolver<Maybe<ResolversTypes['RecommendationPreviewResult']>, ParentType, ContextType>;
   draft?: Resolver<Maybe<ResolversTypes['RecommendationPreviewResult']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['UserError']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3386,15 +3425,29 @@ export type SearchProductBoostConnectionResolvers<ContextType = ServiceContext, 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type SearchProductBoostCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostCreatePayload'] = ResolversParentTypes['SearchProductBoostCreatePayload']> = ResolversObject<{
+  productBoost?: Resolver<Maybe<ResolversTypes['SearchProductBoost']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SearchProductBoostDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostDeletePayload'] = ResolversParentTypes['SearchProductBoostDeletePayload']> = ResolversObject<{
+  deletedProductBoostId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type SearchProductBoostEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostEdge'] = ResolversParentTypes['SearchProductBoostEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['SearchProductBoost'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type SearchProductBoostPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostPayload'] = ResolversParentTypes['SearchProductBoostPayload']> = ResolversObject<{
-  productBoost?: Resolver<Maybe<ResolversTypes['SearchProductBoost']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+export type SearchProductBoostOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostOperationResult'] = ResolversParentTypes['SearchProductBoostOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['SearchProductBoostOperationType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -3404,8 +3457,16 @@ export type SearchProductBoostPhraseResolvers<ContextType = ServiceContext, Pare
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type SearchProductBoostUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchProductBoostUpdatePayload'] = ResolversParentTypes['SearchProductBoostUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['SearchProductBoostOperationResult']>, ParentType, ContextType>;
+  productBoost?: Resolver<Maybe<ResolversTypes['SearchProductBoost']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type SearchSettingsResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSettings'] = ResolversParentTypes['SearchSettings']> = ResolversObject<{
   fields?: Resolver<Array<ResolversTypes['SearchFieldConfiguration']>, ParentType, ContextType>;
+  id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
   outOfStockPolicy?: Resolver<ResolversTypes['SearchOutOfStockPolicy'], ParentType, ContextType>;
   typoToleranceEnabled?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
   updatedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
@@ -3446,13 +3507,34 @@ export type SearchSynonymGroupConnectionResolvers<ContextType = ServiceContext, 
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type SearchSynonymGroupCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupCreatePayload'] = ResolversParentTypes['SearchSynonymGroupCreatePayload']> = ResolversObject<{
+  synonymGroup?: Resolver<Maybe<ResolversTypes['SearchSynonymGroup']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SearchSynonymGroupDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupDeletePayload'] = ResolversParentTypes['SearchSynonymGroupDeletePayload']> = ResolversObject<{
+  deletedSynonymGroupId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type SearchSynonymGroupEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupEdge'] = ResolversParentTypes['SearchSynonymGroupEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['SearchSynonymGroup'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type SearchSynonymGroupPayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupPayload'] = ResolversParentTypes['SearchSynonymGroupPayload']> = ResolversObject<{
+export type SearchSynonymGroupOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupOperationResult'] = ResolversParentTypes['SearchSynonymGroupOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['SearchSynonymGroupOperationType'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type SearchSynonymGroupUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['SearchSynonymGroupUpdatePayload'] = ResolversParentTypes['SearchSynonymGroupUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['SearchSynonymGroupOperationResult']>, ParentType, ContextType>;
   synonymGroup?: Resolver<Maybe<ResolversTypes['SearchSynonymGroup']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -3475,11 +3557,10 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   BigInt?: GraphQLScalarType;
   Collection?: CollectionResolvers<ContextType>;
   DateTime?: GraphQLScalarType;
-  Email?: GraphQLScalarType;
   Facet?: FacetResolvers<ContextType>;
   FacetCreatePayload?: FacetCreatePayloadResolvers<ContextType>;
   FacetDeletePayload?: FacetDeletePayloadResolvers<ContextType>;
-  FacetMovePayload?: FacetMovePayloadResolvers<ContextType>;
+  FacetOperationResult?: FacetOperationResultResolvers<ContextType>;
   FacetRebalancePayload?: FacetRebalancePayloadResolvers<ContextType>;
   FacetScopesUpdatePayload?: FacetScopesUpdatePayloadResolvers<ContextType>;
   FacetSource?: FacetSourceResolvers<ContextType>;
@@ -3489,17 +3570,13 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   FacetSwatch?: FacetSwatchResolvers<ContextType>;
   FacetSwatchCreatePayload?: FacetSwatchCreatePayloadResolvers<ContextType>;
   FacetSwatchDeletePayload?: FacetSwatchDeletePayloadResolvers<ContextType>;
+  FacetSwatchOperationResult?: FacetSwatchOperationResultResolvers<ContextType>;
   FacetSwatchUpdatePayload?: FacetSwatchUpdatePayloadResolvers<ContextType>;
   FacetUpdatePayload?: FacetUpdatePayloadResolvers<ContextType>;
   FacetValue?: FacetValueResolvers<ContextType>;
   FacetValueCandidate?: FacetValueCandidateResolvers<ContextType>;
   FacetValueCandidateConnection?: FacetValueCandidateConnectionResolvers<ContextType>;
   FacetValueCandidateEdge?: FacetValueCandidateEdgeResolvers<ContextType>;
-  FacetValueCreatePayload?: FacetValueCreatePayloadResolvers<ContextType>;
-  FacetValueDeletePayload?: FacetValueDeletePayloadResolvers<ContextType>;
-  FacetValueMergePayload?: FacetValueMergePayloadResolvers<ContextType>;
-  FacetValueUnmergePayload?: FacetValueUnmergePayloadResolvers<ContextType>;
-  FacetValueUpdatePayload?: FacetValueUpdatePayloadResolvers<ContextType>;
   File?: FileResolvers<ContextType>;
   GenericUserError?: GenericUserErrorResolvers<ContextType>;
   JSON?: GraphQLScalarType;
@@ -3514,16 +3591,20 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   ListingSearchQuery?: ListingSearchQueryResolvers<ContextType>;
   ManualProductRecommendation?: ManualProductRecommendationResolvers<ContextType>;
   ManualProductRecommendationConnection?: ManualProductRecommendationConnectionResolvers<ContextType>;
+  ManualProductRecommendationCreatePayload?: ManualProductRecommendationCreatePayloadResolvers<ContextType>;
   ManualProductRecommendationDeletePayload?: ManualProductRecommendationDeletePayloadResolvers<ContextType>;
   ManualProductRecommendationEdge?: ManualProductRecommendationEdgeResolvers<ContextType>;
-  ManualProductRecommendationPayload?: ManualProductRecommendationPayloadResolvers<ContextType>;
+  ManualProductRecommendationOperationResult?: ManualProductRecommendationOperationResultResolvers<ContextType>;
+  ManualProductRecommendationUpdatePayload?: ManualProductRecommendationUpdatePayloadResolvers<ContextType>;
   Mutation?: MutationResolvers<ContextType>;
   Node?: NodeResolvers<ContextType>;
   PageInfo?: PageInfoResolvers<ContextType>;
   Product?: ProductResolvers<ContextType>;
   Query?: QueryResolvers<ContextType>;
   RecommendationPlacementPolicy?: RecommendationPlacementPolicyResolvers<ContextType>;
-  RecommendationPlacementPolicyPayload?: RecommendationPlacementPolicyPayloadResolvers<ContextType>;
+  RecommendationPlacementPolicyCreatePayload?: RecommendationPlacementPolicyCreatePayloadResolvers<ContextType>;
+  RecommendationPlacementPolicyOperationResult?: RecommendationPlacementPolicyOperationResultResolvers<ContextType>;
+  RecommendationPlacementPolicyUpdatePayload?: RecommendationPlacementPolicyUpdatePayloadResolvers<ContextType>;
   RecommendationPreviewCandidate?: RecommendationPreviewCandidateResolvers<ContextType>;
   RecommendationPreviewExcludedCandidate?: RecommendationPreviewExcludedCandidateResolvers<ContextType>;
   RecommendationPreviewResult?: RecommendationPreviewResultResolvers<ContextType>;
@@ -3538,16 +3619,22 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   SearchFieldConfiguration?: SearchFieldConfigurationResolvers<ContextType>;
   SearchProductBoost?: SearchProductBoostResolvers<ContextType>;
   SearchProductBoostConnection?: SearchProductBoostConnectionResolvers<ContextType>;
+  SearchProductBoostCreatePayload?: SearchProductBoostCreatePayloadResolvers<ContextType>;
+  SearchProductBoostDeletePayload?: SearchProductBoostDeletePayloadResolvers<ContextType>;
   SearchProductBoostEdge?: SearchProductBoostEdgeResolvers<ContextType>;
-  SearchProductBoostPayload?: SearchProductBoostPayloadResolvers<ContextType>;
+  SearchProductBoostOperationResult?: SearchProductBoostOperationResultResolvers<ContextType>;
   SearchProductBoostPhrase?: SearchProductBoostPhraseResolvers<ContextType>;
+  SearchProductBoostUpdatePayload?: SearchProductBoostUpdatePayloadResolvers<ContextType>;
   SearchSettings?: SearchSettingsResolvers<ContextType>;
   SearchSettingsOperationResult?: SearchSettingsOperationResultResolvers<ContextType>;
   SearchSettingsUpdatePayload?: SearchSettingsUpdatePayloadResolvers<ContextType>;
   SearchSynonymGroup?: SearchSynonymGroupResolvers<ContextType>;
   SearchSynonymGroupConnection?: SearchSynonymGroupConnectionResolvers<ContextType>;
+  SearchSynonymGroupCreatePayload?: SearchSynonymGroupCreatePayloadResolvers<ContextType>;
+  SearchSynonymGroupDeletePayload?: SearchSynonymGroupDeletePayloadResolvers<ContextType>;
   SearchSynonymGroupEdge?: SearchSynonymGroupEdgeResolvers<ContextType>;
-  SearchSynonymGroupPayload?: SearchSynonymGroupPayloadResolvers<ContextType>;
+  SearchSynonymGroupOperationResult?: SearchSynonymGroupOperationResultResolvers<ContextType>;
+  SearchSynonymGroupUpdatePayload?: SearchSynonymGroupUpdatePayloadResolvers<ContextType>;
   SearchSynonymValue?: SearchSynonymValueResolvers<ContextType>;
   UserError?: UserErrorResolvers<ContextType>;
 }>;

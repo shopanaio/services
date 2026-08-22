@@ -7,6 +7,7 @@ export type MakeOptional<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]?: 
 export type MakeMaybe<T, K extends keyof T> = Omit<T, K> & { [SubKey in K]: Maybe<T[SubKey]> };
 export type MakeEmpty<T extends { [key: string]: unknown }, K extends keyof T> = { [_ in K]?: never };
 export type Incremental<T> = T | { [P in keyof T]?: P extends ' $fragmentName' | '__typename' ? T[P] : never };
+export type Omit<T, K extends keyof T> = Pick<T, Exclude<keyof T, K>>;
 export type RequireFields<T, K extends keyof T> = Omit<T, K> & { [P in K]-?: NonNullable<T[P]> };
 /** All built-in and custom scalars, mapped to their actual values */
 export type Scalars = {
@@ -73,21 +74,6 @@ export type AppCapabilityOperation = {
   name: Scalars['String']['output'];
 };
 
-/** Input for changing installation configuration without a lifecycle update. */
-export type AppConfigureInput = {
-  configuration: Scalars['JSON']['input'];
-  /** Replaces the granted scopes when provided. */
-  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
-  installationId: Scalars['ID']['input'];
-};
-
-/** Payload returned after changing installation configuration. */
-export type AppConfigurePayload = {
-  __typename?: 'AppConfigurePayload';
-  installation: Maybe<AppInstallation>;
-  userErrors: Array<GenericUserError>;
-};
-
 /** A Relay connection of bundled Apps. */
 export type AppConnection = {
   __typename?: 'AppConnection';
@@ -148,21 +134,12 @@ export type AppIcon = {
   url: Scalars['String']['output'];
 };
 
-/** Input for installing a bundled App in the current store. */
-export type AppInstallInput = {
-  appCode: Scalars['String']['input'];
-  configuration?: InputMaybe<Scalars['JSON']['input']>;
-  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
-  secrets?: InputMaybe<Array<AppSecretInput>>;
-};
-
 /** A bundled App installed in the current store. */
 export type AppInstallation = Node & {
   __typename?: 'AppInstallation';
   appCode: Scalars['String']['output'];
   capabilities: Array<AppCapabilityBinding>;
   configuration: Scalars['JSON']['output'];
-  configurationVersion: Scalars['Int']['output'];
   createdAt: Scalars['DateTime']['output'];
   healthStatus: AppInstallationHealthStatus;
   id: Scalars['ID']['output'];
@@ -199,9 +176,35 @@ export type AppInstallationManifestSnapshotsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
 };
 
-/** Input for a lifecycle action on an existing installation. */
-export type AppInstallationActionInput = {
-  installationId: Scalars['ID']['input'];
+/** Root configuration operation for an existing App installation. */
+export type AppInstallationConfigurationUpdateInput = {
+  configuration: Scalars['JSON']['input'];
+};
+
+/** Input for creating an App installation in the current store. */
+export type AppInstallationCreateInput = {
+  appCode: Scalars['String']['input'];
+  configuration?: InputMaybe<Scalars['JSON']['input']>;
+  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
+  secrets?: InputMaybe<Array<AppSecretInput>>;
+};
+
+/** Payload returned after creating an App installation. */
+export type AppInstallationCreatePayload = {
+  __typename?: 'AppInstallationCreatePayload';
+  installation: Maybe<AppInstallation>;
+  /** Lifecycle operation accepted while creating the installation. */
+  operation: Maybe<AppLifecycleOperation>;
+  userErrors: Array<GenericUserError>;
+};
+
+/** Payload returned after deleting an App installation. */
+export type AppInstallationDeletePayload = {
+  __typename?: 'AppInstallationDeletePayload';
+  deletedAppInstallationId: Maybe<Scalars['ID']['output']>;
+  /** Lifecycle operation accepted while deleting the installation. */
+  operation: Maybe<AppLifecycleOperation>;
+  userErrors: Array<GenericUserError>;
 };
 
 /** The latest persisted App installation failure. */
@@ -219,6 +222,41 @@ export enum AppInstallationHealthStatus {
   Unknown = 'UNKNOWN'
 }
 
+/**
+ * Lifecycle action applied to an existing App installation.
+ *
+ * Deletion is intentionally absent: aggregate deletion is exposed only through
+ * appInstallationDelete.
+ */
+export enum AppInstallationLifecycleOperationAction {
+  Resume = 'RESUME',
+  Suspend = 'SUSPEND',
+  Upgrade = 'UPGRADE'
+}
+
+export type AppInstallationLifecycleOperationInput = {
+  action: AppInstallationLifecycleOperationAction;
+};
+
+/** Result of one public App installation update operation. */
+export type AppInstallationOperationResult = {
+  __typename?: 'AppInstallationOperationResult';
+  applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
+  errors: Array<GenericUserError>;
+  type: AppInstallationOperationType;
+};
+
+/** Stable type of an App installation update operation result. */
+export enum AppInstallationOperationType {
+  ConfigurationUpdate = 'CONFIGURATION_UPDATE',
+  ScopesReplace = 'SCOPES_REPLACE',
+  SecretSet = 'SECRET_SET',
+  StatusResume = 'STATUS_RESUME',
+  StatusSuspend = 'STATUS_SUSPEND',
+  VersionUpgrade = 'VERSION_UPGRADE'
+}
+
 /** A permission grant recorded for an App installation. */
 export type AppInstallationScope = {
   __typename?: 'AppInstallationScope';
@@ -226,6 +264,22 @@ export type AppInstallationScope = {
   grantedAt: Scalars['DateTime']['output'];
   revokedAt: Maybe<Scalars['DateTime']['output']>;
   scope: Scalars['String']['output'];
+};
+
+/** Complete replacement of the scope links owned by an App installation. */
+export type AppInstallationScopesReplaceInput = {
+  grantedScopes: Array<Scalars['String']['input']>;
+};
+
+export enum AppInstallationSecretOperationAction {
+  Set = 'SET'
+}
+
+/** Operation for setting or rotating one write-only App installation secret. */
+export type AppInstallationSecretOperationInput = {
+  action: AppInstallationSecretOperationAction;
+  name: Scalars['String']['input'];
+  value: Scalars['String']['input'];
 };
 
 /** Lifecycle state of an App installation. */
@@ -243,6 +297,32 @@ export enum AppInstallationStatus {
   UpdateFailed = 'UPDATE_FAILED',
   Updating = 'UPDATING'
 }
+
+/**
+ * All operations that can be applied to an existing App installation.
+ *
+ * At least one field must be supplied. Empty operation arrays and an input object without a supplied
+ * operation are rejected during request validation before the workflow is started.
+ *
+ * operationResults use the canonical group order declared below: configuration, lifecycle, scopes,
+ * then secrets. The order of secrets is preserved within its group.
+ */
+export type AppInstallationUpdateInput = {
+  configuration?: InputMaybe<AppInstallationConfigurationUpdateInput>;
+  lifecycle?: InputMaybe<AppInstallationLifecycleOperationInput>;
+  scopes?: InputMaybe<AppInstallationScopesReplaceInput>;
+  secrets?: InputMaybe<Array<AppInstallationSecretOperationInput>>;
+};
+
+/** Payload returned after applying ordered operations to an App installation. */
+export type AppInstallationUpdatePayload = {
+  __typename?: 'AppInstallationUpdatePayload';
+  installation: Maybe<AppInstallation>;
+  /** Lifecycle operation accepted by an UPGRADE, SUSPEND, or RESUME operation, when present. */
+  operation: Maybe<AppLifecycleOperation>;
+  operationResults: Array<AppInstallationOperationResult>;
+  userErrors: Array<GenericUserError>;
+};
 
 /** Actor that initiated an App lifecycle operation. */
 export enum AppLifecycleActorType {
@@ -309,15 +389,6 @@ export enum AppLifecycleOperationType {
   Uninstall = 'UNINSTALL',
   Update = 'UPDATE'
 }
-
-/** Payload returned after accepting a lifecycle operation. */
-export type AppLifecyclePayload = {
-  __typename?: 'AppLifecyclePayload';
-  installation: Maybe<AppInstallation>;
-  operation: Maybe<AppLifecycleOperation>;
-  /** Whether an earlier request with the same client mutation ID was reused. */
-  userErrors: Array<GenericUserError>;
-};
 
 /** An immutable manifest snapshot used by a lifecycle operation. */
 export type AppManifestSnapshot = Node & {
@@ -408,16 +479,6 @@ export type AppSecretInput = {
   value: Scalars['String']['input'];
 };
 
-/** Input for updating an App installation. */
-export type AppUpdateInput = {
-  configuration?: InputMaybe<Scalars['JSON']['input']>;
-  /** Replaces the granted scopes when provided. */
-  grantedScopes?: InputMaybe<Array<Scalars['String']['input']>>;
-  installationId: Scalars['ID']['input'];
-  /** Sets or rotates the named secrets without returning their values. */
-  secrets?: InputMaybe<Array<AppSecretInput>>;
-};
-
 /** Filter conditions for App */
 export type AppWhereInput = {
   /** Logical AND of multiple conditions */
@@ -444,48 +505,33 @@ export type AppWhereInput = {
 
 export type AppsMutation = {
   __typename?: 'AppsMutation';
-  /** Update installation configuration and granted scopes. */
-  appConfigure: AppConfigurePayload;
-  /** Install a bundled App in the current store. */
-  appInstall: AppLifecyclePayload;
-  /** Resume a suspended App installation. */
-  appResume: AppLifecyclePayload;
-  /** Temporarily disable an active App installation. */
-  appSuspend: AppLifecyclePayload;
-  /** Uninstall an App from the current store. */
-  appUninstall: AppLifecyclePayload;
-  /** Update an installed App to the bundled target version. */
-  appUpdate: AppLifecyclePayload;
+  /** Create an App installation in the current store. */
+  appInstallationCreate: AppInstallationCreatePayload;
+  /**
+   * Delete an App installation from the current store.
+   *
+   * The current domain implementation may perform this as a soft delete, but it remains a distinct
+   * aggregate delete command and is not an AppInstallationUpdate operation.
+   */
+  appInstallationDelete: AppInstallationDeletePayload;
+  /** Apply an ordered set of operations to an existing App installation. */
+  appInstallationUpdate: AppInstallationUpdatePayload;
 };
 
 
-export type AppsMutationAppConfigureArgs = {
-  input: AppConfigureInput;
+export type AppsMutationAppInstallationCreateArgs = {
+  input: AppInstallationCreateInput;
 };
 
 
-export type AppsMutationAppInstallArgs = {
-  input: AppInstallInput;
+export type AppsMutationAppInstallationDeleteArgs = {
+  appInstallationId: Scalars['ID']['input'];
 };
 
 
-export type AppsMutationAppResumeArgs = {
-  input: AppInstallationActionInput;
-};
-
-
-export type AppsMutationAppSuspendArgs = {
-  input: AppInstallationActionInput;
-};
-
-
-export type AppsMutationAppUninstallArgs = {
-  input: AppInstallationActionInput;
-};
-
-
-export type AppsMutationAppUpdateArgs = {
-  input: AppUpdateInput;
+export type AppsMutationAppInstallationUpdateArgs = {
+  appInstallationId: Scalars['ID']['input'];
+  operations: AppInstallationUpdateInput;
 };
 
 export type AppsQuery = {
@@ -498,6 +544,10 @@ export type AppsQuery = {
   appLifecycleOperation: Maybe<AppLifecycleOperation>;
   /** List bundled Apps and their installation state for the current store. */
   apps: AppConnection;
+  /** Resolve an Apps-owned Relay node by its global ID. */
+  node: Maybe<Node>;
+  /** Resolve Apps-owned Relay nodes while preserving input order. */
+  nodes: Array<Maybe<Node>>;
 };
 
 
@@ -523,6 +573,16 @@ export type AppsQueryAppsArgs = {
   last?: InputMaybe<Scalars['Int']['input']>;
   orderBy?: InputMaybe<Array<AppOrderByInput>>;
   where?: InputMaybe<AppWhereInput>;
+};
+
+
+export type AppsQueryNodeArgs = {
+  id: Scalars['ID']['input'];
+};
+
+
+export type AppsQueryNodesArgs = {
+  ids: Array<Scalars['ID']['input']>;
 };
 
 /** Filter operators for Boolean fields */
@@ -1459,21 +1519,30 @@ export type ResolversTypes = ResolversObject<{
   AppCapabilityBindingStatus: AppCapabilityBindingStatus;
   AppCapabilityDefinition: ResolverTypeWrapper<AppCapabilityDefinition>;
   AppCapabilityOperation: ResolverTypeWrapper<AppCapabilityOperation>;
-  AppConfigureInput: AppConfigureInput;
-  AppConfigurePayload: ResolverTypeWrapper<AppConfigurePayload>;
   AppConnection: ResolverTypeWrapper<AppConnection>;
   AppDefinition: ResolverTypeWrapper<AppDefinition>;
   Boolean: ResolverTypeWrapper<Scalars['Boolean']['output']>;
   AppEdge: ResolverTypeWrapper<AppEdge>;
   AppGraphQLSurfaces: ResolverTypeWrapper<AppGraphQlSurfaces>;
   AppIcon: ResolverTypeWrapper<AppIcon>;
-  AppInstallInput: AppInstallInput;
   AppInstallation: ResolverTypeWrapper<AppInstallation>;
-  AppInstallationActionInput: AppInstallationActionInput;
+  AppInstallationConfigurationUpdateInput: AppInstallationConfigurationUpdateInput;
+  AppInstallationCreateInput: AppInstallationCreateInput;
+  AppInstallationCreatePayload: ResolverTypeWrapper<AppInstallationCreatePayload>;
+  AppInstallationDeletePayload: ResolverTypeWrapper<AppInstallationDeletePayload>;
   AppInstallationError: ResolverTypeWrapper<AppInstallationError>;
   AppInstallationHealthStatus: AppInstallationHealthStatus;
+  AppInstallationLifecycleOperationAction: AppInstallationLifecycleOperationAction;
+  AppInstallationLifecycleOperationInput: AppInstallationLifecycleOperationInput;
+  AppInstallationOperationResult: ResolverTypeWrapper<AppInstallationOperationResult>;
+  AppInstallationOperationType: AppInstallationOperationType;
   AppInstallationScope: ResolverTypeWrapper<AppInstallationScope>;
+  AppInstallationScopesReplaceInput: AppInstallationScopesReplaceInput;
+  AppInstallationSecretOperationAction: AppInstallationSecretOperationAction;
+  AppInstallationSecretOperationInput: AppInstallationSecretOperationInput;
   AppInstallationStatus: AppInstallationStatus;
+  AppInstallationUpdateInput: AppInstallationUpdateInput;
+  AppInstallationUpdatePayload: ResolverTypeWrapper<AppInstallationUpdatePayload>;
   AppLifecycleActorType: AppLifecycleActorType;
   AppLifecycleOperation: ResolverTypeWrapper<AppLifecycleOperation>;
   AppLifecycleOperationConnection: ResolverTypeWrapper<AppLifecycleOperationConnection>;
@@ -1481,7 +1550,6 @@ export type ResolversTypes = ResolversObject<{
   AppLifecycleOperationError: ResolverTypeWrapper<AppLifecycleOperationError>;
   AppLifecycleOperationStatus: AppLifecycleOperationStatus;
   AppLifecycleOperationType: AppLifecycleOperationType;
-  AppLifecyclePayload: ResolverTypeWrapper<AppLifecyclePayload>;
   AppManifestSnapshot: ResolverTypeWrapper<AppManifestSnapshot>;
   AppManifestSnapshotConnection: ResolverTypeWrapper<AppManifestSnapshotConnection>;
   AppManifestSnapshotEdge: ResolverTypeWrapper<AppManifestSnapshotEdge>;
@@ -1492,10 +1560,9 @@ export type ResolversTypes = ResolversObject<{
   AppRuntimeHealthStatus: AppRuntimeHealthStatus;
   AppRuntimeStatus: AppRuntimeStatus;
   AppSecretInput: AppSecretInput;
-  AppUpdateInput: AppUpdateInput;
   AppWhereInput: AppWhereInput;
   AppsMutation: ResolverTypeWrapper<AppsMutation>;
-  AppsQuery: ResolverTypeWrapper<AppsQuery>;
+  AppsQuery: ResolverTypeWrapper<Omit<AppsQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversTypes['Node']>, nodes: Array<Maybe<ResolversTypes['Node']>> }>;
   BooleanFilter: BooleanFilter;
   CurrencyCode: CurrencyCode;
   DateTime: ResolverTypeWrapper<Scalars['DateTime']['output']>;
@@ -1528,24 +1595,29 @@ export type ResolversParentTypes = ResolversObject<{
   Int: Scalars['Int']['output'];
   AppCapabilityDefinition: AppCapabilityDefinition;
   AppCapabilityOperation: AppCapabilityOperation;
-  AppConfigureInput: AppConfigureInput;
-  AppConfigurePayload: AppConfigurePayload;
   AppConnection: AppConnection;
   AppDefinition: AppDefinition;
   Boolean: Scalars['Boolean']['output'];
   AppEdge: AppEdge;
   AppGraphQLSurfaces: AppGraphQlSurfaces;
   AppIcon: AppIcon;
-  AppInstallInput: AppInstallInput;
   AppInstallation: AppInstallation;
-  AppInstallationActionInput: AppInstallationActionInput;
+  AppInstallationConfigurationUpdateInput: AppInstallationConfigurationUpdateInput;
+  AppInstallationCreateInput: AppInstallationCreateInput;
+  AppInstallationCreatePayload: AppInstallationCreatePayload;
+  AppInstallationDeletePayload: AppInstallationDeletePayload;
   AppInstallationError: AppInstallationError;
+  AppInstallationLifecycleOperationInput: AppInstallationLifecycleOperationInput;
+  AppInstallationOperationResult: AppInstallationOperationResult;
   AppInstallationScope: AppInstallationScope;
+  AppInstallationScopesReplaceInput: AppInstallationScopesReplaceInput;
+  AppInstallationSecretOperationInput: AppInstallationSecretOperationInput;
+  AppInstallationUpdateInput: AppInstallationUpdateInput;
+  AppInstallationUpdatePayload: AppInstallationUpdatePayload;
   AppLifecycleOperation: AppLifecycleOperation;
   AppLifecycleOperationConnection: AppLifecycleOperationConnection;
   AppLifecycleOperationEdge: AppLifecycleOperationEdge;
   AppLifecycleOperationError: AppLifecycleOperationError;
-  AppLifecyclePayload: AppLifecyclePayload;
   AppManifestSnapshot: AppManifestSnapshot;
   AppManifestSnapshotConnection: AppManifestSnapshotConnection;
   AppManifestSnapshotEdge: AppManifestSnapshotEdge;
@@ -1553,10 +1625,9 @@ export type ResolversParentTypes = ResolversObject<{
   AppPermission: AppPermission;
   AppRuntimeHealth: AppRuntimeHealth;
   AppSecretInput: AppSecretInput;
-  AppUpdateInput: AppUpdateInput;
   AppWhereInput: AppWhereInput;
   AppsMutation: AppsMutation;
-  AppsQuery: AppsQuery;
+  AppsQuery: Omit<AppsQuery, 'node' | 'nodes'> & { node?: Maybe<ResolversParentTypes['Node']>, nodes: Array<Maybe<ResolversParentTypes['Node']>> };
   BooleanFilter: BooleanFilter;
   DateTime: Scalars['DateTime']['output'];
   DateTimeFilter: DateTimeFilter;
@@ -1598,12 +1669,6 @@ export type AppCapabilityDefinitionResolvers<ContextType = ServiceContext, Paren
 export type AppCapabilityOperationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppCapabilityOperation'] = ResolversParentTypes['AppCapabilityOperation']> = ResolversObject<{
   action?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   name?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type AppConfigurePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppConfigurePayload'] = ResolversParentTypes['AppConfigurePayload']> = ResolversObject<{
-  installation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1653,7 +1718,6 @@ export type AppInstallationResolvers<ContextType = ServiceContext, ParentType ex
   appCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   capabilities?: Resolver<Array<ResolversTypes['AppCapabilityBinding']>, ParentType, ContextType>;
   configuration?: Resolver<ResolversTypes['JSON'], ParentType, ContextType>;
-  configurationVersion?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   createdAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   healthStatus?: Resolver<ResolversTypes['AppInstallationHealthStatus'], ParentType, ContextType>;
   id?: Resolver<ResolversTypes['ID'], ParentType, ContextType>;
@@ -1673,9 +1737,31 @@ export type AppInstallationResolvers<ContextType = ServiceContext, ParentType ex
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
+export type AppInstallationCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppInstallationCreatePayload'] = ResolversParentTypes['AppInstallationCreatePayload']> = ResolversObject<{
+  installation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType>;
+  operation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type AppInstallationDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppInstallationDeletePayload'] = ResolversParentTypes['AppInstallationDeletePayload']> = ResolversObject<{
+  deletedAppInstallationId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  operation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
 export type AppInstallationErrorResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppInstallationError'] = ResolversParentTypes['AppInstallationError']> = ResolversObject<{
   code?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   message?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type AppInstallationOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppInstallationOperationResult'] = ResolversParentTypes['AppInstallationOperationResult']> = ResolversObject<{
+  applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
+  errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  type?: Resolver<ResolversTypes['AppInstallationOperationType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1684,6 +1770,14 @@ export type AppInstallationScopeResolvers<ContextType = ServiceContext, ParentTy
   grantedAt?: Resolver<ResolversTypes['DateTime'], ParentType, ContextType>;
   revokedAt?: Resolver<Maybe<ResolversTypes['DateTime']>, ParentType, ContextType>;
   scope?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
+  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
+}>;
+
+export type AppInstallationUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppInstallationUpdatePayload'] = ResolversParentTypes['AppInstallationUpdatePayload']> = ResolversObject<{
+  installation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType>;
+  operation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType>;
+  operationResults?: Resolver<Array<ResolversTypes['AppInstallationOperationResult']>, ParentType, ContextType>;
+  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1726,13 +1820,6 @@ export type AppLifecycleOperationErrorResolvers<ContextType = ServiceContext, Pa
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type AppLifecyclePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppLifecyclePayload'] = ResolversParentTypes['AppLifecyclePayload']> = ResolversObject<{
-  installation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType>;
-  operation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type AppManifestSnapshotResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppManifestSnapshot'] = ResolversParentTypes['AppManifestSnapshot']> = ResolversObject<{
   __resolveReference?: ReferenceResolver<Maybe<ResolversTypes['AppManifestSnapshot']>, { __typename: 'AppManifestSnapshot' } & GraphQLRecursivePick<ParentType, {"id":true}>, ContextType>;
   appCode?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
@@ -1770,12 +1857,9 @@ export type AppRuntimeHealthResolvers<ContextType = ServiceContext, ParentType e
 }>;
 
 export type AppsMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['AppsMutation'] = ResolversParentTypes['AppsMutation']> = ResolversObject<{
-  appConfigure?: Resolver<ResolversTypes['AppConfigurePayload'], ParentType, ContextType, RequireFields<AppsMutationAppConfigureArgs, 'input'>>;
-  appInstall?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppInstallArgs, 'input'>>;
-  appResume?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppResumeArgs, 'input'>>;
-  appSuspend?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppSuspendArgs, 'input'>>;
-  appUninstall?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppUninstallArgs, 'input'>>;
-  appUpdate?: Resolver<ResolversTypes['AppLifecyclePayload'], ParentType, ContextType, RequireFields<AppsMutationAppUpdateArgs, 'input'>>;
+  appInstallationCreate?: Resolver<ResolversTypes['AppInstallationCreatePayload'], ParentType, ContextType, RequireFields<AppsMutationAppInstallationCreateArgs, 'input'>>;
+  appInstallationDelete?: Resolver<ResolversTypes['AppInstallationDeletePayload'], ParentType, ContextType, RequireFields<AppsMutationAppInstallationDeleteArgs, 'appInstallationId'>>;
+  appInstallationUpdate?: Resolver<ResolversTypes['AppInstallationUpdatePayload'], ParentType, ContextType, RequireFields<AppsMutationAppInstallationUpdateArgs, 'appInstallationId' | 'operations'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1784,6 +1868,8 @@ export type AppsQueryResolvers<ContextType = ServiceContext, ParentType extends 
   appInstallation?: Resolver<Maybe<ResolversTypes['AppInstallation']>, ParentType, ContextType, RequireFields<AppsQueryAppInstallationArgs, 'id'>>;
   appLifecycleOperation?: Resolver<Maybe<ResolversTypes['AppLifecycleOperation']>, ParentType, ContextType, RequireFields<AppsQueryAppLifecycleOperationArgs, 'id'>>;
   apps?: Resolver<ResolversTypes['AppConnection'], ParentType, ContextType, Partial<AppsQueryAppsArgs>>;
+  node?: Resolver<Maybe<ResolversTypes['Node']>, ParentType, ContextType, RequireFields<AppsQueryNodeArgs, 'id'>>;
+  nodes?: Resolver<Array<Maybe<ResolversTypes['Node']>>, ParentType, ContextType, RequireFields<AppsQueryNodesArgs, 'ids'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -1834,20 +1920,22 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   AppCapabilityBinding?: AppCapabilityBindingResolvers<ContextType>;
   AppCapabilityDefinition?: AppCapabilityDefinitionResolvers<ContextType>;
   AppCapabilityOperation?: AppCapabilityOperationResolvers<ContextType>;
-  AppConfigurePayload?: AppConfigurePayloadResolvers<ContextType>;
   AppConnection?: AppConnectionResolvers<ContextType>;
   AppDefinition?: AppDefinitionResolvers<ContextType>;
   AppEdge?: AppEdgeResolvers<ContextType>;
   AppGraphQLSurfaces?: AppGraphQlSurfacesResolvers<ContextType>;
   AppIcon?: AppIconResolvers<ContextType>;
   AppInstallation?: AppInstallationResolvers<ContextType>;
+  AppInstallationCreatePayload?: AppInstallationCreatePayloadResolvers<ContextType>;
+  AppInstallationDeletePayload?: AppInstallationDeletePayloadResolvers<ContextType>;
   AppInstallationError?: AppInstallationErrorResolvers<ContextType>;
+  AppInstallationOperationResult?: AppInstallationOperationResultResolvers<ContextType>;
   AppInstallationScope?: AppInstallationScopeResolvers<ContextType>;
+  AppInstallationUpdatePayload?: AppInstallationUpdatePayloadResolvers<ContextType>;
   AppLifecycleOperation?: AppLifecycleOperationResolvers<ContextType>;
   AppLifecycleOperationConnection?: AppLifecycleOperationConnectionResolvers<ContextType>;
   AppLifecycleOperationEdge?: AppLifecycleOperationEdgeResolvers<ContextType>;
   AppLifecycleOperationError?: AppLifecycleOperationErrorResolvers<ContextType>;
-  AppLifecyclePayload?: AppLifecyclePayloadResolvers<ContextType>;
   AppManifestSnapshot?: AppManifestSnapshotResolvers<ContextType>;
   AppManifestSnapshotConnection?: AppManifestSnapshotConnectionResolvers<ContextType>;
   AppManifestSnapshotEdge?: AppManifestSnapshotEdgeResolvers<ContextType>;

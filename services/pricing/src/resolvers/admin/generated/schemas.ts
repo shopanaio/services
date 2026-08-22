@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BigIntFilter, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, DiscountAllocationMethod, DiscountAllocationTargetType, DiscountAmountOffRuleInput, DiscountBenefitStrategy, DiscountBuyXGetYRuleInput, DiscountBuyerContextInput, DiscountBuyerContextType, DiscountCalculationStrategy, DiscountChannelInput, DiscountClass, DiscountClassFilter, DiscountCodeCreateOperationInput, DiscountCodeDeleteOperationInput, DiscountCodeOrderByInput, DiscountCodeOrderField, DiscountCodeStatus, DiscountCodeStatusFilter, DiscountCodeUpdateOperationInput, DiscountCodeWhereInput, DiscountCodesUpdateInput, DiscountCreateInput, DiscountCurrencyFilter, DiscountDefinitionUpdateInput, DiscountDeleteInput, DiscountEffectiveStatus, DiscountEffectiveStatusFilter, DiscountExternalReferenceCreateInput, DiscountExternalReferenceDeleteInput, DiscountExternalReferenceIdentityInput, DiscountExternalReferenceOrderByInput, DiscountExternalReferenceOrderField, DiscountExternalReferenceSyncInput, DiscountExternalReferenceUpdateInput, DiscountExternalReferenceWhereInput, DiscountExternalSyncDirection, DiscountExternalSyncDirectionFilter, DiscountExternalSyncStatus, DiscountExternalSyncStatusFilter, DiscountFreeShippingRuleInput, DiscountFunctionBindingInput, DiscountFunctionBindingStatus, DiscountFunctionFailureMode, DiscountKind, DiscountKindFilter, DiscountLifecycleUpdateInput, DiscountMethod, DiscountMethodFilter, DiscountMinimumRequirementInput, DiscountMinimumRequirementSyncInput, DiscountOperationType, DiscountOrderByInput, DiscountOrderField, DiscountPurchaseModesInput, DiscountRedemptionOrderByInput, DiscountRedemptionOrderField, DiscountRedemptionStatus, DiscountRedemptionStatusFilter, DiscountRedemptionWhereInput, DiscountReferenceStatus, DiscountRequirementType, DiscountReservationStatus, DiscountReservationStatusFilter, DiscountRuleInput, DiscountScheduleInput, DiscountState, DiscountStateFilter, DiscountTargetRole, DiscountTargetSelectionInput, DiscountTargetType, DiscountUpdateInput, DiscountUsageLimitsInput, DiscountUsageReservationOrderByInput, DiscountUsageReservationOrderField, DiscountUsageReservationWhereInput, DiscountWhereInput, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { BigIntFilter, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, DiscountAllocationMethod, DiscountAllocationTargetType, DiscountAmountOffRuleInput, DiscountBenefitStrategy, DiscountBuyXGetYRuleInput, DiscountBuyerContextInput, DiscountBuyerContextType, DiscountCalculationStrategy, DiscountChannelInput, DiscountClass, DiscountClassFilter, DiscountCodeCreateInput, DiscountCodeOperationAction, DiscountCodeOperationInput, DiscountCodeOrderByInput, DiscountCodeOrderField, DiscountCodeStatus, DiscountCodeStatusFilter, DiscountCodeUpdateInput, DiscountCodeWhereInput, DiscountCreateInput, DiscountCurrencyFilter, DiscountDefinitionUpdateInput, DiscountEffectiveStatus, DiscountEffectiveStatusFilter, DiscountExternalReferenceCreateValuesInput, DiscountExternalReferenceIdentityInput, DiscountExternalReferenceOperationAction, DiscountExternalReferenceOperationInput, DiscountExternalReferenceOrderByInput, DiscountExternalReferenceOrderField, DiscountExternalReferenceSyncInput, DiscountExternalReferenceUpdateInput, DiscountExternalReferenceWhereInput, DiscountExternalSyncDirection, DiscountExternalSyncDirectionFilter, DiscountExternalSyncStatus, DiscountExternalSyncStatusFilter, DiscountFreeShippingRuleInput, DiscountFunctionBindingInput, DiscountFunctionBindingStatus, DiscountFunctionFailureMode, DiscountKind, DiscountKindFilter, DiscountLifecycleUpdateInput, DiscountMethod, DiscountMethodFilter, DiscountMinimumRequirementInput, DiscountMinimumRequirementSyncInput, DiscountOperationType, DiscountOrderByInput, DiscountOrderField, DiscountPurchaseModesInput, DiscountRedemptionOrderByInput, DiscountRedemptionOrderField, DiscountRedemptionStatus, DiscountRedemptionStatusFilter, DiscountRedemptionWhereInput, DiscountReferenceStatus, DiscountRequirementType, DiscountReservationStatus, DiscountReservationStatusFilter, DiscountRuleInput, DiscountScheduleInput, DiscountState, DiscountStateFilter, DiscountTargetRole, DiscountTargetSelectionInput, DiscountTargetType, DiscountUpdateInput, DiscountUsageLimitsInput, DiscountUsageReservationOrderByInput, DiscountUsageReservationOrderField, DiscountUsageReservationWhereInput, DiscountWhereInput, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -27,11 +27,15 @@ export const DiscountCalculationStrategySchema = z.nativeEnum(DiscountCalculatio
 
 export const DiscountClassSchema = z.nativeEnum(DiscountClass);
 
+export const DiscountCodeOperationActionSchema = z.nativeEnum(DiscountCodeOperationAction);
+
 export const DiscountCodeOrderFieldSchema = z.nativeEnum(DiscountCodeOrderField);
 
 export const DiscountCodeStatusSchema = z.nativeEnum(DiscountCodeStatus);
 
 export const DiscountEffectiveStatusSchema = z.nativeEnum(DiscountEffectiveStatus);
+
+export const DiscountExternalReferenceOperationActionSchema = z.nativeEnum(DiscountExternalReferenceOperationAction);
 
 export const DiscountExternalReferenceOrderFieldSchema = z.nativeEnum(DiscountExternalReferenceOrderField);
 
@@ -170,7 +174,7 @@ export function DiscountClassFilterSchema(): z.ZodObject<Properties<DiscountClas
   })
 }
 
-export function DiscountCodeCreateOperationInputSchema(): z.ZodObject<Properties<DiscountCodeCreateOperationInput>> {
+export function DiscountCodeCreateInputSchema(): z.ZodObject<Properties<DiscountCodeCreateInput>> {
   return z.object({
     code: z.string(),
     metadata: z.record(z.unknown()).nullish(),
@@ -178,9 +182,12 @@ export function DiscountCodeCreateOperationInputSchema(): z.ZodObject<Properties
   })
 }
 
-export function DiscountCodeDeleteOperationInputSchema(): z.ZodObject<Properties<DiscountCodeDeleteOperationInput>> {
+export function DiscountCodeOperationInputSchema(): z.ZodObject<Properties<DiscountCodeOperationInput>> {
   return z.object({
-    codeId: z.string()
+    action: DiscountCodeOperationActionSchema,
+    codeId: z.string().nullish(),
+    create: z.lazy(() => DiscountCodeCreateInputSchema().nullish()),
+    update: z.lazy(() => DiscountCodeUpdateInputSchema().nullish())
   })
 }
 
@@ -200,10 +207,9 @@ export function DiscountCodeStatusFilterSchema(): z.ZodObject<Properties<Discoun
   })
 }
 
-export function DiscountCodeUpdateOperationInputSchema(): z.ZodObject<Properties<DiscountCodeUpdateOperationInput>> {
+export function DiscountCodeUpdateInputSchema(): z.ZodObject<Properties<DiscountCodeUpdateInput>> {
   return z.object({
     code: z.string().nullish(),
-    codeId: z.string(),
     metadata: z.record(z.unknown()).nullish(),
     status: DiscountCodeStatusSchema.nullish(),
     usageLimit: z.string().nullish()
@@ -230,20 +236,12 @@ export function DiscountCodeWhereInputSchema(): z.ZodObject<Properties<DiscountC
   })
 }
 
-export function DiscountCodesUpdateInputSchema(): z.ZodObject<Properties<DiscountCodesUpdateInput>> {
-  return z.object({
-    create: z.array(z.lazy(() => DiscountCodeCreateOperationInputSchema())).nullish(),
-    delete: z.array(z.lazy(() => DiscountCodeDeleteOperationInputSchema())).nullish(),
-    update: z.array(z.lazy(() => DiscountCodeUpdateOperationInputSchema())).nullish()
-  })
-}
-
 export function DiscountCreateInputSchema(): z.ZodObject<Properties<DiscountCreateInput>> {
   return z.object({
     buyerContext: z.lazy(() => DiscountBuyerContextInputSchema().nullish()),
     calculationStrategy: DiscountCalculationStrategySchema.default("NATIVE").nullish(),
     channels: z.array(z.lazy(() => DiscountChannelInputSchema())).nullish(),
-    codes: z.array(z.lazy(() => DiscountCodeCreateOperationInputSchema())).nullish(),
+    codes: z.array(z.lazy(() => DiscountCodeCreateInputSchema())).nullish(),
     combinesWith: z.array(DiscountClassSchema).nullish(),
     currency: CurrencyCodeSchema,
     discountClass: DiscountClassSchema.nullish(),
@@ -283,12 +281,6 @@ export function DiscountDefinitionUpdateInputSchema(): z.ZodObject<Properties<Di
   })
 }
 
-export function DiscountDeleteInputSchema(): z.ZodObject<Properties<DiscountDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function DiscountEffectiveStatusFilterSchema(): z.ZodObject<Properties<DiscountEffectiveStatusFilter>> {
   return z.object({
     _eq: DiscountEffectiveStatusSchema.nullish(),
@@ -298,22 +290,14 @@ export function DiscountEffectiveStatusFilterSchema(): z.ZodObject<Properties<Di
   })
 }
 
-export function DiscountExternalReferenceCreateInputSchema(): z.ZodObject<Properties<DiscountExternalReferenceCreateInput>> {
+export function DiscountExternalReferenceCreateValuesInputSchema(): z.ZodObject<Properties<DiscountExternalReferenceCreateValuesInput>> {
   return z.object({
     direction: DiscountExternalSyncDirectionSchema,
-    discountId: z.string(),
     externalId: z.string(),
     externalSystem: z.string(),
     externalType: z.string().default("discount").nullish(),
     externalUrl: z.string().nullish(),
     metadata: z.record(z.unknown()).nullish()
-  })
-}
-
-export function DiscountExternalReferenceDeleteInputSchema(): z.ZodObject<Properties<DiscountExternalReferenceDeleteInput>> {
-  return z.object({
-    id: z.string(),
-    permanent: z.boolean().default(false).nullish()
   })
 }
 
@@ -323,6 +307,16 @@ export function DiscountExternalReferenceIdentityInputSchema(): z.ZodObject<Prop
     externalSystem: z.string().nullish(),
     externalType: z.string().nullish(),
     externalUrl: z.string().nullish()
+  })
+}
+
+export function DiscountExternalReferenceOperationInputSchema(): z.ZodObject<Properties<DiscountExternalReferenceOperationInput>> {
+  return z.object({
+    action: DiscountExternalReferenceOperationActionSchema,
+    create: z.lazy(() => DiscountExternalReferenceCreateValuesInputSchema().nullish()),
+    externalReferenceId: z.string().nullish(),
+    permanent: z.boolean().default(false).nullish(),
+    update: z.lazy(() => DiscountExternalReferenceUpdateInputSchema().nullish())
   })
 }
 
@@ -541,10 +535,11 @@ export function DiscountTargetSelectionInputSchema(): z.ZodObject<Properties<Dis
 export function DiscountUpdateInputSchema(): z.ZodObject<Properties<DiscountUpdateInput>> {
   return z.object({
     channels: z.array(z.lazy(() => DiscountChannelInputSchema())).nullish(),
-    codes: z.lazy(() => DiscountCodesUpdateInputSchema().nullish()),
+    codes: z.array(z.lazy(() => DiscountCodeOperationInputSchema())).nullish(),
     combinesWith: z.array(DiscountClassSchema).nullish(),
     definition: z.lazy(() => DiscountDefinitionUpdateInputSchema().nullish()),
     eligibility: z.lazy(() => DiscountBuyerContextInputSchema().nullish()),
+    externalReferences: z.array(z.lazy(() => DiscountExternalReferenceOperationInputSchema())).nullish(),
     functionBinding: z.lazy(() => DiscountFunctionBindingInputSchema().nullish()),
     lifecycle: z.lazy(() => DiscountLifecycleUpdateInputSchema().nullish()),
     metadata: z.record(z.unknown()).nullish(),

@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { BigIntFilter, BooleanFilter, CurrencyCode, CustomerAccountStatus, CustomerAccountStatusFilter, CustomerAccountsSettingsUpdateInput, CustomerAddressCreateOperationInput, CustomerAddressOrderByInput, CustomerAddressOrderField, CustomerAddressPatchInput, CustomerAddressUpdateOperationInput, CustomerAddressValidationStatus, CustomerAddressValidationStatusFilter, CustomerAddressWhereInput, CustomerAddressesUpdateInput, CustomerAdminLifecycleStatus, CustomerAssignmentSource, CustomerAssignmentSourceFilter, CustomerAuthenticationMethod, CustomerAuthenticationProvider, CustomerCompanyUpdateInput, CustomerConsentAdminState, CustomerConsentChannel, CustomerConsentEventOrderByInput, CustomerConsentEventOrderField, CustomerConsentOptInLevel, CustomerConsentState, CustomerConsentStateFilter, CustomerConsentUpdateOperationInput, CustomerConsentsUpdateInput, CustomerContactUpdateInput, CustomerCreateInput, CustomerDataRequestCancelOperationInput, CustomerDataRequestCreateInput, CustomerDataRequestDeleteInput, CustomerDataRequestOrderByInput, CustomerDataRequestOrderField, CustomerDataRequestStatus, CustomerDataRequestStatusFilter, CustomerDataRequestType, CustomerDataRequestTypeFilter, CustomerDataRequestUpdateInput, CustomerDataRequestWhereInput, CustomerDeleteInput, CustomerGroupCreateInput, CustomerGroupDefinitionUpdateInput, CustomerGroupDeleteInput, CustomerGroupMembershipOrderByInput, CustomerGroupMembershipOrderField, CustomerGroupMembershipRelationCreateInput, CustomerGroupMembershipRelationUpdateInput, CustomerGroupMembershipRelationsUpdateInput, CustomerGroupMembershipUpdateOperationInput, CustomerGroupMembershipWhereInput, CustomerGroupMembershipsUpdateInput, CustomerGroupOrderByInput, CustomerGroupOrderField, CustomerGroupStateUpdateInput, CustomerGroupUpdateInput, CustomerGroupWhereInput, CustomerLifecycleStatus, CustomerLifecycleStatusFilter, CustomerMergeCreateInput, CustomerMergeDeleteInput, CustomerMergeOrderByInput, CustomerMergeOrderField, CustomerMergeStatus, CustomerMergeStatusFilter, CustomerMergeUpdateInput, CustomerMergeWhereInput, CustomerModerationUpdateInput, CustomerMonetaryStatisticsOrderByInput, CustomerMonetaryStatisticsOrderField, CustomerMonetaryStatisticsWhereInput, CustomerNoteUpdateInput, CustomerOperationType, CustomerOrderByInput, CustomerOrderField, CustomerProfileUpdateInput, CustomerSegmentAttributeAvailability, CustomerSegmentAttributeKind, CustomerSegmentCreateInput, CustomerSegmentDefinitionUpdateInput, CustomerSegmentDeleteInput, CustomerSegmentDetailsUpdateInput, CustomerSegmentDiagnosticSeverity, CustomerSegmentMaterializationStatus, CustomerSegmentMembershipOrderByInput, CustomerSegmentMembershipOrderField, CustomerSegmentMembershipRelationCreateInput, CustomerSegmentMembershipRelationUpdateInput, CustomerSegmentMembershipRelationsUpdateInput, CustomerSegmentMembershipWhereInput, CustomerSegmentMembershipsUpdateInput, CustomerSegmentOrderByInput, CustomerSegmentOrderField, CustomerSegmentStateUpdateInput, CustomerSegmentStatus, CustomerSegmentStatusFilter, CustomerSegmentType, CustomerSegmentTypeFilter, CustomerSegmentUpdateInput, CustomerSegmentWhereInput, CustomerStatusUpdateInput, CustomerTagAssignmentOrderByInput, CustomerTagAssignmentOrderField, CustomerTagAssignmentRelationCreateInput, CustomerTagAssignmentRelationsUpdateInput, CustomerTagAssignmentWhereInput, CustomerTagAssignmentsUpdateInput, CustomerTagCreateInput, CustomerTagDeleteInput, CustomerTagOrderByInput, CustomerTagOrderField, CustomerTagUpdateInput, CustomerTagWhereInput, CustomerTaxExemptionCreateOperationInput, CustomerTaxExemptionOrderByInput, CustomerTaxExemptionOrderField, CustomerTaxExemptionPatchInput, CustomerTaxExemptionStatus, CustomerTaxExemptionStatusFilter, CustomerTaxExemptionUpdateOperationInput, CustomerTaxExemptionWhereInput, CustomerTaxExemptionsUpdateInput, CustomerTaxIdentifierCreateOperationInput, CustomerTaxIdentifierOrderByInput, CustomerTaxIdentifierOrderField, CustomerTaxIdentifierPatchInput, CustomerTaxIdentifierStatus, CustomerTaxIdentifierStatusFilter, CustomerTaxIdentifierUpdateOperationInput, CustomerTaxIdentifierWhereInput, CustomerTaxIdentifiersUpdateInput, CustomerUpdateInput, CustomerWhereInput, DateFilter, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { BigIntFilter, BooleanFilter, CurrencyCode, CustomerAccountStatus, CustomerAccountStatusFilter, CustomerAccountsSettingsUpdateInput, CustomerAddressCreateOperationInput, CustomerAddressOperationAction, CustomerAddressOperationInput, CustomerAddressOrderByInput, CustomerAddressOrderField, CustomerAddressPatchInput, CustomerAddressValidationStatus, CustomerAddressValidationStatusFilter, CustomerAddressWhereInput, CustomerAddressesUpdateInput, CustomerAdminLifecycleStatus, CustomerAssignmentSource, CustomerAssignmentSourceFilter, CustomerAuthenticationMethod, CustomerAuthenticationProvider, CustomerCompanyUpdateInput, CustomerConsentAdminState, CustomerConsentChannel, CustomerConsentEventOrderByInput, CustomerConsentEventOrderField, CustomerConsentOperationAction, CustomerConsentOperationInput, CustomerConsentOptInLevel, CustomerConsentState, CustomerConsentStateFilter, CustomerConsentValuesInput, CustomerConsentsUpdateInput, CustomerContactUpdateInput, CustomerCreateInput, CustomerDataRequestCancelOperationInput, CustomerDataRequestCreateInput, CustomerDataRequestOrderByInput, CustomerDataRequestOrderField, CustomerDataRequestStatus, CustomerDataRequestStatusFilter, CustomerDataRequestType, CustomerDataRequestTypeFilter, CustomerDataRequestUpdateInput, CustomerDataRequestWhereInput, CustomerGroupCreateInput, CustomerGroupDefinitionUpdateInput, CustomerGroupMembershipAssignmentAction, CustomerGroupMembershipOperationAction, CustomerGroupMembershipOperationInput, CustomerGroupMembershipOrderByInput, CustomerGroupMembershipOrderField, CustomerGroupMembershipRelationCreateInput, CustomerGroupMembershipRelationPatchInput, CustomerGroupMembershipValuesInput, CustomerGroupMembershipWhereInput, CustomerGroupMembershipsUpdateInput, CustomerGroupOrderByInput, CustomerGroupOrderField, CustomerGroupOwnedMembershipOperationInput, CustomerGroupStateUpdateInput, CustomerGroupUpdateInput, CustomerGroupWhereInput, CustomerLifecycleStatus, CustomerLifecycleStatusFilter, CustomerMergeCreateInput, CustomerMergeOrderByInput, CustomerMergeOrderField, CustomerMergeStatus, CustomerMergeStatusFilter, CustomerMergeUpdateInput, CustomerMergeWhereInput, CustomerModerationUpdateInput, CustomerMonetaryStatisticsOrderByInput, CustomerMonetaryStatisticsOrderField, CustomerMonetaryStatisticsWhereInput, CustomerNoteUpdateInput, CustomerOperationType, CustomerOrderByInput, CustomerOrderField, CustomerProfileUpdateInput, CustomerSegmentAttributeAvailability, CustomerSegmentAttributeKind, CustomerSegmentCreateInput, CustomerSegmentDefinitionUpdateInput, CustomerSegmentDetailsUpdateInput, CustomerSegmentDiagnosticSeverity, CustomerSegmentMaterializationStatus, CustomerSegmentMembershipAssignmentAction, CustomerSegmentMembershipOperationAction, CustomerSegmentMembershipOperationInput, CustomerSegmentMembershipOrderByInput, CustomerSegmentMembershipOrderField, CustomerSegmentMembershipRelationCreateInput, CustomerSegmentMembershipRelationPatchInput, CustomerSegmentMembershipWhereInput, CustomerSegmentMembershipsUpdateInput, CustomerSegmentOrderByInput, CustomerSegmentOrderField, CustomerSegmentOwnedMembershipOperationInput, CustomerSegmentStateUpdateInput, CustomerSegmentStatus, CustomerSegmentStatusFilter, CustomerSegmentType, CustomerSegmentTypeFilter, CustomerSegmentUpdateInput, CustomerSegmentWhereInput, CustomerStatusUpdateInput, CustomerTagAssignmentAction, CustomerTagAssignmentOperationAction, CustomerTagAssignmentOperationInput, CustomerTagAssignmentOrderByInput, CustomerTagAssignmentOrderField, CustomerTagAssignmentRelationCreateInput, CustomerTagAssignmentWhereInput, CustomerTagAssignmentsUpdateInput, CustomerTagCreateInput, CustomerTagOrderByInput, CustomerTagOrderField, CustomerTagOwnedAssignmentOperationInput, CustomerTagUpdateInput, CustomerTagWhereInput, CustomerTaxExemptionCreateOperationInput, CustomerTaxExemptionOperationAction, CustomerTaxExemptionOperationInput, CustomerTaxExemptionOrderByInput, CustomerTaxExemptionOrderField, CustomerTaxExemptionPatchInput, CustomerTaxExemptionStatus, CustomerTaxExemptionStatusFilter, CustomerTaxExemptionWhereInput, CustomerTaxExemptionsUpdateInput, CustomerTaxIdentifierCreateOperationInput, CustomerTaxIdentifierOperationAction, CustomerTaxIdentifierOperationInput, CustomerTaxIdentifierOrderByInput, CustomerTaxIdentifierOrderField, CustomerTaxIdentifierPatchInput, CustomerTaxIdentifierStatus, CustomerTaxIdentifierStatusFilter, CustomerTaxIdentifierWhereInput, CustomerTaxIdentifiersUpdateInput, CustomerUpdateInput, CustomerWhereInput, DateFilter, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -14,6 +14,8 @@ export const definedNonNullAnySchema = z.any().refine((v) => isDefinedNonNullAny
 export const CurrencyCodeSchema = z.nativeEnum(CurrencyCode);
 
 export const CustomerAccountStatusSchema = z.nativeEnum(CustomerAccountStatus);
+
+export const CustomerAddressOperationActionSchema = z.nativeEnum(CustomerAddressOperationAction);
 
 export const CustomerAddressOrderFieldSchema = z.nativeEnum(CustomerAddressOrderField);
 
@@ -33,6 +35,8 @@ export const CustomerConsentChannelSchema = z.nativeEnum(CustomerConsentChannel)
 
 export const CustomerConsentEventOrderFieldSchema = z.nativeEnum(CustomerConsentEventOrderField);
 
+export const CustomerConsentOperationActionSchema = z.nativeEnum(CustomerConsentOperationAction);
+
 export const CustomerConsentOptInLevelSchema = z.nativeEnum(CustomerConsentOptInLevel);
 
 export const CustomerConsentStateSchema = z.nativeEnum(CustomerConsentState);
@@ -42,6 +46,10 @@ export const CustomerDataRequestOrderFieldSchema = z.nativeEnum(CustomerDataRequ
 export const CustomerDataRequestStatusSchema = z.nativeEnum(CustomerDataRequestStatus);
 
 export const CustomerDataRequestTypeSchema = z.nativeEnum(CustomerDataRequestType);
+
+export const CustomerGroupMembershipAssignmentActionSchema = z.nativeEnum(CustomerGroupMembershipAssignmentAction);
+
+export const CustomerGroupMembershipOperationActionSchema = z.nativeEnum(CustomerGroupMembershipOperationAction);
 
 export const CustomerGroupMembershipOrderFieldSchema = z.nativeEnum(CustomerGroupMembershipOrderField);
 
@@ -67,6 +75,10 @@ export const CustomerSegmentDiagnosticSeveritySchema = z.nativeEnum(CustomerSegm
 
 export const CustomerSegmentMaterializationStatusSchema = z.nativeEnum(CustomerSegmentMaterializationStatus);
 
+export const CustomerSegmentMembershipAssignmentActionSchema = z.nativeEnum(CustomerSegmentMembershipAssignmentAction);
+
+export const CustomerSegmentMembershipOperationActionSchema = z.nativeEnum(CustomerSegmentMembershipOperationAction);
+
 export const CustomerSegmentMembershipOrderFieldSchema = z.nativeEnum(CustomerSegmentMembershipOrderField);
 
 export const CustomerSegmentOrderFieldSchema = z.nativeEnum(CustomerSegmentOrderField);
@@ -75,13 +87,21 @@ export const CustomerSegmentStatusSchema = z.nativeEnum(CustomerSegmentStatus);
 
 export const CustomerSegmentTypeSchema = z.nativeEnum(CustomerSegmentType);
 
+export const CustomerTagAssignmentActionSchema = z.nativeEnum(CustomerTagAssignmentAction);
+
+export const CustomerTagAssignmentOperationActionSchema = z.nativeEnum(CustomerTagAssignmentOperationAction);
+
 export const CustomerTagAssignmentOrderFieldSchema = z.nativeEnum(CustomerTagAssignmentOrderField);
 
 export const CustomerTagOrderFieldSchema = z.nativeEnum(CustomerTagOrderField);
 
+export const CustomerTaxExemptionOperationActionSchema = z.nativeEnum(CustomerTaxExemptionOperationAction);
+
 export const CustomerTaxExemptionOrderFieldSchema = z.nativeEnum(CustomerTaxExemptionOrderField);
 
 export const CustomerTaxExemptionStatusSchema = z.nativeEnum(CustomerTaxExemptionStatus);
+
+export const CustomerTaxIdentifierOperationActionSchema = z.nativeEnum(CustomerTaxIdentifierOperationAction);
 
 export const CustomerTaxIdentifierOrderFieldSchema = z.nativeEnum(CustomerTaxIdentifierOrderField);
 
@@ -163,6 +183,15 @@ export function CustomerAddressCreateOperationInputSchema(): z.ZodObject<Propert
   })
 }
 
+export function CustomerAddressOperationInputSchema(): z.ZodObject<Properties<CustomerAddressOperationInput>> {
+  return z.object({
+    action: CustomerAddressOperationActionSchema,
+    addressId: z.string().nullish(),
+    patch: z.lazy(() => CustomerAddressPatchInputSchema().nullish()),
+    values: z.lazy(() => CustomerAddressCreateOperationInputSchema().nullish())
+  })
+}
+
 export function CustomerAddressOrderByInputSchema(): z.ZodObject<Properties<CustomerAddressOrderByInput>> {
   return z.object({
     direction: SortDirectionSchema,
@@ -191,13 +220,6 @@ export function CustomerAddressPatchInputSchema(): z.ZodObject<Properties<Custom
     regionCode: z.string().nullish(),
     regionName: z.string().nullish(),
     suffix: z.string().nullish()
-  })
-}
-
-export function CustomerAddressUpdateOperationInputSchema(): z.ZodObject<Properties<CustomerAddressUpdateOperationInput>> {
-  return z.object({
-    addressId: z.string(),
-    operations: z.lazy(() => CustomerAddressPatchInputSchema())
   })
 }
 
@@ -235,11 +257,7 @@ export function CustomerAddressWhereInputSchema(): z.ZodObject<Properties<Custom
 
 export function CustomerAddressesUpdateInputSchema(): z.ZodObject<Properties<CustomerAddressesUpdateInput>> {
   return z.object({
-    create: z.array(z.lazy(() => CustomerAddressCreateOperationInputSchema())).nullish(),
-    defaultBillingAddressId: z.string().nullish(),
-    defaultShippingAddressId: z.string().nullish(),
-    deleteIds: z.array(z.string()).nullish(),
-    update: z.array(z.lazy(() => CustomerAddressUpdateOperationInputSchema())).nullish()
+    operations: z.array(z.lazy(() => CustomerAddressOperationInputSchema()))
   })
 }
 
@@ -266,6 +284,13 @@ export function CustomerConsentEventOrderByInputSchema(): z.ZodObject<Properties
   })
 }
 
+export function CustomerConsentOperationInputSchema(): z.ZodObject<Properties<CustomerConsentOperationInput>> {
+  return z.object({
+    action: CustomerConsentOperationActionSchema,
+    values: z.lazy(() => CustomerConsentValuesInputSchema())
+  })
+}
+
 export function CustomerConsentStateFilterSchema(): z.ZodObject<Properties<CustomerConsentStateFilter>> {
   return z.object({
     _eq: CustomerConsentStateSchema.nullish(),
@@ -275,7 +300,7 @@ export function CustomerConsentStateFilterSchema(): z.ZodObject<Properties<Custo
   })
 }
 
-export function CustomerConsentUpdateOperationInputSchema(): z.ZodObject<Properties<CustomerConsentUpdateOperationInput>> {
+export function CustomerConsentValuesInputSchema(): z.ZodObject<Properties<CustomerConsentValuesInput>> {
   return z.object({
     channel: CustomerConsentChannelSchema,
     contactPoint: z.string(),
@@ -288,7 +313,7 @@ export function CustomerConsentUpdateOperationInputSchema(): z.ZodObject<Propert
 
 export function CustomerConsentsUpdateInputSchema(): z.ZodObject<Properties<CustomerConsentsUpdateInput>> {
   return z.object({
-    set: z.array(z.lazy(() => CustomerConsentUpdateOperationInputSchema()))
+    operations: z.array(z.lazy(() => CustomerConsentOperationInputSchema()))
   })
 }
 
@@ -331,12 +356,6 @@ export function CustomerDataRequestCreateInputSchema(): z.ZodObject<Properties<C
     legalBasis: z.string().nullish(),
     requestMetadata: z.record(z.unknown()).nullish(),
     type: CustomerDataRequestTypeSchema
-  })
-}
-
-export function CustomerDataRequestDeleteInputSchema(): z.ZodObject<Properties<CustomerDataRequestDeleteInput>> {
-  return z.object({
-    id: z.string()
   })
 }
 
@@ -396,12 +415,6 @@ export function CustomerDataRequestWhereInputSchema(): z.ZodObject<Properties<Cu
   })
 }
 
-export function CustomerDeleteInputSchema(): z.ZodObject<Properties<CustomerDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function CustomerGroupCreateInputSchema(): z.ZodObject<Properties<CustomerGroupCreateInput>> {
   return z.object({
     code: z.string(),
@@ -420,9 +433,12 @@ export function CustomerGroupDefinitionUpdateInputSchema(): z.ZodObject<Properti
   })
 }
 
-export function CustomerGroupDeleteInputSchema(): z.ZodObject<Properties<CustomerGroupDeleteInput>> {
+export function CustomerGroupMembershipOperationInputSchema(): z.ZodObject<Properties<CustomerGroupMembershipOperationInput>> {
   return z.object({
-    id: z.string()
+    action: CustomerGroupMembershipAssignmentActionSchema,
+    membershipId: z.string().nullish(),
+    memberships: z.array(z.lazy(() => CustomerGroupMembershipValuesInputSchema())).nullish(),
+    values: z.lazy(() => CustomerGroupMembershipValuesInputSchema().nullish())
   })
 }
 
@@ -441,23 +457,14 @@ export function CustomerGroupMembershipRelationCreateInputSchema(): z.ZodObject<
   })
 }
 
-export function CustomerGroupMembershipRelationUpdateInputSchema(): z.ZodObject<Properties<CustomerGroupMembershipRelationUpdateInput>> {
+export function CustomerGroupMembershipRelationPatchInputSchema(): z.ZodObject<Properties<CustomerGroupMembershipRelationPatchInput>> {
   return z.object({
     expiresAt: z.string().nullish(),
-    isPrimary: z.boolean().nullish(),
-    membershipId: z.string()
+    isPrimary: z.boolean().nullish()
   })
 }
 
-export function CustomerGroupMembershipRelationsUpdateInputSchema(): z.ZodObject<Properties<CustomerGroupMembershipRelationsUpdateInput>> {
-  return z.object({
-    create: z.array(z.lazy(() => CustomerGroupMembershipRelationCreateInputSchema())).nullish(),
-    deleteIds: z.array(z.string()).nullish(),
-    update: z.array(z.lazy(() => CustomerGroupMembershipRelationUpdateInputSchema())).nullish()
-  })
-}
-
-export function CustomerGroupMembershipUpdateOperationInputSchema(): z.ZodObject<Properties<CustomerGroupMembershipUpdateOperationInput>> {
+export function CustomerGroupMembershipValuesInputSchema(): z.ZodObject<Properties<CustomerGroupMembershipValuesInput>> {
   return z.object({
     expiresAt: z.string().nullish(),
     groupId: z.string(),
@@ -482,7 +489,7 @@ export function CustomerGroupMembershipWhereInputSchema(): z.ZodObject<Propertie
 
 export function CustomerGroupMembershipsUpdateInputSchema(): z.ZodObject<Properties<CustomerGroupMembershipsUpdateInput>> {
   return z.object({
-    memberships: z.array(z.lazy(() => CustomerGroupMembershipUpdateOperationInputSchema()))
+    operations: z.array(z.lazy(() => CustomerGroupMembershipOperationInputSchema()))
   })
 }
 
@@ -490,6 +497,15 @@ export function CustomerGroupOrderByInputSchema(): z.ZodObject<Properties<Custom
   return z.object({
     direction: SortDirectionSchema,
     field: CustomerGroupOrderFieldSchema
+  })
+}
+
+export function CustomerGroupOwnedMembershipOperationInputSchema(): z.ZodObject<Properties<CustomerGroupOwnedMembershipOperationInput>> {
+  return z.object({
+    action: CustomerGroupMembershipOperationActionSchema,
+    membershipId: z.string().nullish(),
+    patch: z.lazy(() => CustomerGroupMembershipRelationPatchInputSchema().nullish()),
+    values: z.lazy(() => CustomerGroupMembershipRelationCreateInputSchema().nullish())
   })
 }
 
@@ -503,7 +519,7 @@ export function CustomerGroupStateUpdateInputSchema(): z.ZodObject<Properties<Cu
 export function CustomerGroupUpdateInputSchema(): z.ZodObject<Properties<CustomerGroupUpdateInput>> {
   return z.object({
     definition: z.lazy(() => CustomerGroupDefinitionUpdateInputSchema().nullish()),
-    memberships: z.lazy(() => CustomerGroupMembershipRelationsUpdateInputSchema().nullish()),
+    memberships: z.array(z.lazy(() => CustomerGroupOwnedMembershipOperationInputSchema())).nullish(),
     state: z.lazy(() => CustomerGroupStateUpdateInputSchema().nullish())
   })
 }
@@ -538,12 +554,6 @@ export function CustomerMergeCreateInputSchema(): z.ZodObject<Properties<Custome
     reason: z.string().nullish(),
     sourceCustomerId: z.string(),
     targetCustomerId: z.string()
-  })
-}
-
-export function CustomerMergeDeleteInputSchema(): z.ZodObject<Properties<CustomerMergeDeleteInput>> {
-  return z.object({
-    id: z.string()
   })
 }
 
@@ -663,17 +673,19 @@ export function CustomerSegmentDefinitionUpdateInputSchema(): z.ZodObject<Proper
   })
 }
 
-export function CustomerSegmentDeleteInputSchema(): z.ZodObject<Properties<CustomerSegmentDeleteInput>> {
-  return z.object({
-    id: z.string()
-  })
-}
-
 export function CustomerSegmentDetailsUpdateInputSchema(): z.ZodObject<Properties<CustomerSegmentDetailsUpdateInput>> {
   return z.object({
     color: z.string().nullish(),
     description: z.string().nullish(),
     name: z.string().nullish()
+  })
+}
+
+export function CustomerSegmentMembershipOperationInputSchema(): z.ZodObject<Properties<CustomerSegmentMembershipOperationInput>> {
+  return z.object({
+    action: CustomerSegmentMembershipAssignmentActionSchema,
+    segmentId: z.string().nullish(),
+    segmentIds: z.array(z.string()).nullish()
   })
 }
 
@@ -691,19 +703,9 @@ export function CustomerSegmentMembershipRelationCreateInputSchema(): z.ZodObjec
   })
 }
 
-export function CustomerSegmentMembershipRelationUpdateInputSchema(): z.ZodObject<Properties<CustomerSegmentMembershipRelationUpdateInput>> {
+export function CustomerSegmentMembershipRelationPatchInputSchema(): z.ZodObject<Properties<CustomerSegmentMembershipRelationPatchInput>> {
   return z.object({
-    expiresAt: z.string().nullish(),
-    membershipId: z.string()
-  })
-}
-
-export function CustomerSegmentMembershipRelationsUpdateInputSchema(): z.ZodObject<Properties<CustomerSegmentMembershipRelationsUpdateInput>> {
-  return z.object({
-    create: z.array(z.lazy(() => CustomerSegmentMembershipRelationCreateInputSchema())).nullish(),
-    deleteIds: z.array(z.string()).nullish(),
-    setCustomerIds: z.array(z.string()).nullish(),
-    update: z.array(z.lazy(() => CustomerSegmentMembershipRelationUpdateInputSchema())).nullish()
+    expiresAt: z.string().nullish()
   })
 }
 
@@ -723,7 +725,7 @@ export function CustomerSegmentMembershipWhereInputSchema(): z.ZodObject<Propert
 
 export function CustomerSegmentMembershipsUpdateInputSchema(): z.ZodObject<Properties<CustomerSegmentMembershipsUpdateInput>> {
   return z.object({
-    segmentIds: z.array(z.string())
+    operations: z.array(z.lazy(() => CustomerSegmentMembershipOperationInputSchema()))
   })
 }
 
@@ -731,6 +733,16 @@ export function CustomerSegmentOrderByInputSchema(): z.ZodObject<Properties<Cust
   return z.object({
     direction: SortDirectionSchema,
     field: CustomerSegmentOrderFieldSchema
+  })
+}
+
+export function CustomerSegmentOwnedMembershipOperationInputSchema(): z.ZodObject<Properties<CustomerSegmentOwnedMembershipOperationInput>> {
+  return z.object({
+    action: CustomerSegmentMembershipOperationActionSchema,
+    customerIds: z.array(z.string()).nullish(),
+    membershipId: z.string().nullish(),
+    patch: z.lazy(() => CustomerSegmentMembershipRelationPatchInputSchema().nullish()),
+    values: z.lazy(() => CustomerSegmentMembershipRelationCreateInputSchema().nullish())
   })
 }
 
@@ -762,7 +774,7 @@ export function CustomerSegmentUpdateInputSchema(): z.ZodObject<Properties<Custo
   return z.object({
     definition: z.lazy(() => CustomerSegmentDefinitionUpdateInputSchema().nullish()),
     details: z.lazy(() => CustomerSegmentDetailsUpdateInputSchema().nullish()),
-    memberships: z.lazy(() => CustomerSegmentMembershipRelationsUpdateInputSchema().nullish()),
+    memberships: z.array(z.lazy(() => CustomerSegmentOwnedMembershipOperationInputSchema())).nullish(),
     state: z.lazy(() => CustomerSegmentStateUpdateInputSchema().nullish())
   })
 }
@@ -791,6 +803,14 @@ export function CustomerStatusUpdateInputSchema(): z.ZodObject<Properties<Custom
   })
 }
 
+export function CustomerTagAssignmentOperationInputSchema(): z.ZodObject<Properties<CustomerTagAssignmentOperationInput>> {
+  return z.object({
+    action: CustomerTagAssignmentActionSchema,
+    tagId: z.string().nullish(),
+    tagIds: z.array(z.string()).nullish()
+  })
+}
+
 export function CustomerTagAssignmentOrderByInputSchema(): z.ZodObject<Properties<CustomerTagAssignmentOrderByInput>> {
   return z.object({
     direction: SortDirectionSchema,
@@ -801,13 +821,6 @@ export function CustomerTagAssignmentOrderByInputSchema(): z.ZodObject<Propertie
 export function CustomerTagAssignmentRelationCreateInputSchema(): z.ZodObject<Properties<CustomerTagAssignmentRelationCreateInput>> {
   return z.object({
     customerId: z.string()
-  })
-}
-
-export function CustomerTagAssignmentRelationsUpdateInputSchema(): z.ZodObject<Properties<CustomerTagAssignmentRelationsUpdateInput>> {
-  return z.object({
-    create: z.array(z.lazy(() => CustomerTagAssignmentRelationCreateInputSchema())).nullish(),
-    deleteIds: z.array(z.string()).nullish()
   })
 }
 
@@ -826,19 +839,13 @@ export function CustomerTagAssignmentWhereInputSchema(): z.ZodObject<Properties<
 
 export function CustomerTagAssignmentsUpdateInputSchema(): z.ZodObject<Properties<CustomerTagAssignmentsUpdateInput>> {
   return z.object({
-    tagIds: z.array(z.string())
+    operations: z.array(z.lazy(() => CustomerTagAssignmentOperationInputSchema()))
   })
 }
 
 export function CustomerTagCreateInputSchema(): z.ZodObject<Properties<CustomerTagCreateInput>> {
   return z.object({
     name: z.string()
-  })
-}
-
-export function CustomerTagDeleteInputSchema(): z.ZodObject<Properties<CustomerTagDeleteInput>> {
-  return z.object({
-    id: z.string()
   })
 }
 
@@ -849,9 +856,17 @@ export function CustomerTagOrderByInputSchema(): z.ZodObject<Properties<Customer
   })
 }
 
+export function CustomerTagOwnedAssignmentOperationInputSchema(): z.ZodObject<Properties<CustomerTagOwnedAssignmentOperationInput>> {
+  return z.object({
+    action: CustomerTagAssignmentOperationActionSchema,
+    assignmentId: z.string().nullish(),
+    values: z.lazy(() => CustomerTagAssignmentRelationCreateInputSchema().nullish())
+  })
+}
+
 export function CustomerTagUpdateInputSchema(): z.ZodObject<Properties<CustomerTagUpdateInput>> {
   return z.object({
-    assignments: z.lazy(() => CustomerTagAssignmentRelationsUpdateInputSchema().nullish()),
+    assignments: z.array(z.lazy(() => CustomerTagOwnedAssignmentOperationInputSchema())).nullish(),
     name: z.string().nullish()
   })
 }
@@ -879,6 +894,15 @@ export function CustomerTaxExemptionCreateOperationInputSchema(): z.ZodObject<Pr
     status: CustomerTaxExemptionStatusSchema.nullish(),
     validFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
     validTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish()
+  })
+}
+
+export function CustomerTaxExemptionOperationInputSchema(): z.ZodObject<Properties<CustomerTaxExemptionOperationInput>> {
+  return z.object({
+    action: CustomerTaxExemptionOperationActionSchema,
+    patch: z.lazy(() => CustomerTaxExemptionPatchInputSchema().nullish()),
+    taxExemptionId: z.string().nullish(),
+    values: z.lazy(() => CustomerTaxExemptionCreateOperationInputSchema().nullish())
   })
 }
 
@@ -911,13 +935,6 @@ export function CustomerTaxExemptionStatusFilterSchema(): z.ZodObject<Properties
   })
 }
 
-export function CustomerTaxExemptionUpdateOperationInputSchema(): z.ZodObject<Properties<CustomerTaxExemptionUpdateOperationInput>> {
-  return z.object({
-    operations: z.lazy(() => CustomerTaxExemptionPatchInputSchema()),
-    taxExemptionId: z.string()
-  })
-}
-
 export function CustomerTaxExemptionWhereInputSchema(): z.ZodObject<Properties<CustomerTaxExemptionWhereInput>> {
   return z.object({
     _and: z.array(z.lazy(() => CustomerTaxExemptionWhereInputSchema())).nullish(),
@@ -937,9 +954,7 @@ export function CustomerTaxExemptionWhereInputSchema(): z.ZodObject<Properties<C
 
 export function CustomerTaxExemptionsUpdateInputSchema(): z.ZodObject<Properties<CustomerTaxExemptionsUpdateInput>> {
   return z.object({
-    create: z.array(z.lazy(() => CustomerTaxExemptionCreateOperationInputSchema())).nullish(),
-    deleteIds: z.array(z.string()).nullish(),
-    update: z.array(z.lazy(() => CustomerTaxExemptionUpdateOperationInputSchema())).nullish()
+    operations: z.array(z.lazy(() => CustomerTaxExemptionOperationInputSchema()))
   })
 }
 
@@ -952,6 +967,15 @@ export function CustomerTaxIdentifierCreateOperationInputSchema(): z.ZodObject<P
     validFrom: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
     validTo: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullish(),
     value: z.string()
+  })
+}
+
+export function CustomerTaxIdentifierOperationInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifierOperationInput>> {
+  return z.object({
+    action: CustomerTaxIdentifierOperationActionSchema,
+    patch: z.lazy(() => CustomerTaxIdentifierPatchInputSchema().nullish()),
+    taxIdentifierId: z.string().nullish(),
+    values: z.lazy(() => CustomerTaxIdentifierCreateOperationInputSchema().nullish())
   })
 }
 
@@ -983,13 +1007,6 @@ export function CustomerTaxIdentifierStatusFilterSchema(): z.ZodObject<Propertie
   })
 }
 
-export function CustomerTaxIdentifierUpdateOperationInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifierUpdateOperationInput>> {
-  return z.object({
-    operations: z.lazy(() => CustomerTaxIdentifierPatchInputSchema()),
-    taxIdentifierId: z.string()
-  })
-}
-
 export function CustomerTaxIdentifierWhereInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifierWhereInput>> {
   return z.object({
     _and: z.array(z.lazy(() => CustomerTaxIdentifierWhereInputSchema())).nullish(),
@@ -1010,9 +1027,7 @@ export function CustomerTaxIdentifierWhereInputSchema(): z.ZodObject<Properties<
 
 export function CustomerTaxIdentifiersUpdateInputSchema(): z.ZodObject<Properties<CustomerTaxIdentifiersUpdateInput>> {
   return z.object({
-    create: z.array(z.lazy(() => CustomerTaxIdentifierCreateOperationInputSchema())).nullish(),
-    deleteIds: z.array(z.string()).nullish(),
-    update: z.array(z.lazy(() => CustomerTaxIdentifierUpdateOperationInputSchema())).nullish()
+    operations: z.array(z.lazy(() => CustomerTaxIdentifierOperationInputSchema()))
   })
 }
 

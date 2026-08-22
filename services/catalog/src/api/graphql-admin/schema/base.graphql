@@ -214,6 +214,17 @@ type CatalogQuery {
     """
     orderBy: [TagOrderByInput!]
   ): TagConnection!
+
+  comparisonProfile(id: ID!): ComparisonProfile
+  comparisonProfiles(
+    first: Int
+    after: String
+    last: Int
+    before: String
+    where: ComparisonProfileWhereInput
+    orderBy: [ComparisonProfileOrderByInput!]
+  ): ComparisonProfileConnection!
+  productComparisonConfiguration(productId: ID!): ProductComparisonConfiguration!
 }
 
 """
@@ -504,4 +515,11 @@ type CatalogMutation {
   Start async bulk update.
   """
   productBulkUpdate(input: ProductBulkUpdateInput!): ProductBulkUpdatePayload!
+
+  comparisonProfileCreate(input: ComparisonProfileCreateInput!): ComparisonProfileCreatePayload!
+  comparisonProfileUpdate(
+    comparisonProfileId: ID!
+    operations: ComparisonProfileUpdateInput!
+  ): ComparisonProfileUpdatePayload!
+  comparisonProfileDelete(comparisonProfileId: ID!): ComparisonProfileDeletePayload!
 }

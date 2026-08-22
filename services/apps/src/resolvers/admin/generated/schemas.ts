@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AppCapabilityAssignmentMode, AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppConfigureInput, AppInstallInput, AppInstallationActionInput, AppInstallationHealthStatus, AppInstallationStatus, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppOrderByInput, AppOrderField, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppUpdateInput, AppWhereInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
+import { AppCapabilityAssignmentMode, AppCapabilityAssignmentStatus, AppCapabilityBindingStatus, AppInstallationConfigurationUpdateInput, AppInstallationCreateInput, AppInstallationHealthStatus, AppInstallationLifecycleOperationAction, AppInstallationLifecycleOperationInput, AppInstallationOperationType, AppInstallationScopesReplaceInput, AppInstallationSecretOperationAction, AppInstallationSecretOperationInput, AppInstallationStatus, AppInstallationUpdateInput, AppLifecycleActorType, AppLifecycleOperationStatus, AppLifecycleOperationType, AppOrderByInput, AppOrderField, AppRuntimeHealthStatus, AppRuntimeStatus, AppSecretInput, AppWhereInput, BooleanFilter, CurrencyCode, DateTimeFilter, DimensionUnit, FloatFilter, IdFilter, IntFilter, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, SortDirection, StringFilter, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -18,6 +18,12 @@ export const AppCapabilityAssignmentStatusSchema = z.nativeEnum(AppCapabilityAss
 export const AppCapabilityBindingStatusSchema = z.nativeEnum(AppCapabilityBindingStatus);
 
 export const AppInstallationHealthStatusSchema = z.nativeEnum(AppInstallationHealthStatus);
+
+export const AppInstallationLifecycleOperationActionSchema = z.nativeEnum(AppInstallationLifecycleOperationAction);
+
+export const AppInstallationOperationTypeSchema = z.nativeEnum(AppInstallationOperationType);
+
+export const AppInstallationSecretOperationActionSchema = z.nativeEnum(AppInstallationSecretOperationAction);
 
 export const AppInstallationStatusSchema = z.nativeEnum(AppInstallationStatus);
 
@@ -47,15 +53,13 @@ export const SortDirectionSchema = z.nativeEnum(SortDirection);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
 
-export function AppConfigureInputSchema(): z.ZodObject<Properties<AppConfigureInput>> {
+export function AppInstallationConfigurationUpdateInputSchema(): z.ZodObject<Properties<AppInstallationConfigurationUpdateInput>> {
   return z.object({
-    configuration: z.record(z.unknown()),
-    grantedScopes: z.array(z.string()).nullish(),
-    installationId: z.string()
+    configuration: z.record(z.unknown())
   })
 }
 
-export function AppInstallInputSchema(): z.ZodObject<Properties<AppInstallInput>> {
+export function AppInstallationCreateInputSchema(): z.ZodObject<Properties<AppInstallationCreateInput>> {
   return z.object({
     appCode: z.string(),
     configuration: z.record(z.unknown()).nullish(),
@@ -64,9 +68,32 @@ export function AppInstallInputSchema(): z.ZodObject<Properties<AppInstallInput>
   })
 }
 
-export function AppInstallationActionInputSchema(): z.ZodObject<Properties<AppInstallationActionInput>> {
+export function AppInstallationLifecycleOperationInputSchema(): z.ZodObject<Properties<AppInstallationLifecycleOperationInput>> {
   return z.object({
-    installationId: z.string()
+    action: AppInstallationLifecycleOperationActionSchema
+  })
+}
+
+export function AppInstallationScopesReplaceInputSchema(): z.ZodObject<Properties<AppInstallationScopesReplaceInput>> {
+  return z.object({
+    grantedScopes: z.array(z.string())
+  })
+}
+
+export function AppInstallationSecretOperationInputSchema(): z.ZodObject<Properties<AppInstallationSecretOperationInput>> {
+  return z.object({
+    action: AppInstallationSecretOperationActionSchema,
+    name: z.string(),
+    value: z.string()
+  })
+}
+
+export function AppInstallationUpdateInputSchema(): z.ZodObject<Properties<AppInstallationUpdateInput>> {
+  return z.object({
+    configuration: z.lazy(() => AppInstallationConfigurationUpdateInputSchema().nullish()),
+    lifecycle: z.lazy(() => AppInstallationLifecycleOperationInputSchema().nullish()),
+    scopes: z.lazy(() => AppInstallationScopesReplaceInputSchema().nullish()),
+    secrets: z.array(z.lazy(() => AppInstallationSecretOperationInputSchema())).nullish()
   })
 }
 
@@ -81,15 +108,6 @@ export function AppSecretInputSchema(): z.ZodObject<Properties<AppSecretInput>> 
   return z.object({
     name: z.string(),
     value: z.string()
-  })
-}
-
-export function AppUpdateInputSchema(): z.ZodObject<Properties<AppUpdateInput>> {
-  return z.object({
-    configuration: z.record(z.unknown()).nullish(),
-    grantedScopes: z.array(z.string()).nullish(),
-    installationId: z.string(),
-    secrets: z.array(z.lazy(() => AppSecretInputSchema())).nullish()
   })
 }
 

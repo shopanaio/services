@@ -1,5 +1,5 @@
 import { z } from 'zod'
-import { AutomaticFulfillmentMode, CurrencyCode, CurrencyDisplay, CurrencyGrouping, CurrencyRoundingMode, CurrencySign, CurrencySignDisplay, CurrencyTrailingZeroDisplay, DimensionUnit, LocaleCode, LocaleCreateInput, LocaleDeleteInput, LocaleSetDefaultInput, PriceAdjustmentOperation, PriceAdjustmentValueType, StoreAddressUpdateInput, StoreBrandUpdateInput, StoreContactDetailsUpdateInput, StoreCreateInput, StoreCurrencySettingsUpdateInput, StoreDefaultsUpdateInput, StoreDeleteInput, StoreOrderProcessingUpdateInput, StoreSocialLinkInput, StoreStatus, StoreUpdateInput, StoreUpdateOperationType, UnitSystem, WeightUnit } from './types.js'
+import { AutomaticFulfillmentMode, CurrencyCode, CurrencyDisplay, CurrencyGrouping, CurrencyRoundingMode, CurrencySign, CurrencySignDisplay, CurrencyTrailingZeroDisplay, DimensionUnit, LocaleCode, PriceAdjustmentOperation, PriceAdjustmentValueType, StoreAddressUpdateInput, StoreBrandUpdateInput, StoreContactDetailsUpdateInput, StoreCreateInput, StoreCurrencySettingsUpdateInput, StoreDefaultsUpdateInput, StoreLocaleOperationAction, StoreLocaleOperationInput, StoreOrderProcessingUpdateInput, StoreSocialLinkInput, StoreStatus, StoreUpdateInput, StoreUpdateOperationType, UnitSystem, WeightUnit } from './types.js'
 
 type Properties<T> = Required<{
   [K in keyof T]: z.ZodType<T[K], any, T[K]>;
@@ -35,6 +35,8 @@ export const PriceAdjustmentOperationSchema = z.nativeEnum(PriceAdjustmentOperat
 
 export const PriceAdjustmentValueTypeSchema = z.nativeEnum(PriceAdjustmentValueType);
 
+export const StoreLocaleOperationActionSchema = z.nativeEnum(StoreLocaleOperationAction);
+
 export const StoreStatusSchema = z.nativeEnum(StoreStatus);
 
 export const StoreUpdateOperationTypeSchema = z.nativeEnum(StoreUpdateOperationType);
@@ -42,25 +44,6 @@ export const StoreUpdateOperationTypeSchema = z.nativeEnum(StoreUpdateOperationT
 export const UnitSystemSchema = z.nativeEnum(UnitSystem);
 
 export const WeightUnitSchema = z.nativeEnum(WeightUnit);
-
-export function LocaleCreateInputSchema(): z.ZodObject<Properties<LocaleCreateInput>> {
-  return z.object({
-    code: LocaleCodeSchema,
-    isActive: z.boolean()
-  })
-}
-
-export function LocaleDeleteInputSchema(): z.ZodObject<Properties<LocaleDeleteInput>> {
-  return z.object({
-    code: LocaleCodeSchema
-  })
-}
-
-export function LocaleSetDefaultInputSchema(): z.ZodObject<Properties<LocaleSetDefaultInput>> {
-  return z.object({
-    locale: LocaleCodeSchema
-  })
-}
 
 export function StoreAddressUpdateInputSchema(): z.ZodObject<Properties<StoreAddressUpdateInput>> {
   return z.object({
@@ -100,7 +83,7 @@ export function StoreCreateInputSchema(): z.ZodObject<Properties<StoreCreateInpu
   return z.object({
     currencyCode: CurrencyCodeSchema,
     displayName: z.string(),
-    email: z.string().nullish(),
+    email: z.string().email().nullish(),
     locales: z.array(LocaleCodeSchema),
     name: z.string(),
     organizationId: z.string(),
@@ -131,10 +114,11 @@ export function StoreDefaultsUpdateInputSchema(): z.ZodObject<Properties<StoreDe
   })
 }
 
-export function StoreDeleteInputSchema(): z.ZodObject<Properties<StoreDeleteInput>> {
+export function StoreLocaleOperationInputSchema(): z.ZodObject<Properties<StoreLocaleOperationInput>> {
   return z.object({
-    id: z.string(),
-    organizationId: z.string()
+    action: StoreLocaleOperationActionSchema,
+    code: LocaleCodeSchema,
+    isActive: z.boolean().nullish()
   })
 }
 
@@ -162,6 +146,7 @@ export function StoreUpdateInputSchema(): z.ZodObject<Properties<StoreUpdateInpu
     contactDetails: z.lazy(() => StoreContactDetailsUpdateInputSchema().nullish()),
     currencySettings: z.lazy(() => StoreCurrencySettingsUpdateInputSchema().nullish()),
     defaults: z.lazy(() => StoreDefaultsUpdateInputSchema().nullish()),
+    locales: z.array(z.lazy(() => StoreLocaleOperationInputSchema())).nullish(),
     orderProcessing: z.lazy(() => StoreOrderProcessingUpdateInputSchema().nullish())
   })
 }

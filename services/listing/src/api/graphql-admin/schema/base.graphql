@@ -131,6 +131,20 @@ type ListingQuery {
   Get all facet swatches.
   """
   facetSwatches: [FacetSwatch!]!
+
+  recommendationPlacementPolicy(
+    placement: RecommendationPlacement!
+  ): RecommendationPlacementPolicy
+  recommendationPlacementPolicies: [RecommendationPlacementPolicy!]!
+  manualProductRecommendations(
+    anchorProductId: ID!
+    placement: RecommendationPlacement!
+    first: Int = 50
+    after: String
+  ): ManualProductRecommendationConnection!
+  recommendationSnapshotPreview(
+    input: RecommendationSnapshotPreviewInput!
+  ): RecommendationSnapshotPreviewPayload!
 }
 
 type ListingMutation {
@@ -184,4 +198,22 @@ type ListingMutation {
   Delete a facet swatch.
   """
   facetSwatchDelete(facetSwatchId: ID!): FacetSwatchDeletePayload!
+
+  recommendationPlacementPolicyCreate(
+    input: RecommendationPlacementPolicyCreateInput!
+  ): RecommendationPlacementPolicyCreatePayload!
+  recommendationPlacementPolicyUpdate(
+    recommendationPlacementPolicyId: ID!
+    operations: RecommendationPlacementPolicyUpdateInput!
+  ): RecommendationPlacementPolicyUpdatePayload!
+  manualProductRecommendationCreate(
+    input: ManualProductRecommendationCreateInput!
+  ): ManualProductRecommendationCreatePayload!
+  manualProductRecommendationUpdate(
+    manualProductRecommendationId: ID!
+    operations: ManualProductRecommendationUpdateInput!
+  ): ManualProductRecommendationUpdatePayload!
+  manualProductRecommendationDelete(
+    manualProductRecommendationId: ID!
+  ): ManualProductRecommendationDeletePayload!
 }

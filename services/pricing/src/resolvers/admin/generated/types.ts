@@ -657,20 +657,33 @@ export type DiscountCodeConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type DiscountCodeCreateOperationInput = {
+export type DiscountCodeCreateInput = {
   code: Scalars['String']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
-};
-
-export type DiscountCodeDeleteOperationInput = {
-  codeId: Scalars['ID']['input'];
 };
 
 export type DiscountCodeEdge = {
   __typename?: 'DiscountCodeEdge';
   cursor: Scalars['String']['output'];
   node: DiscountCode;
+};
+
+export enum DiscountCodeOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/**
+ * An owned discount-code change applied as part of discountUpdate. Array order is
+ * part of the API contract.
+ */
+export type DiscountCodeOperationInput = {
+  action: DiscountCodeOperationAction;
+  codeId?: InputMaybe<Scalars['ID']['input']>;
+  create?: InputMaybe<DiscountCodeCreateInput>;
+  update?: InputMaybe<DiscountCodeUpdateInput>;
 };
 
 export type DiscountCodeOrderByInput = {
@@ -704,9 +717,8 @@ export type DiscountCodeStatusFilter = {
   _notIn?: InputMaybe<Array<DiscountCodeStatus>>;
 };
 
-export type DiscountCodeUpdateOperationInput = {
+export type DiscountCodeUpdateInput = {
   code?: InputMaybe<Scalars['String']['input']>;
-  codeId: Scalars['ID']['input'];
   metadata?: InputMaybe<Scalars['JSON']['input']>;
   status?: InputMaybe<DiscountCodeStatus>;
   usageLimit?: InputMaybe<Scalars['BigInt']['input']>;
@@ -730,12 +742,6 @@ export type DiscountCodeWhereInput = {
   usageLimit?: InputMaybe<BigIntFilter>;
 };
 
-export type DiscountCodesUpdateInput = {
-  create?: InputMaybe<Array<DiscountCodeCreateOperationInput>>;
-  delete?: InputMaybe<Array<DiscountCodeDeleteOperationInput>>;
-  update?: InputMaybe<Array<DiscountCodeUpdateOperationInput>>;
-};
-
 export type DiscountCombination = {
   __typename?: 'DiscountCombination';
   createdAt: Scalars['DateTime']['output'];
@@ -753,7 +759,7 @@ export type DiscountCreateInput = {
   buyerContext?: InputMaybe<DiscountBuyerContextInput>;
   calculationStrategy?: InputMaybe<DiscountCalculationStrategy>;
   channels?: InputMaybe<Array<DiscountChannelInput>>;
-  codes?: InputMaybe<Array<DiscountCodeCreateOperationInput>>;
+  codes?: InputMaybe<Array<DiscountCodeCreateInput>>;
   combinesWith?: InputMaybe<Array<DiscountClass>>;
   currency: CurrencyCode;
   /** Required for FUNCTION; derived from kind for NATIVE. */
@@ -794,10 +800,6 @@ export type DiscountDefinitionUpdateInput = {
   schedule?: InputMaybe<DiscountScheduleInput>;
   title?: InputMaybe<Scalars['String']['input']>;
   usage?: InputMaybe<DiscountUsageLimitsInput>;
-};
-
-export type DiscountDeleteInput = {
-  id: Scalars['ID']['input'];
 };
 
 export type DiscountDeletePayload = {
@@ -875,31 +877,13 @@ export type DiscountExternalReferenceConnection = {
   totalCount: Scalars['Int']['output'];
 };
 
-export type DiscountExternalReferenceCreateInput = {
+export type DiscountExternalReferenceCreateValuesInput = {
   direction: DiscountExternalSyncDirection;
-  discountId: Scalars['ID']['input'];
   externalId: Scalars['String']['input'];
   externalSystem: Scalars['String']['input'];
   externalType?: InputMaybe<Scalars['String']['input']>;
   externalUrl?: InputMaybe<Scalars['String']['input']>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
-};
-
-export type DiscountExternalReferenceCreatePayload = {
-  __typename?: 'DiscountExternalReferenceCreatePayload';
-  externalReference: Maybe<DiscountExternalReference>;
-  userErrors: Array<GenericUserError>;
-};
-
-export type DiscountExternalReferenceDeleteInput = {
-  id: Scalars['ID']['input'];
-  permanent?: InputMaybe<Scalars['Boolean']['input']>;
-};
-
-export type DiscountExternalReferenceDeletePayload = {
-  __typename?: 'DiscountExternalReferenceDeletePayload';
-  deletedExternalReferenceId: Maybe<Scalars['ID']['output']>;
-  userErrors: Array<GenericUserError>;
 };
 
 export type DiscountExternalReferenceEdge = {
@@ -913,6 +897,26 @@ export type DiscountExternalReferenceIdentityInput = {
   externalSystem?: InputMaybe<Scalars['String']['input']>;
   externalType?: InputMaybe<Scalars['String']['input']>;
   externalUrl?: InputMaybe<Scalars['String']['input']>;
+};
+
+export enum DiscountExternalReferenceOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/**
+ * An owned external-reference change applied as part of discountUpdate.
+ *
+ * CREATE requires create. UPDATE requires externalReferenceId and update. DELETE
+ * requires externalReferenceId; permanent selects physical deletion.
+ */
+export type DiscountExternalReferenceOperationInput = {
+  action: DiscountExternalReferenceOperationAction;
+  create?: InputMaybe<DiscountExternalReferenceCreateValuesInput>;
+  externalReferenceId?: InputMaybe<Scalars['ID']['input']>;
+  permanent?: InputMaybe<Scalars['Boolean']['input']>;
+  update?: InputMaybe<DiscountExternalReferenceUpdateInput>;
 };
 
 export type DiscountExternalReferenceOrderByInput = {
@@ -946,13 +950,6 @@ export type DiscountExternalReferenceSyncInput = {
 export type DiscountExternalReferenceUpdateInput = {
   identity?: InputMaybe<DiscountExternalReferenceIdentityInput>;
   sync?: InputMaybe<DiscountExternalReferenceSyncInput>;
-};
-
-export type DiscountExternalReferenceUpdatePayload = {
-  __typename?: 'DiscountExternalReferenceUpdatePayload';
-  externalReference: Maybe<DiscountExternalReference>;
-  operationResults: Array<DiscountOperationResult>;
-  userErrors: Array<GenericUserError>;
 };
 
 export type DiscountExternalReferenceWhereInput = {
@@ -1095,17 +1092,22 @@ export type DiscountMinimumRequirementSyncInput = {
 export type DiscountOperationResult = {
   __typename?: 'DiscountOperationResult';
   applied: Scalars['Boolean']['output'];
+  entityId: Maybe<Scalars['ID']['output']>;
   errors: Array<GenericUserError>;
   type: DiscountOperationType;
 };
 
-/** Sections executed by the unified discountUpdate workflow. */
+/** Stable result types emitted by the unified discountUpdate workflow. */
 export enum DiscountOperationType {
   ChannelsUpdate = 'CHANNELS_UPDATE',
-  CodesUpdate = 'CODES_UPDATE',
+  CodeCreate = 'CODE_CREATE',
+  CodeDelete = 'CODE_DELETE',
+  CodeUpdate = 'CODE_UPDATE',
   CombinationsUpdate = 'COMBINATIONS_UPDATE',
   DefinitionUpdate = 'DEFINITION_UPDATE',
   EligibilityUpdate = 'ELIGIBILITY_UPDATE',
+  ExternalReferenceCreate = 'EXTERNAL_REFERENCE_CREATE',
+  ExternalReferenceDelete = 'EXTERNAL_REFERENCE_DELETE',
   ExternalReferenceUpdate = 'EXTERNAL_REFERENCE_UPDATE',
   FunctionBindingUpdate = 'FUNCTION_BINDING_UPDATE',
   LifecycleUpdate = 'LIFECYCLE_UPDATE',
@@ -1338,11 +1340,13 @@ export enum DiscountTargetType {
 export type DiscountUpdateInput = {
   /** Complete channel replacement when supplied. Empty removes every channel. */
   channels?: InputMaybe<Array<DiscountChannelInput>>;
-  codes?: InputMaybe<DiscountCodesUpdateInput>;
+  codes?: InputMaybe<Array<DiscountCodeOperationInput>>;
   /** Complete compatible-class replacement when supplied. */
   combinesWith?: InputMaybe<Array<DiscountClass>>;
   definition?: InputMaybe<DiscountDefinitionUpdateInput>;
   eligibility?: InputMaybe<DiscountBuyerContextInput>;
+  /** Ordered owned external-reference operations. Their array order is preserved. */
+  externalReferences?: InputMaybe<Array<DiscountExternalReferenceOperationInput>>;
   functionBinding?: InputMaybe<DiscountFunctionBindingInput>;
   lifecycle?: InputMaybe<DiscountLifecycleUpdateInput>;
   metadata?: InputMaybe<Scalars['JSON']['input']>;
@@ -1833,9 +1837,6 @@ export type PricingMutation = {
    * must be archived through discountUpdate instead.
    */
   discountDelete: DiscountDeletePayload;
-  discountExternalReferenceCreate: DiscountExternalReferenceCreatePayload;
-  discountExternalReferenceDelete: DiscountExternalReferenceDeletePayload;
-  discountExternalReferenceUpdate: DiscountExternalReferenceUpdatePayload;
   /** Unified discount configuration update. */
   discountUpdate: DiscountUpdatePayload;
 };
@@ -1849,26 +1850,7 @@ export type PricingMutationDiscountCreateArgs = {
 
 /** Store-scoped pricing commands. */
 export type PricingMutationDiscountDeleteArgs = {
-  input: DiscountDeleteInput;
-};
-
-
-/** Store-scoped pricing commands. */
-export type PricingMutationDiscountExternalReferenceCreateArgs = {
-  input: DiscountExternalReferenceCreateInput;
-};
-
-
-/** Store-scoped pricing commands. */
-export type PricingMutationDiscountExternalReferenceDeleteArgs = {
-  input: DiscountExternalReferenceDeleteInput;
-};
-
-
-/** Store-scoped pricing commands. */
-export type PricingMutationDiscountExternalReferenceUpdateArgs = {
-  externalReferenceId: Scalars['ID']['input'];
-  operations: DiscountExternalReferenceUpdateInput;
+  discountId: Scalars['ID']['input'];
 };
 
 
@@ -2183,23 +2165,22 @@ export type ResolversTypes = ResolversObject<{
   DiscountClassFilter: DiscountClassFilter;
   DiscountCode: ResolverTypeWrapper<Omit<DiscountCode, 'discount'> & { discount: ResolversTypes['Discount'] }>;
   DiscountCodeConnection: ResolverTypeWrapper<Omit<DiscountCodeConnection, 'edges'> & { edges: Array<ResolversTypes['DiscountCodeEdge']> }>;
-  DiscountCodeCreateOperationInput: DiscountCodeCreateOperationInput;
-  DiscountCodeDeleteOperationInput: DiscountCodeDeleteOperationInput;
+  DiscountCodeCreateInput: DiscountCodeCreateInput;
   DiscountCodeEdge: ResolverTypeWrapper<Omit<DiscountCodeEdge, 'node'> & { node: ResolversTypes['DiscountCode'] }>;
+  DiscountCodeOperationAction: DiscountCodeOperationAction;
+  DiscountCodeOperationInput: DiscountCodeOperationInput;
   DiscountCodeOrderByInput: DiscountCodeOrderByInput;
   DiscountCodeOrderField: DiscountCodeOrderField;
   DiscountCodeStatus: DiscountCodeStatus;
   DiscountCodeStatusFilter: DiscountCodeStatusFilter;
-  DiscountCodeUpdateOperationInput: DiscountCodeUpdateOperationInput;
+  DiscountCodeUpdateInput: DiscountCodeUpdateInput;
   DiscountCodeWhereInput: DiscountCodeWhereInput;
-  DiscountCodesUpdateInput: DiscountCodesUpdateInput;
   DiscountCombination: ResolverTypeWrapper<DiscountCombination>;
   DiscountConnection: ResolverTypeWrapper<Omit<DiscountConnection, 'edges'> & { edges: Array<ResolversTypes['DiscountEdge']> }>;
   DiscountCreateInput: DiscountCreateInput;
   DiscountCreatePayload: ResolverTypeWrapper<Omit<DiscountCreatePayload, 'discount'> & { discount?: Maybe<ResolversTypes['Discount']> }>;
   DiscountCurrencyFilter: DiscountCurrencyFilter;
   DiscountDefinitionUpdateInput: DiscountDefinitionUpdateInput;
-  DiscountDeleteInput: DiscountDeleteInput;
   DiscountDeletePayload: ResolverTypeWrapper<DiscountDeletePayload>;
   DiscountEdge: ResolverTypeWrapper<Omit<DiscountEdge, 'node'> & { node: ResolversTypes['Discount'] }>;
   DiscountEffectiveStatus: DiscountEffectiveStatus;
@@ -2208,17 +2189,15 @@ export type ResolversTypes = ResolversObject<{
   DiscountEligibleSegment: ResolverTypeWrapper<DiscountEligibleSegment>;
   DiscountExternalReference: ResolverTypeWrapper<Omit<DiscountExternalReference, 'discount'> & { discount: ResolversTypes['Discount'] }>;
   DiscountExternalReferenceConnection: ResolverTypeWrapper<DiscountExternalReferenceConnection>;
-  DiscountExternalReferenceCreateInput: DiscountExternalReferenceCreateInput;
-  DiscountExternalReferenceCreatePayload: ResolverTypeWrapper<DiscountExternalReferenceCreatePayload>;
-  DiscountExternalReferenceDeleteInput: DiscountExternalReferenceDeleteInput;
-  DiscountExternalReferenceDeletePayload: ResolverTypeWrapper<DiscountExternalReferenceDeletePayload>;
+  DiscountExternalReferenceCreateValuesInput: DiscountExternalReferenceCreateValuesInput;
   DiscountExternalReferenceEdge: ResolverTypeWrapper<DiscountExternalReferenceEdge>;
   DiscountExternalReferenceIdentityInput: DiscountExternalReferenceIdentityInput;
+  DiscountExternalReferenceOperationAction: DiscountExternalReferenceOperationAction;
+  DiscountExternalReferenceOperationInput: DiscountExternalReferenceOperationInput;
   DiscountExternalReferenceOrderByInput: DiscountExternalReferenceOrderByInput;
   DiscountExternalReferenceOrderField: DiscountExternalReferenceOrderField;
   DiscountExternalReferenceSyncInput: DiscountExternalReferenceSyncInput;
   DiscountExternalReferenceUpdateInput: DiscountExternalReferenceUpdateInput;
-  DiscountExternalReferenceUpdatePayload: ResolverTypeWrapper<DiscountExternalReferenceUpdatePayload>;
   DiscountExternalReferenceWhereInput: DiscountExternalReferenceWhereInput;
   DiscountExternalSyncDirection: DiscountExternalSyncDirection;
   DiscountExternalSyncDirectionFilter: DiscountExternalSyncDirectionFilter;
@@ -2324,21 +2303,19 @@ export type ResolversParentTypes = ResolversObject<{
   DiscountClassFilter: DiscountClassFilter;
   DiscountCode: Omit<DiscountCode, 'discount'> & { discount: ResolversParentTypes['Discount'] };
   DiscountCodeConnection: Omit<DiscountCodeConnection, 'edges'> & { edges: Array<ResolversParentTypes['DiscountCodeEdge']> };
-  DiscountCodeCreateOperationInput: DiscountCodeCreateOperationInput;
-  DiscountCodeDeleteOperationInput: DiscountCodeDeleteOperationInput;
+  DiscountCodeCreateInput: DiscountCodeCreateInput;
   DiscountCodeEdge: Omit<DiscountCodeEdge, 'node'> & { node: ResolversParentTypes['DiscountCode'] };
+  DiscountCodeOperationInput: DiscountCodeOperationInput;
   DiscountCodeOrderByInput: DiscountCodeOrderByInput;
   DiscountCodeStatusFilter: DiscountCodeStatusFilter;
-  DiscountCodeUpdateOperationInput: DiscountCodeUpdateOperationInput;
+  DiscountCodeUpdateInput: DiscountCodeUpdateInput;
   DiscountCodeWhereInput: DiscountCodeWhereInput;
-  DiscountCodesUpdateInput: DiscountCodesUpdateInput;
   DiscountCombination: DiscountCombination;
   DiscountConnection: Omit<DiscountConnection, 'edges'> & { edges: Array<ResolversParentTypes['DiscountEdge']> };
   DiscountCreateInput: DiscountCreateInput;
   DiscountCreatePayload: Omit<DiscountCreatePayload, 'discount'> & { discount?: Maybe<ResolversParentTypes['Discount']> };
   DiscountCurrencyFilter: DiscountCurrencyFilter;
   DiscountDefinitionUpdateInput: DiscountDefinitionUpdateInput;
-  DiscountDeleteInput: DiscountDeleteInput;
   DiscountDeletePayload: DiscountDeletePayload;
   DiscountEdge: Omit<DiscountEdge, 'node'> & { node: ResolversParentTypes['Discount'] };
   DiscountEffectiveStatusFilter: DiscountEffectiveStatusFilter;
@@ -2346,16 +2323,13 @@ export type ResolversParentTypes = ResolversObject<{
   DiscountEligibleSegment: DiscountEligibleSegment;
   DiscountExternalReference: Omit<DiscountExternalReference, 'discount'> & { discount: ResolversParentTypes['Discount'] };
   DiscountExternalReferenceConnection: DiscountExternalReferenceConnection;
-  DiscountExternalReferenceCreateInput: DiscountExternalReferenceCreateInput;
-  DiscountExternalReferenceCreatePayload: DiscountExternalReferenceCreatePayload;
-  DiscountExternalReferenceDeleteInput: DiscountExternalReferenceDeleteInput;
-  DiscountExternalReferenceDeletePayload: DiscountExternalReferenceDeletePayload;
+  DiscountExternalReferenceCreateValuesInput: DiscountExternalReferenceCreateValuesInput;
   DiscountExternalReferenceEdge: DiscountExternalReferenceEdge;
   DiscountExternalReferenceIdentityInput: DiscountExternalReferenceIdentityInput;
+  DiscountExternalReferenceOperationInput: DiscountExternalReferenceOperationInput;
   DiscountExternalReferenceOrderByInput: DiscountExternalReferenceOrderByInput;
   DiscountExternalReferenceSyncInput: DiscountExternalReferenceSyncInput;
   DiscountExternalReferenceUpdateInput: DiscountExternalReferenceUpdateInput;
-  DiscountExternalReferenceUpdatePayload: DiscountExternalReferenceUpdatePayload;
   DiscountExternalReferenceWhereInput: DiscountExternalReferenceWhereInput;
   DiscountExternalSyncDirectionFilter: DiscountExternalSyncDirectionFilter;
   DiscountExternalSyncStatusFilter: DiscountExternalSyncStatusFilter;
@@ -2637,28 +2611,9 @@ export type DiscountExternalReferenceConnectionResolvers<ContextType = ServiceCo
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
-export type DiscountExternalReferenceCreatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountExternalReferenceCreatePayload'] = ResolversParentTypes['DiscountExternalReferenceCreatePayload']> = ResolversObject<{
-  externalReference?: Resolver<Maybe<ResolversTypes['DiscountExternalReference']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type DiscountExternalReferenceDeletePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountExternalReferenceDeletePayload'] = ResolversParentTypes['DiscountExternalReferenceDeletePayload']> = ResolversObject<{
-  deletedExternalReferenceId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
 export type DiscountExternalReferenceEdgeResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountExternalReferenceEdge'] = ResolversParentTypes['DiscountExternalReferenceEdge']> = ResolversObject<{
   cursor?: Resolver<ResolversTypes['String'], ParentType, ContextType>;
   node?: Resolver<ResolversTypes['DiscountExternalReference'], ParentType, ContextType>;
-  __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
-}>;
-
-export type DiscountExternalReferenceUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountExternalReferenceUpdatePayload'] = ResolversParentTypes['DiscountExternalReferenceUpdatePayload']> = ResolversObject<{
-  externalReference?: Resolver<Maybe<ResolversTypes['DiscountExternalReference']>, ParentType, ContextType>;
-  operationResults?: Resolver<Array<ResolversTypes['DiscountOperationResult']>, ParentType, ContextType>;
-  userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
 
@@ -2691,6 +2646,7 @@ export type DiscountMinimumRequirementResolvers<ContextType = ServiceContext, Pa
 
 export type DiscountOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['DiscountOperationResult'] = ResolversParentTypes['DiscountOperationResult']> = ResolversObject<{
   applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   type?: Resolver<ResolversTypes['DiscountOperationType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -2847,10 +2803,7 @@ export type PageInfoResolvers<ContextType = ServiceContext, ParentType extends R
 
 export type PricingMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['PricingMutation'] = ResolversParentTypes['PricingMutation']> = ResolversObject<{
   discountCreate?: Resolver<ResolversTypes['DiscountCreatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountCreateArgs, 'input'>>;
-  discountDelete?: Resolver<ResolversTypes['DiscountDeletePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountDeleteArgs, 'input'>>;
-  discountExternalReferenceCreate?: Resolver<ResolversTypes['DiscountExternalReferenceCreatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountExternalReferenceCreateArgs, 'input'>>;
-  discountExternalReferenceDelete?: Resolver<ResolversTypes['DiscountExternalReferenceDeletePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountExternalReferenceDeleteArgs, 'input'>>;
-  discountExternalReferenceUpdate?: Resolver<ResolversTypes['DiscountExternalReferenceUpdatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountExternalReferenceUpdateArgs, 'externalReferenceId' | 'operations'>>;
+  discountDelete?: Resolver<ResolversTypes['DiscountDeletePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountDeleteArgs, 'discountId'>>;
   discountUpdate?: Resolver<ResolversTypes['DiscountUpdatePayload'], ParentType, ContextType, RequireFields<PricingMutationDiscountUpdateArgs, 'discountId' | 'operations'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -2918,10 +2871,7 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   DiscountEligibleSegment?: DiscountEligibleSegmentResolvers<ContextType>;
   DiscountExternalReference?: DiscountExternalReferenceResolvers<ContextType>;
   DiscountExternalReferenceConnection?: DiscountExternalReferenceConnectionResolvers<ContextType>;
-  DiscountExternalReferenceCreatePayload?: DiscountExternalReferenceCreatePayloadResolvers<ContextType>;
-  DiscountExternalReferenceDeletePayload?: DiscountExternalReferenceDeletePayloadResolvers<ContextType>;
   DiscountExternalReferenceEdge?: DiscountExternalReferenceEdgeResolvers<ContextType>;
-  DiscountExternalReferenceUpdatePayload?: DiscountExternalReferenceUpdatePayloadResolvers<ContextType>;
   DiscountFreeShippingRule?: DiscountFreeShippingRuleResolvers<ContextType>;
   DiscountFunctionBinding?: DiscountFunctionBindingResolvers<ContextType>;
   DiscountMinimumRequirement?: DiscountMinimumRequirementResolvers<ContextType>;
@@ -2950,3 +2900,4 @@ export type Resolvers<ContextType = ServiceContext> = ResolversObject<{
   UserError?: UserErrorResolvers<ContextType>;
   Variant?: VariantResolvers<ContextType>;
 }>;
+

@@ -1,25 +1,3 @@
-extend type CatalogQuery {
-  comparisonProfile(id: ID!): ComparisonProfile
-  comparisonProfiles(
-    first: Int
-    after: String
-    last: Int
-    before: String
-    where: ComparisonProfileWhereInput
-    orderBy: [ComparisonProfileOrderByInput!]
-  ): ComparisonProfileConnection!
-  productComparisonConfiguration(productId: ID!): ProductComparisonConfiguration!
-}
-
-extend type CatalogMutation {
-  comparisonProfileCreate(input: ComparisonProfileCreateInput!): ComparisonProfileCreatePayload!
-  comparisonProfileUpdate(
-    comparisonProfileId: ID!
-    operations: ComparisonProfileUpdateInput!
-  ): ComparisonProfileUpdatePayload!
-  comparisonProfileDelete(comparisonProfileId: ID!): ComparisonProfileDeletePayload!
-}
-
 type ComparisonProfile implements Node @key(fields: "id") {
   id: ID!
   handle: String!

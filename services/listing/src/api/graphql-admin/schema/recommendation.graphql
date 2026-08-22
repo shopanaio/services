@@ -246,37 +246,3 @@ type RecommendationSnapshotPreviewPayload {
   draft: RecommendationPreviewResult
   userErrors: [GenericUserError!]!
 }
-
-extend type ListingQuery {
-  recommendationPlacementPolicy(placement: RecommendationPlacement!): RecommendationPlacementPolicy
-  recommendationPlacementPolicies: [RecommendationPlacementPolicy!]!
-  manualProductRecommendations(
-    anchorProductId: ID!
-    placement: RecommendationPlacement!
-    first: Int = 50
-    after: String
-  ): ManualProductRecommendationConnection!
-  recommendationSnapshotPreview(
-    input: RecommendationSnapshotPreviewInput!
-  ): RecommendationSnapshotPreviewPayload!
-}
-
-extend type ListingMutation {
-  recommendationPlacementPolicyCreate(
-    input: RecommendationPlacementPolicyCreateInput!
-  ): RecommendationPlacementPolicyCreatePayload!
-  recommendationPlacementPolicyUpdate(
-    recommendationPlacementPolicyId: ID!
-    operations: RecommendationPlacementPolicyUpdateInput!
-  ): RecommendationPlacementPolicyUpdatePayload!
-  manualProductRecommendationCreate(
-    input: ManualProductRecommendationCreateInput!
-  ): ManualProductRecommendationCreatePayload!
-  manualProductRecommendationUpdate(
-    manualProductRecommendationId: ID!
-    operations: ManualProductRecommendationUpdateInput!
-  ): ManualProductRecommendationUpdatePayload!
-  manualProductRecommendationDelete(
-    manualProductRecommendationId: ID!
-  ): ManualProductRecommendationDeletePayload!
-}

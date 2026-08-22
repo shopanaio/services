@@ -537,6 +537,7 @@ export type CustomerAccountsSettingsUpdateInput = {
 
 export type CustomerAccountsSettingsUpdatePayload = {
   __typename?: 'CustomerAccountsSettingsUpdatePayload';
+  operationResults: Array<CustomerOperationResult>;
   settings: Maybe<CustomerAccountsSettings>;
   userErrors: Array<GenericUserError>;
 };
@@ -608,6 +609,25 @@ export type CustomerAddressEdge = {
   node: CustomerAddress;
 };
 
+export enum CustomerAddressOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  SetDefaultBilling = 'SET_DEFAULT_BILLING',
+  SetDefaultShipping = 'SET_DEFAULT_SHIPPING',
+  Update = 'UPDATE'
+}
+
+/**
+ * One ordered address operation. Values are required by the selected action;
+ * addressId is required for UPDATE and DELETE and may be null for either default action.
+ */
+export type CustomerAddressOperationInput = {
+  action: CustomerAddressOperationAction;
+  addressId?: InputMaybe<Scalars['ID']['input']>;
+  patch?: InputMaybe<CustomerAddressPatchInput>;
+  values?: InputMaybe<CustomerAddressCreateOperationInput>;
+};
+
 /** Ordering configuration for CustomerAddress */
 export type CustomerAddressOrderByInput = {
   /** Sort direction */
@@ -670,11 +690,6 @@ export type CustomerAddressPatchInput = {
   suffix?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type CustomerAddressUpdateOperationInput = {
-  addressId: Scalars['ID']['input'];
-  operations: CustomerAddressPatchInput;
-};
-
 export enum CustomerAddressValidationStatus {
   Invalid = 'INVALID',
   Unvalidated = 'UNVALIDATED',
@@ -728,15 +743,9 @@ export type CustomerAddressWhereInput = {
   validationStatus?: InputMaybe<CustomerAddressValidationStatusFilter>;
 };
 
-/** Batched address changes scoped to the customer being updated. */
+/** Ordered address changes scoped to the customer being updated. */
 export type CustomerAddressesUpdateInput = {
-  create?: InputMaybe<Array<CustomerAddressCreateOperationInput>>;
-  /** Existing address ID to make the default. Explicit null clears the default. */
-  defaultBillingAddressId?: InputMaybe<Scalars['ID']['input']>;
-  /** Existing address ID to make the default. Explicit null clears the default. */
-  defaultShippingAddressId?: InputMaybe<Scalars['ID']['input']>;
-  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  update?: InputMaybe<Array<CustomerAddressUpdateOperationInput>>;
+  operations: Array<CustomerAddressOperationInput>;
 };
 
 /** Lifecycle states that a merchant administrator may select directly. */
@@ -932,6 +941,16 @@ export enum CustomerConsentEventOrderField {
   Source = 'source'
 }
 
+export enum CustomerConsentOperationAction {
+  Set = 'SET'
+}
+
+/** One ordered consent transition scoped to the customer being updated. */
+export type CustomerConsentOperationInput = {
+  action: CustomerConsentOperationAction;
+  values: CustomerConsentValuesInput;
+};
+
 export enum CustomerConsentOptInLevel {
   ConfirmedOptIn = 'CONFIRMED_OPT_IN',
   SingleOptIn = 'SINGLE_OPT_IN',
@@ -954,8 +973,7 @@ export type CustomerConsentStateFilter = {
   _notIn?: InputMaybe<Array<CustomerConsentState>>;
 };
 
-/** Consent transition scoped to the customer being updated. */
-export type CustomerConsentUpdateOperationInput = {
+export type CustomerConsentValuesInput = {
   channel: CustomerConsentChannel;
   contactPoint: Scalars['String']['input'];
   evidence?: InputMaybe<Scalars['JSON']['input']>;
@@ -965,9 +983,8 @@ export type CustomerConsentUpdateOperationInput = {
   state: CustomerConsentAdminState;
 };
 
-/** Batched consent transitions keyed by channel. */
 export type CustomerConsentsUpdateInput = {
-  set: Array<CustomerConsentUpdateOperationInput>;
+  operations: Array<CustomerConsentOperationInput>;
 };
 
 /** Contact projections in the unified customer update. */
@@ -1043,10 +1060,6 @@ export type CustomerDataRequestCreatePayload = {
   __typename?: 'CustomerDataRequestCreatePayload';
   dataRequest: Maybe<CustomerDataRequest>;
   userErrors: Array<GenericUserError>;
-};
-
-export type CustomerDataRequestDeleteInput = {
-  id: Scalars['ID']['input'];
 };
 
 export type CustomerDataRequestDeletePayload = {
@@ -1169,10 +1182,6 @@ export type CustomerDataRequestWhereInput = {
   updatedAt?: InputMaybe<DateTimeFilter>;
 };
 
-export type CustomerDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
 export type CustomerDeletePayload = {
   __typename?: 'CustomerDeletePayload';
   deletedCustomerId: Maybe<Scalars['ID']['output']>;
@@ -1252,10 +1261,6 @@ export type CustomerGroupDefinitionUpdateInput = {
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
-export type CustomerGroupDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
 export type CustomerGroupDeletePayload = {
   __typename?: 'CustomerGroupDeletePayload';
   deletedGroupId: Maybe<Scalars['ID']['output']>;
@@ -1281,6 +1286,13 @@ export type CustomerGroupMembership = Node & {
   source: CustomerAssignmentSource;
 };
 
+export enum CustomerGroupMembershipAssignmentAction {
+  Link = 'LINK',
+  Set = 'SET',
+  Unlink = 'UNLINK',
+  Update = 'UPDATE'
+}
+
 export type CustomerGroupMembershipConnection = {
   __typename?: 'CustomerGroupMembershipConnection';
   edges: Array<CustomerGroupMembershipEdge>;
@@ -1292,6 +1304,21 @@ export type CustomerGroupMembershipEdge = {
   __typename?: 'CustomerGroupMembershipEdge';
   cursor: Scalars['String']['output'];
   node: CustomerGroupMembership;
+};
+
+export enum CustomerGroupMembershipOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+/** One ordered group-membership operation owned by the customer. */
+export type CustomerGroupMembershipOperationInput = {
+  action: CustomerGroupMembershipAssignmentAction;
+  membershipId?: InputMaybe<Scalars['ID']['input']>;
+  /** Memberships used by SET to atomically replace all manual group memberships. */
+  memberships?: InputMaybe<Array<CustomerGroupMembershipValuesInput>>;
+  values?: InputMaybe<CustomerGroupMembershipValuesInput>;
 };
 
 /** Ordering configuration for CustomerGroupMembership */
@@ -1323,20 +1350,12 @@ export type CustomerGroupMembershipRelationCreateInput = {
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
 };
 
-export type CustomerGroupMembershipRelationUpdateInput = {
+export type CustomerGroupMembershipRelationPatchInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
-  membershipId: Scalars['ID']['input'];
 };
 
-export type CustomerGroupMembershipRelationsUpdateInput = {
-  create?: InputMaybe<Array<CustomerGroupMembershipRelationCreateInput>>;
-  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  update?: InputMaybe<Array<CustomerGroupMembershipRelationUpdateInput>>;
-};
-
-/** One group membership used by the unified customer update. */
-export type CustomerGroupMembershipUpdateOperationInput = {
+export type CustomerGroupMembershipValuesInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
   groupId: Scalars['ID']['input'];
   isPrimary?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1366,9 +1385,8 @@ export type CustomerGroupMembershipWhereInput = {
   source?: InputMaybe<CustomerAssignmentSourceFilter>;
 };
 
-/** Replace all manual group memberships for the customer. */
 export type CustomerGroupMembershipsUpdateInput = {
-  memberships: Array<CustomerGroupMembershipUpdateOperationInput>;
+  operations: Array<CustomerGroupMembershipOperationInput>;
 };
 
 /** Ordering configuration for CustomerGroup */
@@ -1399,6 +1417,14 @@ export enum CustomerGroupOrderField {
   UpdatedAt = 'updatedAt'
 }
 
+/** One ordered membership operation owned by the customer group. */
+export type CustomerGroupOwnedMembershipOperationInput = {
+  action: CustomerGroupMembershipOperationAction;
+  membershipId?: InputMaybe<Scalars['ID']['input']>;
+  patch?: InputMaybe<CustomerGroupMembershipRelationPatchInput>;
+  values?: InputMaybe<CustomerGroupMembershipRelationCreateInput>;
+};
+
 export type CustomerGroupStateUpdateInput = {
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
   isDefault?: InputMaybe<Scalars['Boolean']['input']>;
@@ -1406,8 +1432,7 @@ export type CustomerGroupStateUpdateInput = {
 
 export type CustomerGroupUpdateInput = {
   definition?: InputMaybe<CustomerGroupDefinitionUpdateInput>;
-  /** Create, update, or delete customer memberships in this group. */
-  memberships?: InputMaybe<CustomerGroupMembershipRelationsUpdateInput>;
+  memberships?: InputMaybe<Array<CustomerGroupOwnedMembershipOperationInput>>;
   state?: InputMaybe<CustomerGroupStateUpdateInput>;
 };
 
@@ -1495,10 +1520,6 @@ export type CustomerMergeCreatePayload = {
   __typename?: 'CustomerMergeCreatePayload';
   merge: Maybe<CustomerMerge>;
   userErrors: Array<GenericUserError>;
-};
-
-export type CustomerMergeDeleteInput = {
-  id: Scalars['ID']['input'];
 };
 
 export type CustomerMergeDeletePayload = {
@@ -1694,7 +1715,11 @@ export type CustomerNoteUpdateInput = {
 export type CustomerOperationResult = {
   __typename?: 'CustomerOperationResult';
   applied: Scalars['Boolean']['output'];
+  /** Affected owned entity when the operation has an entity target. */
+  entityId: Maybe<Scalars['ID']['output']>;
   errors: Array<GenericUserError>;
+  /** Zero-based public operation position in the mapped operation sequence. */
+  position: Scalars['Int']['output'];
   type: CustomerOperationType;
 };
 
@@ -1703,6 +1728,7 @@ export enum CustomerOperationType {
   CompanyUpdate = 'COMPANY_UPDATE',
   ConsentUpdate = 'CONSENT_UPDATE',
   ContactUpdate = 'CONTACT_UPDATE',
+  CustomerAccountsSettingsUpdate = 'CUSTOMER_ACCOUNTS_SETTINGS_UPDATE',
   DataRequestUpdate = 'DATA_REQUEST_UPDATE',
   GroupUpdate = 'GROUP_UPDATE',
   MergeUpdate = 'MERGE_UPDATE',
@@ -1858,10 +1884,6 @@ export type CustomerSegmentDefinitionUpdateInput = {
   query: Scalars['String']['input'];
 };
 
-export type CustomerSegmentDeleteInput = {
-  id: Scalars['ID']['input'];
-};
-
 export type CustomerSegmentDeletePayload = {
   __typename?: 'CustomerSegmentDeletePayload';
   deletedSegmentId: Maybe<Scalars['ID']['output']>;
@@ -1914,6 +1936,12 @@ export type CustomerSegmentMembership = Node & {
   source: CustomerAssignmentSource;
 };
 
+export enum CustomerSegmentMembershipAssignmentAction {
+  Link = 'LINK',
+  Set = 'SET',
+  Unlink = 'UNLINK'
+}
+
 export type CustomerSegmentMembershipConnection = {
   __typename?: 'CustomerSegmentMembershipConnection';
   edges: Array<CustomerSegmentMembershipEdge>;
@@ -1925,6 +1953,21 @@ export type CustomerSegmentMembershipEdge = {
   __typename?: 'CustomerSegmentMembershipEdge';
   cursor: Scalars['String']['output'];
   node: CustomerSegmentMembership;
+};
+
+export enum CustomerSegmentMembershipOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Set = 'SET',
+  Update = 'UPDATE'
+}
+
+/** One ordered segment-membership operation owned by the customer. */
+export type CustomerSegmentMembershipOperationInput = {
+  action: CustomerSegmentMembershipAssignmentAction;
+  segmentId?: InputMaybe<Scalars['ID']['input']>;
+  /** Segment IDs used by SET to atomically replace all manual segment memberships. */
+  segmentIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 /** Ordering configuration for CustomerSegmentMembership */
@@ -1952,17 +1995,8 @@ export type CustomerSegmentMembershipRelationCreateInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
 };
 
-export type CustomerSegmentMembershipRelationUpdateInput = {
+export type CustomerSegmentMembershipRelationPatchInput = {
   expiresAt?: InputMaybe<Scalars['DateTime']['input']>;
-  membershipId: Scalars['ID']['input'];
-};
-
-export type CustomerSegmentMembershipRelationsUpdateInput = {
-  create?: InputMaybe<Array<CustomerSegmentMembershipRelationCreateInput>>;
-  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Atomically replace all manual memberships with these customers. */
-  setCustomerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  update?: InputMaybe<Array<CustomerSegmentMembershipRelationUpdateInput>>;
 };
 
 /** Filter conditions for CustomerSegmentMembership */
@@ -1987,9 +2021,8 @@ export type CustomerSegmentMembershipWhereInput = {
   source?: InputMaybe<CustomerAssignmentSourceFilter>;
 };
 
-/** Replace all manual segment memberships for the customer. */
 export type CustomerSegmentMembershipsUpdateInput = {
-  segmentIds: Array<Scalars['ID']['input']>;
+  operations: Array<CustomerSegmentMembershipOperationInput>;
 };
 
 /** Ordering configuration for CustomerSegment */
@@ -2017,6 +2050,16 @@ export enum CustomerSegmentOrderField {
   /** Sort by updatedAt */
   UpdatedAt = 'updatedAt'
 }
+
+/** One ordered membership operation owned by the customer segment. */
+export type CustomerSegmentOwnedMembershipOperationInput = {
+  action: CustomerSegmentMembershipOperationAction;
+  /** Customer IDs used by SET to atomically replace all manual memberships. */
+  customerIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  membershipId?: InputMaybe<Scalars['ID']['input']>;
+  patch?: InputMaybe<CustomerSegmentMembershipRelationPatchInput>;
+  values?: InputMaybe<CustomerSegmentMembershipRelationCreateInput>;
+};
 
 export type CustomerSegmentPreview = {
   __typename?: 'CustomerSegmentPreview';
@@ -2078,8 +2121,7 @@ export type CustomerSegmentTypeFilter = {
 export type CustomerSegmentUpdateInput = {
   definition?: InputMaybe<CustomerSegmentDefinitionUpdateInput>;
   details?: InputMaybe<CustomerSegmentDetailsUpdateInput>;
-  /** Create, update, delete, or replace manual customer memberships. */
-  memberships?: InputMaybe<CustomerSegmentMembershipRelationsUpdateInput>;
+  memberships?: InputMaybe<Array<CustomerSegmentOwnedMembershipOperationInput>>;
   state?: InputMaybe<CustomerSegmentStateUpdateInput>;
 };
 
@@ -2184,6 +2226,12 @@ export type CustomerTagAssignment = Node & {
   tag: CustomerTag;
 };
 
+export enum CustomerTagAssignmentAction {
+  Link = 'LINK',
+  Set = 'SET',
+  Unlink = 'UNLINK'
+}
+
 export type CustomerTagAssignmentConnection = {
   __typename?: 'CustomerTagAssignmentConnection';
   edges: Array<CustomerTagAssignmentEdge>;
@@ -2195,6 +2243,19 @@ export type CustomerTagAssignmentEdge = {
   __typename?: 'CustomerTagAssignmentEdge';
   cursor: Scalars['String']['output'];
   node: CustomerTagAssignment;
+};
+
+export enum CustomerTagAssignmentOperationAction {
+  Link = 'LINK',
+  Unlink = 'UNLINK'
+}
+
+/** One ordered tag-assignment operation owned by the customer. */
+export type CustomerTagAssignmentOperationInput = {
+  action: CustomerTagAssignmentAction;
+  tagId?: InputMaybe<Scalars['ID']['input']>;
+  /** Tag IDs used by SET to atomically replace all tag assignments. */
+  tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 /** Ordering configuration for CustomerTagAssignment */
@@ -2217,11 +2278,6 @@ export type CustomerTagAssignmentRelationCreateInput = {
   customerId: Scalars['ID']['input'];
 };
 
-export type CustomerTagAssignmentRelationsUpdateInput = {
-  create?: InputMaybe<Array<CustomerTagAssignmentRelationCreateInput>>;
-  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-};
-
 /** Filter conditions for CustomerTagAssignment */
 export type CustomerTagAssignmentWhereInput = {
   /** Logical AND of multiple conditions */
@@ -2242,9 +2298,8 @@ export type CustomerTagAssignmentWhereInput = {
   tagId?: InputMaybe<IdFilter>;
 };
 
-/** Replace all tag assignments for the customer. */
 export type CustomerTagAssignmentsUpdateInput = {
-  tagIds: Array<Scalars['ID']['input']>;
+  operations: Array<CustomerTagAssignmentOperationInput>;
 };
 
 export type CustomerTagConnection = {
@@ -2262,10 +2317,6 @@ export type CustomerTagCreatePayload = {
   __typename?: 'CustomerTagCreatePayload';
   tag: Maybe<CustomerTag>;
   userErrors: Array<GenericUserError>;
-};
-
-export type CustomerTagDeleteInput = {
-  id: Scalars['ID']['input'];
 };
 
 export type CustomerTagDeletePayload = {
@@ -2302,9 +2353,15 @@ export enum CustomerTagOrderField {
   UpdatedAt = 'updatedAt'
 }
 
+/** One ordered customer assignment operation owned by the tag. */
+export type CustomerTagOwnedAssignmentOperationInput = {
+  action: CustomerTagAssignmentOperationAction;
+  assignmentId?: InputMaybe<Scalars['ID']['input']>;
+  values?: InputMaybe<CustomerTagAssignmentRelationCreateInput>;
+};
+
 export type CustomerTagUpdateInput = {
-  /** Create or delete customer assignments for this tag. */
-  assignments?: InputMaybe<CustomerTagAssignmentRelationsUpdateInput>;
+  assignments?: InputMaybe<Array<CustomerTagOwnedAssignmentOperationInput>>;
   name?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -2378,6 +2435,19 @@ export type CustomerTaxExemptionEdge = {
   node: CustomerTaxExemption;
 };
 
+export enum CustomerTaxExemptionOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+export type CustomerTaxExemptionOperationInput = {
+  action: CustomerTaxExemptionOperationAction;
+  patch?: InputMaybe<CustomerTaxExemptionPatchInput>;
+  taxExemptionId?: InputMaybe<Scalars['ID']['input']>;
+  values?: InputMaybe<CustomerTaxExemptionCreateOperationInput>;
+};
+
 /** Ordering configuration for CustomerTaxExemption */
 export type CustomerTaxExemptionOrderByInput = {
   /** Sort direction */
@@ -2432,11 +2502,6 @@ export type CustomerTaxExemptionStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerTaxExemptionStatus>>;
 };
 
-export type CustomerTaxExemptionUpdateOperationInput = {
-  operations: CustomerTaxExemptionPatchInput;
-  taxExemptionId: Scalars['ID']['input'];
-};
-
 /** Filter conditions for CustomerTaxExemption */
 export type CustomerTaxExemptionWhereInput = {
   /** Logical AND of multiple conditions */
@@ -2465,11 +2530,8 @@ export type CustomerTaxExemptionWhereInput = {
   validTo?: InputMaybe<DateFilter>;
 };
 
-/** Batched tax exemption changes scoped to the customer being updated. */
 export type CustomerTaxExemptionsUpdateInput = {
-  create?: InputMaybe<Array<CustomerTaxExemptionCreateOperationInput>>;
-  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  update?: InputMaybe<Array<CustomerTaxExemptionUpdateOperationInput>>;
+  operations: Array<CustomerTaxExemptionOperationInput>;
 };
 
 export type CustomerTaxIdentifier = Node & {
@@ -2512,6 +2574,19 @@ export type CustomerTaxIdentifierEdge = {
   __typename?: 'CustomerTaxIdentifierEdge';
   cursor: Scalars['String']['output'];
   node: CustomerTaxIdentifier;
+};
+
+export enum CustomerTaxIdentifierOperationAction {
+  Create = 'CREATE',
+  Delete = 'DELETE',
+  Update = 'UPDATE'
+}
+
+export type CustomerTaxIdentifierOperationInput = {
+  action: CustomerTaxIdentifierOperationAction;
+  patch?: InputMaybe<CustomerTaxIdentifierPatchInput>;
+  taxIdentifierId?: InputMaybe<Scalars['ID']['input']>;
+  values?: InputMaybe<CustomerTaxIdentifierCreateOperationInput>;
 };
 
 /** Ordering configuration for CustomerTaxIdentifier */
@@ -2568,11 +2643,6 @@ export type CustomerTaxIdentifierStatusFilter = {
   _notIn?: InputMaybe<Array<CustomerTaxIdentifierStatus>>;
 };
 
-export type CustomerTaxIdentifierUpdateOperationInput = {
-  operations: CustomerTaxIdentifierPatchInput;
-  taxIdentifierId: Scalars['ID']['input'];
-};
-
 /** Filter conditions for CustomerTaxIdentifier */
 export type CustomerTaxIdentifierWhereInput = {
   /** Logical AND of multiple conditions */
@@ -2603,11 +2673,8 @@ export type CustomerTaxIdentifierWhereInput = {
   value?: InputMaybe<StringFilter>;
 };
 
-/** Batched tax identifier changes scoped to the customer being updated. */
 export type CustomerTaxIdentifiersUpdateInput = {
-  create?: InputMaybe<Array<CustomerTaxIdentifierCreateOperationInput>>;
-  deleteIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  update?: InputMaybe<Array<CustomerTaxIdentifierUpdateOperationInput>>;
+  operations: Array<CustomerTaxIdentifierOperationInput>;
 };
 
 /** Customer-level sections executed by the unified customerUpdate workflow. */
@@ -2725,7 +2792,7 @@ export type CustomersMutation = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerAccountsSettingsUpdateArgs = {
-  input: CustomerAccountsSettingsUpdateInput;
+  operations: CustomerAccountsSettingsUpdateInput;
 };
 
 
@@ -2743,20 +2810,20 @@ export type CustomersMutationCustomerDataRequestCreateArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerDataRequestDeleteArgs = {
-  input: CustomerDataRequestDeleteInput;
+  dataRequestId: Scalars['ID']['input'];
 };
 
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerDataRequestUpdateArgs = {
   dataRequestId: Scalars['ID']['input'];
-  operations?: InputMaybe<CustomerDataRequestUpdateInput>;
+  operations: CustomerDataRequestUpdateInput;
 };
 
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerDeleteArgs = {
-  input: CustomerDeleteInput;
+  customerId: Scalars['ID']['input'];
 };
 
 
@@ -2768,7 +2835,7 @@ export type CustomersMutationCustomerGroupCreateArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerGroupDeleteArgs = {
-  input: CustomerGroupDeleteInput;
+  groupId: Scalars['ID']['input'];
 };
 
 
@@ -2787,14 +2854,14 @@ export type CustomersMutationCustomerMergeCreateArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerMergeDeleteArgs = {
-  input: CustomerMergeDeleteInput;
+  mergeId: Scalars['ID']['input'];
 };
 
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerMergeUpdateArgs = {
   mergeId: Scalars['ID']['input'];
-  operations?: InputMaybe<CustomerMergeUpdateInput>;
+  operations: CustomerMergeUpdateInput;
 };
 
 
@@ -2806,7 +2873,7 @@ export type CustomersMutationCustomerSegmentCreateArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerSegmentDeleteArgs = {
-  input: CustomerSegmentDeleteInput;
+  segmentId: Scalars['ID']['input'];
 };
 
 
@@ -2825,13 +2892,13 @@ export type CustomersMutationCustomerTagCreateArgs = {
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerTagDeleteArgs = {
-  input: CustomerTagDeleteInput;
+  tagId: Scalars['ID']['input'];
 };
 
 
 /** Store-scoped customer commands. */
 export type CustomersMutationCustomerTagUpdateArgs = {
-  operations?: InputMaybe<CustomerTagUpdateInput>;
+  operations: CustomerTagUpdateInput;
   tagId: Scalars['ID']['input'];
 };
 
@@ -3659,10 +3726,11 @@ export type ResolversTypes = ResolversObject<{
   CustomerAddressConnection: ResolverTypeWrapper<CustomerAddressConnection>;
   CustomerAddressCreateOperationInput: CustomerAddressCreateOperationInput;
   CustomerAddressEdge: ResolverTypeWrapper<CustomerAddressEdge>;
+  CustomerAddressOperationAction: CustomerAddressOperationAction;
+  CustomerAddressOperationInput: CustomerAddressOperationInput;
   CustomerAddressOrderByInput: CustomerAddressOrderByInput;
   CustomerAddressOrderField: CustomerAddressOrderField;
   CustomerAddressPatchInput: CustomerAddressPatchInput;
-  CustomerAddressUpdateOperationInput: CustomerAddressUpdateOperationInput;
   CustomerAddressValidationStatus: CustomerAddressValidationStatus;
   CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
   CustomerAddressWhereInput: CustomerAddressWhereInput;
@@ -3686,10 +3754,12 @@ export type ResolversTypes = ResolversObject<{
   CustomerConsentEventEdge: ResolverTypeWrapper<CustomerConsentEventEdge>;
   CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
   CustomerConsentEventOrderField: CustomerConsentEventOrderField;
+  CustomerConsentOperationAction: CustomerConsentOperationAction;
+  CustomerConsentOperationInput: CustomerConsentOperationInput;
   CustomerConsentOptInLevel: CustomerConsentOptInLevel;
   CustomerConsentState: CustomerConsentState;
   CustomerConsentStateFilter: CustomerConsentStateFilter;
-  CustomerConsentUpdateOperationInput: CustomerConsentUpdateOperationInput;
+  CustomerConsentValuesInput: CustomerConsentValuesInput;
   CustomerConsentsUpdateInput: CustomerConsentsUpdateInput;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
@@ -3699,7 +3769,6 @@ export type ResolversTypes = ResolversObject<{
   CustomerDataRequestConnection: ResolverTypeWrapper<CustomerDataRequestConnection>;
   CustomerDataRequestCreateInput: CustomerDataRequestCreateInput;
   CustomerDataRequestCreatePayload: ResolverTypeWrapper<CustomerDataRequestCreatePayload>;
-  CustomerDataRequestDeleteInput: CustomerDataRequestDeleteInput;
   CustomerDataRequestDeletePayload: ResolverTypeWrapper<CustomerDataRequestDeletePayload>;
   CustomerDataRequestEdge: ResolverTypeWrapper<CustomerDataRequestEdge>;
   CustomerDataRequestOrderByInput: CustomerDataRequestOrderByInput;
@@ -3711,7 +3780,6 @@ export type ResolversTypes = ResolversObject<{
   CustomerDataRequestUpdateInput: CustomerDataRequestUpdateInput;
   CustomerDataRequestUpdatePayload: ResolverTypeWrapper<CustomerDataRequestUpdatePayload>;
   CustomerDataRequestWhereInput: CustomerDataRequestWhereInput;
-  CustomerDeleteInput: CustomerDeleteInput;
   CustomerDeletePayload: ResolverTypeWrapper<CustomerDeletePayload>;
   CustomerEdge: ResolverTypeWrapper<CustomerEdge>;
   CustomerExternalReference: ResolverTypeWrapper<CustomerExternalReference>;
@@ -3720,22 +3788,24 @@ export type ResolversTypes = ResolversObject<{
   CustomerGroupCreateInput: CustomerGroupCreateInput;
   CustomerGroupCreatePayload: ResolverTypeWrapper<CustomerGroupCreatePayload>;
   CustomerGroupDefinitionUpdateInput: CustomerGroupDefinitionUpdateInput;
-  CustomerGroupDeleteInput: CustomerGroupDeleteInput;
   CustomerGroupDeletePayload: ResolverTypeWrapper<CustomerGroupDeletePayload>;
   CustomerGroupEdge: ResolverTypeWrapper<CustomerGroupEdge>;
   CustomerGroupMembership: ResolverTypeWrapper<CustomerGroupMembership>;
+  CustomerGroupMembershipAssignmentAction: CustomerGroupMembershipAssignmentAction;
   CustomerGroupMembershipConnection: ResolverTypeWrapper<CustomerGroupMembershipConnection>;
   CustomerGroupMembershipEdge: ResolverTypeWrapper<CustomerGroupMembershipEdge>;
+  CustomerGroupMembershipOperationAction: CustomerGroupMembershipOperationAction;
+  CustomerGroupMembershipOperationInput: CustomerGroupMembershipOperationInput;
   CustomerGroupMembershipOrderByInput: CustomerGroupMembershipOrderByInput;
   CustomerGroupMembershipOrderField: CustomerGroupMembershipOrderField;
   CustomerGroupMembershipRelationCreateInput: CustomerGroupMembershipRelationCreateInput;
-  CustomerGroupMembershipRelationUpdateInput: CustomerGroupMembershipRelationUpdateInput;
-  CustomerGroupMembershipRelationsUpdateInput: CustomerGroupMembershipRelationsUpdateInput;
-  CustomerGroupMembershipUpdateOperationInput: CustomerGroupMembershipUpdateOperationInput;
+  CustomerGroupMembershipRelationPatchInput: CustomerGroupMembershipRelationPatchInput;
+  CustomerGroupMembershipValuesInput: CustomerGroupMembershipValuesInput;
   CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
   CustomerGroupMembershipsUpdateInput: CustomerGroupMembershipsUpdateInput;
   CustomerGroupOrderByInput: CustomerGroupOrderByInput;
   CustomerGroupOrderField: CustomerGroupOrderField;
+  CustomerGroupOwnedMembershipOperationInput: CustomerGroupOwnedMembershipOperationInput;
   CustomerGroupStateUpdateInput: CustomerGroupStateUpdateInput;
   CustomerGroupUpdateInput: CustomerGroupUpdateInput;
   CustomerGroupUpdatePayload: ResolverTypeWrapper<CustomerGroupUpdatePayload>;
@@ -3746,7 +3816,6 @@ export type ResolversTypes = ResolversObject<{
   CustomerMergeConnection: ResolverTypeWrapper<CustomerMergeConnection>;
   CustomerMergeCreateInput: CustomerMergeCreateInput;
   CustomerMergeCreatePayload: ResolverTypeWrapper<CustomerMergeCreatePayload>;
-  CustomerMergeDeleteInput: CustomerMergeDeleteInput;
   CustomerMergeDeletePayload: ResolverTypeWrapper<CustomerMergeDeletePayload>;
   CustomerMergeEdge: ResolverTypeWrapper<CustomerMergeEdge>;
   CustomerMergeOrderByInput: CustomerMergeOrderByInput;
@@ -3777,7 +3846,6 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
   CustomerSegmentCreatePayload: ResolverTypeWrapper<CustomerSegmentCreatePayload>;
   CustomerSegmentDefinitionUpdateInput: CustomerSegmentDefinitionUpdateInput;
-  CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
   CustomerSegmentDeletePayload: ResolverTypeWrapper<CustomerSegmentDeletePayload>;
   CustomerSegmentDetailsUpdateInput: CustomerSegmentDetailsUpdateInput;
   CustomerSegmentDiagnosticSeverity: CustomerSegmentDiagnosticSeverity;
@@ -3785,17 +3853,20 @@ export type ResolversTypes = ResolversObject<{
   CustomerSegmentFunctionParameterDescriptor: ResolverTypeWrapper<CustomerSegmentFunctionParameterDescriptor>;
   CustomerSegmentMaterializationStatus: CustomerSegmentMaterializationStatus;
   CustomerSegmentMembership: ResolverTypeWrapper<CustomerSegmentMembership>;
+  CustomerSegmentMembershipAssignmentAction: CustomerSegmentMembershipAssignmentAction;
   CustomerSegmentMembershipConnection: ResolverTypeWrapper<CustomerSegmentMembershipConnection>;
   CustomerSegmentMembershipEdge: ResolverTypeWrapper<CustomerSegmentMembershipEdge>;
+  CustomerSegmentMembershipOperationAction: CustomerSegmentMembershipOperationAction;
+  CustomerSegmentMembershipOperationInput: CustomerSegmentMembershipOperationInput;
   CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
   CustomerSegmentMembershipOrderField: CustomerSegmentMembershipOrderField;
   CustomerSegmentMembershipRelationCreateInput: CustomerSegmentMembershipRelationCreateInput;
-  CustomerSegmentMembershipRelationUpdateInput: CustomerSegmentMembershipRelationUpdateInput;
-  CustomerSegmentMembershipRelationsUpdateInput: CustomerSegmentMembershipRelationsUpdateInput;
+  CustomerSegmentMembershipRelationPatchInput: CustomerSegmentMembershipRelationPatchInput;
   CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
   CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
   CustomerSegmentOrderField: CustomerSegmentOrderField;
+  CustomerSegmentOwnedMembershipOperationInput: CustomerSegmentOwnedMembershipOperationInput;
   CustomerSegmentPreview: ResolverTypeWrapper<CustomerSegmentPreview>;
   CustomerSegmentQueryDiagnostic: ResolverTypeWrapper<CustomerSegmentQueryDiagnostic>;
   CustomerSegmentQueryValidationResult: ResolverTypeWrapper<CustomerSegmentQueryValidationResult>;
@@ -3812,22 +3883,24 @@ export type ResolversTypes = ResolversObject<{
   CustomerStatusUpdateInput: CustomerStatusUpdateInput;
   CustomerTag: ResolverTypeWrapper<CustomerTag>;
   CustomerTagAssignment: ResolverTypeWrapper<CustomerTagAssignment>;
+  CustomerTagAssignmentAction: CustomerTagAssignmentAction;
   CustomerTagAssignmentConnection: ResolverTypeWrapper<CustomerTagAssignmentConnection>;
   CustomerTagAssignmentEdge: ResolverTypeWrapper<CustomerTagAssignmentEdge>;
+  CustomerTagAssignmentOperationAction: CustomerTagAssignmentOperationAction;
+  CustomerTagAssignmentOperationInput: CustomerTagAssignmentOperationInput;
   CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
   CustomerTagAssignmentOrderField: CustomerTagAssignmentOrderField;
   CustomerTagAssignmentRelationCreateInput: CustomerTagAssignmentRelationCreateInput;
-  CustomerTagAssignmentRelationsUpdateInput: CustomerTagAssignmentRelationsUpdateInput;
   CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
   CustomerTagAssignmentsUpdateInput: CustomerTagAssignmentsUpdateInput;
   CustomerTagConnection: ResolverTypeWrapper<CustomerTagConnection>;
   CustomerTagCreateInput: CustomerTagCreateInput;
   CustomerTagCreatePayload: ResolverTypeWrapper<CustomerTagCreatePayload>;
-  CustomerTagDeleteInput: CustomerTagDeleteInput;
   CustomerTagDeletePayload: ResolverTypeWrapper<CustomerTagDeletePayload>;
   CustomerTagEdge: ResolverTypeWrapper<CustomerTagEdge>;
   CustomerTagOrderByInput: CustomerTagOrderByInput;
   CustomerTagOrderField: CustomerTagOrderField;
+  CustomerTagOwnedAssignmentOperationInput: CustomerTagOwnedAssignmentOperationInput;
   CustomerTagUpdateInput: CustomerTagUpdateInput;
   CustomerTagUpdatePayload: ResolverTypeWrapper<CustomerTagUpdatePayload>;
   CustomerTagWhereInput: CustomerTagWhereInput;
@@ -3835,24 +3908,26 @@ export type ResolversTypes = ResolversObject<{
   CustomerTaxExemptionConnection: ResolverTypeWrapper<CustomerTaxExemptionConnection>;
   CustomerTaxExemptionCreateOperationInput: CustomerTaxExemptionCreateOperationInput;
   CustomerTaxExemptionEdge: ResolverTypeWrapper<CustomerTaxExemptionEdge>;
+  CustomerTaxExemptionOperationAction: CustomerTaxExemptionOperationAction;
+  CustomerTaxExemptionOperationInput: CustomerTaxExemptionOperationInput;
   CustomerTaxExemptionOrderByInput: CustomerTaxExemptionOrderByInput;
   CustomerTaxExemptionOrderField: CustomerTaxExemptionOrderField;
   CustomerTaxExemptionPatchInput: CustomerTaxExemptionPatchInput;
   CustomerTaxExemptionStatus: CustomerTaxExemptionStatus;
   CustomerTaxExemptionStatusFilter: CustomerTaxExemptionStatusFilter;
-  CustomerTaxExemptionUpdateOperationInput: CustomerTaxExemptionUpdateOperationInput;
   CustomerTaxExemptionWhereInput: CustomerTaxExemptionWhereInput;
   CustomerTaxExemptionsUpdateInput: CustomerTaxExemptionsUpdateInput;
   CustomerTaxIdentifier: ResolverTypeWrapper<CustomerTaxIdentifier>;
   CustomerTaxIdentifierConnection: ResolverTypeWrapper<CustomerTaxIdentifierConnection>;
   CustomerTaxIdentifierCreateOperationInput: CustomerTaxIdentifierCreateOperationInput;
   CustomerTaxIdentifierEdge: ResolverTypeWrapper<CustomerTaxIdentifierEdge>;
+  CustomerTaxIdentifierOperationAction: CustomerTaxIdentifierOperationAction;
+  CustomerTaxIdentifierOperationInput: CustomerTaxIdentifierOperationInput;
   CustomerTaxIdentifierOrderByInput: CustomerTaxIdentifierOrderByInput;
   CustomerTaxIdentifierOrderField: CustomerTaxIdentifierOrderField;
   CustomerTaxIdentifierPatchInput: CustomerTaxIdentifierPatchInput;
   CustomerTaxIdentifierStatus: CustomerTaxIdentifierStatus;
   CustomerTaxIdentifierStatusFilter: CustomerTaxIdentifierStatusFilter;
-  CustomerTaxIdentifierUpdateOperationInput: CustomerTaxIdentifierUpdateOperationInput;
   CustomerTaxIdentifierWhereInput: CustomerTaxIdentifierWhereInput;
   CustomerTaxIdentifiersUpdateInput: CustomerTaxIdentifiersUpdateInput;
   CustomerUpdateInput: CustomerUpdateInput;
@@ -3906,9 +3981,9 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerAddressConnection: CustomerAddressConnection;
   CustomerAddressCreateOperationInput: CustomerAddressCreateOperationInput;
   CustomerAddressEdge: CustomerAddressEdge;
+  CustomerAddressOperationInput: CustomerAddressOperationInput;
   CustomerAddressOrderByInput: CustomerAddressOrderByInput;
   CustomerAddressPatchInput: CustomerAddressPatchInput;
-  CustomerAddressUpdateOperationInput: CustomerAddressUpdateOperationInput;
   CustomerAddressValidationStatusFilter: CustomerAddressValidationStatusFilter;
   CustomerAddressWhereInput: CustomerAddressWhereInput;
   CustomerAddressesUpdateInput: CustomerAddressesUpdateInput;
@@ -3924,8 +3999,9 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerConsentEventConnection: CustomerConsentEventConnection;
   CustomerConsentEventEdge: CustomerConsentEventEdge;
   CustomerConsentEventOrderByInput: CustomerConsentEventOrderByInput;
+  CustomerConsentOperationInput: CustomerConsentOperationInput;
   CustomerConsentStateFilter: CustomerConsentStateFilter;
-  CustomerConsentUpdateOperationInput: CustomerConsentUpdateOperationInput;
+  CustomerConsentValuesInput: CustomerConsentValuesInput;
   CustomerConsentsUpdateInput: CustomerConsentsUpdateInput;
   CustomerContactUpdateInput: CustomerContactUpdateInput;
   CustomerCreateInput: CustomerCreateInput;
@@ -3935,7 +4011,6 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerDataRequestConnection: CustomerDataRequestConnection;
   CustomerDataRequestCreateInput: CustomerDataRequestCreateInput;
   CustomerDataRequestCreatePayload: CustomerDataRequestCreatePayload;
-  CustomerDataRequestDeleteInput: CustomerDataRequestDeleteInput;
   CustomerDataRequestDeletePayload: CustomerDataRequestDeletePayload;
   CustomerDataRequestEdge: CustomerDataRequestEdge;
   CustomerDataRequestOrderByInput: CustomerDataRequestOrderByInput;
@@ -3944,7 +4019,6 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerDataRequestUpdateInput: CustomerDataRequestUpdateInput;
   CustomerDataRequestUpdatePayload: CustomerDataRequestUpdatePayload;
   CustomerDataRequestWhereInput: CustomerDataRequestWhereInput;
-  CustomerDeleteInput: CustomerDeleteInput;
   CustomerDeletePayload: CustomerDeletePayload;
   CustomerEdge: CustomerEdge;
   CustomerExternalReference: CustomerExternalReference;
@@ -3953,20 +4027,20 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerGroupCreateInput: CustomerGroupCreateInput;
   CustomerGroupCreatePayload: CustomerGroupCreatePayload;
   CustomerGroupDefinitionUpdateInput: CustomerGroupDefinitionUpdateInput;
-  CustomerGroupDeleteInput: CustomerGroupDeleteInput;
   CustomerGroupDeletePayload: CustomerGroupDeletePayload;
   CustomerGroupEdge: CustomerGroupEdge;
   CustomerGroupMembership: CustomerGroupMembership;
   CustomerGroupMembershipConnection: CustomerGroupMembershipConnection;
   CustomerGroupMembershipEdge: CustomerGroupMembershipEdge;
+  CustomerGroupMembershipOperationInput: CustomerGroupMembershipOperationInput;
   CustomerGroupMembershipOrderByInput: CustomerGroupMembershipOrderByInput;
   CustomerGroupMembershipRelationCreateInput: CustomerGroupMembershipRelationCreateInput;
-  CustomerGroupMembershipRelationUpdateInput: CustomerGroupMembershipRelationUpdateInput;
-  CustomerGroupMembershipRelationsUpdateInput: CustomerGroupMembershipRelationsUpdateInput;
-  CustomerGroupMembershipUpdateOperationInput: CustomerGroupMembershipUpdateOperationInput;
+  CustomerGroupMembershipRelationPatchInput: CustomerGroupMembershipRelationPatchInput;
+  CustomerGroupMembershipValuesInput: CustomerGroupMembershipValuesInput;
   CustomerGroupMembershipWhereInput: CustomerGroupMembershipWhereInput;
   CustomerGroupMembershipsUpdateInput: CustomerGroupMembershipsUpdateInput;
   CustomerGroupOrderByInput: CustomerGroupOrderByInput;
+  CustomerGroupOwnedMembershipOperationInput: CustomerGroupOwnedMembershipOperationInput;
   CustomerGroupStateUpdateInput: CustomerGroupStateUpdateInput;
   CustomerGroupUpdateInput: CustomerGroupUpdateInput;
   CustomerGroupUpdatePayload: CustomerGroupUpdatePayload;
@@ -3976,7 +4050,6 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerMergeConnection: CustomerMergeConnection;
   CustomerMergeCreateInput: CustomerMergeCreateInput;
   CustomerMergeCreatePayload: CustomerMergeCreatePayload;
-  CustomerMergeDeleteInput: CustomerMergeDeleteInput;
   CustomerMergeDeletePayload: CustomerMergeDeletePayload;
   CustomerMergeEdge: CustomerMergeEdge;
   CustomerMergeOrderByInput: CustomerMergeOrderByInput;
@@ -4000,7 +4073,6 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentCreateInput: CustomerSegmentCreateInput;
   CustomerSegmentCreatePayload: CustomerSegmentCreatePayload;
   CustomerSegmentDefinitionUpdateInput: CustomerSegmentDefinitionUpdateInput;
-  CustomerSegmentDeleteInput: CustomerSegmentDeleteInput;
   CustomerSegmentDeletePayload: CustomerSegmentDeletePayload;
   CustomerSegmentDetailsUpdateInput: CustomerSegmentDetailsUpdateInput;
   CustomerSegmentEdge: CustomerSegmentEdge;
@@ -4008,13 +4080,14 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerSegmentMembership: CustomerSegmentMembership;
   CustomerSegmentMembershipConnection: CustomerSegmentMembershipConnection;
   CustomerSegmentMembershipEdge: CustomerSegmentMembershipEdge;
+  CustomerSegmentMembershipOperationInput: CustomerSegmentMembershipOperationInput;
   CustomerSegmentMembershipOrderByInput: CustomerSegmentMembershipOrderByInput;
   CustomerSegmentMembershipRelationCreateInput: CustomerSegmentMembershipRelationCreateInput;
-  CustomerSegmentMembershipRelationUpdateInput: CustomerSegmentMembershipRelationUpdateInput;
-  CustomerSegmentMembershipRelationsUpdateInput: CustomerSegmentMembershipRelationsUpdateInput;
+  CustomerSegmentMembershipRelationPatchInput: CustomerSegmentMembershipRelationPatchInput;
   CustomerSegmentMembershipWhereInput: CustomerSegmentMembershipWhereInput;
   CustomerSegmentMembershipsUpdateInput: CustomerSegmentMembershipsUpdateInput;
   CustomerSegmentOrderByInput: CustomerSegmentOrderByInput;
+  CustomerSegmentOwnedMembershipOperationInput: CustomerSegmentOwnedMembershipOperationInput;
   CustomerSegmentPreview: CustomerSegmentPreview;
   CustomerSegmentQueryDiagnostic: CustomerSegmentQueryDiagnostic;
   CustomerSegmentQueryValidationResult: CustomerSegmentQueryValidationResult;
@@ -4031,18 +4104,18 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerTagAssignment: CustomerTagAssignment;
   CustomerTagAssignmentConnection: CustomerTagAssignmentConnection;
   CustomerTagAssignmentEdge: CustomerTagAssignmentEdge;
+  CustomerTagAssignmentOperationInput: CustomerTagAssignmentOperationInput;
   CustomerTagAssignmentOrderByInput: CustomerTagAssignmentOrderByInput;
   CustomerTagAssignmentRelationCreateInput: CustomerTagAssignmentRelationCreateInput;
-  CustomerTagAssignmentRelationsUpdateInput: CustomerTagAssignmentRelationsUpdateInput;
   CustomerTagAssignmentWhereInput: CustomerTagAssignmentWhereInput;
   CustomerTagAssignmentsUpdateInput: CustomerTagAssignmentsUpdateInput;
   CustomerTagConnection: CustomerTagConnection;
   CustomerTagCreateInput: CustomerTagCreateInput;
   CustomerTagCreatePayload: CustomerTagCreatePayload;
-  CustomerTagDeleteInput: CustomerTagDeleteInput;
   CustomerTagDeletePayload: CustomerTagDeletePayload;
   CustomerTagEdge: CustomerTagEdge;
   CustomerTagOrderByInput: CustomerTagOrderByInput;
+  CustomerTagOwnedAssignmentOperationInput: CustomerTagOwnedAssignmentOperationInput;
   CustomerTagUpdateInput: CustomerTagUpdateInput;
   CustomerTagUpdatePayload: CustomerTagUpdatePayload;
   CustomerTagWhereInput: CustomerTagWhereInput;
@@ -4050,20 +4123,20 @@ export type ResolversParentTypes = ResolversObject<{
   CustomerTaxExemptionConnection: CustomerTaxExemptionConnection;
   CustomerTaxExemptionCreateOperationInput: CustomerTaxExemptionCreateOperationInput;
   CustomerTaxExemptionEdge: CustomerTaxExemptionEdge;
+  CustomerTaxExemptionOperationInput: CustomerTaxExemptionOperationInput;
   CustomerTaxExemptionOrderByInput: CustomerTaxExemptionOrderByInput;
   CustomerTaxExemptionPatchInput: CustomerTaxExemptionPatchInput;
   CustomerTaxExemptionStatusFilter: CustomerTaxExemptionStatusFilter;
-  CustomerTaxExemptionUpdateOperationInput: CustomerTaxExemptionUpdateOperationInput;
   CustomerTaxExemptionWhereInput: CustomerTaxExemptionWhereInput;
   CustomerTaxExemptionsUpdateInput: CustomerTaxExemptionsUpdateInput;
   CustomerTaxIdentifier: CustomerTaxIdentifier;
   CustomerTaxIdentifierConnection: CustomerTaxIdentifierConnection;
   CustomerTaxIdentifierCreateOperationInput: CustomerTaxIdentifierCreateOperationInput;
   CustomerTaxIdentifierEdge: CustomerTaxIdentifierEdge;
+  CustomerTaxIdentifierOperationInput: CustomerTaxIdentifierOperationInput;
   CustomerTaxIdentifierOrderByInput: CustomerTaxIdentifierOrderByInput;
   CustomerTaxIdentifierPatchInput: CustomerTaxIdentifierPatchInput;
   CustomerTaxIdentifierStatusFilter: CustomerTaxIdentifierStatusFilter;
-  CustomerTaxIdentifierUpdateOperationInput: CustomerTaxIdentifierUpdateOperationInput;
   CustomerTaxIdentifierWhereInput: CustomerTaxIdentifierWhereInput;
   CustomerTaxIdentifiersUpdateInput: CustomerTaxIdentifiersUpdateInput;
   CustomerUpdateInput: CustomerUpdateInput;
@@ -4155,6 +4228,7 @@ export type CustomerAccountsSettingsResolvers<ContextType = ServiceContext, Pare
 }>;
 
 export type CustomerAccountsSettingsUpdatePayloadResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerAccountsSettingsUpdatePayload'] = ResolversParentTypes['CustomerAccountsSettingsUpdatePayload']> = ResolversObject<{
+  operationResults?: Resolver<Array<ResolversTypes['CustomerOperationResult']>, ParentType, ContextType>;
   settings?: Resolver<Maybe<ResolversTypes['CustomerAccountsSettings']>, ParentType, ContextType>;
   userErrors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
@@ -4537,7 +4611,9 @@ export type CustomerMonetaryStatisticsEdgeResolvers<ContextType = ServiceContext
 
 export type CustomerOperationResultResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomerOperationResult'] = ResolversParentTypes['CustomerOperationResult']> = ResolversObject<{
   applied?: Resolver<ResolversTypes['Boolean'], ParentType, ContextType>;
+  entityId?: Resolver<Maybe<ResolversTypes['ID']>, ParentType, ContextType>;
   errors?: Resolver<Array<ResolversTypes['GenericUserError']>, ParentType, ContextType>;
+  position?: Resolver<ResolversTypes['Int'], ParentType, ContextType>;
   type?: Resolver<ResolversTypes['CustomerOperationType'], ParentType, ContextType>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
@@ -4831,24 +4907,24 @@ export type CustomerUpdatePayloadResolvers<ContextType = ServiceContext, ParentT
 }>;
 
 export type CustomersMutationResolvers<ContextType = ServiceContext, ParentType extends ResolversParentTypes['CustomersMutation'] = ResolversParentTypes['CustomersMutation']> = ResolversObject<{
-  customerAccountsSettingsUpdate?: Resolver<ResolversTypes['CustomerAccountsSettingsUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAccountsSettingsUpdateArgs, 'input'>>;
+  customerAccountsSettingsUpdate?: Resolver<ResolversTypes['CustomerAccountsSettingsUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerAccountsSettingsUpdateArgs, 'operations'>>;
   customerCreate?: Resolver<ResolversTypes['CustomerCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerCreateArgs, 'input'>>;
   customerDataRequestCreate?: Resolver<ResolversTypes['CustomerDataRequestCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestCreateArgs, 'input'>>;
-  customerDataRequestDelete?: Resolver<ResolversTypes['CustomerDataRequestDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestDeleteArgs, 'input'>>;
-  customerDataRequestUpdate?: Resolver<ResolversTypes['CustomerDataRequestUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestUpdateArgs, 'dataRequestId'>>;
-  customerDelete?: Resolver<ResolversTypes['CustomerDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDeleteArgs, 'input'>>;
+  customerDataRequestDelete?: Resolver<ResolversTypes['CustomerDataRequestDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestDeleteArgs, 'dataRequestId'>>;
+  customerDataRequestUpdate?: Resolver<ResolversTypes['CustomerDataRequestUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDataRequestUpdateArgs, 'dataRequestId' | 'operations'>>;
+  customerDelete?: Resolver<ResolversTypes['CustomerDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerDeleteArgs, 'customerId'>>;
   customerGroupCreate?: Resolver<ResolversTypes['CustomerGroupCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupCreateArgs, 'input'>>;
-  customerGroupDelete?: Resolver<ResolversTypes['CustomerGroupDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupDeleteArgs, 'input'>>;
+  customerGroupDelete?: Resolver<ResolversTypes['CustomerGroupDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupDeleteArgs, 'groupId'>>;
   customerGroupUpdate?: Resolver<ResolversTypes['CustomerGroupUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerGroupUpdateArgs, 'groupId' | 'operations'>>;
   customerMergeCreate?: Resolver<ResolversTypes['CustomerMergeCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeCreateArgs, 'input'>>;
-  customerMergeDelete?: Resolver<ResolversTypes['CustomerMergeDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeDeleteArgs, 'input'>>;
-  customerMergeUpdate?: Resolver<ResolversTypes['CustomerMergeUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeUpdateArgs, 'mergeId'>>;
+  customerMergeDelete?: Resolver<ResolversTypes['CustomerMergeDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeDeleteArgs, 'mergeId'>>;
+  customerMergeUpdate?: Resolver<ResolversTypes['CustomerMergeUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerMergeUpdateArgs, 'mergeId' | 'operations'>>;
   customerSegmentCreate?: Resolver<ResolversTypes['CustomerSegmentCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentCreateArgs, 'input'>>;
-  customerSegmentDelete?: Resolver<ResolversTypes['CustomerSegmentDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentDeleteArgs, 'input'>>;
+  customerSegmentDelete?: Resolver<ResolversTypes['CustomerSegmentDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentDeleteArgs, 'segmentId'>>;
   customerSegmentUpdate?: Resolver<ResolversTypes['CustomerSegmentUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerSegmentUpdateArgs, 'operations' | 'segmentId'>>;
   customerTagCreate?: Resolver<ResolversTypes['CustomerTagCreatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagCreateArgs, 'input'>>;
-  customerTagDelete?: Resolver<ResolversTypes['CustomerTagDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagDeleteArgs, 'input'>>;
-  customerTagUpdate?: Resolver<ResolversTypes['CustomerTagUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUpdateArgs, 'tagId'>>;
+  customerTagDelete?: Resolver<ResolversTypes['CustomerTagDeletePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagDeleteArgs, 'tagId'>>;
+  customerTagUpdate?: Resolver<ResolversTypes['CustomerTagUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerTagUpdateArgs, 'operations' | 'tagId'>>;
   customerUpdate?: Resolver<ResolversTypes['CustomerUpdatePayload'], ParentType, ContextType, RequireFields<CustomersMutationCustomerUpdateArgs, 'customerId' | 'operations'>>;
   __isTypeOf?: IsTypeOfResolverFn<ParentType, ContextType>;
 }>;
