@@ -2,7 +2,6 @@ import type { UserError } from "../../kernel/BaseScript.js";
 import type { ComparisonProfile } from "../../repositories/models/comparison.js";
 import type {
   ComparisonCardinality,
-  ComparisonNormalizedValueInput,
   ComparisonValueType,
 } from "../../repositories/comparison/comparison-types.js";
 
@@ -35,16 +34,4 @@ export interface ComparisonProfileNestedInput {
 export interface ComparisonProfileMutationResult {
   profile?: ComparisonProfile;
   userErrors: UserError[];
-}
-export interface ProductConfigurationMappingInput {
-  fieldId: string;
-  feature?: {
-    featureId: string;
-    values: Array<{ valueId: string; normalized: ComparisonNormalizedValueInput }>;
-  };
-  option?: {
-    optionId: string;
-    values: Array<{ valueId: string; normalized: ComparisonNormalizedValueInput }>;
-  };
-  notApplicable?: { reason?: string | null };
 }

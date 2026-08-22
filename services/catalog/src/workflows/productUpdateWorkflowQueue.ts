@@ -13,3 +13,11 @@ export function buildCategoryUpdateQueuePartitionKey(input: {
 }): string {
   return [input.storeId, "category", input.categoryId].join(":");
 }
+
+export function buildCatalogAggregateQueuePartitionKey(input: {
+  storeId: string;
+  entityType: string;
+  entityId: string;
+}): string {
+  return [input.storeId, input.entityType, input.entityId].join(":");
+}

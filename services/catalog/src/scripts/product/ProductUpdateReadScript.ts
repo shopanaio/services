@@ -10,7 +10,7 @@ import {
 import type {
   ProductFeaturesSyncParams,
   ProductOptionsSyncParams,
-} from "../../workflows/dto/ProductUpdateWorkflowDto.js";
+} from "../../workflows/product-update/dto/ProductUpdateWorkflowDto.js";
 
 export interface ProductUpdateReadQueryMap {
   productExists: { type: "productExists"; productId: string };
@@ -121,7 +121,9 @@ export class ProductUpdateReadScript extends BaseScript<
       case "configurationProfileIds":
         return {
           type: query.type,
-          result: await this.repository.comparisonRead.productConfigurationProfileIds(query.productId),
+          result: await this.repository.comparisonRead.productConfigurationProfileIds(
+            query.productId,
+          ),
         };
       case "variants":
         return {

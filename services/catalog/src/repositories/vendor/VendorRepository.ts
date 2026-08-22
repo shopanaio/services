@@ -61,6 +61,25 @@ export class VendorRepository extends BaseRepository {
     return result[0];
   }
 
+  async update(id: string, data: { name: string }): Promise<Vendor | null> {
+    const result = await this.connection
+      .update(vendor)
+      .set(data)
+      .where(and(eq(vendor.storeId, this.storeId), eq(vendor.id, id)))
+      .returning();
+
+    return result[0] ?? null;
+  }
+
+  async delete(id: string): Promise<boolean> {
+    const result = await this.connection
+      .delete(vendor)
+      .where(and(eq(vendor.storeId, this.storeId), eq(vendor.id, id)))
+      .returning({ id: vendor.id });
+
+    return result.length === 1;
+  }
+
   async getConnection(args: VendorRelayInput): Promise<VendorConnectionResult> {
     const { where, orderBy, ...paginationArgs } = args;
 

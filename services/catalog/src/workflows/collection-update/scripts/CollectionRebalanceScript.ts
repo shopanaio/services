@@ -1,0 +1,55 @@
+import { BaseScript, Transactional } from "../../../kernel/BaseScript.js";
+import type { CollectionRebalanceParams, CollectionResult } from "../dto/CollectionScriptDto.js";
+
+export class CollectionRebalanceScript extends BaseScript<
+  CollectionRebalanceParams,
+  CollectionResult
+> {
+  @Transactional()
+  protected async execute(params: CollectionRebalanceParams): Promise<CollectionResult> {
+    const collection = await this.repository.collection.findByIdForUpdate(params.collectionId);
+    if (!collection) {
+      return {
+        collection: undefined,
+        userErrors: [
+          { message: "Collection not found", field: ["collectionId"], code: "NOT_FOUND" },
+        ],
+      };
+    }
+    if (collection.type !== "manual") {
+      return {
+        collection: undefined,
+        userErrors: [{ message: "Can only rebalance manual collections", code: "INVALID" }],
+      };
+    }
+
+    const syncOperation = await this.repository.collectionSync.rebalanceCollection({
+      workflowId: `${this.context.requestId}:collection:rebalance`,
+      collectionId: params.collectionId,
+    });
+    if (syncOperation.affectedCount === 0) {
+      return { collection, userErrors: [] };
+    }
+    const refreshed = await this.repository.collection.markChanged(params.collectionId, {
+      listingChanged: false,
+    });
+    if (!refreshed) {
+      throw new Error("Collection disappeared while rebalancing");
+    }
+    if (!syncOperation.operationId) {
+      throw new Error("Collection rebalance sync operation was not created");
+    }
+    return {
+      collection: refreshed,
+      syncOperationId: syncOperation.operationId,
+      userErrors: [],
+    };
+  }
+
+  protected handleError(_error: unknown): CollectionResult {
+    return {
+      collection: undefined,
+      userErrors: [{ message: "Internal error", code: "INTERNAL_ERROR" }],
+    };
+  }
+}

@@ -7,6 +7,7 @@ const OP_TYPE_MAP: Record<string, string> = {
   productUpdate: "PRODUCT_UPDATE",
   productCategoryUpdate: "PRODUCT_CATEGORY_UPDATE",
   productTagUpdate: "PRODUCT_TAG_UPDATE",
+  productComparisonConfigurationSync: "PRODUCT_COMPARISON_CONFIGURATION_SYNC",
   productComponentSettingsUpdate: "PRODUCT_COMPONENT_SETTINGS_UPDATE",
   productComponentRemove: "PRODUCT_COMPONENT_REMOVE",
   productComponentConfigurationCreate: "PRODUCT_COMPONENT_CONFIGURATION_CREATE",

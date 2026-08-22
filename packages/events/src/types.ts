@@ -246,6 +246,7 @@ export type ProductUpdatedReason =
   | "tag"
   | "options"
   | "features"
+  | "comparison"
   | "component"
   | "variant"
   | "pricing"
@@ -288,6 +289,112 @@ export interface CollectionDeletedEvent extends DomainEvent<
   "collectionDeleted",
   CollectionChangedPayload & { deletedAt: string }
 > {}
+
+export interface AggregateMutationAuditChange {
+  path: string;
+  kind: "SET" | "ADD" | "REMOVE" | "MOVE";
+}
+
+export interface AggregateMutationAuditOperation {
+  position: number;
+  type: string;
+  action: "CREATE" | "UPDATE" | "DELETE" | "MOVE" | "LINK" | "UNLINK";
+  target?: { type: string; id: string };
+  changes: readonly AggregateMutationAuditChange[];
+}
+
+export interface AggregateMutationAudit {
+  kind: "aggregate-mutation";
+  schemaVersion: 1;
+  storeId: string;
+  action: "CREATE" | "UPDATE" | "DELETE";
+  command: string;
+  aggregate: { type: string; id: string };
+  operations: readonly AggregateMutationAuditOperation[];
+}
+
+export type CatalogAggregateLifecyclePayload<TKey extends string> = {
+  storeId: string;
+  audit: AggregateMutationAudit;
+} & { [K in TKey]: string };
+
+export type CategoryCreatedEvent = DomainEvent<
+  "categoryCreated",
+  CatalogAggregateLifecyclePayload<"categoryId">
+>;
+export type CategoryUpdatedEvent = DomainEvent<
+  "categoryUpdated",
+  CatalogAggregateLifecyclePayload<"categoryId">
+>;
+export type CategoryDeletedEvent = DomainEvent<
+  "categoryDeleted",
+  CatalogAggregateLifecyclePayload<"categoryId">
+>;
+
+export type WarehouseCreatedEvent = DomainEvent<
+  "warehouseCreated",
+  CatalogAggregateLifecyclePayload<"warehouseId">
+>;
+export type WarehouseUpdatedEvent = DomainEvent<
+  "warehouseUpdated",
+  CatalogAggregateLifecyclePayload<"warehouseId">
+>;
+export type WarehouseDeletedEvent = DomainEvent<
+  "warehouseDeleted",
+  CatalogAggregateLifecyclePayload<"warehouseId">
+>;
+
+export type VendorCreatedEvent = DomainEvent<
+  "vendorCreated",
+  CatalogAggregateLifecyclePayload<"vendorId">
+>;
+export type VendorUpdatedEvent = DomainEvent<
+  "vendorUpdated",
+  CatalogAggregateLifecyclePayload<"vendorId">
+>;
+export type VendorDeletedEvent = DomainEvent<
+  "vendorDeleted",
+  CatalogAggregateLifecyclePayload<"vendorId">
+>;
+
+export type TagCreatedEvent = DomainEvent<
+  "tagCreated",
+  CatalogAggregateLifecyclePayload<"tagId">
+>;
+export type TagUpdatedEvent = DomainEvent<
+  "tagUpdated",
+  CatalogAggregateLifecyclePayload<"tagId">
+>;
+export type TagDeletedEvent = DomainEvent<
+  "tagDeleted",
+  CatalogAggregateLifecyclePayload<"tagId">
+>;
+
+export type ProductOptionCategoryCreatedEvent = DomainEvent<
+  "productOptionCategoryCreated",
+  CatalogAggregateLifecyclePayload<"productOptionCategoryId">
+>;
+export type ProductOptionCategoryUpdatedEvent = DomainEvent<
+  "productOptionCategoryUpdated",
+  CatalogAggregateLifecyclePayload<"productOptionCategoryId">
+>;
+export type ProductOptionCategoryDeletedEvent = DomainEvent<
+  "productOptionCategoryDeleted",
+  CatalogAggregateLifecyclePayload<"productOptionCategoryId">
+>;
+
+export type ComparisonProfileCreatedEvent = DomainEvent<
+  "comparisonProfileCreated",
+  CatalogAggregateLifecyclePayload<"comparisonProfileId">
+>;
+export type ComparisonProfileUpdatedEvent = DomainEvent<
+  "comparisonProfileUpdated",
+  CatalogAggregateLifecyclePayload<"comparisonProfileId">
+>;
+export type ComparisonProfileDeletedEvent = DomainEvent<
+  "comparisonProfileDeleted",
+  CatalogAggregateLifecyclePayload<"comparisonProfileId">
+>;
 
 export interface CustomerCreatedEvent extends DomainEvent<
   "customerCreated",
@@ -981,6 +1088,24 @@ export type ShopanaEvent =
   | CollectionCreatedEvent
   | CollectionUpdatedEvent
   | CollectionDeletedEvent
+  | CategoryCreatedEvent
+  | CategoryUpdatedEvent
+  | CategoryDeletedEvent
+  | WarehouseCreatedEvent
+  | WarehouseUpdatedEvent
+  | WarehouseDeletedEvent
+  | VendorCreatedEvent
+  | VendorUpdatedEvent
+  | VendorDeletedEvent
+  | TagCreatedEvent
+  | TagUpdatedEvent
+  | TagDeletedEvent
+  | ProductOptionCategoryCreatedEvent
+  | ProductOptionCategoryUpdatedEvent
+  | ProductOptionCategoryDeletedEvent
+  | ComparisonProfileCreatedEvent
+  | ComparisonProfileUpdatedEvent
+  | ComparisonProfileDeletedEvent
   | ApplicationUserCreatedEvent
   | ApplicationUserUpdatedEvent
   | ApplicationUserStatusChangedEvent

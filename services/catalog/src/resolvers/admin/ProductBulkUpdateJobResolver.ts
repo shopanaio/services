@@ -41,12 +41,14 @@ export class ProductBulkUpdateJobResolver extends CatalogType<string, BulkEditJo
     return this.$ctx.loaders.bulkEditJobProgress.load(this.$props);
   }
 
-  async items(args: { first?: number; after?: string; statusFilter?: string[] }) {
+  async items(args: Omit<BulkEditItemConnectionInput, "jobId">) {
     const input: BulkEditItemConnectionInput = {
       jobId: this.$props,
       first: args.first ?? undefined,
       after: args.after ?? undefined,
-      statusFilter: args.statusFilter as BulkEditItemConnectionInput["statusFilter"],
+      last: args.last ?? undefined,
+      before: args.before ?? undefined,
+      where: args.where,
     };
 
     const result = await this.$ctx.kernel.repository.bulkEditItem.getConnection(input);

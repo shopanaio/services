@@ -123,6 +123,7 @@ export enum BulkUpdateJobStatus {
 
 export enum BulkUpdateOpType {
   ProductCategoryUpdate = 'PRODUCT_CATEGORY_UPDATE',
+  ProductComparisonConfigurationSync = 'PRODUCT_COMPARISON_CONFIGURATION_SYNC',
   ProductComponentConfigurationCreate = 'PRODUCT_COMPONENT_CONFIGURATION_CREATE',
   ProductComponentConfigurationDelete = 'PRODUCT_COMPONENT_CONFIGURATION_DELETE',
   ProductComponentConfigurationUpdate = 'PRODUCT_COMPONENT_CONFIGURATION_UPDATE',

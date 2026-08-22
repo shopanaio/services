@@ -18,7 +18,9 @@ export type BulkEditJobRelayInput = InferRelayInput<typeof bulkEditJobRelayQuery
 export interface BulkEditJobConnectionInput {
   first?: BulkEditJobRelayInput["first"] | null;
   after?: BulkEditJobRelayInput["after"] | null;
-  statusFilter?: BulkEditJob["status"][] | null;
+  last?: BulkEditJobRelayInput["last"] | null;
+  before?: BulkEditJobRelayInput["before"] | null;
+  where?: { status?: BulkEditJob["status"][] | null } | null;
 }
 
 export interface BulkEditJobConnectionResult {
@@ -51,18 +53,21 @@ export class BulkEditJobRepository extends BaseRepository {
   }
 
   async getConnection(input: BulkEditJobConnectionInput): Promise<BulkEditJobConnectionResult> {
-    const statusFilter: NonNullable<BulkEditJobConnectionInput["statusFilter"]> =
-      input.statusFilter && input.statusFilter.length > 0
-        ? input.statusFilter
-        : ["QUEUED", "RUNNING"];
+    const statusFilter: BulkEditJob["status"][] | null | undefined =
+      input.where == null ? ["QUEUED", "RUNNING"] : input.where.status;
 
     const where: BulkEditJobRelayInput["where"] = {
-      _and: [{ storeId: { _eq: this.storeId } }, { status: { _in: statusFilter } }],
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        ...(statusFilter ? [{ status: { _in: statusFilter } }] : []),
+      ],
     };
 
     const executeInput: BulkEditJobRelayInput = {
       first: input.first ?? undefined,
       after: input.after ?? undefined,
+      last: input.last ?? undefined,
+      before: input.before ?? undefined,
       where,
       orderBy: [
         { field: "createdAt", direction: "desc" },

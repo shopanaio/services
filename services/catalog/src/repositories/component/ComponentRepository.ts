@@ -6,7 +6,7 @@ import type {
   ProductComponentItemOptionValueSelectionSyncItem,
   ProductComponentPriceRuleInput,
   ProductComponentPricingTemplatesSyncParams,
-} from "../../workflows/dto/ProductUpdateWorkflowDto.js";
+} from "../../workflows/product-update/dto/ProductUpdateWorkflowDto.js";
 import {
   component,
   componentConfiguration,

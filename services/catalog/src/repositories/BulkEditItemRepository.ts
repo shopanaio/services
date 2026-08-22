@@ -1,7 +1,20 @@
-import { and, eq, inArray, sql, ne, or, gt } from "drizzle-orm";
-import type { PageInfo } from "@shopana/drizzle-query";
+import { and, eq, inArray, sql, ne } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "./BaseRepository.js";
 import { bulkEditItem, type BulkEditItem, type NewBulkEditItem } from "./models/bulkEditItems";
+import { productBulkFence } from "./models/productBulkFence";
+
+export const bulkEditItemRelayQuery = createRelayQuery(
+  createQuery(bulkEditItem).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "bulkUpdateItem", tieBreaker: "id" },
+);
+
+export type BulkEditItemRelayInput = InferRelayInput<typeof bulkEditItemRelayQuery>;
 
 export interface BulkEditItemCreateInput {
   id: string;
@@ -17,11 +30,11 @@ export interface BulkEditItemCreateInput {
 
 export interface BulkEditItemConnectionInput {
   jobId: string;
-  first?: number | null;
-  after?: string | null;
-  statusFilter?: Array<
-    "PENDING" | "RUNNING" | "SUCCEEDED" | "FAILED" | "CANCELLED" | "SUPERSEDED"
-  > | null;
+  first?: BulkEditItemRelayInput["first"] | null;
+  after?: BulkEditItemRelayInput["after"] | null;
+  last?: BulkEditItemRelayInput["last"] | null;
+  before?: BulkEditItemRelayInput["before"] | null;
+  where?: { status?: BulkEditItem["status"][] | null } | null;
 }
 
 export interface BulkEditItemConnectionResult {
@@ -86,9 +99,6 @@ function applyStatusCount(
       break;
   }
 }
-
-const DEFAULT_PAGE_SIZE = 20;
-const MAX_PAGE_SIZE = 100;
 
 export class BulkEditItemRepository extends BaseRepository {
   async createMany(items: BulkEditItemCreateInput[]): Promise<void> {
@@ -173,6 +183,14 @@ export class BulkEditItemRepository extends BaseRepository {
           eq(bulkEditItem.id, itemId),
           eq(bulkEditItem.status, "PENDING"),
           eq(bulkEditItem.cancelRequested, false),
+          sql`EXISTS (
+            SELECT 1
+            FROM ${productBulkFence}
+            WHERE ${productBulkFence.storeId} = ${bulkEditItem.storeId}
+              AND ${productBulkFence.productId} = ${bulkEditItem.productId}
+              AND ${productBulkFence.jobId} = ${bulkEditItem.jobId}
+              AND ${productBulkFence.fenceToken} = ${bulkEditItem.fenceToken}
+          )`,
         ),
       )
       .returning({ id: bulkEditItem.id });
@@ -346,76 +364,40 @@ export class BulkEditItemRepository extends BaseRepository {
   }
 
   async getConnection(input: BulkEditItemConnectionInput): Promise<BulkEditItemConnectionResult> {
-    const limit = Math.min(Math.max(input.first ?? DEFAULT_PAGE_SIZE, 1), MAX_PAGE_SIZE);
-
-    const baseFilters = [
-      eq(bulkEditItem.storeId, this.storeId),
-      eq(bulkEditItem.jobId, input.jobId),
-    ];
-
-    if (input.statusFilter && input.statusFilter.length > 0) {
-      baseFilters.push(inArray(bulkEditItem.status, input.statusFilter));
-    }
-
-    const cursor = decodeCursor(input.after ?? undefined);
-    const cursorCondition = cursor
-      ? or(
-          gt(bulkEditItem.opIndex, cursor.opIndex),
-          and(eq(bulkEditItem.opIndex, cursor.opIndex), gt(bulkEditItem.id, cursor.id)),
-        )
-      : null;
-    const filters = cursorCondition ? [...baseFilters, cursorCondition] : baseFilters;
-
-    const rows = await this.connection
-      .select({ id: bulkEditItem.id, opIndex: bulkEditItem.opIndex })
-      .from(bulkEditItem)
-      .where(and(...filters))
-      .orderBy(bulkEditItem.opIndex, bulkEditItem.id)
-      .limit(limit + 1);
-
-    const hasNextPage = rows.length > limit;
-    const slice = hasNextPage ? rows.slice(0, limit) : rows;
-
-    const edges = slice.map((row) => ({
-      cursor: encodeCursor(row.opIndex, row.id),
-      nodeId: row.id,
-    }));
-
-    const pageInfo: PageInfo = {
-      hasNextPage,
-      hasPreviousPage: Boolean(input.after),
-      startCursor: edges[0]?.cursor ?? null,
-      endCursor: edges[edges.length - 1]?.cursor ?? null,
+    const statusFilter = input.where?.status;
+    const where: BulkEditItemRelayInput["where"] = {
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        { jobId: { _eq: input.jobId } },
+        ...(statusFilter ? [{ status: { _in: statusFilter } }] : []),
+      ],
+    };
+    const executeInput: BulkEditItemRelayInput = {
+      first: input.first ?? undefined,
+      after: input.after ?? undefined,
+      last: input.last ?? undefined,
+      before: input.before ?? undefined,
+      where,
+      orderBy: [
+        { field: "opIndex", direction: "asc" },
+        { field: "id", direction: "asc" },
+      ],
     };
 
-    const [totalRow] = await this.connection
-      .select({ count: sql<number>`count(*)::int` })
-      .from(bulkEditItem)
-      .where(and(...baseFilters));
+    const [result, totalCount] = await Promise.all([
+      bulkEditItemRelayQuery.execute(this.connection, executeInput),
+      bulkEditItemRelayQuery.count(this.connection, { where }),
+    ]);
 
     return {
-      edges,
-      pageInfo,
-      totalCount: totalRow?.count ?? 0,
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
     };
   }
 }
 
 export type { BulkEditItem, NewBulkEditItem } from "./models/bulkEditItems";
-
-function encodeCursor(opIndex: number, id: string): string {
-  return Buffer.from(`${opIndex}:${id}`).toString("base64");
-}
-
-function decodeCursor(cursor?: string): { opIndex: number; id: string } | null {
-  if (!cursor) return null;
-  try {
-    const decoded = Buffer.from(cursor, "base64").toString("utf8");
-    const [opIndexStr, id] = decoded.split(":");
-    const opIndex = Number(opIndexStr);
-    if (!id || Number.isNaN(opIndex)) return null;
-    return { opIndex, id };
-  } catch {
-    return null;
-  }
-}

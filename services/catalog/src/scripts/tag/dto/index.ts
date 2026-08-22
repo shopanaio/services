@@ -23,6 +23,7 @@ export interface TagUpdateParams {
 
 export interface TagUpdateResult {
   tag?: Tag;
+  affectedProductIds: string[];
   userErrors: UserError[];
 }
 
@@ -34,6 +35,7 @@ export interface TagDeleteParams {
 
 export interface TagDeleteResult {
   deletedTagId?: string;
+  affectedProductIds: string[];
   userErrors: UserError[];
 }
 

@@ -22,6 +22,10 @@ export { InventoryItemResolver } from "./InventoryItemResolver.js";
 export { CategoryResolver } from "./CategoryResolver.js";
 export { TagResolver } from "./TagResolver.js";
 export { CollectionResolver } from "./CollectionResolver.js";
+export {
+  CollectionConnectionResolver,
+  type CollectionConnectionInput,
+} from "./CollectionConnectionResolver.js";
 export { OptionResolver } from "./OptionResolver.js";
 export { OptionCategoryResolver } from "./OptionCategoryResolver.js";
 export { FeatureResolver } from "./FeatureResolver.js";

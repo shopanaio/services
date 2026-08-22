@@ -16,6 +16,7 @@ import type { ProductBulkUpdateJobConnectionInput } from "./ProductBulkUpdateJob
 import type { PricingWidgetInput } from "./PricingWidgetResolver.js";
 import type { WarehouseConnectionResolverInput } from "./WarehouseConnectionResolver.js";
 import type { InventoryItemConnectionResolverInput } from "./InventoryItemConnectionResolver.js";
+import type { CollectionConnectionInput } from "./CollectionConnectionResolver.js";
 import type { NormalizedInventoryItemWarehouseScope } from "../../repositories/inventory-item/InventoryItemRepository.js";
 import {
   normalizeCategoryHierarchyScopeInput,
@@ -304,7 +305,9 @@ export class CatalogQueryResolver extends CatalogType<Record<string, never>> {
     return this.resolvers.collection(item.id);
   }
 
-  // TODO: Implement collections() with keyset pagination
+  collections(args: CollectionConnectionInput) {
+    return this.resolvers.collectionConnection(args);
+  }
 
   // ---- Tag Queries ----
 

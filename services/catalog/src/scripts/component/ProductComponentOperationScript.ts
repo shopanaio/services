@@ -4,7 +4,7 @@ import type {
   ProductComponentGroupsSyncParams,
   ProductComponentPriceRuleInput,
   ProductUpdateOperation,
-} from "../../workflows/dto/ProductUpdateWorkflowDto.js";
+} from "../../workflows/product-update/dto/ProductUpdateWorkflowDto.js";
 import type { UserError } from "../types/ScriptResult.js";
 
 export type ProductComponentWorkflowOperation = Extract<

@@ -5,6 +5,7 @@ import type { CategoryConnectionInput } from "../../repositories/category/Catego
 import type { VendorRelayInput } from "../../repositories/vendor/VendorRepository.js";
 import type { OptionCategoryRelayInput } from "../../repositories/option-category/OptionCategoryRepository.js";
 import type { TagRelayInput } from "../../repositories/tag/TagRepository.js";
+import type { CollectionRelayInput } from "../../repositories/collection/CollectionRepository.js";
 import type { BulkEditJobConnectionInput } from "../../repositories/BulkEditJobRepository.js";
 import type { WarehouseRelayInput } from "../../repositories/warehouse/WarehouseRepository.js";
 import type { InventoryItemConnectionInput } from "../../repositories/inventory-item/InventoryItemRepository.js";
@@ -196,6 +197,11 @@ export class ResolverRegistry {
   async collection(id: string) {
     const { CollectionResolver } = await import("./CollectionResolver.js");
     return new CollectionResolver(id, this.ctx);
+  }
+
+  async collectionConnection(input: CollectionRelayInput) {
+    const { CollectionConnectionResolver } = await import("./CollectionConnectionResolver.js");
+    return new CollectionConnectionResolver(input, this.ctx);
   }
 
   async tag(id: string) {

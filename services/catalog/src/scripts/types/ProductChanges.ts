@@ -20,6 +20,9 @@ export interface ProductChanges {
 
   /** Product component aggregate changed. */
   component?: { changed: true };
+
+  /** Product comparison configuration changed. */
+  comparison?: { changed: true };
 }
 
 /**

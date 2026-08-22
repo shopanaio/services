@@ -1,0 +1,84 @@
+import type { ProductWithVariants, ProductResultBase, RichTextInput } from "./ProductSharedDto.js";
+
+/**
+ * Input for creating a product option value
+ */
+export interface ProductCreateOptionValueInput {
+  readonly name: string;
+  readonly slug: string;
+  readonly sortIndex?: number;
+}
+
+/**
+ * Input for creating a product option
+ */
+export interface ProductCreateOptionInput {
+  readonly name: string;
+  readonly slug: string;
+  readonly categoryId: string;
+  readonly sortIndex?: number;
+  readonly values: ProductCreateOptionValueInput[];
+}
+
+/**
+ * Input for creating a variant
+ * handle is built from option value slugs (e.g., "red-s")
+ */
+export interface ProductCreateVariantInput {
+  readonly handle: string;
+}
+
+/**
+ * Inventory tracking settings for product creation
+ */
+export interface InventoryItemCreateInput {
+  readonly tracked: boolean;
+  readonly requiresShipping: boolean;
+  readonly sku?: string | null;
+  readonly continueSellingWhenOutOfStock?: boolean | null;
+}
+
+/**
+ * Parameters for creating a product with all its data in one request
+ */
+export interface ProductCreateParams {
+  readonly title: string;
+  readonly handle: string;
+  readonly description?: RichTextInput | null;
+  readonly excerpt?: RichTextInput | null;
+
+  /** Vendor ID to associate with the product */
+  readonly vendorId?: string;
+
+  /** File IDs for product media (already uploaded) */
+  readonly mediaFileIds?: string[];
+
+  /** Product options (e.g., Color, Size) */
+  readonly options?: ProductCreateOptionInput[];
+
+  /** Variants to create (only enabled ones from UI) */
+  readonly variants?: ProductCreateVariantInput[];
+
+  /** Inventory tracking settings */
+  readonly inventoryItem?: InventoryItemCreateInput;
+
+  /** Organization ID for event context */
+  readonly organizationId: string;
+
+  /** Optional user ID for actor context */
+  readonly userId?: string;
+
+  /** Store ID for event context */
+  readonly storeId: string;
+}
+
+export interface ProductMediaEntry {
+  productId: string;
+  fileIds: string[];
+}
+
+export interface ProductCreateResult extends ProductResultBase {
+  product?: ProductWithVariants;
+  /** Product media file IDs for back-reference syncing */
+  productMedia?: ProductMediaEntry;
+}

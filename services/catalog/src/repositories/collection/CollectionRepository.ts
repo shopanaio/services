@@ -1,4 +1,10 @@
 import { and, asc, eq, inArray, isNull, sql, type SQL } from "drizzle-orm";
+import {
+  createQuery,
+  createRelayQuery,
+  type InferRelayInput,
+  type PageInfo,
+} from "@shopana/drizzle-query";
 import { BaseRepository } from "../BaseRepository.js";
 import {
   collection,
@@ -13,6 +19,19 @@ import {
   type NewCollectionSeo,
   type CollectionMedia,
 } from "../models/index.js";
+
+export const collectionRelayQuery = createRelayQuery(
+  createQuery(collection).include(["id"]).maxLimit(100).defaultLimit(20),
+  { name: "collection", tieBreaker: "id" },
+);
+
+export type CollectionRelayInput = InferRelayInput<typeof collectionRelayQuery>;
+
+export interface CollectionConnectionResult {
+  edges: Array<{ cursor: string; nodeId: string }>;
+  pageInfo: PageInfo;
+  totalCount: number;
+}
 
 export class CollectionRepository extends BaseRepository {
   private get locale(): string {
@@ -97,6 +116,39 @@ export class CollectionRepository extends BaseRepository {
       .from(collection)
       .where(and(eq(collection.storeId, this.storeId), isNull(collection.deletedAt)))
       .orderBy(asc(collection.createdAt));
+  }
+
+  async getConnection(args: CollectionRelayInput): Promise<CollectionConnectionResult> {
+    const { where, orderBy, ...paginationArgs } = args;
+    const mergedWhere: CollectionRelayInput["where"] = {
+      _and: [
+        { storeId: { _eq: this.storeId } },
+        { deletedAt: { _is: null } },
+        ...(where ? [where] : []),
+      ],
+    };
+    const executeInput: CollectionRelayInput = {
+      ...paginationArgs,
+      where: mergedWhere,
+      orderBy: orderBy ?? [
+        { field: "createdAt", direction: "desc" },
+        { field: "id", direction: "desc" },
+      ],
+    };
+
+    const [result, totalCount] = await Promise.all([
+      collectionRelayQuery.execute(this.connection, executeInput),
+      collectionRelayQuery.count(this.connection, { where: mergedWhere }),
+    ]);
+
+    return {
+      edges: result.edges.map((edge) => ({
+        cursor: edge.cursor,
+        nodeId: edge.node.id,
+      })),
+      pageInfo: result.pageInfo,
+      totalCount,
+    };
   }
 
   private async findVisible(predicate: SQL): Promise<Collection | null> {

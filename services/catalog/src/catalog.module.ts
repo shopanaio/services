@@ -16,7 +16,7 @@ import { FacetCandidateBrokerActions } from "./actions/FacetCandidateBrokerActio
 import { CatalogEventHandlers } from "./handlers";
 import { InventoryBrokerActions } from "./actions/InventoryBrokerActions.js";
 import { InventoryEventHandlers } from "./handlers/InventoryEventHandlers.js";
-import { BackRefNotifySaga, EntityDeletedNotifySaga, ProductCreateSaga } from "./sagas/index.js";
+import { BackRefNotifySaga, EntityDeletedNotifySaga } from "./sagas/index.js";
 import { workflows } from "./workflows/index.js";
 import { Kernel } from "./kernel/Kernel.js";
 
@@ -51,7 +51,6 @@ import { Kernel } from "./kernel/Kernel.js";
     InventoryEventHandlers,
     BackRefNotifySaga,
     EntityDeletedNotifySaga,
-    ProductCreateSaga,
     ...workflows,
   ],
 })
