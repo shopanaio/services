@@ -162,7 +162,12 @@ input FacetCreateInput {
 }
 
 input FacetUpdateInput {
-  id: ID!
+  fields: FacetFieldsInput
+  position: FacetPositionInput
+  values: [FacetValueOperationInput!]
+}
+
+input FacetFieldsInput {
   slug: String
   uiType: FacetUIType
   selectionMode: FacetSelectionMode
@@ -173,69 +178,58 @@ input FacetUpdateInput {
   scopes: [FacetScopeType!]
 }
 
+"""
+One item of the store-wide facet-scope replacement command. It deliberately
+addresses several independent facet aggregates atomically.
+"""
 input FacetScopesUpdateItemInput {
   id: ID!
-  """
-  Replaces the current scopes. The list cannot be empty.
-  """
   scopes: [FacetScopeType!]!
 }
 
 input FacetScopesUpdateInput {
-  """
-  Only changed facets need to be included. All updates are applied atomically.
-  """
   updates: [FacetScopesUpdateItemInput!]!
 }
 
-input FacetDeleteInput {
-  id: ID!
-}
-
-input FacetMoveInput {
-  id: ID!
+input FacetPositionInput {
   afterFacetId: ID
   beforeFacetId: ID
 }
 
-input FacetRebalanceInput {
-  confirm: Boolean = true
+enum FacetValueOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+  MERGE
+  UNMERGE
 }
 
-input FacetValueCreateInput {
-  facetId: ID!
+input FacetValueOperationInput {
+  action: FacetValueOperationAction!
+  facetValueId: ID
+  values: FacetValueValuesInput
+  merge: FacetValueMergeValuesInput
+}
+
+input FacetValueValuesInput {
   kind: FacetValueKind
-  handle: String!
-  label: String!
+  handle: String
+  label: String
+  """
+  Source values to attach when this operation creates a group value.
+  Ignored for UPDATE; use MERGE to attach values to an existing group.
+  """
   sourceValueIds: [ID!]
   swatchId: ID
   sortIndex: Int
   enabled: Boolean
 }
 
-input FacetValueUpdateInput {
-  id: ID!
-  handle: String
-  label: String
-  swatchId: ID
-  sortIndex: Int
-  enabled: Boolean
-}
-
-input FacetValueMergeInput {
-  facetId: ID!
+input FacetValueMergeValuesInput {
   targetGroupValueId: ID
   targetHandle: String
   targetLabel: String
-  sourceValueIds: [ID!]!
-}
-
-input FacetValueUnmergeInput {
-  sourceValueIds: [ID!]!
-}
-
-input FacetValueDeleteInput {
-  id: ID!
+  sourceValueIds: [ID!]
 }
 
 input FacetSwatchCreateInput {
@@ -247,16 +241,15 @@ input FacetSwatchCreateInput {
 }
 
 input FacetSwatchUpdateInput {
-  id: ID!
+  fields: FacetSwatchFieldsInput
+}
+
+input FacetSwatchFieldsInput {
   swatchType: SwatchType
   colorOne: String
   colorTwo: String
   fileId: ID
   metadata: JSON
-}
-
-input FacetSwatchDeleteInput {
-  id: ID!
 }
 
 type FacetCreatePayload {
@@ -266,6 +259,7 @@ type FacetCreatePayload {
 
 type FacetUpdatePayload {
   facet: Facet
+  operationResults: [FacetOperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
@@ -279,41 +273,26 @@ type FacetDeletePayload {
   userErrors: [GenericUserError!]!
 }
 
-type FacetMovePayload {
-  facet: Facet
-  userErrors: [GenericUserError!]!
-}
-
 type FacetRebalancePayload {
   facets: [Facet!]!
   userErrors: [GenericUserError!]!
 }
 
-type FacetValueCreatePayload {
-  facetValue: FacetValue
-  userErrors: [GenericUserError!]!
+enum FacetOperationType {
+  FIELDS_UPDATE
+  MOVE
+  VALUE_CREATE
+  VALUE_UPDATE
+  VALUE_DELETE
+  VALUE_MERGE
+  VALUE_UNMERGE
 }
 
-type FacetValueUpdatePayload {
-  facetValue: FacetValue
-  userErrors: [GenericUserError!]!
-}
-
-type FacetValueMergePayload {
-  facetValue: FacetValue
-  sourceValues: [FacetValue!]!
-  userErrors: [GenericUserError!]!
-}
-
-type FacetValueUnmergePayload {
-  sourceValues: [FacetValue!]!
-  affectedGroupValues: [FacetValue!]!
-  userErrors: [GenericUserError!]!
-}
-
-type FacetValueDeletePayload {
-  deletedFacetValueId: ID
-  userErrors: [GenericUserError!]!
+type FacetOperationResult {
+  type: FacetOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
 }
 
 type FacetSwatchCreatePayload {
@@ -323,7 +302,19 @@ type FacetSwatchCreatePayload {
 
 type FacetSwatchUpdatePayload {
   facetSwatch: FacetSwatch
+  operationResults: [FacetSwatchOperationResult!]!
   userErrors: [GenericUserError!]!
+}
+
+enum FacetSwatchOperationType {
+  FIELDS_UPDATE
+}
+
+type FacetSwatchOperationResult {
+  type: FacetSwatchOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
 }
 
 type FacetSwatchDeletePayload {

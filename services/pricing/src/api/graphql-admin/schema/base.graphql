@@ -107,16 +107,5 @@ type PricingMutation {
   Permanently delete an unused draft. Active, historical, or redeemed discounts
   must be archived through discountUpdate instead.
   """
-  discountDelete(input: DiscountDeleteInput!): DiscountDeletePayload!
-
-  discountExternalReferenceCreate(
-    input: DiscountExternalReferenceCreateInput!
-  ): DiscountExternalReferenceCreatePayload!
-  discountExternalReferenceUpdate(
-    externalReferenceId: ID!
-    operations: DiscountExternalReferenceUpdateInput!
-  ): DiscountExternalReferenceUpdatePayload!
-  discountExternalReferenceDelete(
-    input: DiscountExternalReferenceDeleteInput!
-  ): DiscountExternalReferenceDeletePayload!
+  discountDelete(discountId: ID!): DiscountDeletePayload!
 }

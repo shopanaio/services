@@ -119,3 +119,70 @@ type LoyaltyPointsAdjustPayload {
   transaction: LoyaltyTransaction
   userErrors: [LoyaltyUserError!]!
 }
+
+input LoyaltyAccountUpdateInput {
+  status: LoyaltyAccountStatusOperationInput
+  pointAdjustments: [LoyaltyPointsAdjustmentOperationInput!]
+  monetaryConversions: [LoyaltyPointsToMonetaryOperationInput!]
+  tierMemberships: [LoyaltyTierMembershipOperationInput!]
+  rewardEntitlements: [LoyaltyRewardEntitlementOperationInput!]
+  rebuildBalance: Boolean
+}
+
+input LoyaltyAccountStatusOperationInput {
+  status: LoyaltyAccountStatus!
+  reason: String!
+}
+
+input LoyaltyPointsAdjustmentOperationInput {
+  direction: LoyaltyPointsAdjustmentDirection!
+  points: BigInt!
+  reasonCode: String!
+  description: String!
+  expiresAt: DateTime
+  metadata: JSON
+}
+
+input LoyaltyPointsToMonetaryOperationInput {
+  programVersionId: ID!
+  walletType: LoyaltyMonetaryWalletType!
+  currencyCode: CurrencyCode!
+  points: BigInt!
+  occurredAt: DateTime
+}
+
+enum LoyaltyTierMembershipOperationAction {
+  EVALUATE
+  REVOKE
+}
+
+input LoyaltyTierMembershipOperationInput {
+  action: LoyaltyTierMembershipOperationAction!
+  tierMembershipId: ID
+  programVersionId: ID
+  effectiveAt: DateTime
+  forceRequalification: Boolean = false
+  reasonCode: String!
+}
+
+enum LoyaltyRewardEntitlementOperationAction {
+  ISSUE
+  RELEASE
+  REVOKE
+}
+
+input LoyaltyRewardEntitlementOperationInput {
+  action: LoyaltyRewardEntitlementOperationAction!
+  rewardEntitlementId: ID
+  rewardDefinitionId: ID
+  quantity: BigInt = "1"
+  externalReference: String
+  occurredAt: DateTime
+  reasonCode: String
+}
+
+type LoyaltyAccountUpdatePayload {
+  account: LoyaltyAccount
+  operationResults: [LoyaltyOperationResult!]!
+  userErrors: [LoyaltyUserError!]!
+}

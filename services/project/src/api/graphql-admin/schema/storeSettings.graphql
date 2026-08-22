@@ -186,6 +186,7 @@ input StoreUpdateInput {
   orderProcessing: StoreOrderProcessingUpdateInput
   defaults: StoreDefaultsUpdateInput
   currencySettings: StoreCurrencySettingsUpdateInput
+  locales: [StoreLocaleOperationInput!]
 }
 
 enum StoreUpdateOperationType {
@@ -195,10 +196,15 @@ enum StoreUpdateOperationType {
   ORDER_PROCESSING_UPDATE
   DEFAULTS_UPDATE
   CURRENCY_SETTINGS_UPDATE
+  LOCALE
 }
 
 type StoreUpdateOperationResult {
   type: StoreUpdateOperationType!
   applied: Boolean!
-  errors: [UserError!]!
+  """
+  Global ID of the affected owned entity when the operation addresses one.
+  """
+  entityId: ID
+  errors: [GenericUserError!]!
 }

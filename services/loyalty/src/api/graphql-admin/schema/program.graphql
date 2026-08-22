@@ -187,11 +187,188 @@ input LoyaltyProgramCreateInput {
 }
 
 input LoyaltyProgramUpdateInput {
-  programId: ID!
+  fields: LoyaltyProgramFieldsInput
+  versions: [LoyaltyProgramVersionOperationInput!]
+}
+
+input LoyaltyProgramFieldsInput {
   name: String
   status: LoyaltyProgramStatus
   isDefault: Boolean
   metadata: JSON
+}
+
+input LoyaltyProgramVersionOperationInput {
+  action: LoyaltyProgramVersionOperationAction!
+  programVersionId: ID
+  create: LoyaltyProgramVersionCreateOperationValuesInput
+  update: LoyaltyProgramVersionUpdateOperationValuesInput
+  publish: LoyaltyProgramVersionPublishOperationValuesInput
+}
+
+enum LoyaltyProgramVersionOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+  PUBLISH
+}
+
+input LoyaltyProgramVersionCreateOperationValuesInput {
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  earningEnabled: Boolean = true
+  redemptionEnabled: Boolean = true
+  activationDelaySeconds: Int = 0
+  pointsExpiryDays: Int
+  earnPoints: BigInt!
+  earnAmountMinor: BigInt!
+  minimumEligibleAmountMinor: BigInt = "0"
+  redeemPoints: BigInt!
+  redeemAmountMinor: BigInt!
+  minimumRedeemPoints: BigInt = "1"
+  maximumRedeemPointsPerOrder: BigInt
+  maximumOrderPercentageBps: Int = 10000
+  roundingMode: LoyaltyRoundingMode = DOWN
+  refundPolicy: LoyaltyRefundPolicy = PROPORTIONAL
+  debtPolicy: LoyaltyDebtPolicy = TRACK_DEBT
+  restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy = ORIGINAL_EXPIRY
+  rulesSchemaVersion: Int = 1
+  rules: LoyaltyProgramRulesInput!
+  earningRules: [LoyaltyEarningRuleInput!]! = []
+  rewardDefinitions: [LoyaltyRewardDefinitionInput!]! = []
+  tierPolicy: LoyaltyTierPolicyInput
+  tiers: [LoyaltyTierInput!]
+}
+
+input LoyaltyProgramVersionUpdateOperationValuesInput {
+  effectiveFrom: DateTime
+  effectiveTo: DateTime
+  clearEffectiveTo: Boolean = false
+  earningEnabled: Boolean
+  redemptionEnabled: Boolean
+  activationDelaySeconds: Int
+  pointsExpiryDays: Int
+  clearPointsExpiryDays: Boolean = false
+  earnPoints: BigInt
+  earnAmountMinor: BigInt
+  minimumEligibleAmountMinor: BigInt
+  redeemPoints: BigInt
+  redeemAmountMinor: BigInt
+  minimumRedeemPoints: BigInt
+  maximumRedeemPointsPerOrder: BigInt
+  clearMaximumRedeemPointsPerOrder: Boolean = false
+  maximumOrderPercentageBps: Int
+  roundingMode: LoyaltyRoundingMode
+  refundPolicy: LoyaltyRefundPolicy
+  debtPolicy: LoyaltyDebtPolicy
+  restoredPointsExpiryPolicy: LoyaltyRestoredPointsExpiryPolicy
+  rules: LoyaltyProgramRulesInput
+  earningRules: [LoyaltyEarningRuleOperationInput!]
+  rewardDefinitions: [LoyaltyRewardDefinitionOperationInput!]
+  tierPolicy: LoyaltyTierPolicyOperationInput
+  tiers: [LoyaltyTierOperationInput!]
+}
+
+input LoyaltyProgramVersionPublishOperationValuesInput {
+  effectiveFrom: DateTime!
+  effectiveTo: DateTime
+}
+
+enum LoyaltyOwnedEntityOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+input LoyaltyEarningRuleOperationInput {
+  action: LoyaltyOwnedEntityOperationAction!
+  earningRuleId: ID
+  create: LoyaltyEarningRuleInput
+  update: LoyaltyEarningRuleUpdateOperationValuesInput
+}
+
+input LoyaltyEarningRuleUpdateOperationValuesInput {
+  name: String
+  priority: Int
+  triggerType: LoyaltyEarningTriggerType
+  triggerSchemaVersion: Int
+  triggerConfig: JSON
+  conditionSchemaVersion: Int
+  conditions: JSON
+  actionType: LoyaltyEarningActionType
+  actionSchemaVersion: Int
+  action: JSON
+  limitSchemaVersion: Int
+  limits: JSON
+  stopProcessing: Boolean
+}
+
+input LoyaltyRewardDefinitionOperationInput {
+  action: LoyaltyOwnedEntityOperationAction!
+  rewardDefinitionId: ID
+  create: LoyaltyRewardDefinitionInput
+  update: LoyaltyRewardDefinitionUpdateOperationValuesInput
+}
+
+input LoyaltyRewardDefinitionUpdateOperationValuesInput {
+  name: String
+  rewardType: LoyaltyRewardType
+  configurationSchemaVersion: Int
+  configuration: JSON
+  validityDays: Int
+  clearValidityDays: Boolean = false
+  startsAt: DateTime
+  clearStartsAt: Boolean = false
+  endsAt: DateTime
+  clearEndsAt: Boolean = false
+  issuanceLimit: BigInt
+  clearIssuanceLimit: Boolean = false
+  perAccountLimit: BigInt
+  clearPerAccountLimit: Boolean = false
+}
+
+input LoyaltyTierPolicyOperationInput {
+  action: LoyaltyTierPolicyOperationAction!
+  values: LoyaltyTierPolicyInput
+}
+
+enum LoyaltyTierPolicyOperationAction {
+  UPSERT
+  DELETE
+}
+
+input LoyaltyTierOperationInput {
+  action: LoyaltyOwnedEntityOperationAction!
+  tierId: ID
+  create: LoyaltyTierInput
+  update: LoyaltyTierUpdateOperationValuesInput
+}
+
+input LoyaltyTierUpdateOperationValuesInput {
+  name: String
+  rank: Int
+  qualificationSchemaVersion: Int
+  qualification: JSON
+  maintenance: JSON
+  clearMaintenance: Boolean = false
+  rewardBenefits: [LoyaltyTierRewardBenefitOperationInput!]
+}
+
+input LoyaltyTierRewardBenefitOperationInput {
+  action: LoyaltyTierRewardBenefitOperationAction!
+  tierRewardBenefitId: ID
+  create: LoyaltyTierRewardBenefitCreateOperationValuesInput
+}
+
+enum LoyaltyTierRewardBenefitOperationAction {
+  CREATE
+  DELETE
+}
+
+input LoyaltyTierRewardBenefitCreateOperationValuesInput {
+  rewardDefinitionId: ID!
+  grantPolicySchemaVersion: Int = 1
+  grantPolicy: JSON! = { type: "ON_QUALIFICATION" }
 }
 
 input LoyaltyProgramVersionCreateInput {
@@ -335,6 +512,7 @@ type LoyaltyProgramCreatePayload {
 
 type LoyaltyProgramUpdatePayload {
   program: LoyaltyProgram
+  operationResults: [LoyaltyOperationResult!]!
   userErrors: [LoyaltyUserError!]!
 }
 

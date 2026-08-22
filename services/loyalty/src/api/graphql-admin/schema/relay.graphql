@@ -30,3 +30,53 @@ type LoyaltyUserError implements UserError {
   code: String
   retryable: Boolean!
 }
+
+enum LoyaltyOperationType {
+  PROGRAM_FIELDS_UPDATE
+  PROGRAM_VERSION_CREATE
+  PROGRAM_VERSION_UPDATE
+  PROGRAM_VERSION_DELETE
+  PROGRAM_VERSION_PUBLISH
+  EARNING_RULE_CREATE
+  EARNING_RULE_UPDATE
+  EARNING_RULE_DELETE
+  REWARD_DEFINITION_CREATE
+  REWARD_DEFINITION_UPDATE
+  REWARD_DEFINITION_DELETE
+  TIER_POLICY_UPSERT
+  TIER_POLICY_DELETE
+  TIER_CREATE
+  TIER_UPDATE
+  TIER_DELETE
+  TIER_REWARD_BENEFIT_CREATE
+  TIER_REWARD_BENEFIT_DELETE
+  ACCOUNT_STATUS_UPDATE
+  POINTS_ADJUST
+  POINTS_CONVERT_TO_MONETARY
+  TIER_EVALUATE
+  TIER_MEMBERSHIP_REVOKE
+  REWARD_ENTITLEMENT_ISSUE
+  REWARD_ENTITLEMENT_RELEASE
+  REWARD_ENTITLEMENT_REVOKE
+  ACCOUNT_BALANCE_REBUILD
+  RESERVATION_RELEASE
+  MONETARY_WALLET_STATUS_UPDATE
+  MONETARY_WALLET_ADJUST
+  MONETARY_WALLET_BALANCE_REBUILD
+}
+
+type LoyaltyOperationResult {
+  type: LoyaltyOperationType!
+  applied: Boolean!
+  entityId: ID
+  account: LoyaltyAccount
+  reservation: LoyaltyReservation
+  monetaryWallet: LoyaltyMonetaryWallet
+  tierMembership: LoyaltyTierMembership
+  rewardEntitlement: LoyaltyRewardEntitlement
+  transaction: LoyaltyTransaction
+  pointsTransaction: LoyaltyTransaction
+  monetaryTransaction: LoyaltyMonetaryTransaction
+  amount: LoyaltyMoney
+  errors: [LoyaltyUserError!]!
+}

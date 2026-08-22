@@ -379,12 +379,16 @@ input WarehouseAssignableVariantOrderByInput {
 type InventoryMutation {
   # Warehouse mutations
   warehouseCreate(input: WarehouseCreateInput!): WarehouseCreatePayload!
-  warehouseUpdate(input: WarehouseUpdateInput!): WarehouseUpdatePayload!
-  warehouseDelete(input: WarehouseDeleteInput!): WarehouseDeletePayload!
+  warehouseUpdate(warehouseId: ID!, operations: WarehouseUpdateInput!): WarehouseUpdatePayload!
+  """
+  Coordinate ordered updates of multiple warehouse aggregates.
 
-  # Stock mutations
-  warehouseStockCreate(input: WarehouseStockCreateInput!): WarehouseStockCreatePayload!
-  warehouseStockDelete(input: WarehouseStockDeleteInput!): WarehouseStockDeletePayload!
+  Every item has the same semantics as warehouseUpdate and is executed through
+  that warehouse's durable update workflow. Request-level validation happens
+  before any item is started; execution results preserve input order.
+  """
+  warehouseBatchUpdate(input: WarehouseBatchUpdateInput!): WarehouseBatchUpdatePayload!
+  warehouseDelete(warehouseId: ID!): WarehouseDeletePayload!
 }
 
 type CatalogMutation {
@@ -392,11 +396,10 @@ type CatalogMutation {
     input: ProductOptionCategoryCreateInput!
   ): ProductOptionCategoryCreatePayload!
   productOptionCategoryUpdate(
-    input: ProductOptionCategoryUpdateInput!
+    categoryId: ID!
+    operations: ProductOptionCategoryUpdateInput!
   ): ProductOptionCategoryUpdatePayload!
-  productOptionCategoryDelete(
-    input: ProductOptionCategoryDeleteInput!
-  ): ProductOptionCategoryDeletePayload!
+  productOptionCategoryDelete(categoryId: ID!): ProductOptionCategoryDeletePayload!
 
   # Vendor mutations
 
@@ -404,6 +407,8 @@ type CatalogMutation {
   Create a new vendor
   """
   vendorCreate(input: VendorCreateInput!): VendorCreatePayload!
+  vendorUpdate(vendorId: ID!, operations: VendorUpdateInput!): VendorUpdatePayload!
+  vendorDelete(vendorId: ID!): VendorDeletePayload!
 
   # Product mutations
 
@@ -415,7 +420,7 @@ type CatalogMutation {
   """
   Delete an existing product
   """
-  productDelete(input: ProductDeleteInput!): ProductDeletePayload!
+  productDelete(productId: ID!, permanent: Boolean): ProductDeletePayload!
 
   """
   Unified product update.
@@ -429,7 +434,7 @@ type CatalogMutation {
     """
     Product-level operations.
     """
-    operations: ProductUpdateInput
+    operations: ProductUpdateInput!
   ): ProductUpdatePayload!
 
   # Category mutations
@@ -442,73 +447,30 @@ type CatalogMutation {
   """
   Unified category update.
   """
-  categoryUpdate(categoryId: ID!, operations: CategoryUpdateInput): CategoryUpdatePayload!
-
-  """
-  Move a category to a new parent or position
-  """
-  categoryMove(input: CategoryMoveInput!): CategoryMovePayload!
-
-  """
-  Rebalance category tree positions
-  """
-  categoryRebalance(input: CategoryRebalanceInput!): CategoryRebalancePayload!
+  categoryUpdate(categoryId: ID!, operations: CategoryUpdateInput!): CategoryUpdatePayload!
 
   """
   Delete a category
   """
-  categoryDelete(input: CategoryDeleteInput!): CategoryDeletePayload!
+  categoryDelete(categoryId: ID!, permanent: Boolean): CategoryDeletePayload!
 
   """
   Create a collection.
 
   RULE collections are created as drafts, then receive their initial rules
-  through collectionUpdateRules.
+  through a rules operation in collectionUpdate.
   """
   collectionCreate(input: CollectionCreateInput!): CollectionCreatePayload!
 
   """
-  Update collection content, publication, schedule, media, SEO, or default sort.
-
-  This mutation does not change collection type, RULE membership, or MANUAL
-  product membership.
+  Apply ordered field, membership, rule, and rank operations to a collection.
   """
-  collectionUpdate(input: CollectionUpdateInput!): CollectionUpdatePayload!
+  collectionUpdate(collectionId: ID!, operations: CollectionUpdateInput!): CollectionUpdatePayload!
 
   """
   Soft-delete a collection.
   """
-  collectionDelete(input: CollectionDeleteInput!): CollectionDeletePayload!
-
-  """
-  Add products to a MANUAL collection.
-  """
-  collectionAddProducts(input: CollectionAddProductsInput!): CollectionAddProductsPayload!
-
-  """
-  Remove products from a MANUAL collection.
-  """
-  collectionRemoveProducts(input: CollectionRemoveProductsInput!): CollectionRemoveProductsPayload!
-
-  """
-  Reorder one product within a MANUAL collection.
-  """
-  collectionMoveProduct(input: CollectionMoveProductInput!): CollectionMoveProductPayload!
-
-  """
-  Atomically replace the complete, AND-combined rule set of a RULE collection.
-  """
-  collectionUpdateRules(input: CollectionUpdateRulesInput!): CollectionUpdateRulesPayload!
-
-  """
-  Repair MANUAL collection rank spacing without changing visible product order.
-  """
-  collectionRebalance(input: CollectionRebalanceInput!): CollectionRebalancePayload!
-
-  """
-  Remove every product from a MANUAL collection.
-  """
-  collectionClearProducts(input: CollectionClearProductsInput!): CollectionClearProductsPayload!
+  collectionDelete(collectionId: ID!): CollectionDeletePayload!
 
   """
   Validate and count a transient rule set against the current Listing index.
@@ -530,12 +492,12 @@ type CatalogMutation {
   """
   Update an existing tag
   """
-  tagUpdate(input: TagUpdateInput!): TagUpdatePayload!
+  tagUpdate(tagId: ID!, operations: TagUpdateInput!): TagUpdatePayload!
 
   """
   Delete a tag
   """
-  tagDelete(input: TagDeleteInput!): TagDeletePayload!
+  tagDelete(tagId: ID!): TagDeletePayload!
 
   # Bulk update mutations
   """

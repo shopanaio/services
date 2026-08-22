@@ -87,11 +87,6 @@ Input for updating a tag.
 """
 input TagUpdateInput {
   """
-  The ID of the tag to update.
-  """
-  id: ID!
-
-  """
   The URL-friendly handle for the tag.
   """
   handle: String
@@ -100,16 +95,6 @@ input TagUpdateInput {
   The display name of the tag.
   """
   name: String
-}
-
-"""
-Input for deleting a tag.
-"""
-input TagDeleteInput {
-  """
-  The ID of the tag to delete.
-  """
-  id: ID!
 }
 
 # ---- Tag Payloads ----
@@ -137,6 +122,8 @@ type TagUpdatePayload {
   The updated tag.
   """
   tag: Tag
+
+  operationResults: [OperationResult!]!
 
   """
   List of errors that occurred during the mutation.

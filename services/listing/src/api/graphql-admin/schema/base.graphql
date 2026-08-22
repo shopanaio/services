@@ -147,55 +147,25 @@ type ListingMutation {
   """
   Update an existing facet.
   """
-  facetUpdate(input: FacetUpdateInput!): FacetUpdatePayload!
+  facetUpdate(facetId: ID!, operations: FacetUpdateInput!): FacetUpdatePayload!
 
   """
-  Atomically replace scopes for multiple facets.
-  No updates are applied when any input item is invalid.
+  Atomically replace scopes for several facets.
+
+  This is a store-wide configuration command rather than a write to one facet
+  aggregate; see the Listing facets architecture decision.
   """
   facetScopesUpdate(input: FacetScopesUpdateInput!): FacetScopesUpdatePayload!
 
   """
+  Repair the store-wide facet rank sequence without changing visible order.
+  """
+  facetRebalance(confirm: Boolean = true): FacetRebalancePayload!
+
+  """
   Delete a facet.
   """
-  facetDelete(input: FacetDeleteInput!): FacetDeletePayload!
-
-  """
-  Move a facet before or after another facet.
-  """
-  facetMove(input: FacetMoveInput!): FacetMovePayload!
-
-  """
-  Rebalance facet lexo ranks.
-  """
-  facetRebalance(input: FacetRebalanceInput!): FacetRebalancePayload!
-
-  """
-  Create a new facet value.
-  """
-  facetValueCreate(input: FacetValueCreateInput!): FacetValueCreatePayload!
-
-  """
-  Update an existing facet value.
-  """
-  facetValueUpdate(input: FacetValueUpdateInput!): FacetValueUpdatePayload!
-
-  """
-  Attach source facet values to an existing or newly-created group value.
-  This is the only mutation that merges source values into a group value.
-  """
-  facetValueMerge(input: FacetValueMergeInput!): FacetValueMergePayload!
-
-  """
-  Detach source facet values from their group value and make them root values.
-  This is the only mutation that unmerges source values.
-  """
-  facetValueUnmerge(input: FacetValueUnmergeInput!): FacetValueUnmergePayload!
-
-  """
-  Delete a facet value.
-  """
-  facetValueDelete(input: FacetValueDeleteInput!): FacetValueDeletePayload!
+  facetDelete(facetId: ID!): FacetDeletePayload!
 
   """
   Create a new facet swatch.
@@ -205,10 +175,13 @@ type ListingMutation {
   """
   Update an existing facet swatch.
   """
-  facetSwatchUpdate(input: FacetSwatchUpdateInput!): FacetSwatchUpdatePayload!
+  facetSwatchUpdate(
+    facetSwatchId: ID!
+    operations: FacetSwatchUpdateInput!
+  ): FacetSwatchUpdatePayload!
 
   """
   Delete a facet swatch.
   """
-  facetSwatchDelete(input: FacetSwatchDeleteInput!): FacetSwatchDeletePayload!
+  facetSwatchDelete(facetSwatchId: ID!): FacetSwatchDeletePayload!
 }

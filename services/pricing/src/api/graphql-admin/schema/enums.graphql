@@ -125,7 +125,7 @@ enum DiscountExternalSyncStatus {
 }
 
 """
-Sections executed by the unified discountUpdate workflow.
+Stable result types emitted by the unified discountUpdate workflow.
 """
 enum DiscountOperationType {
   DEFINITION_UPDATE
@@ -134,11 +134,15 @@ enum DiscountOperationType {
   MINIMUM_REQUIREMENT_UPDATE
   TARGETS_UPDATE
   ELIGIBILITY_UPDATE
-  CODES_UPDATE
+  CODE_CREATE
+  CODE_UPDATE
+  CODE_DELETE
   TAGS_UPDATE
   CHANNELS_UPDATE
   COMBINATIONS_UPDATE
   LIFECYCLE_UPDATE
   METADATA_UPDATE
+  EXTERNAL_REFERENCE_CREATE
   EXTERNAL_REFERENCE_UPDATE
+  EXTERNAL_REFERENCE_DELETE
 }

@@ -17,77 +17,20 @@ type Locale {
 }
 
 """
-Input for creating a new locale
+Operation on a locale owned by the store. The order of items in this list is
+preserved by storeUpdate.
 """
-input LocaleCreateInput {
-  """
-  BCP 47 locale code to add
-  """
+input StoreLocaleOperationInput {
+  action: StoreLocaleOperationAction!
   code: LocaleCode!
   """
-  Whether the locale should be active upon creation
+  Required for CREATE; ignored by DELETE and SET_DEFAULT.
   """
-  isActive: Boolean!
+  isActive: Boolean
 }
 
-"""
-Input for deleting a locale
-"""
-input LocaleDeleteInput {
-  """
-  BCP 47 locale code to delete
-  """
-  code: LocaleCode!
-}
-
-"""
-Input for setting the default locale
-"""
-input LocaleSetDefaultInput {
-  """
-  BCP 47 locale code to set as default
-  """
-  locale: LocaleCode!
-}
-
-"""
-Payload returned after creating a locale
-"""
-type LocaleCreatePayload {
-  """
-  The newly created locale, null if creation failed
-  """
-  locale: Locale
-  """
-  List of errors that occurred during creation
-  """
-  userErrors: [UserError!]!
-}
-
-"""
-Payload returned after deleting a locale
-"""
-type LocaleDeletePayload {
-  """
-  The code of the deleted locale, null if deletion failed
-  """
-  deletedLocaleCode: LocaleCode
-  """
-  List of errors that occurred during deletion
-  """
-  userErrors: [UserError!]!
-}
-
-"""
-Payload returned after updating locale settings
-"""
-type LocaleUpdatePayload {
-  """
-  Whether the update was successful
-  """
-  success: Boolean!
-  """
-  List of errors that occurred during update
-  """
-  userErrors: [UserError!]!
+enum StoreLocaleOperationAction {
+  CREATE
+  DELETE
+  SET_DEFAULT
 }

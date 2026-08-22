@@ -33,17 +33,26 @@ type ListingSearchMutation {
   Update the store-level search settings.
   """
   settingsUpdate(
+    searchSettingsId: ID!
     """
     Operations to apply.
     """
     operations: SearchSettingsOperationsInput!
   ): SearchSettingsUpdatePayload!
   synonymGroupCreate(input: SearchSynonymGroupCreateInput!): SearchSynonymGroupPayload!
-  synonymGroupUpdate(input: SearchSynonymGroupUpdateInput!): SearchSynonymGroupPayload!
-  synonymGroupDelete(input: SearchConfigurationDeleteInput!): SearchSynonymGroupPayload!
+  synonymGroupUpdate(
+    synonymGroupId: ID!
+    operations: SearchSynonymGroupUpdateInput!
+  ): SearchSynonymGroupUpdatePayload!
+  synonymGroupDelete(
+    synonymGroupId: ID!
+  ): SearchSynonymGroupDeletePayload!
   productBoostCreate(input: SearchProductBoostCreateInput!): SearchProductBoostPayload!
-  productBoostUpdate(input: SearchProductBoostUpdateInput!): SearchProductBoostPayload!
-  productBoostDelete(input: SearchConfigurationDeleteInput!): SearchProductBoostPayload!
+  productBoostUpdate(
+    productBoostId: ID!
+    operations: SearchProductBoostUpdateInput!
+  ): SearchProductBoostUpdatePayload!
+  productBoostDelete(productBoostId: ID!): SearchProductBoostDeletePayload!
 }
 
 type SearchSynonymGroup {
@@ -220,6 +229,7 @@ type SearchExplainFieldWeight {
 }
 
 type SearchSettings {
+  id: ID!
   fields: [SearchFieldConfiguration!]!
   typoToleranceEnabled: Boolean!
   outOfStockPolicy: SearchOutOfStockPolicy!
@@ -249,10 +259,6 @@ input SearchFieldConfigurationInput {
   weight: Float!
 }
 
-input SearchConfigurationDeleteInput {
-  id: ID!
-}
-
 input SearchSynonymGroupCreateInput {
   locale: LocaleCode!
   name: String!
@@ -261,7 +267,6 @@ input SearchSynonymGroupCreateInput {
 }
 
 input SearchSynonymGroupUpdateInput {
-  id: ID!
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
@@ -277,7 +282,6 @@ input SearchProductBoostCreateInput {
 }
 
 input SearchProductBoostUpdateInput {
-  id: ID!
   locale: LocaleCode!
   name: String!
   enabled: Boolean!
@@ -307,7 +311,51 @@ type SearchSynonymGroupPayload {
   userErrors: [GenericUserError!]!
 }
 
+type SearchSynonymGroupUpdatePayload {
+  synonymGroup: SearchSynonymGroup
+  operationResults: [SearchSynonymGroupOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type SearchSynonymGroupDeletePayload {
+  deletedSynonymGroupId: ID
+  userErrors: [GenericUserError!]!
+}
+
+enum SearchSynonymGroupOperationType {
+  FIELDS_UPDATE
+}
+
+type SearchSynonymGroupOperationResult {
+  type: SearchSynonymGroupOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
+}
+
 type SearchProductBoostPayload {
   productBoost: SearchProductBoost
   userErrors: [GenericUserError!]!
+}
+
+type SearchProductBoostUpdatePayload {
+  productBoost: SearchProductBoost
+  operationResults: [SearchProductBoostOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type SearchProductBoostDeletePayload {
+  deletedProductBoostId: ID
+  userErrors: [GenericUserError!]!
+}
+
+enum SearchProductBoostOperationType {
+  FIELDS_UPDATE
+}
+
+type SearchProductBoostOperationResult {
+  type: SearchProductBoostOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
 }

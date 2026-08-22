@@ -331,28 +331,54 @@ input DiscountUsageLimitsInput {
   appliesOncePerCustomer: Boolean!
 }
 
-input DiscountCodeCreateOperationInput {
+input DiscountCodeCreateInput {
   code: String!
   usageLimit: BigInt
   metadata: JSON
 }
 
-input DiscountCodeUpdateOperationInput {
-  codeId: ID!
+input DiscountCodeUpdateInput {
   code: String
   status: DiscountCodeStatus
   usageLimit: BigInt
   metadata: JSON
 }
 
-input DiscountCodeDeleteOperationInput {
-  codeId: ID!
+enum DiscountCodeOperationAction {
+  CREATE
+  UPDATE
+  DELETE
 }
 
-input DiscountCodesUpdateInput {
-  create: [DiscountCodeCreateOperationInput!]
-  update: [DiscountCodeUpdateOperationInput!]
-  delete: [DiscountCodeDeleteOperationInput!]
+"""
+An owned discount-code change applied as part of discountUpdate. Array order is
+part of the API contract.
+"""
+input DiscountCodeOperationInput {
+  action: DiscountCodeOperationAction!
+  codeId: ID
+  create: DiscountCodeCreateInput
+  update: DiscountCodeUpdateInput
+}
+
+enum DiscountExternalReferenceOperationAction {
+  CREATE
+  UPDATE
+  DELETE
+}
+
+"""
+An owned external-reference change applied as part of discountUpdate.
+
+CREATE requires create. UPDATE requires externalReferenceId and update. DELETE
+requires externalReferenceId; permanent selects physical deletion.
+"""
+input DiscountExternalReferenceOperationInput {
+  action: DiscountExternalReferenceOperationAction!
+  externalReferenceId: ID
+  create: DiscountExternalReferenceCreateValuesInput
+  update: DiscountExternalReferenceUpdateInput
+  permanent: Boolean = false
 }
 
 input DiscountCreateInput {
@@ -378,7 +404,7 @@ input DiscountCreateInput {
   minimumRequirement: DiscountMinimumRequirementInput
   targetSelections: [DiscountTargetSelectionInput!]
   buyerContext: DiscountBuyerContextInput
-  codes: [DiscountCodeCreateOperationInput!]
+  codes: [DiscountCodeCreateInput!]
   tags: [String!]
   channels: [DiscountChannelInput!]
   combinesWith: [DiscountClass!]
@@ -420,7 +446,7 @@ input DiscountUpdateInput {
   """
   targetSelections: [DiscountTargetSelectionInput!]
   eligibility: DiscountBuyerContextInput
-  codes: DiscountCodesUpdateInput
+  codes: [DiscountCodeOperationInput!]
   """
   Complete tag replacement when supplied. Empty removes every tag.
   """
@@ -435,10 +461,10 @@ input DiscountUpdateInput {
   combinesWith: [DiscountClass!]
   lifecycle: DiscountLifecycleUpdateInput
   metadata: JSON
-}
-
-input DiscountDeleteInput {
-  id: ID!
+  """
+  Ordered owned external-reference operations. Their array order is preserved.
+  """
+  externalReferences: [DiscountExternalReferenceOperationInput!]
 }
 
 """
@@ -447,6 +473,7 @@ Result of one section in a discount aggregate update.
 type DiscountOperationResult {
   type: DiscountOperationType!
   applied: Boolean!
+  entityId: ID
   errors: [GenericUserError!]!
 }
 

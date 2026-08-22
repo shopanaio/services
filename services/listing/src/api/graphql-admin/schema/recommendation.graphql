@@ -69,7 +69,7 @@ type ManualProductRecommendationConnection {
   pageInfo: PageInfo!
 }
 
-input RecommendationPlacementPolicyUpsertInput {
+input RecommendationPlacementPolicyCreateInput {
   placement: RecommendationPlacement!
   strategy: RecommendationStrategy!
   minimumResults: Int!
@@ -77,14 +77,34 @@ input RecommendationPlacementPolicyUpsertInput {
   fallbackChain: [String!]!
 }
 
-input RecommendationPlacementPolicySetEnabledInput {
-  placement: RecommendationPlacement!
-  enabled: Boolean!
+input RecommendationPlacementPolicyUpdateInput {
+  enabled: Boolean
+  strategy: RecommendationStrategy
+  minimumResults: Int
+  maximumResults: Int
+  fallbackChain: [String!]
 }
 
 type RecommendationPlacementPolicyPayload {
   policy: RecommendationPlacementPolicy
-  userErrors: [UserError!]!
+  userErrors: [GenericUserError!]!
+}
+
+type RecommendationPlacementPolicyUpdatePayload {
+  policy: RecommendationPlacementPolicy
+  operationResults: [RecommendationPlacementPolicyOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+enum RecommendationPlacementPolicyOperationType {
+  FIELDS_UPDATE
+}
+
+type RecommendationPlacementPolicyOperationResult {
+  type: RecommendationPlacementPolicyOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
 }
 
 input ManualProductRecommendationCreateInput {
@@ -100,7 +120,6 @@ input ManualProductRecommendationCreateInput {
 }
 
 input ManualProductRecommendationUpdateInput {
-  id: ID!
   targetProductId: ID
   action: ManualRecommendationAction
   position: Int
@@ -110,18 +129,31 @@ input ManualProductRecommendationUpdateInput {
   endsAt: DateTime
 }
 
-input ManualProductRecommendationDeleteInput {
-  id: ID!
-}
-
 type ManualProductRecommendationPayload {
   recommendation: ManualProductRecommendation
-  userErrors: [UserError!]!
+  userErrors: [GenericUserError!]!
+}
+
+type ManualProductRecommendationUpdatePayload {
+  recommendation: ManualProductRecommendation
+  operationResults: [ManualProductRecommendationOperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+enum ManualProductRecommendationOperationType {
+  FIELDS_UPDATE
+}
+
+type ManualProductRecommendationOperationResult {
+  type: ManualProductRecommendationOperationType!
+  applied: Boolean!
+  entityId: ID
+  errors: [GenericUserError!]!
 }
 
 type ManualProductRecommendationDeletePayload {
   deletedId: ID
-  userErrors: [UserError!]!
+  userErrors: [GenericUserError!]!
 }
 
 input RecommendationPlacementPolicyDraftInput {
@@ -212,7 +244,7 @@ type RecommendationPreviewResult {
 type RecommendationSnapshotPreviewPayload {
   active: RecommendationPreviewResult
   draft: RecommendationPreviewResult
-  userErrors: [UserError!]!
+  userErrors: [GenericUserError!]!
 }
 
 extend type ListingQuery {
@@ -230,19 +262,21 @@ extend type ListingQuery {
 }
 
 extend type ListingMutation {
-  recommendationPlacementPolicyUpsert(
-    input: RecommendationPlacementPolicyUpsertInput!
+  recommendationPlacementPolicyCreate(
+    input: RecommendationPlacementPolicyCreateInput!
   ): RecommendationPlacementPolicyPayload!
-  recommendationPlacementPolicySetEnabled(
-    input: RecommendationPlacementPolicySetEnabledInput!
-  ): RecommendationPlacementPolicyPayload!
+  recommendationPlacementPolicyUpdate(
+    recommendationPlacementPolicyId: ID!
+    operations: RecommendationPlacementPolicyUpdateInput!
+  ): RecommendationPlacementPolicyUpdatePayload!
   manualProductRecommendationCreate(
     input: ManualProductRecommendationCreateInput!
   ): ManualProductRecommendationPayload!
   manualProductRecommendationUpdate(
-    input: ManualProductRecommendationUpdateInput!
-  ): ManualProductRecommendationPayload!
+    manualProductRecommendationId: ID!
+    operations: ManualProductRecommendationUpdateInput!
+  ): ManualProductRecommendationUpdatePayload!
   manualProductRecommendationDelete(
-    input: ManualProductRecommendationDeleteInput!
+    manualProductRecommendationId: ID!
   ): ManualProductRecommendationDeletePayload!
 }

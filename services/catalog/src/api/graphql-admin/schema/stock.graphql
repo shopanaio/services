@@ -228,11 +228,6 @@ Input for updating a warehouse.
 """
 input WarehouseUpdateInput {
   """
-  The ID of the warehouse to update.
-  """
-  id: ID!
-
-  """
   The new code for the warehouse.
   """
   code: String
@@ -246,6 +241,11 @@ input WarehouseUpdateInput {
   Whether this should be the default warehouse.
   """
   isDefault: Boolean
+
+  """
+  Owned warehouse-stock changes, applied in array order.
+  """
+  stock: [WarehouseStockOperationInput!]
 }
 
 """
@@ -257,6 +257,8 @@ type WarehouseUpdatePayload {
   """
   warehouse: Warehouse
 
+  operationResults: [OperationResult!]!
+
   """
   List of errors that occurred during the mutation.
   """
@@ -264,13 +266,46 @@ type WarehouseUpdatePayload {
 }
 
 """
-Input for deleting a warehouse.
+Batch coordinator input for updates spanning multiple warehouse aggregates.
+
+The request accepts at most 100 warehouses and 500 public operations in total.
+Empty operations, empty operation arrays, and requests exceeding either limit
+are rejected before any warehouse workflow is started. Repeated warehouse IDs
+are grouped into one warehouseUpdate workflow, matching product bulk-update
+semantics, while item and operation results retain their original input order.
 """
-input WarehouseDeleteInput {
-  """
-  The ID of the warehouse to delete.
-  """
-  id: ID!
+input WarehouseBatchUpdateInput {
+  warehouses: [WarehouseBatchUpdateItemInput!]!
+}
+
+"""
+One warehouse aggregate update within a batch. Items are processed and returned
+in input order. The aggregate ID remains separate from its operations.
+"""
+input WarehouseBatchUpdateItemInput {
+  warehouseId: ID!
+  operations: WarehouseUpdateInput!
+}
+
+"""
+Result of one warehouseUpdate coordinated by warehouseBatchUpdate.
+"""
+type WarehouseBatchUpdateItemResult {
+  warehouseId: ID!
+  warehouse: Warehouse
+  operationResults: [OperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+"""
+Ordered results for a multi-warehouse update.
+
+userErrors contains request-level errors. Per-warehouse business errors are
+returned both in the corresponding result and its operationResults.
+"""
+type WarehouseBatchUpdatePayload {
+  results: [WarehouseBatchUpdateItemResult!]!
+  userErrors: [GenericUserError!]!
 }
 
 """
@@ -289,81 +324,19 @@ type WarehouseDeletePayload {
 }
 
 """
-Item input for creating variant stock in a warehouse.
+An owned warehouse-stock operation. The warehouse is identified by the parent
+`warehouseUpdate` argument, so it is deliberately not repeated here.
 """
-input WarehouseStockCreateItemInput {
+input WarehouseStockOperationInput {
+  action: WarehouseStockOperationAction!
+
   """
   The variant whose stock should be added.
   """
   variantId: ID!
-
-  """
-  The warehouse to add stock to.
-  """
-  warehouseId: ID!
 }
 
-"""
-Input for creating variant stock in warehouses.
-"""
-input WarehouseStockCreateInput {
-  """
-  Stock records to create.
-  """
-  items: [WarehouseStockCreateItemInput!]!
-}
-
-"""
-Payload for warehouse stock creation.
-"""
-type WarehouseStockCreatePayload {
-  """
-  The created warehouse stock records.
-  """
-  warehouseStocks: [WarehouseStock!]!
-
-  """
-  List of errors that occurred during the mutation.
-  """
-  userErrors: [GenericUserError!]!
-}
-
-"""
-Item input for deleting variant stock from a warehouse.
-"""
-input WarehouseStockDeleteItemInput {
-  """
-  The variant whose stock should be removed.
-  """
-  variantId: ID!
-
-  """
-  The warehouse to remove stock from.
-  """
-  warehouseId: ID!
-}
-
-"""
-Input for deleting variant stock from warehouses.
-"""
-input WarehouseStockDeleteInput {
-  """
-  Stock records to delete.
-  """
-  items: [WarehouseStockDeleteItemInput!]!
-}
-
-"""
-Payload for warehouse stock deletion.
-"""
-type WarehouseStockDeletePayload {
-  """
-  The IDs of the deleted warehouse stock records.
-  """
-  deletedWarehouseStockIds: [ID!]!
-
-  """
-  List of errors that occurred during the mutation.
-  """
-  userErrors: [GenericUserError!]!
+enum WarehouseStockOperationAction {
+  CREATE
+  DELETE
 }

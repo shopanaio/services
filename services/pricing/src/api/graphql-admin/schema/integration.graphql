@@ -28,8 +28,7 @@ type DiscountExternalReferenceEdge {
   cursor: String!
 }
 
-input DiscountExternalReferenceCreateInput {
-  discountId: ID!
+input DiscountExternalReferenceCreateValuesInput {
   externalSystem: String!
   externalType: String = "discount"
   externalId: String!
@@ -58,25 +57,4 @@ input DiscountExternalReferenceSyncInput {
 input DiscountExternalReferenceUpdateInput {
   identity: DiscountExternalReferenceIdentityInput
   sync: DiscountExternalReferenceSyncInput
-}
-
-input DiscountExternalReferenceDeleteInput {
-  id: ID!
-  permanent: Boolean = false
-}
-
-type DiscountExternalReferenceCreatePayload {
-  externalReference: DiscountExternalReference
-  userErrors: [GenericUserError!]!
-}
-
-type DiscountExternalReferenceUpdatePayload {
-  externalReference: DiscountExternalReference
-  operationResults: [DiscountOperationResult!]!
-  userErrors: [GenericUserError!]!
-}
-
-type DiscountExternalReferenceDeletePayload {
-  deletedExternalReferenceId: ID
-  userErrors: [GenericUserError!]!
 }

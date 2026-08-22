@@ -61,13 +61,21 @@ input LoyaltyReservationWhereInput {
   createdTo: DateTime
 }
 
-input LoyaltyReservationReleaseInput {
-  reservationId: ID!
+input LoyaltyReservationUpdateInput {
+  releases: [LoyaltyReservationReleaseOperationInput!]
+}
+
+enum LoyaltyReservationOperationAction {
+  RELEASE
+}
+
+input LoyaltyReservationReleaseOperationInput {
+  action: LoyaltyReservationOperationAction!
   reasonCode: String!
 }
 
-type LoyaltyReservationReleasePayload {
+type LoyaltyReservationUpdatePayload {
   reservation: LoyaltyReservation
-  transaction: LoyaltyTransaction
+  operationResults: [LoyaltyOperationResult!]!
   userErrors: [LoyaltyUserError!]!
 }

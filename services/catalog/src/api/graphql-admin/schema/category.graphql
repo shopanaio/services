@@ -251,13 +251,6 @@ input CategoryMediaInput {
   fileIds: [ID!]!
 }
 
-input CategoryHierarchyInput {
-  """
-  The new parent category ID, or null for root.
-  """
-  parentId: ID
-}
-
 input CategorySortInput {
   """
   Default product sort for this category PLP.
@@ -279,6 +272,12 @@ enum CategoryStatus {
 Input for updating a category through section-based operations.
 """
 input CategoryUpdateInput {
+  fields: CategoryFieldsInput
+  hierarchy: [CategoryHierarchyOperationInput!]
+  comparisonProfile: [CategoryComparisonProfileOperationInput!]
+}
+
+input CategoryFieldsInput {
   """
   The URL-friendly handle for the category.
   """
@@ -310,48 +309,28 @@ input CategoryUpdateInput {
   media: CategoryMediaInput
 
   """
-  Hierarchy move.
-  """
-  hierarchy: CategoryHierarchyInput
-
-  """
   PLP sort preferences.
   """
   sort: CategorySortInput
 }
 
-"""
-Input for moving a category in the hierarchy.
-"""
-input CategoryMoveInput {
-  """
-  The ID of the category to move.
-  """
-  id: ID!
-
-  """
-  The new parent category ID, or null for root.
-  """
-  newParentId: ID
+enum CategoryHierarchyOperationAction {
+  MOVE
+  REBALANCE
 }
 
-"""
-Input for deleting a category.
-"""
-input CategoryDeleteInput {
-  """
-  The ID of the category to delete.
-  """
-  id: ID!
-
-  """
-  Whether to permanently delete (hard delete).
-  """
-  permanent: Boolean
+input CategoryHierarchyOperationInput {
+  action: CategoryHierarchyOperationAction!
+  parentId: ID
 }
 
-input CategoryRebalanceInput {
-  categoryId: ID!
+input CategoryComparisonProfileOperationInput {
+  action: CategoryComparisonProfileOperationAction!
+  profileId: ID
+}
+
+enum CategoryComparisonProfileOperationAction {
+  SET
 }
 
 # ---- Category Payloads ----
@@ -392,21 +371,6 @@ type CategoryUpdatePayload {
 }
 
 """
-Payload for category move.
-"""
-type CategoryMovePayload {
-  """
-  The moved category.
-  """
-  category: Category
-
-  """
-  List of errors that occurred during the mutation.
-  """
-  userErrors: [GenericUserError!]!
-}
-
-"""
 Payload for category deletion.
 """
 type CategoryDeletePayload {
@@ -418,10 +382,5 @@ type CategoryDeletePayload {
   """
   List of errors that occurred during the mutation.
   """
-  userErrors: [GenericUserError!]!
-}
-
-type CategoryRebalancePayload {
-  category: Category
   userErrors: [GenericUserError!]!
 }

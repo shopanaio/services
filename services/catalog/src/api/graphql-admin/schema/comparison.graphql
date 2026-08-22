@@ -12,15 +12,12 @@ extend type CatalogQuery {
 }
 
 extend type CatalogMutation {
-  comparisonProfileCreate(input: ComparisonProfileCreateInput!): ComparisonProfilePayload!
-  comparisonProfileUpdate(input: ComparisonProfileUpdateInput!): ComparisonProfilePayload!
-  comparisonProfileDelete(input: ComparisonProfileDeleteInput!): ComparisonProfileDeletePayload!
-  categoryComparisonProfileSet(
-    input: CategoryComparisonProfileSetInput!
-  ): CategoryComparisonProfilePayload!
-  productComparisonConfigurationSync(
-    input: ProductComparisonConfigurationSyncInput!
-  ): ProductComparisonConfigurationPayload!
+  comparisonProfileCreate(input: ComparisonProfileCreateInput!): ComparisonProfileCreatePayload!
+  comparisonProfileUpdate(
+    comparisonProfileId: ID!
+    operations: ComparisonProfileUpdateInput!
+  ): ComparisonProfileUpdatePayload!
+  comparisonProfileDelete(comparisonProfileId: ID!): ComparisonProfileDeletePayload!
 }
 
 type ComparisonProfile implements Node @key(fields: "id") {
@@ -158,7 +155,15 @@ input ComparisonProfileCreateInput {
   groups: [ComparisonGroupCreateInput!]!
 }
 input ComparisonProfileUpdateInput {
-  id: ID!
+  definition: ComparisonProfileDefinitionInput
+}
+
+"""
+Replaces the comparison-profile definition as one aggregate operation. The
+nested groups, fields, and enum options are owned by the profile and cannot be
+mutated through separate public endpoints.
+"""
+input ComparisonProfileDefinitionInput {
   handle: String!
   enabled: Boolean!
   name: String!
@@ -214,16 +219,12 @@ input ComparisonFieldOptionInput {
   name: String!
   sortIndex: Int!
 }
-input ComparisonProfileDeleteInput {
-  id: ID!
-}
-input CategoryComparisonProfileSetInput {
-  categoryId: ID!
-  profileId: ID
+enum ProductComparisonConfigurationOperationAction {
+  SYNC
 }
 
-input ProductComparisonConfigurationSyncInput {
-  productId: ID!
+input ProductComparisonConfigurationOperationInput {
+  action: ProductComparisonConfigurationOperationAction!
   profileId: ID!
   mappings: [ProductComparisonFieldMappingInput!]!
 }
@@ -260,20 +261,17 @@ input ProductComparisonNormalizedValueInput {
   fieldOptionId: ID
 }
 
-type ComparisonProfilePayload {
+type ComparisonProfileCreatePayload {
   profile: ComparisonProfile
+  userErrors: [GenericUserError!]!
+}
+
+type ComparisonProfileUpdatePayload {
+  profile: ComparisonProfile
+  operationResults: [OperationResult!]!
   userErrors: [GenericUserError!]!
 }
 type ComparisonProfileDeletePayload {
   deletedComparisonProfileId: ID
-  userErrors: [GenericUserError!]!
-}
-type CategoryComparisonProfilePayload {
-  category: Category
-  effectiveComparisonProfile: ComparisonProfile
-  userErrors: [GenericUserError!]!
-}
-type ProductComparisonConfigurationPayload {
-  configuration: ProductComparisonConfiguration
   userErrors: [GenericUserError!]!
 }

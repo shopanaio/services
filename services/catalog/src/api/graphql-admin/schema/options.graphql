@@ -77,18 +77,14 @@ type ProductOptionCategoryCreatePayload {
 }
 
 input ProductOptionCategoryUpdateInput {
-  id: ID!
   name: String
   slug: String
 }
 
 type ProductOptionCategoryUpdatePayload {
   category: ProductOptionCategory
+  operationResults: [OperationResult!]!
   userErrors: [GenericUserError!]!
-}
-
-input ProductOptionCategoryDeleteInput {
-  id: ID!
 }
 
 type ProductOptionCategoryDeletePayload {

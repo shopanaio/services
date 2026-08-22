@@ -96,72 +96,22 @@ type LoyaltyQuery {
 
 type LoyaltyMutation {
   programCreate(input: LoyaltyProgramCreateInput!): LoyaltyProgramCreatePayload!
-  programUpdate(input: LoyaltyProgramUpdateInput!): LoyaltyProgramUpdatePayload!
-  programVersionCreate(
-    input: LoyaltyProgramVersionCreateInput!
-  ): LoyaltyProgramVersionCreatePayload!
-  programVersionPublish(
-    input: LoyaltyProgramVersionPublishInput!
-  ): LoyaltyProgramVersionPublishPayload!
-  programVersionUpdate(
-    input: LoyaltyProgramVersionUpdateInput!
-  ): LoyaltyProgramVersionUpdatePayload!
-  programVersionDelete(
-    input: LoyaltyProgramVersionDeleteInput!
-  ): LoyaltyProgramVersionDeletePayload!
-
-  earningRuleCreate(input: LoyaltyEarningRuleCreateInput!): LoyaltyEarningRulePayload!
-  earningRuleUpdate(input: LoyaltyEarningRuleUpdateInput!): LoyaltyEarningRulePayload!
-  earningRuleDelete(input: LoyaltyEarningRuleDeleteInput!): LoyaltyDeletePayload!
-  rewardDefinitionCreate(
-    input: LoyaltyRewardDefinitionCreateInput!
-  ): LoyaltyRewardDefinitionPayload!
-  rewardDefinitionUpdate(
-    input: LoyaltyRewardDefinitionUpdateInput!
-  ): LoyaltyRewardDefinitionPayload!
-  rewardDefinitionDelete(input: LoyaltyRewardDefinitionDeleteInput!): LoyaltyDeletePayload!
-  tierPolicyUpsert(input: LoyaltyTierPolicyUpsertInput!): LoyaltyTierPolicyPayload!
-  tierPolicyDelete(input: LoyaltyTierPolicyDeleteInput!): LoyaltyDeletePayload!
-  tierCreate(input: LoyaltyTierCreateInput!): LoyaltyTierPayload!
-  tierUpdate(input: LoyaltyTierUpdateInput!): LoyaltyTierPayload!
-  tierDelete(input: LoyaltyTierDeleteInput!): LoyaltyDeletePayload!
-  tierRewardBenefitCreate(
-    input: LoyaltyTierRewardBenefitCreateInput!
-  ): LoyaltyTierRewardBenefitPayload!
-  tierRewardBenefitDelete(input: LoyaltyTierRewardBenefitDeleteInput!): LoyaltyDeletePayload!
-
-  accountStatusUpdate(input: LoyaltyAccountStatusUpdateInput!): LoyaltyAccountStatusUpdatePayload!
-  pointsAdjust(input: LoyaltyPointsAdjustInput!): LoyaltyPointsAdjustPayload!
-  reservationRelease(input: LoyaltyReservationReleaseInput!): LoyaltyReservationReleasePayload!
-
-  tierEvaluate(input: LoyaltyTierEvaluateInput!): LoyaltyTierEvaluatePayload!
-  tierMembershipRevoke(input: LoyaltyTierMembershipRevokeInput!): LoyaltyTierEvaluatePayload!
-
-  rewardEntitlementIssue(
-    input: LoyaltyRewardEntitlementIssueInput!
-  ): LoyaltyRewardEntitlementPayload!
-  rewardEntitlementRelease(
-    input: LoyaltyRewardEntitlementTransitionInput!
-  ): LoyaltyRewardEntitlementPayload!
-  rewardEntitlementRevoke(
-    input: LoyaltyRewardEntitlementTransitionInput!
-  ): LoyaltyRewardEntitlementPayload!
-
-  monetaryWalletStatusUpdate(
-    input: LoyaltyMonetaryWalletStatusUpdateInput!
-  ): LoyaltyMonetaryWalletPayload!
-  monetaryWalletAdjust(
-    input: LoyaltyMonetaryWalletAdjustInput!
-  ): LoyaltyMonetaryWalletOperationPayload!
-  pointsConvertToMonetary(
-    input: LoyaltyPointsConvertToMonetaryInput!
-  ): LoyaltyPointsConvertToMonetaryPayload!
+  programUpdate(
+    programId: ID!
+    operations: LoyaltyProgramUpdateInput!
+  ): LoyaltyProgramUpdatePayload!
+  accountUpdate(
+    accountId: ID!
+    operations: LoyaltyAccountUpdateInput!
+  ): LoyaltyAccountUpdatePayload!
+  reservationUpdate(
+    reservationId: ID!
+    operations: LoyaltyReservationUpdateInput!
+  ): LoyaltyReservationUpdatePayload!
+  monetaryWalletUpdate(
+    monetaryWalletId: ID!
+    operations: LoyaltyMonetaryWalletUpdateInput!
+  ): LoyaltyMonetaryWalletUpdatePayload!
 
   maintenanceRun(input: LoyaltyMaintenanceRunInput!): LoyaltyMaintenanceRunPayload!
-  accountBalanceRebuild(
-    input: LoyaltyAccountBalanceRebuildInput!
-  ): LoyaltyAccountBalanceRebuildPayload!
-  monetaryWalletBalanceRebuild(
-    input: LoyaltyMonetaryWalletBalanceRebuildInput!
-  ): LoyaltyMonetaryWalletPayload!
 }

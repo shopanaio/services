@@ -135,9 +135,9 @@ for that field; rule values are never returned as untyped JSON.
 """
 interface CollectionRule {
   """
-  Persistence ID of the current rule row. `collectionUpdateRules` replaces the
-  complete rule set, so this ID must not be used as a durable client-side draft
-  identifier across saves.
+  Persistence ID of the current rule row. The rules operation in
+  `collectionUpdate` replaces the complete rule set, so this ID must not be used
+  as a durable client-side draft identifier across saves.
   """
   id: ID!
 
@@ -511,8 +511,8 @@ type CollectionMediaItem {
 Creates a draft or published collection.
 
 RULE collections must first be created as drafts because rule persistence uses
-the `collectionUpdateRules` mutation. After rules are saved, publish the
-collection with `collectionUpdate`.
+the rules operation in `collectionUpdate`. After rules are saved, publish the
+collection with another `collectionUpdate` operation.
 """
 input CollectionCreateInput {
   handle: String!
@@ -546,7 +546,12 @@ Omitted fields remain unchanged. Null clears nullable content, SEO, or schedule
 fields where supported. Pass an empty `media` list to remove all media.
 """
 input CollectionUpdateInput {
-  id: ID!
+  fields: CollectionFieldsInput
+  products: [CollectionProductOperationInput!]
+  rules: [CollectionRulesOperationInput!]
+}
+
+input CollectionFieldsInput {
   handle: String
   name: String
   description: RichTextInput
@@ -561,40 +566,24 @@ input CollectionUpdateInput {
 }
 
 """
-One media reference. Array order in CollectionCreateInput.media or
-CollectionUpdateInput.media determines the persisted display order.
+One media reference. Array order in `CollectionCreateInput.media` or
+`CollectionFieldsInput.media` determines the persisted display order.
 """
 input CollectionMediaInput {
   fileId: ID!
 }
 
-input CollectionDeleteInput {
-  id: ID!
+enum CollectionProductOperationAction {
+  ADD
+  REMOVE
+  MOVE
+  CLEAR
+  REBALANCE
 }
 
-"""
-Adds products to a MANUAL collection. Duplicate memberships are ignored.
-"""
-input CollectionAddProductsInput {
-  collectionId: ID!
-  productIds: [ID!]!
-}
-
-"""
-Removes products from a MANUAL collection.
-"""
-input CollectionRemoveProductsInput {
-  collectionId: ID!
-  productIds: [ID!]!
-}
-
-"""
-Moves one product in a MANUAL collection. Provide at most one anchor. Omitting
-both anchors moves the product to the end.
-"""
-input CollectionMoveProductInput {
-  collectionId: ID!
-  productId: ID!
+input CollectionProductOperationInput {
+  action: CollectionProductOperationAction!
+  productId: ID
   afterProductId: ID
   beforeProductId: ID
 }
@@ -608,9 +597,13 @@ feature or option rule, at most 256 set values across all rules, and a canonical
 serialized size of 64 KiB. A published RULE collection cannot be saved with an
 empty rule list.
 """
-input CollectionUpdateRulesInput {
-  collectionId: ID!
+input CollectionRulesOperationInput {
+  action: CollectionRulesOperationAction!
   rules: [CollectionRuleInput!]!
+}
+
+enum CollectionRulesOperationAction {
+  REPLACE
 }
 
 """
@@ -622,20 +615,6 @@ input CollectionRulesPreviewCountInput {
   rules: [CollectionRuleInput!]!
 }
 
-"""
-Repairs rank spacing in a MANUAL collection without changing visible order.
-"""
-input CollectionRebalanceInput {
-  collectionId: ID!
-}
-
-"""
-Removes every product from a MANUAL collection.
-"""
-input CollectionClearProductsInput {
-  collectionId: ID!
-}
-
 # ---- Collection mutation payloads ---------------------------------------
 
 type CollectionCreatePayload {
@@ -645,41 +624,12 @@ type CollectionCreatePayload {
 
 type CollectionUpdatePayload {
   collection: Collection
+  operationResults: [OperationResult!]!
   userErrors: [GenericUserError!]!
 }
 
 type CollectionDeletePayload {
   deletedCollectionId: ID
-  userErrors: [GenericUserError!]!
-}
-
-type CollectionAddProductsPayload {
-  collection: Collection
-  userErrors: [GenericUserError!]!
-}
-
-type CollectionRemoveProductsPayload {
-  collection: Collection
-  userErrors: [GenericUserError!]!
-}
-
-type CollectionMoveProductPayload {
-  collection: Collection
-  userErrors: [GenericUserError!]!
-}
-
-type CollectionUpdateRulesPayload {
-  collection: Collection
-  userErrors: [GenericUserError!]!
-}
-
-type CollectionRebalancePayload {
-  collection: Collection
-  userErrors: [GenericUserError!]!
-}
-
-type CollectionClearProductsPayload {
-  collection: Collection
   userErrors: [GenericUserError!]!
 }
 

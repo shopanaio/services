@@ -79,24 +79,10 @@ type StoreMutation {
     """
     Store settings operations to apply
     """
-    operations: StoreUpdateInput
+    operations: StoreUpdateInput!
   ): StoreUpdatePayload!
   """
   Delete a store
   """
-  storeDelete(input: StoreDeleteInput!): StoreDeletePayload!
-
-  # Locale mutations
-  """
-  Add a new locale to the store
-  """
-  localeCreate(input: LocaleCreateInput!): LocaleCreatePayload!
-  """
-  Remove a locale from the store
-  """
-  localeDelete(input: LocaleDeleteInput!): LocaleDeletePayload!
-  """
-  Set the default locale for the store
-  """
-  localeSetDefault(input: LocaleSetDefaultInput!): LocaleUpdatePayload!
+  storeDelete(storeId: ID!): StoreDeletePayload!
 }

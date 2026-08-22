@@ -124,3 +124,29 @@ type LoyaltyPointsConvertToMonetaryPayload {
   amount: LoyaltyMoney
   userErrors: [LoyaltyUserError!]!
 }
+
+input LoyaltyMonetaryWalletUpdateInput {
+  status: LoyaltyMonetaryWalletStatusOperationInput
+  adjustments: [LoyaltyMonetaryWalletAdjustmentOperationInput!]
+  rebuildBalance: Boolean
+}
+
+input LoyaltyMonetaryWalletStatusOperationInput {
+  status: LoyaltyMonetaryWalletStatus!
+  reasonCode: String!
+}
+
+input LoyaltyMonetaryWalletAdjustmentOperationInput {
+  direction: LoyaltyMonetaryAdjustmentDirection!
+  amountMinor: BigInt!
+  reasonCode: String!
+  occurredAt: DateTime
+  expiresAt: DateTime
+  metadata: JSON
+}
+
+type LoyaltyMonetaryWalletUpdatePayload {
+  monetaryWallet: LoyaltyMonetaryWallet
+  operationResults: [LoyaltyOperationResult!]!
+  userErrors: [LoyaltyUserError!]!
+}

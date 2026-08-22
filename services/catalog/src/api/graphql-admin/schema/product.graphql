@@ -158,6 +158,21 @@ type VendorCreatePayload {
   userErrors: [GenericUserError!]!
 }
 
+input VendorUpdateInput {
+  name: String
+}
+
+type VendorUpdatePayload {
+  vendor: Vendor
+  operationResults: [OperationResult!]!
+  userErrors: [GenericUserError!]!
+}
+
+type VendorDeletePayload {
+  deletedVendorId: ID
+  userErrors: [GenericUserError!]!
+}
+
 """
 A product represents an item that can be sold.
 """
@@ -487,21 +502,6 @@ type ProductCreatePayload {
 }
 
 """
-Input for deleting a product.
-"""
-input ProductDeleteInput {
-  """
-  The ID of the product to delete.
-  """
-  id: ID!
-
-  """
-  Whether to permanently delete the product (hard delete).
-  """
-  permanent: Boolean
-}
-
-"""
 Payload for product deletion.
 """
 type ProductDeletePayload {
@@ -663,6 +663,11 @@ input ProductUpdateInput {
   Variant create, update, and delete operations.
   """
   variants: [VariantOperationInput!]
+
+  """
+  Product-owned comparison configuration operations.
+  """
+  comparisonConfiguration: [ProductComparisonConfigurationOperationInput!]
 }
 
 """
@@ -849,6 +854,24 @@ enum OperationType {
   PRODUCT_COMPONENT_PRICING_TEMPLATES_SYNC
   PRODUCT_COMPONENT_DEPENDENCY_RULES_SYNC
   CATEGORY_UPDATE
+  CATEGORY_HIERARCHY_MOVE
+  CATEGORY_HIERARCHY_REBALANCE
+  CATEGORY_COMPARISON_PROFILE_SET
+  COLLECTION_FIELDS_UPDATE
+  COLLECTION_PRODUCT_ADD
+  COLLECTION_PRODUCT_REMOVE
+  COLLECTION_PRODUCT_MOVE
+  COLLECTION_PRODUCT_CLEAR
+  COLLECTION_PRODUCT_REBALANCE
+  COLLECTION_RULES_REPLACE
+  WAREHOUSE_UPDATE
+  WAREHOUSE_STOCK_CREATE
+  WAREHOUSE_STOCK_DELETE
+  TAG_UPDATE
+  PRODUCT_OPTION_CATEGORY_UPDATE
+  COMPARISON_PROFILE_UPDATE
+  VENDOR_UPDATE
+  PRODUCT_COMPARISON_CONFIGURATION_SYNC
 }
 
 """

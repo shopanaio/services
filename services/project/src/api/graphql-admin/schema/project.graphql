@@ -162,20 +162,6 @@ input StoreCreateInput {
 }
 
 """
-Input for deleting a store
-"""
-input StoreDeleteInput {
-  """
-  ID of the store to delete
-  """
-  id: ID!
-  """
-  Organization name for authorization context
-  """
-  organizationId: ID!
-}
-
-"""
 Represents a user-facing error
 """
 interface UserError {
@@ -222,7 +208,7 @@ type StoreCreatePayload {
   """
   List of errors that occurred during creation
   """
-  userErrors: [UserError!]!
+  userErrors: [GenericUserError!]!
 }
 
 """
@@ -240,7 +226,7 @@ type StoreUpdatePayload {
   """
   Aggregated errors from all operations
   """
-  userErrors: [UserError!]!
+  userErrors: [GenericUserError!]!
 }
 
 """
@@ -254,5 +240,5 @@ type StoreDeletePayload {
   """
   List of errors that occurred during deletion
   """
-  userErrors: [UserError!]!
+  userErrors: [GenericUserError!]!
 }
